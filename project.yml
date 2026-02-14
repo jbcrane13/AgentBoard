@@ -1,0 +1,59 @@
+name: AgentBoard
+options:
+  bundleIdPrefix: com.agentboard
+  deploymentTarget:
+    macOS: "15.0"
+  xcodeVersion: "16.2"
+  createIntermediateGroups: true
+  defaultConfig: Debug
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MACOSX_DEPLOYMENT_TARGET: "15.0"
+
+packages:
+  SwiftTerm:
+    url: https://github.com/migueldeicaza/SwiftTerm
+    from: "1.0.0"
+  swift-markdown:
+    url: https://github.com/apple/swift-markdown
+    from: "0.4.0"
+
+targets:
+  AgentBoard:
+    type: application
+    platform: macOS
+    sources:
+      - path: AgentBoard
+        excludes:
+          - Resources/Preview Content
+    resources:
+      - path: AgentBoard/Resources/Assets.xcassets
+      - path: AgentBoard/Resources/Preview Content
+        buildPhase: none
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.agentboard.AgentBoard
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: 1
+        SWIFT_STRICT_CONCURRENCY: complete
+        SWIFT_VERSION: "6.0"
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_ENTITLEMENTS: AgentBoard/AgentBoard.entitlements
+        DEVELOPMENT_ASSET_PATHS: "\"AgentBoard/Resources/Preview Content\""
+        ENABLE_PREVIEWS: YES
+        INFOPLIST_KEY_NSHumanReadableCopyright: ""
+        COMBINE_HIDPI_IMAGES: YES
+      configs:
+        Debug:
+          SWIFT_OPTIMIZATION_LEVEL: "-Onone"
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: "DEBUG $(inherited)"
+        Release:
+          SWIFT_COMPILATION_MODE: wholemodule
+    dependencies:
+      - package: SwiftTerm
+      - package: swift-markdown
+        product: Markdown
+    entitlements:
+      path: AgentBoard/AgentBoard.entitlements
