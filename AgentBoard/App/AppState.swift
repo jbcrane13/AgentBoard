@@ -44,19 +44,32 @@ final class AppState {
     var chatConnectionState: OpenClawConnectionState = .disconnected
     var isChatStreaming = false
     var remoteChatSessions: [OpenClawRemoteSession] = []
+    var beadGitSummaries: [String: BeadGitSummary] = [:]
+    var recentGitCommits: [GitCommitRecord] = []
+    var currentGitBranch: String?
+    var historyEvents: [HistoryEvent] = []
     var canvasHistory: [CanvasContent] = []
     var canvasHistoryIndex: Int = -1
     var canvasZoom: Double = 1.0
     var isCanvasLoading = false
+    var unreadChatCount = 0
+    var unreadSessionAlertsCount = 0
+    var sessionAlertSessionIDs: Set<String> = []
+    var newSessionSheetRequestID: Int = 0
+    var createBeadSheetRequestID: Int = 0
+    var chatInputFocusRequestID: Int = 0
 
     private let configStore = AppConfigStore()
     private let parser = JSONLParser()
     private let watcher = BeadsWatcher()
     private let openClawService = OpenClawService()
     private let sessionMonitor = SessionMonitor()
+    private let gitService = GitService()
     private var watchedFilePath: String?
     private var chatReconnectTask: Task<Void, Never>?
     private var sessionMonitorTask: Task<Void, Never>?
+    private var sessionStatusByID: [String: SessionStatus] = [:]
+    private var sessionMonitorTick = 0
 
     var selectedProject: Project? {
         guard let selectedProjectID else { return nil }
@@ -126,6 +139,51 @@ final class AppState {
         }
     }
 
+    func switchToTab(_ tab: CenterTab) {
+        activeSessionID = nil
+        selectedTab = tab
+        switch tab {
+        case .board:
+            sidebarNavSelection = .board
+        case .epics:
+            sidebarNavSelection = .epics
+        case .history:
+            sidebarNavSelection = .history
+        case .agents:
+            break
+        }
+    }
+
+    func requestCreateBeadSheet() {
+        switchToTab(.board)
+        createBeadSheetRequestID += 1
+    }
+
+    func requestNewSessionSheet() {
+        newSessionSheetRequestID += 1
+    }
+
+    func requestChatInputFocus() {
+        if rightPanelMode == .canvas {
+            rightPanelMode = .split
+        }
+        chatInputFocusRequestID += 1
+        clearUnreadChatCount()
+    }
+
+    func clearUnreadChatCount() {
+        unreadChatCount = 0
+    }
+
+    func clearSessionAlert(for sessionID: String) {
+        guard sessionAlertSessionIDs.remove(sessionID) != nil else { return }
+        unreadSessionAlertsCount = sessionAlertSessionIDs.count
+    }
+
+    func gitSummary(for beadID: String) -> BeadGitSummary? {
+        beadGitSummaries[beadID]
+    }
+
     func addProject(at folderURL: URL, icon: String = "📁") {
         let normalizedPath = folderURL.path
         guard !normalizedPath.isEmpty else { return }
@@ -177,6 +235,7 @@ final class AppState {
     func sendChatMessage(_ text: String) async {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
+        clearUnreadChatCount()
 
         let contextID = selectedBeadContextID
         let userMessage = ChatMessage(role: .user, content: trimmed, beadContext: contextID)
@@ -288,8 +347,40 @@ final class AppState {
         }
     }
 
+    func openCommitDiffInCanvas(beadID: String) async {
+        guard let summary = beadGitSummaries[beadID] else { return }
+        guard let project = selectedProject else { return }
+
+        do {
+            let diff = try await gitService.fetchCommitDiff(
+                projectPath: project.path,
+                commitSHA: summary.latestCommit.sha
+            )
+            let markdown = """
+            ## Commit \(summary.latestCommit.shortSHA)
+            \(summary.latestCommit.subject)
+
+            ```diff
+            \(diff)
+            ```
+            """
+            pushCanvasContent(
+                .markdown(
+                    id: UUID(),
+                    title: "Commit \(summary.latestCommit.shortSHA)",
+                    content: markdown
+                )
+            )
+            rightPanelMode = .canvas
+            statusMessage = "Opened \(summary.latestCommit.shortSHA) diff in canvas."
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     func openSessionInTerminal(_ session: CodingSession) {
         activeSessionID = session.id
+        clearSessionAlert(for: session.id)
     }
 
     func backToBoardFromTerminal() {
@@ -582,17 +673,48 @@ final class AppState {
 
     private func refreshSessionsFromMonitor() async {
         do {
-            sessions = try await sessionMonitor.listSessions()
+            let updatedSessions = try await sessionMonitor.listSessions()
+            let previousStatusByID = sessionStatusByID
+            sessionStatusByID = Dictionary(uniqueKeysWithValues: updatedSessions.map { ($0.id, $0.status) })
+
+            for session in updatedSessions {
+                guard let previous = previousStatusByID[session.id], previous != session.status else { continue }
+                if session.status == .stopped || session.status == .error {
+                    sessionAlertSessionIDs.insert(session.id)
+                }
+            }
+
+            let validSessionIDs = Set(updatedSessions.map(\.id))
+            sessionAlertSessionIDs = Set(
+                sessionAlertSessionIDs.filter { validSessionIDs.contains($0) }
+            )
+
+            unreadSessionAlertsCount = sessionAlertSessionIDs.count
+            sessions = updatedSessions
             if let activeSessionID,
                !sessions.contains(where: { $0.id == activeSessionID }) {
                 self.activeSessionID = nil
             }
+
+            sessionMonitorTick += 1
+            if sessionMonitorTick.isMultiple(of: 10), let selectedProject {
+                Task { @MainActor in
+                    await refreshGitContext(for: selectedProject)
+                }
+            }
+
+            rebuildHistoryEvents()
         } catch {
             sessions = []
             if !SessionMonitor.isMissingTmuxServer(error: error) {
                 errorMessage = error.localizedDescription
             }
             activeSessionID = nil
+            sessionStatusByID = [:]
+            sessionAlertSessionIDs = []
+            unreadSessionAlertsCount = 0
+            sessionMonitorTick = 0
+            rebuildHistoryEvents()
         }
     }
 
@@ -639,6 +761,7 @@ final class AppState {
         } catch {
             remoteChatSessions = []
         }
+        rebuildHistoryEvents()
     }
 
     private func rebuildProjects() {
@@ -666,6 +789,10 @@ final class AppState {
         guard let selectedProject else {
             beads = []
             beadsFileMissing = false
+            beadGitSummaries = [:]
+            recentGitCommits = []
+            currentGitBranch = nil
+            historyEvents = []
             watcher.stop()
             watchedFilePath = nil
             return
@@ -673,6 +800,9 @@ final class AppState {
 
         loadBeads(for: selectedProject)
         watch(project: selectedProject)
+        Task { @MainActor in
+            await refreshGitContext(for: selectedProject)
+        }
     }
 
     private func loadBeads(for project: Project) {
@@ -684,6 +814,7 @@ final class AppState {
             beads = []
             beadsFileMissing = true
             refreshProjectCounts()
+            rebuildHistoryEvents()
             return
         }
 
@@ -694,10 +825,12 @@ final class AppState {
                 beads.contains(where: { $0.id == existingID }) ? existingID : nil
             }
             refreshProjectCounts()
+            rebuildHistoryEvents()
         } catch {
             beads = []
             beadsFileMissing = true
             errorMessage = error.localizedDescription
+            rebuildHistoryEvents()
         }
     }
 
@@ -766,6 +899,142 @@ final class AppState {
         }
     }
 
+    private func refreshGitContext(for project: Project) async {
+        do {
+            async let commitsTask = gitService.fetchCommits(projectPath: project.path, limit: 300)
+            async let branchTask = gitService.fetchCurrentBranch(projectPath: project.path)
+            let commits = try await commitsTask
+            let branch = try? await branchTask
+
+            guard selectedProject?.id == project.id else { return }
+            recentGitCommits = commits
+            currentGitBranch = branch?.isEmpty == true ? nil : branch
+            beadGitSummaries = buildBeadGitSummaries(
+                commits: commits,
+                defaultBranch: currentGitBranch
+            )
+            rebuildHistoryEvents()
+        } catch {
+            guard selectedProject?.id == project.id else { return }
+            recentGitCommits = []
+            currentGitBranch = nil
+            beadGitSummaries = [:]
+            rebuildHistoryEvents()
+        }
+    }
+
+    private func buildBeadGitSummaries(
+        commits: [GitCommitRecord],
+        defaultBranch: String?
+    ) -> [String: BeadGitSummary] {
+        var grouped: [String: (latest: GitCommitRecord, count: Int)] = [:]
+
+        for commit in commits where !commit.beadIDs.isEmpty {
+            for beadID in commit.beadIDs {
+                if let existing = grouped[beadID] {
+                    let latest = existing.latest.authoredAt >= commit.authoredAt
+                        ? existing.latest
+                        : commit
+                    grouped[beadID] = (latest: latest, count: existing.count + 1)
+                } else {
+                    grouped[beadID] = (latest: commit, count: 1)
+                }
+            }
+        }
+
+        return grouped.reduce(into: [String: BeadGitSummary]()) { partialResult, element in
+            let beadID = element.key
+            var latest = element.value.latest
+            if latest.branch == nil, let defaultBranch {
+                latest = GitCommitRecord(
+                    sha: latest.sha,
+                    shortSHA: latest.shortSHA,
+                    authoredAt: latest.authoredAt,
+                    subject: latest.subject,
+                    refs: latest.refs,
+                    branch: defaultBranch,
+                    beadIDs: latest.beadIDs
+                )
+            }
+            partialResult[beadID] = BeadGitSummary(
+                beadID: beadID,
+                latestCommit: latest,
+                commitCount: element.value.count
+            )
+        }
+    }
+
+    private func rebuildHistoryEvents() {
+        let projectName = selectedProject?.name
+        var events: [HistoryEvent] = []
+
+        for bead in beads {
+            events.append(
+                HistoryEvent(
+                    occurredAt: bead.createdAt,
+                    type: .beadCreated,
+                    title: "\(bead.id) created",
+                    details: bead.title,
+                    projectName: projectName,
+                    beadID: bead.id
+                )
+            )
+
+            events.append(
+                HistoryEvent(
+                    occurredAt: bead.updatedAt,
+                    type: .beadStatus,
+                    title: "\(bead.id) status: \(bead.status.rawValue)",
+                    details: bead.title,
+                    projectName: projectName,
+                    beadID: bead.id
+                )
+            )
+        }
+
+        for session in sessions {
+            events.append(
+                HistoryEvent(
+                    occurredAt: session.startedAt,
+                    type: .sessionStarted,
+                    title: "Session started: \(session.name)",
+                    details: session.agentType.rawValue,
+                    projectName: session.projectPath?.lastPathComponent,
+                    beadID: session.beadId
+                )
+            )
+
+            if session.status == .stopped || session.status == .error {
+                events.append(
+                    HistoryEvent(
+                        occurredAt: session.startedAt.addingTimeInterval(max(session.elapsed, 0)),
+                        type: .sessionCompleted,
+                        title: "Session \(session.status.rawValue): \(session.name)",
+                        details: session.model,
+                        projectName: session.projectPath?.lastPathComponent,
+                        beadID: session.beadId
+                    )
+                )
+            }
+        }
+
+        for commit in recentGitCommits {
+            events.append(
+                HistoryEvent(
+                    occurredAt: commit.authoredAt,
+                    type: .commit,
+                    title: "\(commit.shortSHA) \(commit.subject)",
+                    details: commit.branch,
+                    projectName: projectName,
+                    beadID: commit.beadIDs.first,
+                    commitSHA: commit.sha
+                )
+            )
+        }
+
+        historyEvents = events.sorted { lhs, rhs in lhs.occurredAt > rhs.occurredAt }
+    }
+
     private func runBD(arguments: [String], in project: Project) async throws -> ShellCommandResult {
         try await ShellCommand.runAsync(arguments: arguments, workingDirectory: project.path)
     }
@@ -794,6 +1063,10 @@ final class AppState {
             content: finalContent,
             sentToCanvas: sentToCanvas
         )
+
+        if selectedTab == .board, rightPanelMode == .canvas {
+            unreadChatCount += 1
+        }
     }
 
     private func parseCanvasDirective(from content: String) -> (CanvasContent, String)? {

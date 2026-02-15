@@ -49,7 +49,7 @@ struct ContentView: View {
                 }
             }
         }
-        .background(Color(red: 0.961, green: 0.961, blue: 0.941))
+        .background(AppTheme.appBackground)
     }
 
     private var tabBar: some View {
@@ -60,7 +60,7 @@ struct ContentView: View {
             Spacer()
         }
         .padding(.horizontal, 24)
-        .background(Color(red: 0.961, green: 0.961, blue: 0.941))
+        .background(AppTheme.appBackground)
         .overlay(alignment: .bottom) {
             Divider()
         }
@@ -68,23 +68,12 @@ struct ContentView: View {
 
     private func tabButton(_ tab: CenterTab) -> some View {
         Button(action: {
-            appState.activeSessionID = nil
-            appState.selectedTab = tab
-            switch tab {
-            case .board:
-                appState.sidebarNavSelection = .board
-            case .epics:
-                appState.sidebarNavSelection = .epics
-            case .history:
-                appState.sidebarNavSelection = .history
-            case .agents:
-                break
-            }
+            appState.switchToTab(tab)
         }) {
             Text(tab.rawValue)
                 .font(.system(size: 13, weight: appState.selectedTab == tab ? .semibold : .medium))
                 .foregroundStyle(appState.selectedTab == tab
-                                 ? Color(red: 0.1, green: 0.1, blue: 0.1)
+                                 ? Color.primary
                                  : .secondary)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)

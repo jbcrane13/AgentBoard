@@ -16,7 +16,12 @@ struct RightPanelView: View {
                 SplitPanelView()
             }
         }
-        .background(Color(red: 0.98, green: 0.98, blue: 0.965))
+        .background(AppTheme.panelBackground)
+        .onChange(of: appState.rightPanelMode) { _, mode in
+            if mode == .chat || mode == .split {
+                appState.clearUnreadChatCount()
+            }
+        }
     }
 
     private var panelHeader: some View {
@@ -37,6 +42,15 @@ struct RightPanelView: View {
 
                 Text("Agent Chat")
                     .font(.system(size: 14, weight: .semibold))
+
+                if appState.unreadChatCount > 0 {
+                    Text("\(appState.unreadChatCount)")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.red, in: Capsule())
+                }
 
                 Spacer()
 

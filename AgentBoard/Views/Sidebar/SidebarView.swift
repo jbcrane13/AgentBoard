@@ -1,10 +1,12 @@
 import SwiftUI
 
 struct SidebarView: View {
+    @Environment(AppState.self) private var appState
     @State private var projectsExpanded = true
     @State private var sessionsExpanded = true
     @State private var viewsExpanded = true
     @State private var showingNewSessionSheet = false
+    @State private var handledNewSessionRequestID = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -41,7 +43,13 @@ struct SidebarView: View {
             newSessionButton
         }
         .frame(minWidth: 220, idealWidth: 220, maxWidth: 220)
-        .background(Color(red: 0.173, green: 0.173, blue: 0.18))
+        .background(AppTheme.sidebarBackground)
+        .onAppear {
+            handleNewSessionRequestIfNeeded()
+        }
+        .onChange(of: appState.newSessionSheetRequestID) { _, _ in
+            handleNewSessionRequestIfNeeded()
+        }
         .sheet(isPresented: $showingNewSessionSheet) {
             NewSessionSheet()
         }
@@ -78,11 +86,17 @@ struct SidebarView: View {
                 .font(.system(size: 10, weight: .semibold))
                 .textCase(.uppercase)
                 .tracking(0.8)
-                .foregroundStyle(Color(red: 0.557, green: 0.557, blue: 0.576))
+                .foregroundStyle(AppTheme.sidebarMutedText)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 6)
         }
         .padding(.horizontal, 2)
-        .tint(Color(red: 0.557, green: 0.557, blue: 0.576))
+        .tint(AppTheme.sidebarMutedText)
+    }
+
+    private func handleNewSessionRequestIfNeeded() {
+        guard appState.newSessionSheetRequestID != handledNewSessionRequestID else { return }
+        handledNewSessionRequestID = appState.newSessionSheetRequestID
+        showingNewSessionSheet = true
     }
 }

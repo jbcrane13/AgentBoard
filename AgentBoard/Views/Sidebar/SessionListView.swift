@@ -14,10 +14,14 @@ struct SessionListView: View {
                 sectionHeader("Coding Sessions")
             }
 
+            if appState.unreadSessionAlertsCount > 0 {
+                alertsRow
+            }
+
             if appState.sessions.isEmpty {
                 Text("No active sessions")
                     .font(.system(size: 11))
-                    .foregroundStyle(Color(red: 0.557, green: 0.557, blue: 0.576))
+                    .foregroundStyle(AppTheme.sidebarMutedText)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 6)
             } else {
@@ -36,9 +40,22 @@ struct SessionListView: View {
             .font(.system(size: 10, weight: .semibold))
             .textCase(.uppercase)
             .tracking(0.8)
-            .foregroundStyle(Color(red: 0.557, green: 0.557, blue: 0.576))
+            .foregroundStyle(AppTheme.sidebarMutedText)
             .padding(.horizontal, 8)
             .padding(.bottom, 6)
+    }
+
+    private var alertsRow: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "bell.badge.fill")
+                .font(.system(size: 10))
+            Text("\(appState.unreadSessionAlertsCount) session update\(appState.unreadSessionAlertsCount == 1 ? "" : "s")")
+                .font(.system(size: 10, weight: .semibold))
+            Spacer()
+        }
+        .foregroundStyle(Color(red: 1.0, green: 0.231, blue: 0.188))
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
     }
 
     private func sessionRow(_ session: CodingSession) -> some View {
@@ -55,7 +72,7 @@ struct SessionListView: View {
 
                 Text(session.name)
                     .font(.system(size: 12))
-                    .foregroundStyle(Color(red: 0.878, green: 0.878, blue: 0.878))
+                    .foregroundStyle(AppTheme.sidebarPrimaryText)
                     .lineLimit(1)
                     .truncationMode(.tail)
 
@@ -63,7 +80,13 @@ struct SessionListView: View {
 
                 Text(statusLabel(session))
                     .font(.system(size: 10, weight: .medium, design: .monospaced))
-                    .foregroundStyle(Color(red: 0.557, green: 0.557, blue: 0.576))
+                    .foregroundStyle(AppTheme.sidebarMutedText)
+
+                if appState.sessionAlertSessionIDs.contains(session.id) {
+                    Circle()
+                        .fill(Color(red: 1.0, green: 0.231, blue: 0.188))
+                        .frame(width: 6, height: 6)
+                }
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 6)
@@ -79,12 +102,7 @@ struct SessionListView: View {
     }
 
     private func statusColor(_ status: SessionStatus) -> Color {
-        switch status {
-        case .running: Color(red: 0.204, green: 0.78, blue: 0.349)
-        case .idle: Color(red: 0.91, green: 0.663, blue: 0)
-        case .stopped: Color(red: 0.557, green: 0.557, blue: 0.576)
-        case .error: Color(red: 1.0, green: 0.231, blue: 0.188)
-        }
+        AppTheme.sessionColor(for: status)
     }
 
     private func statusLabel(_ session: CodingSession) -> String {

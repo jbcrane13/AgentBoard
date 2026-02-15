@@ -11,6 +11,7 @@ struct BoardView: View {
     @State private var createDraft = BeadDraft()
     @State private var editDraft = BeadDraft()
     @State private var editingContext: EditingContext?
+    @State private var handledCreateRequestID = 0
 
     private struct Column: Identifiable {
         let id: String
@@ -54,6 +55,12 @@ struct BoardView: View {
         }
         .padding(.vertical, 10)
         .padding(.horizontal, 12)
+        .onAppear {
+            handleCreateRequestIfNeeded()
+        }
+        .onChange(of: appState.createBeadSheetRequestID) { _, _ in
+            handleCreateRequestIfNeeded()
+        }
         .sheet(isPresented: $showingCreateSheet) {
             BeadEditorForm(
                 title: "Create Bead",
@@ -128,8 +135,7 @@ struct BoardView: View {
             Spacer()
 
             Button {
-                createDraft = BeadDraft()
-                showingCreateSheet = true
+                presentCreateSheet()
             } label: {
                 Label("Create Bead", systemImage: "plus")
             }
@@ -275,6 +281,17 @@ struct BoardView: View {
         case .done:
             return Color.green.opacity(0.03)
         }
+    }
+
+    private func presentCreateSheet() {
+        createDraft = BeadDraft()
+        showingCreateSheet = true
+    }
+
+    private func handleCreateRequestIfNeeded() {
+        guard appState.createBeadSheetRequestID != handledCreateRequestID else { return }
+        handledCreateRequestID = appState.createBeadSheetRequestID
+        presentCreateSheet()
     }
 }
 

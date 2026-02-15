@@ -3,12 +3,21 @@ import SwiftUI
 struct ChatPanelView: View {
     @Environment(AppState.self) private var appState
     @State private var inputText = ""
+    @State private var handledFocusRequestID = 0
+    @FocusState private var isInputFocused: Bool
 
     var body: some View {
         VStack(spacing: 0) {
             messageList
             contextBar
             chatInput
+        }
+        .onAppear {
+            appState.clearUnreadChatCount()
+            handleFocusRequestIfNeeded()
+        }
+        .onChange(of: appState.chatInputFocusRequestID) { _, _ in
+            handleFocusRequestIfNeeded()
         }
     }
 
@@ -63,7 +72,7 @@ struct ChatPanelView: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
-            .background(Color.white, in: UnevenRoundedRectangle(
+            .background(AppTheme.cardBackground, in: UnevenRoundedRectangle(
                 topLeadingRadius: 14,
                 bottomLeadingRadius: 4,
                 bottomTrailingRadius: 14,
@@ -109,6 +118,7 @@ struct ChatPanelView: View {
                 .frame(minHeight: 40, maxHeight: 110)
                 .padding(.horizontal, 6)
                 .padding(.vertical, 2)
+                .focused($isInputFocused)
                 .overlay(alignment: .topLeading) {
                     if inputText.isEmpty {
                         Text("Message your agents...")
@@ -132,8 +142,11 @@ struct ChatPanelView: View {
             .keyboardShortcut(.return, modifiers: [.command])
         }
         .padding(10)
-        .background(.background, in: RoundedRectangle(cornerRadius: 10))
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color(red: 0.886, green: 0.878, blue: 0.847), lineWidth: 1))
+        .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 10))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(AppTheme.subtleBorder, lineWidth: 1)
+        )
         .shadow(color: .black.opacity(0.04), radius: 1.5, y: 1)
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
@@ -145,6 +158,12 @@ struct ChatPanelView: View {
         Task {
             await appState.sendChatMessage(message)
         }
+    }
+
+    private func handleFocusRequestIfNeeded() {
+        guard appState.chatInputFocusRequestID != handledFocusRequestID else { return }
+        handledFocusRequestID = appState.chatInputFocusRequestID
+        isInputFocused = true
     }
 
     private func scrollToBottom(_ proxy: ScrollViewProxy) {
@@ -196,7 +215,7 @@ struct ChatMessageBubble: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
             .background(bubbleBackground, in: bubbleShape)
-            .foregroundStyle(message.role == .user ? .white : Color(red: 0.1, green: 0.1, blue: 0.1))
+            .foregroundStyle(message.role == .user ? .white : .primary)
             .contextMenu {
                 if message.hasCodeBlock {
                     Button("Open in Canvas") {
@@ -242,7 +261,7 @@ struct ChatMessageBubble: View {
     private var bubbleBackground: some ShapeStyle {
         message.role == .user
             ? AnyShapeStyle(Color(red: 0, green: 0.478, blue: 1.0))
-            : AnyShapeStyle(Color.white)
+            : AnyShapeStyle(AppTheme.cardBackground)
     }
 
     private var bubbleShape: UnevenRoundedRectangle {

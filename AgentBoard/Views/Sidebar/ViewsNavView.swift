@@ -43,7 +43,7 @@ struct ViewsNavView: View {
             .font(.system(size: 10, weight: .semibold))
             .textCase(.uppercase)
             .tracking(0.8)
-            .foregroundStyle(Color(red: 0.557, green: 0.557, blue: 0.576))
+            .foregroundStyle(AppTheme.sidebarMutedText)
             .padding(.horizontal, 8)
             .padding(.bottom, 6)
     }
@@ -60,7 +60,7 @@ struct ViewsNavView: View {
 
                 Text(item.label)
                     .font(.system(size: 13))
-                    .foregroundStyle(Color(red: 0.878, green: 0.878, blue: 0.878))
+                    .foregroundStyle(AppTheme.sidebarPrimaryText)
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 7)

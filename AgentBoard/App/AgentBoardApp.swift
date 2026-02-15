@@ -8,8 +8,65 @@ struct AgentBoardApp: App {
         WindowGroup("AgentBoard") {
             ContentView()
                 .environment(appState)
+                .preferredColorScheme(nil)
         }
         .defaultSize(width: 1280, height: 820)
         .windowResizability(.contentSize)
+        .commands {
+            CommandGroup(replacing: .newItem) {
+                Button("New Bead") {
+                    appState.requestCreateBeadSheet()
+                }
+                .keyboardShortcut("n", modifiers: [.command])
+
+                Button("New Coding Session") {
+                    appState.requestNewSessionSheet()
+                }
+                .keyboardShortcut("n", modifiers: [.command, .shift])
+            }
+
+            CommandMenu("Navigate") {
+                Button("Board") {
+                    appState.switchToTab(.board)
+                }
+                .keyboardShortcut("1", modifiers: [.command])
+
+                Button("Epics") {
+                    appState.switchToTab(.epics)
+                }
+                .keyboardShortcut("2", modifiers: [.command])
+
+                Button("Agents") {
+                    appState.switchToTab(.agents)
+                }
+                .keyboardShortcut("3", modifiers: [.command])
+
+                Button("History") {
+                    appState.switchToTab(.history)
+                }
+                .keyboardShortcut("4", modifiers: [.command])
+            }
+
+            CommandMenu("Canvas") {
+                Button("Canvas Back") {
+                    appState.goCanvasBack()
+                }
+                .keyboardShortcut("[", modifiers: [.command])
+                .disabled(!appState.canGoCanvasBack)
+
+                Button("Canvas Forward") {
+                    appState.goCanvasForward()
+                }
+                .keyboardShortcut("]", modifiers: [.command])
+                .disabled(!appState.canGoCanvasForward)
+            }
+
+            CommandMenu("Chat") {
+                Button("Focus Chat Input") {
+                    appState.requestChatInputFocus()
+                }
+                .keyboardShortcut("l", modifiers: [.command])
+            }
+        }
     }
 }

@@ -3,6 +3,14 @@ import Foundation
 struct OpenClawRemoteSession: Identifiable, Sendable {
     let id: String
     let name: String
+    let status: String?
+    let model: String?
+    let projectPath: String?
+    let beadID: String?
+    let totalTokens: Int?
+    let estimatedCostUSD: Double?
+    let startedAt: Date?
+    let updatedAt: Date?
 }
 
 enum OpenClawServiceError: LocalizedError {
@@ -220,8 +228,76 @@ actor OpenClawService {
             let name = (row["name"] as? String)
                 ?? (row["title"] as? String)
                 ?? id
-            return OpenClawRemoteSession(id: id, name: name)
+
+            let usage = row["usage"] as? [String: Any]
+                ?? row["token_usage"] as? [String: Any]
+            let totalTokens = extractIntValue(
+                direct: row["total_tokens"] ?? row["tokens"] ?? row["token_count"],
+                nested: usage?["total_tokens"] ?? usage?["tokens"]
+            )
+            let estimatedCost = extractDoubleValue(
+                direct: row["estimated_cost_usd"] ?? row["cost_usd"] ?? row["estimated_cost"],
+                nested: usage?["estimated_cost"] ?? usage?["cost_usd"]
+            )
+
+            return OpenClawRemoteSession(
+                id: id,
+                name: name,
+                status: (row["status"] as? String) ?? (row["state"] as? String),
+                model: (row["model"] as? String) ?? (row["model_name"] as? String),
+                projectPath: (row["project_path"] as? String) ?? (row["project"] as? String),
+                beadID: (row["bead_id"] as? String) ?? (row["issue_id"] as? String),
+                totalTokens: totalTokens,
+                estimatedCostUSD: estimatedCost,
+                startedAt: parseDate(row["started_at"] ?? row["created_at"]),
+                updatedAt: parseDate(row["updated_at"] ?? row["last_active_at"])
+            )
         }
+    }
+
+    private func extractIntValue(direct: Any?, nested: Any?) -> Int? {
+        if let directInt = direct as? Int { return directInt }
+        if let directString = direct as? String, let directInt = Int(directString) { return directInt }
+        if let directDouble = direct as? Double { return Int(directDouble) }
+        if let nestedInt = nested as? Int { return nestedInt }
+        if let nestedString = nested as? String, let nestedInt = Int(nestedString) { return nestedInt }
+        if let nestedDouble = nested as? Double { return Int(nestedDouble) }
+        return nil
+    }
+
+    private func extractDoubleValue(direct: Any?, nested: Any?) -> Double? {
+        if let directDouble = direct as? Double { return directDouble }
+        if let directInt = direct as? Int { return Double(directInt) }
+        if let directString = direct as? String, let directDouble = Double(directString) { return directDouble }
+        if let nestedDouble = nested as? Double { return nestedDouble }
+        if let nestedInt = nested as? Int { return Double(nestedInt) }
+        if let nestedString = nested as? String, let nestedDouble = Double(nestedString) { return nestedDouble }
+        return nil
+    }
+
+    private func parseDate(_ value: Any?) -> Date? {
+        if let number = value as? TimeInterval {
+            return Date(timeIntervalSince1970: number)
+        }
+        if let intValue = value as? Int {
+            return Date(timeIntervalSince1970: TimeInterval(intValue))
+        }
+        if let text = value as? String {
+            if let timestamp = TimeInterval(text) {
+                return Date(timeIntervalSince1970: timestamp)
+            }
+
+            let withFractional = ISO8601DateFormatter()
+            withFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            if let parsed = withFractional.date(from: text) {
+                return parsed
+            }
+
+            let withoutFractional = ISO8601DateFormatter()
+            withoutFractional.formatOptions = [.withInternetDateTime]
+            return withoutFractional.date(from: text)
+        }
+        return nil
     }
 
     private func makePayloadMessages(from messages: [ChatMessage], beadContext: String?) -> [[String: Any]] {

@@ -7,7 +7,7 @@ struct ProjectHeaderView: View {
         HStack(spacing: 12) {
             Text(project.name)
                 .font(.system(size: 20, weight: .bold, design: .default))
-                .foregroundStyle(Color(red: 0.1, green: 0.1, blue: 0.1))
+                .foregroundStyle(.primary)
 
             statusBadge
 
@@ -20,7 +20,7 @@ struct ProjectHeaderView: View {
         .padding(.horizontal, 24)
         .padding(.top, 16)
         .padding(.bottom, 12)
-        .background(Color(red: 0.961, green: 0.961, blue: 0.941))
+        .background(AppTheme.appBackground)
         .overlay(alignment: .bottom) {
             Divider()
         }
@@ -59,11 +59,14 @@ struct ProjectHeaderView: View {
             Button(action: {}) {
                 Text("Plan")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Color(red: 0.1, green: 0.1, blue: 0.1))
+                    .foregroundStyle(.primary)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 6)
-                    .background(.background, in: RoundedRectangle(cornerRadius: 7))
-                    .overlay(RoundedRectangle(cornerRadius: 7).stroke(Color(red: 0.886, green: 0.878, blue: 0.847), lineWidth: 1))
+                    .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 7))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 7)
+                            .stroke(AppTheme.subtleBorder, lineWidth: 1)
+                    )
             }
             .buttonStyle(.plain)
         }
@@ -82,7 +85,7 @@ struct ProjectHeaderView: View {
         VStack(spacing: 2) {
             Text("\(value)")
                 .font(.system(size: 20, weight: .bold))
-                .foregroundStyle(Color(red: 0.1, green: 0.1, blue: 0.1))
+                .foregroundStyle(.primary)
             Text(label)
                 .font(.system(size: 9, weight: .semibold))
                 .textCase(.uppercase)

@@ -107,3 +107,32 @@ bd sync               # Sync with git
   - `xcodegen generate`
   - `xcodebuild -project AgentBoard.xcodeproj -scheme AgentBoard -destination 'platform=macOS' build`
   - `xcodebuild -project AgentBoard.xcodeproj -scheme AgentBoard -destination 'platform=macOS' test`
+
+## Phase 6 Snapshot (2026-02-15)
+
+- Tracking: epic `AgentBoard-fi5` and child tasks `AgentBoard-fi5.1` through `.6` are closed.
+- Dark mode + visual polish:
+  - Added shared adaptive theme values in `AppTheme`.
+  - Updated center/right surfaces and cards to render correctly in dark mode while keeping the sidebar dark.
+- Keyboard shortcuts:
+  - Added app command shortcuts:
+    - `Cmd+N` new bead
+    - `Cmd+Shift+N` new coding session
+    - `Cmd+1-4` tab switch
+    - `Cmd+[` / `Cmd+]` canvas history navigation
+    - `Cmd+L` focus chat input
+    - `Esc` returns from terminal to board
+- Git integration on board cards:
+  - Added `GitService` to parse git log and map bead IDs in commit messages.
+  - Task cards now show branch + latest SHA and commit count badges for in-progress work.
+  - Clicking a SHA opens the commit diff in canvas.
+- Agents + history views:
+  - `AgentsView` now renders a real table with session metadata and aggregate stats (sessions today, tokens, estimated cost).
+  - `HistoryView` now renders reverse-chronological events with project/type/date filters.
+- Notifications:
+  - Chat header badge increments for unread assistant activity when canvas mode is active on board.
+  - Session list shows alert badge/dots for sessions transitioning to stopped/error.
+- Verification gate passed:
+  - `xcodegen generate`
+  - `xcodebuild -project AgentBoard.xcodeproj -scheme AgentBoard -destination 'platform=macOS' build`
+  - `xcodebuild -project AgentBoard.xcodeproj -scheme AgentBoard -destination 'platform=macOS' test`

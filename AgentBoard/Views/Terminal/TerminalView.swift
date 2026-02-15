@@ -14,7 +14,7 @@ struct TerminalView: View {
             Divider()
             terminalOutput
         }
-        .background(Color(red: 0.961, green: 0.961, blue: 0.941))
+        .background(AppTheme.appBackground)
         .task(id: session.id) {
             await refreshLoop()
         }
@@ -29,6 +29,7 @@ struct TerminalView: View {
                     .font(.system(size: 12, weight: .semibold))
             }
             .buttonStyle(.borderless)
+            .keyboardShortcut(.escape, modifiers: [])
 
             Divider()
                 .frame(height: 14)
@@ -96,16 +97,7 @@ struct TerminalView: View {
     }
 
     private var statusColor: Color {
-        switch session.status {
-        case .running:
-            return Color(red: 0.204, green: 0.78, blue: 0.349)
-        case .idle:
-            return Color(red: 0.91, green: 0.663, blue: 0)
-        case .stopped:
-            return Color(red: 0.557, green: 0.557, blue: 0.576)
-        case .error:
-            return Color(red: 1, green: 0.231, blue: 0.188)
-        }
+        AppTheme.sessionColor(for: session.status)
     }
 
     private var terminalOutput: some View {
@@ -114,7 +106,7 @@ struct TerminalView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     Text(outputText.isEmpty ? "No output captured yet for this session." : outputText)
                         .font(.system(size: 12, design: .monospaced))
-                        .foregroundStyle(Color(red: 0.13, green: 0.13, blue: 0.13))
+                        .foregroundStyle(.primary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .textSelection(.enabled)
 

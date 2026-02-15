@@ -28,7 +28,7 @@ struct ProjectListView: View {
             .font(.system(size: 10, weight: .semibold))
             .textCase(.uppercase)
             .tracking(0.8)
-            .foregroundStyle(Color(red: 0.557, green: 0.557, blue: 0.576))
+            .foregroundStyle(AppTheme.sidebarMutedText)
             .padding(.horizontal, 8)
             .padding(.bottom, 6)
     }
@@ -45,14 +45,14 @@ struct ProjectListView: View {
 
                 Text(project.name)
                     .font(.system(size: 13))
-                    .foregroundStyle(Color(red: 0.878, green: 0.878, blue: 0.878))
+                    .foregroundStyle(AppTheme.sidebarPrimaryText)
                     .lineLimit(1)
 
                 Spacer()
 
                 Text("\(project.totalCount)")
                     .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(Color(red: 0.557, green: 0.557, blue: 0.576))
+                    .foregroundStyle(AppTheme.sidebarMutedText)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 1)
                     .background(Color.white.opacity(0.12), in: Capsule())

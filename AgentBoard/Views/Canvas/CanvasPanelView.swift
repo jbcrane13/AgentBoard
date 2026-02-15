@@ -22,7 +22,7 @@ struct CanvasPanelView: View {
                 }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(red: 0.98, green: 0.98, blue: 0.965))
+        .background(AppTheme.panelBackground)
         .dropDestination(for: URL.self) { droppedURLs, _ in
             guard !droppedURLs.isEmpty else { return false }
             Task {
