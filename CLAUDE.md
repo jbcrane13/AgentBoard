@@ -1,5 +1,11 @@
 # Claude Notes
 
+## Key Documents
+
+- **`docs/ADR.md`** — Architecture Decision Records. Read before making structural changes. Append when making new decisions.
+- **`DESIGN.md`** — Design document with architecture overview and panel layout.
+- **`IMPLEMENTATION-PLAN.md`** — Phased implementation plan with status.
+
 ## Phase 1 Completed (2026-02-14)
 
 - Tracking: `AgentBoard-qrw` (and children `.1` to `.5`) are closed.
