@@ -1,25 +1,39 @@
 import SwiftUI
 
 struct SidebarView: View {
-    @Environment(AppState.self) private var appState
+    @State private var projectsExpanded = true
+    @State private var sessionsExpanded = true
+    @State private var viewsExpanded = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ProjectListView()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 8) {
+                    section(
+                        title: "Projects",
+                        isExpanded: $projectsExpanded
+                    ) {
+                        ProjectListView(showHeader: false)
+                    }
 
-            Divider()
-                .background(Color.white.opacity(0.08))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 4)
+                    section(
+                        title: "Sessions",
+                        isExpanded: $sessionsExpanded
+                    ) {
+                        SessionListView(showHeader: false)
+                    }
 
-            SessionListView()
-
-            Divider()
-                .background(Color.white.opacity(0.08))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 4)
-
-            ViewsNavView()
+                    section(
+                        title: "Views",
+                        isExpanded: $viewsExpanded
+                    ) {
+                        ViewsNavView(showHeader: false)
+                    }
+                }
+                .padding(.horizontal, 10)
+                .padding(.top, 10)
+                .padding(.bottom, 16)
+            }
 
             Spacer()
 
@@ -34,7 +48,7 @@ struct SidebarView: View {
             HStack(spacing: 8) {
                 Image(systemName: "plus")
                     .font(.system(size: 12, weight: .medium))
-                Text("New Session")
+                Text("+ New Session")
                     .font(.system(size: 13))
             }
             .foregroundStyle(.white.opacity(0.6))
@@ -44,5 +58,25 @@ struct SidebarView: View {
         .buttonStyle(.plain)
         .padding(.horizontal, 12)
         .padding(.bottom, 14)
+    }
+
+    private func section<Content: View>(
+        title: String,
+        isExpanded: Binding<Bool>,
+        @ViewBuilder content: @escaping () -> Content
+    ) -> some View {
+        DisclosureGroup(isExpanded: isExpanded) {
+            content()
+        } label: {
+            Text(title)
+                .font(.system(size: 10, weight: .semibold))
+                .textCase(.uppercase)
+                .tracking(0.8)
+                .foregroundStyle(Color(red: 0.557, green: 0.557, blue: 0.576))
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+        }
+        .padding(.horizontal, 2)
+        .tint(Color(red: 0.557, green: 0.557, blue: 0.576))
     }
 }

@@ -2,17 +2,24 @@ import SwiftUI
 
 struct ProjectListView: View {
     @Environment(AppState.self) private var appState
+    let showHeader: Bool
+
+    init(showHeader: Bool = true) {
+        self.showHeader = showHeader
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            sectionHeader("Projects")
+            if showHeader {
+                sectionHeader("Projects")
+            }
 
             ForEach(appState.projects) { project in
                 projectRow(project)
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.top, 16)
+        .padding(.horizontal, showHeader ? 12 : 2)
+        .padding(.top, showHeader ? 16 : 2)
         .padding(.bottom, 8)
     }
 

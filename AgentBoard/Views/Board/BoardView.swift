@@ -1,22 +1,31 @@
 import SwiftUI
 
 struct BoardView: View {
-    @Environment(AppState.self) private var appState
+    private struct Column: Identifiable {
+        let id: String
+        let title: String
+        let status: BeadStatus
+        let color: Color
+    }
+
+    private let columns: [Column] = [
+        .init(id: "open", title: "Open", status: .open, color: .blue),
+        .init(id: "in-progress", title: "In Progress", status: .inProgress, color: .orange),
+        .init(id: "blocked", title: "Blocked", status: .blocked, color: .red),
+        .init(id: "done", title: "Done", status: .done, color: .green),
+    ]
 
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
-            boardColumn(title: "Open", status: .open, color: .blue)
-            boardColumn(title: "In Progress", status: .inProgress, color: .orange)
-            boardColumn(title: "Blocked", status: .blocked, color: .red)
-            boardColumn(title: "Done", status: .done, color: .green)
+            ForEach(columns) { column in
+                boardColumn(title: column.title, status: column.status, color: column.color)
+            }
         }
         .padding(16)
         .padding(.horizontal, 8)
     }
 
     private func boardColumn(title: String, status: BeadStatus, color: Color) -> some View {
-        let beads = appState.beads.filter { $0.status == status }
-
         return VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 Text(title.uppercased())
@@ -24,7 +33,7 @@ struct BoardView: View {
                     .tracking(0.6)
                     .foregroundStyle(color)
 
-                Text("\(beads.count)")
+                Text("0")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 7)
@@ -36,17 +45,11 @@ struct BoardView: View {
 
             ScrollView {
                 VStack(spacing: 8) {
-                    if beads.isEmpty {
-                        Text(status == .done ? "All clear" : "No issues")
-                            .font(.system(size: 12))
-                            .foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 24)
-                    } else {
-                        ForEach(beads) { bead in
-                            TaskCardView(bead: bead)
-                        }
-                    }
+                    Text(status == .done ? "All clear 🎉" : "No issues")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 24)
                 }
                 .padding(8)
             }

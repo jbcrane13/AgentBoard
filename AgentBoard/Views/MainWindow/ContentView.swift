@@ -4,17 +4,31 @@ struct ContentView: View {
     @Environment(AppState.self) private var appState
 
     var body: some View {
-        HSplitView {
+        NavigationSplitView {
             SidebarView()
-                .frame(width: 220)
+                .navigationSplitViewColumnWidth(min: 220, ideal: 220, max: 220)
+        } detail: {
+            HSplitView {
+                centerPanel
+                    .frame(minWidth: 400)
 
-            centerPanel
-                .frame(minWidth: 400)
-
-            RightPanelView()
-                .frame(minWidth: 280, idealWidth: 340, maxWidth: 500)
+                RightPanelView()
+                    .frame(minWidth: 280, idealWidth: 340, maxWidth: 500)
+            }
         }
+        .navigationSplitViewStyle(.balanced)
         .frame(minWidth: 900, minHeight: 600)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                HStack(spacing: 8) {
+                    Image(systemName: "rectangle.3.group.bubble.left.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                    Text("AgentBoard")
+                        .font(.system(size: 13, weight: .semibold))
+                }
+                .foregroundStyle(.primary)
+            }
+        }
     }
 
     private var centerPanel: some View {

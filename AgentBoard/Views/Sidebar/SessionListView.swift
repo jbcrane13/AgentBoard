@@ -2,17 +2,24 @@ import SwiftUI
 
 struct SessionListView: View {
     @Environment(AppState.self) private var appState
+    let showHeader: Bool
+
+    init(showHeader: Bool = true) {
+        self.showHeader = showHeader
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            sectionHeader("Coding Sessions")
+            if showHeader {
+                sectionHeader("Coding Sessions")
+            }
 
             ForEach(appState.sessions) { session in
                 sessionRow(session)
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.top, 8)
+        .padding(.horizontal, showHeader ? 12 : 2)
+        .padding(.top, showHeader ? 8 : 2)
         .padding(.bottom, 8)
     }
 

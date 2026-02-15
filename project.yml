@@ -57,3 +57,25 @@ targets:
         product: Markdown
     entitlements:
       path: AgentBoard/AgentBoard.entitlements
+  AgentBoardTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: AgentBoardTests
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_VERSION: "6.0"
+    dependencies:
+      - target: AgentBoard
+
+schemes:
+  AgentBoard:
+    build:
+      targets:
+        AgentBoard: all
+        AgentBoardTests: [test]
+    test:
+      gatherCoverageData: false
+      targets:
+        - AgentBoardTests
