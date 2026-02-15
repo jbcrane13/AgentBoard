@@ -38,3 +38,11 @@ bd sync               # Sync with git
 - NEVER say "ready to push when you are" - YOU must push
 - If push fails, resolve and retry until it succeeds
 
+## Phase 1 Snapshot (2026-02-14)
+
+- Epic `AgentBoard-qrw` and child tasks `AgentBoard-qrw.1` through `AgentBoard-qrw.5` are closed.
+- `project.yml` is the source of truth for targets/schemes; regenerate project files with `xcodegen generate` after project config changes.
+- `AgentBoardTests` exists with smoke tests, and `xcodebuild ... test` is now part of the required quality gate.
+- UI shell decision: `NavigationSplitView` for sidebar/detail, with `HSplitView` for center + right panel.
+- Layout baseline: default window `1280x820`, minimum `900x600`, sidebar fixed to `220`, center minimum `400`, right panel ideal `340`.
+- Phase 1 board and canvas are intentionally placeholders (`BoardView` empty canonical columns, canvas shows `No content`).

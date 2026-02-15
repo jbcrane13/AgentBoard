@@ -46,11 +46,20 @@
 - `SplitPanelView` — vertical split of canvas (top) + chat (bottom), resizable divider
 
 ### Deliverables
-- [ ] Xcode project builds and runs
-- [ ] Three-panel layout renders correctly
-- [ ] Tab switching works
-- [ ] Right panel mode switching works
-- [ ] All placeholder views in place
+- [x] Xcode project builds and runs
+- [x] Three-panel layout renders correctly
+- [x] Tab switching works
+- [x] Right panel mode switching works
+- [x] All placeholder views in place
+
+### Phase 1 Decisions (Implemented)
+- `project.yml` owns targets/schemes; `AgentBoardTests` was added and project regenerated via `xcodegen`.
+- Smoke tests in `AgentBoardTests` are `@MainActor` because `AppState` is main-actor isolated.
+- Main shell uses `NavigationSplitView` + nested `HSplitView` (sidebar/detail split + center/right split).
+- Title bar uses a centered principal item with app icon + `AgentBoard`.
+- Sidebar uses collapsible sections (Projects, Sessions, Views) via `DisclosureGroup`.
+- Board remains a static Phase 1 placeholder with empty Open/In Progress/Blocked/Done columns.
+- Canvas remains a static Phase 1 placeholder with `No content`.
 
 ---
 
