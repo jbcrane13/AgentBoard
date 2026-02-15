@@ -32,14 +32,20 @@ struct ContentView: View {
     }
 
     private var centerPanel: some View {
-        VStack(spacing: 0) {
-            if let project = appState.selectedProject {
-                ProjectHeaderView(project: project)
+        Group {
+            if appState.sidebarNavSelection == .settings {
+                SettingsView()
+            } else {
+                VStack(spacing: 0) {
+                    if let project = appState.selectedProject {
+                        ProjectHeaderView(project: project)
+                    }
+
+                    tabBar
+
+                    tabContent
+                }
             }
-
-            tabBar
-
-            tabContent
         }
         .background(Color(red: 0.961, green: 0.961, blue: 0.941))
     }
@@ -59,7 +65,19 @@ struct ContentView: View {
     }
 
     private func tabButton(_ tab: CenterTab) -> some View {
-        Button(action: { appState.selectedTab = tab }) {
+        Button(action: {
+            appState.selectedTab = tab
+            switch tab {
+            case .board:
+                appState.sidebarNavSelection = .board
+            case .epics:
+                appState.sidebarNavSelection = .epics
+            case .history:
+                appState.sidebarNavSelection = .history
+            case .agents:
+                break
+            }
+        }) {
             Text(tab.rawValue)
                 .font(.system(size: 13, weight: appState.selectedTab == tab ? .semibold : .medium))
                 .foregroundStyle(appState.selectedTab == tab

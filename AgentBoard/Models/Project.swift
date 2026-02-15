@@ -12,6 +12,10 @@ struct Project: Identifiable, Hashable {
     var inProgressCount: Int
     var totalCount: Int
 
+    var issuesFileURL: URL {
+        beadsPath.appendingPathComponent("issues.jsonl", isDirectory: false)
+    }
+
     static let samples: [Project] = [
         Project(
             id: UUID(),

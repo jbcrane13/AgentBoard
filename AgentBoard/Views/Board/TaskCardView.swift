@@ -20,6 +20,13 @@ struct TaskCardView: View {
 
                 Spacer()
 
+                if let assignee = bead.assignee, !assignee.isEmpty {
+                    Text(assignee)
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+
                 Text(bead.updatedAt.formatted(.dateTime.month(.twoDigits).day()))
                     .font(.system(size: 10))
                     .foregroundStyle(.secondary)

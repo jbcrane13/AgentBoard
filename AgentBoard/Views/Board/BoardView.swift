@@ -1,6 +1,17 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct BoardView: View {
+    @Environment(AppState.self) private var appState
+
+    @State private var selectedKind: KindFilter = .all
+    @State private var selectedAssignee: String = FilterOption.all
+    @State private var selectedEpicID: String = FilterOption.all
+    @State private var showingCreateSheet = false
+    @State private var createDraft = BeadDraft()
+    @State private var editDraft = BeadDraft()
+    @State private var editingContext: EditingContext?
+
     private struct Column: Identifiable {
         let id: String
         let title: String
@@ -16,24 +27,136 @@ struct BoardView: View {
     ]
 
     var body: some View {
-        HStack(alignment: .top, spacing: 16) {
-            ForEach(columns) { column in
-                boardColumn(title: column.title, status: column.status, color: column.color)
+        VStack(spacing: 12) {
+            filterBar
+
+            if appState.beadsFileMissing {
+                missingBeadsState
+            } else {
+                boardColumns
+            }
+
+            if let message = appState.statusMessage {
+                Text(message)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 8)
+            }
+
+            if let error = appState.errorMessage {
+                Text(error)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.red)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 8)
             }
         }
-        .padding(16)
-        .padding(.horizontal, 8)
+        .padding(.vertical, 10)
+        .padding(.horizontal, 12)
+        .sheet(isPresented: $showingCreateSheet) {
+            BeadEditorForm(
+                title: "Create Bead",
+                draft: $createDraft,
+                availableEpics: appState.epicBeads,
+                onCancel: {
+                    showingCreateSheet = false
+                    createDraft = BeadDraft()
+                },
+                onSave: {
+                    let draft = createDraft
+                    showingCreateSheet = false
+                    createDraft = BeadDraft()
+                    Task {
+                        await appState.createBead(from: draft)
+                    }
+                }
+            )
+            .frame(minWidth: 540, minHeight: 500)
+        }
+        .sheet(item: $editingContext) { context in
+            BeadEditorForm(
+                title: "Edit \(context.bead.id)",
+                draft: $editDraft,
+                availableEpics: appState.epicBeads,
+                onCancel: {
+                    editingContext = nil
+                    editDraft = BeadDraft()
+                },
+                onSave: {
+                    let draft = editDraft
+                    let bead = context.bead
+                    editingContext = nil
+                    editDraft = BeadDraft()
+                    Task {
+                        await appState.updateBead(bead, with: draft)
+                    }
+                }
+            )
+            .frame(minWidth: 540, minHeight: 500)
+            .onAppear {
+                editDraft = BeadDraft.from(context.bead)
+            }
+        }
     }
 
-    private func boardColumn(title: String, status: BeadStatus, color: Color) -> some View {
+    private var filterBar: some View {
+        HStack(spacing: 12) {
+            Picker("Kind", selection: $selectedKind) {
+                ForEach(KindFilter.allCases, id: \.self) { kind in
+                    Text(kind.label).tag(kind)
+                }
+            }
+            .frame(width: 140)
+
+            Picker("Assignee", selection: $selectedAssignee) {
+                Text(FilterOption.all).tag(FilterOption.all)
+                ForEach(assignees, id: \.self) { assignee in
+                    Text(assignee).tag(assignee)
+                }
+            }
+            .frame(width: 180)
+
+            Picker("Epic", selection: $selectedEpicID) {
+                Text(FilterOption.all).tag(FilterOption.all)
+                ForEach(appState.epicBeads, id: \.id) { epic in
+                    Text(epic.id).tag(epic.id)
+                }
+            }
+            .frame(width: 170)
+
+            Spacer()
+
+            Button {
+                createDraft = BeadDraft()
+                showingCreateSheet = true
+            } label: {
+                Label("Create Bead", systemImage: "plus")
+            }
+            .buttonStyle(.borderedProminent)
+        }
+    }
+
+    private var boardColumns: some View {
+        HStack(alignment: .top, spacing: 16) {
+            ForEach(columns) { column in
+                boardColumn(column)
+            }
+        }
+    }
+
+    private func boardColumn(_ column: Column) -> some View {
+        let columnBeads = filteredBeads.filter { $0.status == column.status }
+        let beadLookup = Dictionary(uniqueKeysWithValues: appState.beads.map { ($0.id, $0) })
+
         return VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                Text(title.uppercased())
+                Text(column.title.uppercased())
                     .font(.system(size: 12, weight: .bold))
                     .tracking(0.6)
-                    .foregroundStyle(color)
+                    .foregroundStyle(column.color)
 
-                Text("0")
+                Text("\(columnBeads.count)")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 7)
@@ -45,25 +168,272 @@ struct BoardView: View {
 
             ScrollView {
                 VStack(spacing: 8) {
-                    Text(status == .done ? "All clear 🎉" : "No issues")
-                        .font(.system(size: 12))
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 24)
+                    if columnBeads.isEmpty {
+                        Text(column.status == .done ? "All clear 🎉" : "No issues")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 24)
+                    } else {
+                        ForEach(columnBeads) { bead in
+                            TaskCardView(bead: bead)
+                                .onDrag {
+                                    NSItemProvider(object: bead.id as NSString)
+                                }
+                                .onTapGesture {
+                                    appState.selectedBeadID = bead.id
+                                }
+                                .contextMenu {
+                                    Button("Edit") {
+                                        editingContext = EditingContext(bead: bead)
+                                    }
+
+                                    Button("Delete") {
+                                        Task {
+                                            await appState.closeBead(bead)
+                                        }
+                                    }
+
+                                    Button("Assign to Agent") {
+                                        Task {
+                                            await appState.assignBeadToAgent(bead)
+                                        }
+                                    }
+
+                                    Button("View in Terminal") {
+                                        Task {
+                                            await appState.openBeadInTerminal(bead)
+                                        }
+                                    }
+                                }
+                        }
+                    }
                 }
                 .padding(8)
             }
-            .background(columnBackground(for: status), in: RoundedRectangle(cornerRadius: 12))
+            .background(columnBackground(for: column.status), in: RoundedRectangle(cornerRadius: 12))
+            .onDrop(
+                of: [UTType.plainText],
+                delegate: BoardDropDelegate(
+                    targetStatus: column.status,
+                    beadLookup: beadLookup
+                ) { bead, status in
+                    Task {
+                        await appState.moveBead(bead, to: status)
+                    }
+                }
+            )
         }
         .frame(maxWidth: .infinity)
     }
 
+    private var filteredBeads: [Bead] {
+        appState.beads.filter { bead in
+            let kindMatches = selectedKind == .all || bead.kind == selectedKind.beadKind
+            let assigneeMatches = selectedAssignee == FilterOption.all || bead.assignee == selectedAssignee
+            let epicMatches = selectedEpicID == FilterOption.all || bead.epicId == selectedEpicID
+            return kindMatches && assigneeMatches && epicMatches
+        }
+        .sorted { lhs, rhs in lhs.updatedAt > rhs.updatedAt }
+    }
+
+    private var assignees: [String] {
+        Set(appState.beads.compactMap { bead in
+            let trimmed = bead.assignee?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            return trimmed.isEmpty ? nil : trimmed
+        })
+        .sorted()
+    }
+
+    private var missingBeadsState: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 28))
+                .foregroundStyle(.secondary)
+
+            Text("No .beads/issues.jsonl found for this project.")
+                .font(.system(size: 13, weight: .semibold))
+
+            Button("Initialize beads") {
+                Task {
+                    await appState.initializeBeadsForSelectedProject()
+                }
+            }
+            .buttonStyle(.borderedProminent)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
     private func columnBackground(for status: BeadStatus) -> Color {
         switch status {
-        case .open: Color.blue.opacity(0.03)
-        case .inProgress: Color.orange.opacity(0.04)
-        case .blocked: Color.red.opacity(0.04)
-        case .done: Color.green.opacity(0.03)
+        case .open:
+            return Color.blue.opacity(0.03)
+        case .inProgress:
+            return Color.orange.opacity(0.04)
+        case .blocked:
+            return Color.red.opacity(0.04)
+        case .done:
+            return Color.green.opacity(0.03)
+        }
+    }
+}
+
+private enum FilterOption {
+    static let all = "All"
+}
+
+private enum KindFilter: String, CaseIterable {
+    case all
+    case task
+    case bug
+    case feature
+    case epic
+
+    var label: String {
+        switch self {
+        case .all:
+            return "All Kinds"
+        case .task:
+            return "Task"
+        case .bug:
+            return "Bug"
+        case .feature:
+            return "Feature"
+        case .epic:
+            return "Epic"
+        }
+    }
+
+    var beadKind: BeadKind? {
+        switch self {
+        case .all:
+            return nil
+        case .task:
+            return .task
+        case .bug:
+            return .bug
+        case .feature:
+            return .feature
+        case .epic:
+            return .epic
+        }
+    }
+}
+
+private struct EditingContext: Identifiable {
+    let id = UUID()
+    let bead: Bead
+}
+
+private struct BoardDropDelegate: DropDelegate {
+    let targetStatus: BeadStatus
+    let beadLookup: [String: Bead]
+    let onMove: @MainActor (Bead, BeadStatus) -> Void
+
+    func performDrop(info: DropInfo) -> Bool {
+        guard let itemProvider = info.itemProviders(for: [UTType.plainText]).first else {
+            return false
+        }
+
+        itemProvider.loadItem(forTypeIdentifier: UTType.plainText.identifier, options: nil) { item, _ in
+            let itemID: String?
+            if let data = item as? Data {
+                itemID = String(data: data, encoding: .utf8)
+            } else if let string = item as? NSString {
+                itemID = string as String
+            } else if let string = item as? String {
+                itemID = string
+            } else {
+                itemID = nil
+            }
+
+            guard let rawID = itemID?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  let bead = beadLookup[rawID] else {
+                return
+            }
+
+            Task { @MainActor in
+                onMove(bead, targetStatus)
+            }
+        }
+
+        return true
+    }
+}
+
+private struct BeadEditorForm: View {
+    let title: String
+    @Binding var draft: BeadDraft
+    let availableEpics: [Bead]
+    let onCancel: () -> Void
+    let onSave: () -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text(title)
+                    .font(.system(size: 16, weight: .semibold))
+                Spacer()
+            }
+            .padding(16)
+            .overlay(alignment: .bottom) {
+                Divider()
+            }
+
+            Form {
+                TextField("Title", text: $draft.title)
+
+                Picker("Kind", selection: $draft.kind) {
+                    ForEach(BeadKind.allCases, id: \.self) { kind in
+                        Text(kind.rawValue.capitalized).tag(kind)
+                    }
+                }
+
+                Picker("Status", selection: $draft.status) {
+                    ForEach(BeadStatus.allCases, id: \.self) { status in
+                        Text(status.rawValue).tag(status)
+                    }
+                }
+
+                TextField("Assignee", text: $draft.assignee)
+                TextField("Labels (comma-separated)", text: $draft.labelsText)
+
+                if draft.kind != .epic {
+                    Picker("Epic", selection: Binding(
+                        get: { draft.epicId ?? FilterOption.all },
+                        set: { value in
+                            draft.epicId = value == FilterOption.all ? nil : value
+                        })
+                    ) {
+                        Text(FilterOption.all).tag(FilterOption.all)
+                        ForEach(availableEpics, id: \.id) { epic in
+                            Text("\(epic.id) - \(epic.title)")
+                                .tag(epic.id)
+                        }
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Description")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                    TextEditor(text: $draft.description)
+                        .frame(minHeight: 140)
+                }
+                .padding(.vertical, 4)
+            }
+
+            HStack(spacing: 8) {
+                Spacer()
+                Button("Cancel", action: onCancel)
+                Button("Save", action: onSave)
+                    .buttonStyle(.borderedProminent)
+                    .disabled(draft.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+            .padding(16)
+            .overlay(alignment: .top) {
+                Divider()
+            }
         }
     }
 }

@@ -21,6 +21,34 @@ enum BeadStatus: String, Codable, CaseIterable, Sendable {
     case inProgress = "in-progress"
     case blocked
     case done
+
+    static func fromBeads(_ rawValue: String) -> BeadStatus {
+        switch rawValue.lowercased() {
+        case "in_progress", "in-progress":
+            return .inProgress
+        case "blocked":
+            return .blocked
+        case "done", "closed":
+            return .done
+        case "open":
+            return .open
+        default:
+            return .open
+        }
+    }
+
+    var beadsValue: String {
+        switch self {
+        case .open:
+            return "open"
+        case .inProgress:
+            return "in_progress"
+        case .blocked:
+            return "blocked"
+        case .done:
+            return "closed"
+        }
+    }
 }
 
 enum BeadKind: String, Codable, CaseIterable, Sendable {
@@ -28,6 +56,32 @@ enum BeadKind: String, Codable, CaseIterable, Sendable {
     case bug
     case feature
     case epic
+
+    static func fromBeads(_ rawValue: String?) -> BeadKind {
+        switch rawValue?.lowercased() {
+        case "bug":
+            return .bug
+        case "feature", "enhancement":
+            return .feature
+        case "epic":
+            return .epic
+        default:
+            return .task
+        }
+    }
+
+    var beadsValue: String {
+        switch self {
+        case .task:
+            return "task"
+        case .bug:
+            return "bug"
+        case .feature:
+            return "feature"
+        case .epic:
+            return "epic"
+        }
+    }
 }
 
 extension Bead {

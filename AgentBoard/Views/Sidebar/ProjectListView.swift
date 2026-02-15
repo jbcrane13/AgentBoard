@@ -35,7 +35,7 @@ struct ProjectListView: View {
 
     private func projectRow(_ project: Project) -> some View {
         Button(action: {
-            appState.selectedProject = project
+            appState.selectProject(project)
         }) {
             HStack(spacing: 8) {
                 Text(project.icon)
@@ -61,7 +61,7 @@ struct ProjectListView: View {
             .padding(.vertical, 7)
             .background(
                 RoundedRectangle(cornerRadius: 6)
-                    .fill(appState.selectedProject?.id == project.id
+                    .fill(appState.selectedProjectID == project.id
                           ? Color.white.opacity(0.12)
                           : Color.clear)
             )

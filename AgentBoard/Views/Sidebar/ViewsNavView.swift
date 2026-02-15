@@ -26,15 +26,15 @@ struct ViewsNavView: View {
     private struct NavItem {
         let icon: String
         let label: String
-        let tab: CenterTab?
+        let nav: SidebarNavItem
     }
 
     private var navItems: [NavItem] {
         [
-            NavItem(icon: "square.grid.2x2", label: "Board", tab: .board),
-            NavItem(icon: "target", label: "Epics", tab: .epics),
-            NavItem(icon: "clock", label: "History", tab: .history),
-            NavItem(icon: "gear", label: "Settings", tab: nil),
+            NavItem(icon: "square.grid.2x2", label: "Board", nav: .board),
+            NavItem(icon: "target", label: "Epics", nav: .epics),
+            NavItem(icon: "clock", label: "History", nav: .history),
+            NavItem(icon: "gear", label: "Settings", nav: .settings),
         ]
     }
 
@@ -50,9 +50,7 @@ struct ViewsNavView: View {
 
     private func navRow(_ item: NavItem) -> some View {
         Button(action: {
-            if let tab = item.tab {
-                appState.selectedTab = tab
-            }
+            appState.navigate(to: item.nav)
         }) {
             HStack(spacing: 8) {
                 Image(systemName: item.icon)
@@ -69,7 +67,7 @@ struct ViewsNavView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                 RoundedRectangle(cornerRadius: 6)
-                    .fill(appState.selectedTab == item.tab
+                    .fill(appState.sidebarNavSelection == item.nav
                           ? Color.white.opacity(0.12)
                           : Color.clear)
             )
