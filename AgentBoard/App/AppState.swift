@@ -27,8 +27,9 @@ final class AppState {
     var projects: [Project] = []
     var selectedProjectID: UUID?
     var beads: [Bead] = []
-    var sessions: [CodingSession] = CodingSession.samples
+    var sessions: [CodingSession] = []
     var chatMessages: [ChatMessage] = []
+    var activeSessionID: String?
 
     var selectedTab: CenterTab = .board
     var rightPanelMode: RightPanelMode = .split
@@ -48,8 +49,10 @@ final class AppState {
     private let parser = JSONLParser()
     private let watcher = BeadsWatcher()
     private let openClawService = OpenClawService()
+    private let sessionMonitor = SessionMonitor()
     private var watchedFilePath: String?
     private var chatReconnectTask: Task<Void, Never>?
+    private var sessionMonitorTask: Task<Void, Never>?
 
     var selectedProject: Project? {
         guard let selectedProjectID else { return nil }
@@ -70,15 +73,22 @@ final class AppState {
         selectedBeadID ?? selectedBead?.id
     }
 
+    var activeSession: CodingSession? {
+        guard let activeSessionID else { return nil }
+        return sessions.first(where: { $0.id == activeSessionID })
+    }
+
     init() {
         bootstrap()
         startChatConnectionLoop()
+        startSessionMonitorLoop()
     }
 
     func selectProject(_ project: Project) {
         selectedProjectID = project.id
         sidebarNavSelection = .board
         selectedTab = .board
+        activeSessionID = nil
         persistSelectedProject()
         updateActiveProjectFlags()
         reloadSelectedProjectAndWatch()
@@ -86,6 +96,7 @@ final class AppState {
 
     func navigate(to item: SidebarNavItem) {
         sidebarNavSelection = item
+        activeSessionID = nil
         switch item {
         case .board:
             selectedTab = .board
@@ -198,6 +209,57 @@ final class AppState {
         selectedBeadID = issueID
         selectedTab = .board
         sidebarNavSelection = .board
+    }
+
+    func openSessionInTerminal(_ session: CodingSession) {
+        activeSessionID = session.id
+    }
+
+    func backToBoardFromTerminal() {
+        activeSessionID = nil
+        selectedTab = .board
+        sidebarNavSelection = .board
+    }
+
+    func captureTerminalOutput(for sessionID: String, lines: Int = 500) async -> String {
+        do {
+            return try await sessionMonitor.capturePane(session: sessionID, lines: lines)
+        } catch {
+            return "Unable to capture terminal output for \(sessionID).\n\n\(error.localizedDescription)"
+        }
+    }
+
+    func nudgeSession(sessionID: String) async {
+        do {
+            try await sessionMonitor.sendNudge(session: sessionID)
+            statusMessage = "Sent nudge to \(sessionID)."
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    @discardableResult
+    func launchSession(
+        project: Project,
+        agentType: AgentType,
+        beadID: String?,
+        prompt: String?
+    ) async -> Bool {
+        do {
+            let sessionID = try await sessionMonitor.launchSession(
+                projectPath: project.path,
+                agentType: agentType,
+                beadID: beadID,
+                prompt: prompt
+            )
+            statusMessage = "Launched session \(sessionID)."
+            await refreshSessionsFromMonitor()
+            activeSessionID = sessionID
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
     }
 
     func initializeBeadsForSelectedProject() async {
@@ -427,6 +489,34 @@ final class AppState {
 
         updateActiveProjectFlags()
         reloadSelectedProjectAndWatch()
+    }
+
+    private func startSessionMonitorLoop() {
+        sessionMonitorTask?.cancel()
+        sessionMonitorTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+
+            while !Task.isCancelled {
+                await self.refreshSessionsFromMonitor()
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+            }
+        }
+    }
+
+    private func refreshSessionsFromMonitor() async {
+        do {
+            sessions = try await sessionMonitor.listSessions()
+            if let activeSessionID,
+               !sessions.contains(where: { $0.id == activeSessionID }) {
+                self.activeSessionID = nil
+            }
+        } catch {
+            sessions = []
+            if !SessionMonitor.isMissingTmuxServer(error: error) {
+                errorMessage = error.localizedDescription
+            }
+            activeSessionID = nil
+        }
     }
 
     private func startChatConnectionLoop() {

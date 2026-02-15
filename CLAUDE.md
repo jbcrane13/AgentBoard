@@ -43,3 +43,31 @@
 - Verification run completed:
   - `xcodebuild -project AgentBoard.xcodeproj -scheme AgentBoard -destination 'platform=macOS' build` ✅
   - `xcodebuild -project AgentBoard.xcodeproj -scheme AgentBoard -destination 'platform=macOS' test` ✅
+
+## Phase 4 Completed (2026-02-15)
+
+- Tracking closed:
+  - Epic `AgentBoard-52n`
+  - Tasks `AgentBoard-52n.1` to `AgentBoard-52n.5`
+- Session monitor integration:
+  - Added `SessionMonitor` actor for tmux/session/process discovery and terminal pane capture.
+  - Uses tmux socket `/tmp/openclaw-tmux-sockets/openclaw.sock`.
+  - Discovery strategy:
+    - `tmux list-sessions` + `tmux list-panes`
+    - `ps -axo pid,ppid,pcpu,command`
+    - Agent detection by command (`claude`, `codex`, `opencode`)
+  - Session status derived from process detection and CPU activity.
+- App state + UI behavior:
+  - `AppState` now polls sessions every 3 seconds and keeps a live `sessions` list.
+  - Sidebar sessions are now live and selectable.
+  - Selecting a session opens `TerminalView` in the center panel (read-only capture mode).
+  - Terminal toolbar includes back-to-board and nudge controls.
+  - Nudge sends Enter (`C-m`) into tmux session.
+- Session launch flow:
+  - `+ New Session` now opens a launch sheet.
+  - Inputs: project, agent type, optional bead ID, optional prompt.
+  - Launches detached tmux session with naming pattern `ab-<project>-<bead-or-timestamp>`.
+  - Optional seed prompt is sent after launch.
+- Verification run completed:
+  - `xcodebuild -project AgentBoard.xcodeproj -scheme AgentBoard -destination 'platform=macOS' build` ✅
+  - `xcodebuild -project AgentBoard.xcodeproj -scheme AgentBoard -destination 'platform=macOS' test` ✅

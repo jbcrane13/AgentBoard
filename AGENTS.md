@@ -63,3 +63,24 @@ bd sync               # Sync with git
 - Verification gate passed:
   - `xcodebuild -project AgentBoard.xcodeproj -scheme AgentBoard -destination 'platform=macOS' build`
   - `xcodebuild -project AgentBoard.xcodeproj -scheme AgentBoard -destination 'platform=macOS' test`
+
+## Phase 4 Snapshot (2026-02-15)
+
+- Tracking: `AgentBoard-52n` and child tasks `AgentBoard-52n.1` to `AgentBoard-52n.5` are closed.
+- Session monitoring architecture:
+  - `SessionMonitor` is the tmux/process integration point.
+  - Tmux socket default is `/tmp/openclaw-tmux-sockets/openclaw.sock`.
+  - Discovery uses `tmux list-sessions` + `tmux list-panes` + `ps` snapshots.
+  - Status mapping uses detected agent process + CPU threshold (`> 0.1` => running, otherwise idle; no agent process => idle/stopped by attachment state).
+- Center panel behavior:
+  - Selecting a session in sidebar opens a read-only terminal center view (`TerminalView`) with:
+    - Back to board
+    - Nudge action (sends `C-m` via tmux)
+    - Periodic pane capture refresh
+- Session launch behavior:
+  - Sidebar `+ New Session` now opens a sheet with project/agent/bead/prompt fields.
+  - Sessions launch as detached tmux sessions with name pattern `ab-<project>-<bead-or-timestamp>`.
+  - Optional prompt is sent into the launched session after start.
+- Verification gate passed:
+  - `xcodebuild -project AgentBoard.xcodeproj -scheme AgentBoard -destination 'platform=macOS' build`
+  - `xcodebuild -project AgentBoard.xcodeproj -scheme AgentBoard -destination 'platform=macOS' test`

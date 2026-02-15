@@ -35,6 +35,8 @@ struct ContentView: View {
         Group {
             if appState.sidebarNavSelection == .settings {
                 SettingsView()
+            } else if let activeSession = appState.activeSession {
+                TerminalView(session: activeSession)
             } else {
                 VStack(spacing: 0) {
                     if let project = appState.selectedProject {
@@ -66,6 +68,7 @@ struct ContentView: View {
 
     private func tabButton(_ tab: CenterTab) -> some View {
         Button(action: {
+            appState.activeSessionID = nil
             appState.selectedTab = tab
             switch tab {
             case .board:

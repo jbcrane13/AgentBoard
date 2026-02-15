@@ -4,6 +4,7 @@ struct SidebarView: View {
     @State private var projectsExpanded = true
     @State private var sessionsExpanded = true
     @State private var viewsExpanded = true
+    @State private var showingNewSessionSheet = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -41,10 +42,15 @@ struct SidebarView: View {
         }
         .frame(minWidth: 220, idealWidth: 220, maxWidth: 220)
         .background(Color(red: 0.173, green: 0.173, blue: 0.18))
+        .sheet(isPresented: $showingNewSessionSheet) {
+            NewSessionSheet()
+        }
     }
 
     private var newSessionButton: some View {
-        Button(action: {}) {
+        Button {
+            showingNewSessionSheet = true
+        } label: {
             HStack(spacing: 8) {
                 Image(systemName: "plus")
                     .font(.system(size: 12, weight: .medium))
