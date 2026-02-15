@@ -24,6 +24,28 @@ enum MessageRole: String, Sendable {
 }
 
 extension ChatMessage {
+    var referencedIssueIDs: [String] {
+        let pattern = #"\b[A-Za-z][A-Za-z0-9_-]*-[A-Za-z0-9.]+\b"#
+        guard let regex = try? NSRegularExpression(pattern: pattern) else {
+            return []
+        }
+
+        let nsRange = NSRange(content.startIndex..<content.endIndex, in: content)
+        let matches = regex.matches(in: content, range: nsRange)
+        let values = matches.compactMap { match -> String? in
+            guard let range = Range(match.range, in: content) else { return nil }
+            return String(content[range])
+        }
+
+        var unique: [String] = []
+        for value in values where !unique.contains(value) {
+            unique.append(value)
+        }
+        return unique
+    }
+}
+
+extension ChatMessage {
     static let samples: [ChatMessage] = [
         ChatMessage(
             role: .assistant,

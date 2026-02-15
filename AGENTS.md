@@ -46,3 +46,20 @@ bd sync               # Sync with git
 - UI shell decision: `NavigationSplitView` for sidebar/detail, with `HSplitView` for center + right panel.
 - Layout baseline: default window `1280x820`, minimum `900x600`, sidebar fixed to `220`, center minimum `400`, right panel ideal `340`.
 - Phase 1 board and canvas are intentionally placeholders (`BoardView` empty canonical columns, canvas shows `No content`).
+
+## Phase 3 Snapshot (2026-02-15)
+
+- Tracking: `AgentBoard-69u` and child tasks `AgentBoard-69u.1` to `AgentBoard-69u.4` are closed.
+- OpenClaw config is auto-hydrated from `~/.openclaw/openclaw.json` (`gateway.url`, `gateway.auth.token`) when local config fields are unset.
+- Chat service split:
+  - Connection lifecycle uses WebSocket (`/ws`) with ping health checks and reconnect backoff in `AppState`.
+  - Message streaming uses `POST /v1/chat/completions` SSE parsing with a non-streaming fallback path.
+- Chat UI decisions:
+  - Streaming assistant bubble updates in place with typing indicator.
+  - Assistant markdown supports inline formatting and fenced code blocks with monospace styling.
+  - Context chips include selected bead and remote session count.
+  - Cmd+Enter sends, TextEditor newline remains available while composing.
+  - Assistant message bead references render as clickable chips and route back to board selection.
+- Verification gate passed:
+  - `xcodebuild -project AgentBoard.xcodeproj -scheme AgentBoard -destination 'platform=macOS' build`
+  - `xcodebuild -project AgentBoard.xcodeproj -scheme AgentBoard -destination 'platform=macOS' test`

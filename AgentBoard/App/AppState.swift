@@ -28,7 +28,7 @@ final class AppState {
     var selectedProjectID: UUID?
     var beads: [Bead] = []
     var sessions: [CodingSession] = CodingSession.samples
-    var chatMessages: [ChatMessage] = ChatMessage.samples
+    var chatMessages: [ChatMessage] = []
 
     var selectedTab: CenterTab = .board
     var rightPanelMode: RightPanelMode = .split
@@ -40,11 +40,16 @@ final class AppState {
     var statusMessage: String?
     var errorMessage: String?
     var selectedBeadID: String?
+    var chatConnectionState: OpenClawConnectionState = .disconnected
+    var isChatStreaming = false
+    var remoteChatSessions: [OpenClawRemoteSession] = []
 
     private let configStore = AppConfigStore()
     private let parser = JSONLParser()
     private let watcher = BeadsWatcher()
+    private let openClawService = OpenClawService()
     private var watchedFilePath: String?
+    private var chatReconnectTask: Task<Void, Never>?
 
     var selectedProject: Project? {
         guard let selectedProjectID else { return nil }
@@ -61,8 +66,13 @@ final class AppState {
         return beads.first(where: { $0.id == selectedBeadID })
     }
 
+    var selectedBeadContextID: String? {
+        selectedBeadID ?? selectedBead?.id
+    }
+
     init() {
         bootstrap()
+        startChatConnectionLoop()
     }
 
     func selectProject(_ project: Project) {
@@ -133,6 +143,61 @@ final class AppState {
         appConfig.openClawToken = token.isEmpty ? nil : token
         persistConfig()
         statusMessage = "Saved OpenClaw settings."
+        startChatConnectionLoop()
+    }
+
+    func sendChatMessage(_ text: String) async {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        let contextID = selectedBeadContextID
+        let userMessage = ChatMessage(role: .user, content: trimmed, beadContext: contextID)
+        chatMessages.append(userMessage)
+
+        let assistantID = UUID()
+        chatMessages.append(
+            ChatMessage(id: assistantID, role: .assistant, content: "", beadContext: contextID)
+        )
+
+        isChatStreaming = true
+        errorMessage = nil
+
+        let snapshot = chatMessages
+        do {
+            let streamedText = try await openClawService.streamChat(
+                messages: snapshot,
+                beadContext: contextID
+            ) { [weak self] chunk in
+                Task { @MainActor in
+                    self?.appendAssistantChunk(chunk, messageID: assistantID)
+                }
+            }
+
+            if streamedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                replaceAssistantMessage(
+                    messageID: assistantID,
+                    content: "No response content received from OpenClaw."
+                )
+            } else {
+                replaceAssistantMessage(messageID: assistantID, content: streamedText)
+            }
+        } catch {
+            replaceAssistantMessage(
+                messageID: assistantID,
+                content: "Failed to send message: \(error.localizedDescription)"
+            )
+            errorMessage = error.localizedDescription
+            startChatConnectionLoop()
+        }
+
+        isChatStreaming = false
+        await refreshRemoteSessions()
+    }
+
+    func openIssueFromChat(issueID: String) {
+        selectedBeadID = issueID
+        selectedTab = .board
+        sidebarNavSelection = .board
     }
 
     func initializeBeadsForSelectedProject() async {
@@ -364,6 +429,51 @@ final class AppState {
         reloadSelectedProjectAndWatch()
     }
 
+    private func startChatConnectionLoop() {
+        chatReconnectTask?.cancel()
+        chatReconnectTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+
+            var attempt = 0
+            while !Task.isCancelled {
+                do {
+                    try await self.openClawService.configure(
+                        gatewayURLString: self.appConfig.openClawGatewayURL,
+                        token: self.appConfig.openClawToken
+                    )
+
+                    self.chatConnectionState = attempt == 0 ? .connecting : .reconnecting
+
+                    try await self.openClawService.connectWebSocket()
+                    self.chatConnectionState = .connected
+                    await self.refreshRemoteSessions()
+
+                    while !Task.isCancelled {
+                        try await Task.sleep(nanoseconds: 30_000_000_000)
+                        try await self.openClawService.pingWebSocket()
+                    }
+                    return
+                } catch {
+                    attempt += 1
+                    self.chatConnectionState = .reconnecting
+
+                    let backoffSeconds = min(pow(2.0, Double(max(attempt - 1, 0))), 30)
+                    try? await Task.sleep(nanoseconds: UInt64(backoffSeconds * 1_000_000_000))
+                }
+            }
+
+            self.chatConnectionState = .disconnected
+        }
+    }
+
+    private func refreshRemoteSessions() async {
+        do {
+            remoteChatSessions = try await openClawService.fetchSessions()
+        } catch {
+            remoteChatSessions = []
+        }
+    }
+
     private func rebuildProjects() {
         let existingIDsByPath = Dictionary(uniqueKeysWithValues: projects.map { ($0.path.path, $0.id) })
         projects = appConfig.projects.map { configuredProject in
@@ -491,6 +601,32 @@ final class AppState {
 
     private func runBD(arguments: [String], in project: Project) async throws -> ShellCommandResult {
         try await ShellCommand.runAsync(arguments: arguments, workingDirectory: project.path)
+    }
+
+    private func appendAssistantChunk(_ chunk: String, messageID: UUID) {
+        guard let index = chatMessages.firstIndex(where: { $0.id == messageID }) else { return }
+        let message = chatMessages[index]
+        let updated = ChatMessage(
+            id: message.id,
+            role: message.role,
+            content: message.content + chunk,
+            timestamp: message.timestamp,
+            beadContext: message.beadContext
+        )
+        chatMessages[index] = updated
+    }
+
+    private func replaceAssistantMessage(messageID: UUID, content: String) {
+        guard let index = chatMessages.firstIndex(where: { $0.id == messageID }) else { return }
+        let message = chatMessages[index]
+        let updated = ChatMessage(
+            id: message.id,
+            role: message.role,
+            content: content,
+            timestamp: message.timestamp,
+            beadContext: message.beadContext
+        )
+        chatMessages[index] = updated
     }
 
     private func parseCreatedIssueID(from result: ShellCommandResult) -> String? {

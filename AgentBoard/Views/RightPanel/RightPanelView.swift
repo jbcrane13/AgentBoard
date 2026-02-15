@@ -42,11 +42,11 @@ struct RightPanelView: View {
 
                 HStack(spacing: 4) {
                     Circle()
-                        .fill(Color.green)
+                        .fill(appState.chatConnectionState.color)
                         .frame(width: 6, height: 6)
-                    Text("Connected")
+                    Text(appState.chatConnectionState.label)
                         .font(.system(size: 11))
-                        .foregroundStyle(.green)
+                        .foregroundStyle(appState.chatConnectionState.color)
                 }
             }
             .padding(.horizontal, 16)
