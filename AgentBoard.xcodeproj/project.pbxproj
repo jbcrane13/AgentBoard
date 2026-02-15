@@ -15,6 +15,7 @@
 		1E8A4C59C79A436C871BB2FC /* Project.swift in Sources */ = {isa = PBXBuildFile; fileRef = 981E315477AEB367FA9FBC21 /* Project.swift */; };
 		1EB1E670B9B9F59AC0C4343A /* TaskCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2093F6FD1A46672B74217E31 /* TaskCardView.swift */; };
 		3BB29835444515EB94FD813C /* ProjectHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5AE3EDEE83915C26EAC9CDC /* ProjectHeaderView.swift */; };
+		44097275AD1DC9E186E35F66 /* CanvasRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5F4500B562B9987DE72A37A /* CanvasRenderer.swift */; };
 		4BA90DB3C58DEFD4A1FDA51A /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB72F151C5258F99F3949B6C /* AppConfig.swift */; };
 		563C1AEC2AE5B2C15AFB5224 /* BeadDraft.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72FBE50FAAA5B79FB22D609C /* BeadDraft.swift */; };
 		58F4A64A5D37DB4E8D3EE1D8 /* SplitPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C58E348553C3BD9682EE30E /* SplitPanelView.swift */; };
@@ -91,6 +92,7 @@
 		D39D1C9DB492919C8F35475A /* AgentBoardApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentBoardApp.swift; sourceTree = "<group>"; };
 		D5AE3EDEE83915C26EAC9CDC /* ProjectHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectHeaderView.swift; sourceTree = "<group>"; };
 		DCFB4372C3180FCDD9482BFF /* AppConfigStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfigStore.swift; sourceTree = "<group>"; };
+		E5F4500B562B9987DE72A37A /* CanvasRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CanvasRenderer.swift; sourceTree = "<group>"; };
 		EB98B802B0F59DEAD8737803 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
 		ECA6BA3AA54E81CDCDA7D3AE /* ShellCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShellCommand.swift; sourceTree = "<group>"; };
 		EE49BCA31BB12B8C4B6573CA /* OpenClawConnectionState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenClawConnectionState.swift; sourceTree = "<group>"; };
@@ -228,6 +230,7 @@
 			children = (
 				DCFB4372C3180FCDD9482BFF /* AppConfigStore.swift */,
 				BD8201A1E527D30542D3C8A4 /* BeadsWatcher.swift */,
+				E5F4500B562B9987DE72A37A /* CanvasRenderer.swift */,
 				99E22E6B21241B648DFB4223 /* JSONLParser.swift */,
 				F8AC6743B67E34EB380FAAB0 /* OpenClawService.swift */,
 				45105CB7F88820AC05447A0C /* SessionMonitor.swift */,
@@ -419,6 +422,7 @@
 				B4A3C0D200BE41D27D4DB5BA /* BoardView.swift in Sources */,
 				17196FC47E550275445820BE /* CanvasContent.swift in Sources */,
 				CA10430B4F87ED3479C834B4 /* CanvasPanelView.swift in Sources */,
+				44097275AD1DC9E186E35F66 /* CanvasRenderer.swift in Sources */,
 				B487E7AF03F8723387ACCC42 /* ChatMessage.swift in Sources */,
 				1B1E0C9B300569BD1E07C466 /* ChatPanelView.swift in Sources */,
 				E452FD5CFB11D0CDEDF1D0BF /* CodingSession.swift in Sources */,

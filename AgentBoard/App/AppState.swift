@@ -44,6 +44,10 @@ final class AppState {
     var chatConnectionState: OpenClawConnectionState = .disconnected
     var isChatStreaming = false
     var remoteChatSessions: [OpenClawRemoteSession] = []
+    var canvasHistory: [CanvasContent] = []
+    var canvasHistoryIndex: Int = -1
+    var canvasZoom: Double = 1.0
+    var isCanvasLoading = false
 
     private let configStore = AppConfigStore()
     private let parser = JSONLParser()
@@ -71,6 +75,19 @@ final class AppState {
 
     var selectedBeadContextID: String? {
         selectedBeadID ?? selectedBead?.id
+    }
+
+    var currentCanvasContent: CanvasContent? {
+        guard canvasHistoryIndex >= 0, canvasHistoryIndex < canvasHistory.count else { return nil }
+        return canvasHistory[canvasHistoryIndex]
+    }
+
+    var canGoCanvasBack: Bool {
+        canvasHistoryIndex > 0
+    }
+
+    var canGoCanvasForward: Bool {
+        canvasHistoryIndex >= 0 && canvasHistoryIndex < (canvasHistory.count - 1)
     }
 
     var activeSession: CodingSession? {
@@ -184,14 +201,11 @@ final class AppState {
                 }
             }
 
-            if streamedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                replaceAssistantMessage(
-                    messageID: assistantID,
-                    content: "No response content received from OpenClaw."
-                )
-            } else {
-                replaceAssistantMessage(messageID: assistantID, content: streamedText)
-            }
+            finalizeAssistantMessage(
+                messageID: assistantID,
+                streamedText: streamedText,
+                fallbackContent: "No response content received from OpenClaw."
+            )
         } catch {
             replaceAssistantMessage(
                 messageID: assistantID,
@@ -209,6 +223,69 @@ final class AppState {
         selectedBeadID = issueID
         selectedTab = .board
         sidebarNavSelection = .board
+    }
+
+    func openMessageInCanvas(_ message: ChatMessage) {
+        let content: CanvasContent
+        if let codeBlock = extractFirstCodeBlock(from: message.content) {
+            let markdown = "```\(codeBlock.language)\n\(codeBlock.code)\n```"
+            content = .markdown(
+                id: UUID(),
+                title: "Code from Chat",
+                content: markdown
+            )
+        } else {
+            content = .markdown(
+                id: UUID(),
+                title: "Message from Chat",
+                content: message.content
+            )
+        }
+
+        pushCanvasContent(content)
+        rightPanelMode = .canvas
+    }
+
+    func pushCanvasContent(_ content: CanvasContent) {
+        if canGoCanvasForward {
+            canvasHistory = Array(canvasHistory.prefix(canvasHistoryIndex + 1))
+        }
+        canvasHistory.append(content)
+        canvasHistoryIndex = canvasHistory.count - 1
+    }
+
+    func goCanvasBack() {
+        guard canGoCanvasBack else { return }
+        canvasHistoryIndex -= 1
+    }
+
+    func goCanvasForward() {
+        guard canGoCanvasForward else { return }
+        canvasHistoryIndex += 1
+    }
+
+    func clearCanvasHistory() {
+        canvasHistory = []
+        canvasHistoryIndex = -1
+    }
+
+    func adjustCanvasZoom(by delta: Double) {
+        canvasZoom = min(max(canvasZoom + delta, 0.6), 2.0)
+    }
+
+    func resetCanvasZoom() {
+        canvasZoom = 1.0
+    }
+
+    func openCanvasFile(_ url: URL) async {
+        do {
+            let content = try makeCanvasContent(from: url)
+            pushCanvasContent(content)
+            rightPanelMode = .canvas
+            statusMessage = "Opened \(url.lastPathComponent) in canvas."
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 
     func openSessionInTerminal(_ session: CodingSession) {
@@ -693,6 +770,150 @@ final class AppState {
         try await ShellCommand.runAsync(arguments: arguments, workingDirectory: project.path)
     }
 
+    private func finalizeAssistantMessage(
+        messageID: UUID,
+        streamedText: String,
+        fallbackContent: String
+    ) {
+        var finalContent = streamedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? fallbackContent
+            : streamedText
+        var sentToCanvas = false
+
+        if let (canvasContent, cleanedMessage) = parseCanvasDirective(from: finalContent) {
+            pushCanvasContent(canvasContent)
+            sentToCanvas = true
+            finalContent = cleanedMessage.isEmpty ? "Sent to canvas." : cleanedMessage
+            if rightPanelMode == .chat {
+                rightPanelMode = .split
+            }
+        }
+
+        replaceAssistantMessage(
+            messageID: messageID,
+            content: finalContent,
+            sentToCanvas: sentToCanvas
+        )
+    }
+
+    private func parseCanvasDirective(from content: String) -> (CanvasContent, String)? {
+        let pattern = #"<!--\s*canvas:([a-zA-Z]+)\s*-->([\s\S]*?)<!--\s*/canvas\s*-->"#
+        guard let regex = try? NSRegularExpression(
+            pattern: pattern,
+            options: [.caseInsensitive]
+        ) else {
+            return nil
+        }
+
+        let nsRange = NSRange(content.startIndex..<content.endIndex, in: content)
+        guard let match = regex.firstMatch(in: content, options: [], range: nsRange),
+              let typeRange = Range(match.range(at: 1), in: content),
+              let bodyRange = Range(match.range(at: 2), in: content) else {
+            return nil
+        }
+
+        let type = content[typeRange].lowercased()
+        let body = String(content[bodyRange]).trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !body.isEmpty else { return nil }
+
+        let cleanedMessage: String
+        if let fullRange = Range(match.range(at: 0), in: content) {
+            cleanedMessage = content.replacingCharacters(in: fullRange, with: "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+        } else {
+            cleanedMessage = content
+        }
+
+        let canvasContent: CanvasContent
+        switch type {
+        case "markdown":
+            canvasContent = .markdown(id: UUID(), title: "Canvas Markdown", content: body)
+
+        case "html":
+            canvasContent = .html(id: UUID(), title: "Canvas HTML", content: body)
+
+        case "mermaid", "diagram":
+            canvasContent = .diagram(id: UUID(), title: "Canvas Diagram", mermaid: body)
+
+        case "image":
+            if let url = URL(string: body), url.scheme != nil {
+                canvasContent = .image(id: UUID(), title: "Canvas Image", url: url)
+            } else {
+                canvasContent = .markdown(id: UUID(), title: "Canvas Markdown", content: body)
+            }
+
+        case "diff":
+            canvasContent = parseDiffCanvasContent(from: body)
+
+        default:
+            canvasContent = .markdown(id: UUID(), title: "Canvas Markdown", content: body)
+        }
+
+        return (canvasContent, cleanedMessage)
+    }
+
+    private func parseDiffCanvasContent(from body: String) -> CanvasContent {
+        var lines = body.split(omittingEmptySubsequences: false, whereSeparator: \.isNewline).map(String.init)
+        var filename = "Changes.diff"
+        if let firstLine = lines.first, firstLine.lowercased().hasPrefix("file:") {
+            filename = firstLine.dropFirst(5).trimmingCharacters(in: .whitespacesAndNewlines)
+            lines.removeFirst()
+        }
+
+        let normalizedBody = lines.joined(separator: "\n")
+        let divider = "\n---\n"
+        let before: String
+        let after: String
+        if let dividerRange = normalizedBody.range(of: divider) {
+            before = String(normalizedBody[..<dividerRange.lowerBound])
+            after = String(normalizedBody[dividerRange.upperBound...])
+        } else {
+            before = ""
+            after = normalizedBody
+        }
+
+        return .diff(
+            id: UUID(),
+            title: "Canvas Diff",
+            before: before,
+            after: after,
+            filename: filename
+        )
+    }
+
+    private func makeCanvasContent(from fileURL: URL) throws -> CanvasContent {
+        let filename = fileURL.lastPathComponent
+        let ext = fileURL.pathExtension.lowercased()
+
+        if ["png", "jpg", "jpeg", "gif", "heic", "webp", "bmp", "tiff", "svg"].contains(ext) {
+            return .image(id: UUID(), title: filename, url: fileURL)
+        }
+
+        let fileContents = try String(contentsOf: fileURL, encoding: .utf8)
+        if ["html", "htm"].contains(ext) {
+            return .html(id: UUID(), title: filename, content: fileContents)
+        }
+        if ["mmd", "mermaid"].contains(ext) {
+            return .diagram(id: UUID(), title: filename, mermaid: fileContents)
+        }
+        if ["diff", "patch"].contains(ext) {
+            return .diff(id: UUID(), title: filename, before: "", after: fileContents, filename: filename)
+        }
+        return .markdown(id: UUID(), title: filename, content: fileContents)
+    }
+
+    private func extractFirstCodeBlock(from content: String) -> (language: String, code: String)? {
+        guard let fenceStart = content.range(of: "```") else { return nil }
+        let afterFence = content[fenceStart.upperBound...]
+        guard let fenceEnd = afterFence.range(of: "```") else { return nil }
+
+        let raw = String(afterFence[..<fenceEnd.lowerBound])
+        let lines = raw.split(omittingEmptySubsequences: false, whereSeparator: \.isNewline)
+        let language = lines.first.map(String.init) ?? ""
+        let code = lines.dropFirst().joined(separator: "\n")
+        return (language.trimmingCharacters(in: .whitespacesAndNewlines), code)
+    }
+
     private func appendAssistantChunk(_ chunk: String, messageID: UUID) {
         guard let index = chatMessages.firstIndex(where: { $0.id == messageID }) else { return }
         let message = chatMessages[index]
@@ -701,12 +922,13 @@ final class AppState {
             role: message.role,
             content: message.content + chunk,
             timestamp: message.timestamp,
-            beadContext: message.beadContext
+            beadContext: message.beadContext,
+            sentToCanvas: message.sentToCanvas
         )
         chatMessages[index] = updated
     }
 
-    private func replaceAssistantMessage(messageID: UUID, content: String) {
+    private func replaceAssistantMessage(messageID: UUID, content: String, sentToCanvas: Bool = false) {
         guard let index = chatMessages.firstIndex(where: { $0.id == messageID }) else { return }
         let message = chatMessages[index]
         let updated = ChatMessage(
@@ -714,7 +936,8 @@ final class AppState {
             role: message.role,
             content: content,
             timestamp: message.timestamp,
-            beadContext: message.beadContext
+            beadContext: message.beadContext,
+            sentToCanvas: sentToCanvas
         )
         chatMessages[index] = updated
     }

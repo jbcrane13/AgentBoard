@@ -17,9 +17,15 @@ struct ChatPanelView: View {
             ScrollView {
                 LazyVStack(spacing: 12) {
                     ForEach(appState.chatMessages) { message in
-                        ChatMessageBubble(message: message) { issueID in
-                            appState.openIssueFromChat(issueID: issueID)
-                        }
+                        ChatMessageBubble(
+                            message: message,
+                            onIssueTap: { issueID in
+                                appState.openIssueFromChat(issueID: issueID)
+                            },
+                            onOpenInCanvas: {
+                                appState.openMessageInCanvas(message)
+                            }
+                        )
                     }
 
                     if appState.isChatStreaming {
@@ -151,6 +157,7 @@ struct ChatPanelView: View {
 struct ChatMessageBubble: View {
     let message: ChatMessage
     let onIssueTap: (String) -> Void
+    let onOpenInCanvas: () -> Void
 
     var body: some View {
         HStack(alignment: .bottom) {
@@ -179,11 +186,24 @@ struct ChatMessageBubble: View {
                         }
                     }
                 }
+
+                if message.role == .assistant && message.sentToCanvas {
+                    Text("📋 Sent to canvas")
+                        .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(Color.accentColor)
+                }
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
             .background(bubbleBackground, in: bubbleShape)
             .foregroundStyle(message.role == .user ? .white : Color(red: 0.1, green: 0.1, blue: 0.1))
+            .contextMenu {
+                if message.hasCodeBlock {
+                    Button("Open in Canvas") {
+                        onOpenInCanvas()
+                    }
+                }
+            }
 
             if message.role == .assistant { Spacer(minLength: 20) }
         }

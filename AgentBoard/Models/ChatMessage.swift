@@ -6,14 +6,16 @@ struct ChatMessage: Identifiable, Hashable {
     let content: String
     let timestamp: Date
     let beadContext: String?
+    let sentToCanvas: Bool
 
     init(id: UUID = UUID(), role: MessageRole, content: String,
-         timestamp: Date = .now, beadContext: String? = nil) {
+         timestamp: Date = .now, beadContext: String? = nil, sentToCanvas: Bool = false) {
         self.id = id
         self.role = role
         self.content = content
         self.timestamp = timestamp
         self.beadContext = beadContext
+        self.sentToCanvas = sentToCanvas
     }
 }
 
@@ -42,6 +44,10 @@ extension ChatMessage {
             unique.append(value)
         }
         return unique
+    }
+
+    var hasCodeBlock: Bool {
+        content.contains("```")
     }
 }
 

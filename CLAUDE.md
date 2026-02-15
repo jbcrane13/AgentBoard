@@ -71,3 +71,31 @@
 - Verification run completed:
   - `xcodebuild -project AgentBoard.xcodeproj -scheme AgentBoard -destination 'platform=macOS' build` ✅
   - `xcodebuild -project AgentBoard.xcodeproj -scheme AgentBoard -destination 'platform=macOS' test` ✅
+
+## Phase 5 Completed (2026-02-15)
+
+- Tracking closed:
+  - Epic `AgentBoard-df9`
+  - Tasks `AgentBoard-df9.1` to `AgentBoard-df9.5`
+- Canvas system:
+  - Added `CanvasRenderer` service for WKWebView rendering.
+  - Render support includes markdown, HTML, image, diff, mermaid diagram, and terminal output.
+  - `AppState` owns canvas history, navigation index, zoom, and loading state.
+- Protocol + chat behavior:
+  - Assistant output now parses canvas directives:
+    - `<!-- canvas:markdown --> ... <!-- /canvas -->`
+  - Supported directive types: markdown/html/diff/mermaid|diagram/image.
+  - Parsed content is pushed to canvas automatically.
+  - Assistant bubbles display `📋 Sent to canvas` when directive content is routed.
+- User canvas flows:
+  - Drag-and-drop files onto canvas.
+  - File importer and clipboard image paste.
+  - Chat context-menu action to open code-block messages in canvas.
+  - Canvas toolbar includes history, zoom, export, and clear controls.
+- Split mode polish:
+  - Split mode defaults to 60% canvas / 40% chat.
+  - Divider is draggable, supports edge collapse (full chat/full canvas), and double-click reset.
+- Verification run completed:
+  - `xcodegen generate` ✅
+  - `xcodebuild -project AgentBoard.xcodeproj -scheme AgentBoard -destination 'platform=macOS' build` ✅
+  - `xcodebuild -project AgentBoard.xcodeproj -scheme AgentBoard -destination 'platform=macOS' test` ✅
