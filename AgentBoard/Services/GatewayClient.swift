@@ -89,7 +89,6 @@ actor GatewayClient {
     private var eventContinuation: AsyncStream<GatewayEvent>.Continuation?
     private var receiveTask: Task<Void, Never>?
     private var pingTask: Task<Void, Never>?
-    private var challengeNonce: String?
 
     private let session: URLSession
 
@@ -121,16 +120,28 @@ actor GatewayClient {
         var wsRequest = URLRequest(url: wsURL)
         wsRequest.timeoutInterval = 15
 
+        // The gateway validates the Origin header on WebSocket upgrade.
+        // URLSessionWebSocketTask does not set one by default, so we must
+        // provide it explicitly using the gateway's own origin.
+        if let origin = components.flatMap({ c -> URL? in
+            var o = URLComponents()
+            o.scheme = (c.scheme == "wss") ? "https" : "http"
+            o.host = c.host
+            o.port = c.port
+            return o.url
+        }) {
+            wsRequest.setValue(origin.absoluteString, forHTTPHeaderField: "Origin")
+        }
+
         let task = session.webSocketTask(with: wsRequest)
         task.maximumMessageSize = 16 * 1024 * 1024
         task.resume()
         webSocketTask = task
 
-        // Start receiving messages before the handshake
+        // Start receiving messages before the handshake so we catch the
+        // connect.challenge event (informational — the gateway does not
+        // require the nonce to be echoed back in connect params).
         startReceiving()
-
-        // Wait a moment for any connect.challenge event
-        try await Task.sleep(nanoseconds: 800_000_000)
 
         // Send connect handshake
         var connectParams: [String: Any] = [
@@ -150,10 +161,6 @@ actor GatewayClient {
             connectParams["auth"] = ["token": token]
         }
 
-        if let nonce = challengeNonce {
-            connectParams["nonce"] = nonce
-        }
-
         let hello = try await request("connect", params: connectParams)
         _ = hello // Hello payload received — connection is established
         isConnected = true
@@ -165,7 +172,6 @@ actor GatewayClient {
     /// Disconnect from the gateway.
     func disconnect() {
         isConnected = false
-        challengeNonce = nil
         receiveTask?.cancel()
         receiveTask = nil
         pingTask?.cancel()
@@ -409,9 +415,8 @@ actor GatewayClient {
         let payload = json["payload"] as? [String: Any] ?? [:]
         let seq = json["seq"] as? Int
 
-        // Handle connect challenge
+        // connect.challenge is informational — no action needed
         if event == "connect.challenge" {
-            challengeNonce = payload["nonce"] as? String
             return
         }
 
