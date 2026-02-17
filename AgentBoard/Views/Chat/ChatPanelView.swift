@@ -8,6 +8,7 @@ struct ChatPanelView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            chatHeader
             messageList
             contextBar
             chatInput
@@ -21,6 +22,105 @@ struct ChatPanelView: View {
         }
     }
 
+    // MARK: - Chat Header
+
+    private var chatHeader: some View {
+        HStack(spacing: 8) {
+            // Connection indicator
+            Circle()
+                .fill(appState.chatConnectionState.color)
+                .frame(width: 7, height: 7)
+
+            // Session picker
+            Menu {
+                Button("main") {
+                    Task { await appState.switchSession(to: "main") }
+                }
+                if !appState.gatewaySessions.isEmpty {
+                    Divider()
+                    ForEach(appState.gatewaySessions.filter { $0.key != "main" }) { session in
+                        Button(session.label ?? session.key) {
+                            Task { await appState.switchSession(to: session.key) }
+                        }
+                    }
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Text(appState.currentSessionKey)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(.primary)
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 5))
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+
+            Spacer()
+
+            // Thinking level control
+            Menu {
+                Button {
+                    Task { await appState.setThinkingLevel(nil) }
+                } label: {
+                    HStack {
+                        Text("Default")
+                        if appState.chatThinkingLevel == nil {
+                            Image(systemName: "checkmark")
+                        }
+                    }
+                }
+                Divider()
+                ForEach(["low", "medium", "high"], id: \.self) { level in
+                    Button {
+                        Task { await appState.setThinkingLevel(level) }
+                    } label: {
+                        HStack {
+                            Text(level.capitalized)
+                            if appState.chatThinkingLevel == level {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
+            } label: {
+                HStack(spacing: 3) {
+                    Image(systemName: "brain")
+                        .font(.system(size: 10))
+                    Text(appState.chatThinkingLevel?.capitalized ?? "Think")
+                        .font(.system(size: 10, weight: .medium))
+                }
+                .foregroundStyle(appState.chatThinkingLevel != nil ? Color.accentColor : .secondary)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
+                .background(
+                    appState.chatThinkingLevel != nil
+                        ? Color.accentColor.opacity(0.1)
+                        : Color.primary.opacity(0.04),
+                    in: RoundedRectangle(cornerRadius: 4)
+                )
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+
+            // Connection status text
+            Text(appState.chatConnectionState.label)
+                .font(.system(size: 9, weight: .medium))
+                .foregroundStyle(appState.chatConnectionState.color)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .overlay(alignment: .bottom) {
+            Divider()
+        }
+    }
+
+    // MARK: - Message List
+
     private var messageList: some View {
         ScrollViewReader { proxy in
             ScrollView {
@@ -28,6 +128,7 @@ struct ChatPanelView: View {
                     ForEach(appState.chatMessages) { message in
                         ChatMessageBubble(
                             message: message,
+                            agentName: appState.agentName,
                             onIssueTap: { issueID in
                                 appState.openIssueFromChat(issueID: issueID)
                             },
@@ -60,7 +161,7 @@ struct ChatPanelView: View {
     private var typingIndicator: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text("AgentBoard")
+                Text(appState.agentName)
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(Color.accentColor)
                 HStack(spacing: 4) {
@@ -82,12 +183,17 @@ struct ChatPanelView: View {
         }
     }
 
+    // MARK: - Context Bar
+
     private var contextBar: some View {
         HStack(spacing: 6) {
             if let beadID = appState.selectedBeadContextID {
                 contextChip(label: beadID, color: .teal)
             }
-            contextChip(label: "\(appState.remoteChatSessions.count) sessions", color: .teal)
+            contextChip(
+                label: "\(appState.gatewaySessions.count) sessions",
+                color: .teal
+            )
             Spacer()
         }
         .padding(.horizontal, 16)
@@ -111,6 +217,8 @@ struct ChatPanelView: View {
         .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 4))
     }
 
+    // MARK: - Chat Input
+
     private var chatInput: some View {
         HStack(alignment: .bottom, spacing: 8) {
             TextEditor(text: $inputText)
@@ -130,16 +238,32 @@ struct ChatPanelView: View {
                     }
                 }
 
-            Button(action: sendMessage) {
-                Image(systemName: "arrow.up")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 28, height: 28)
-                    .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 7))
+            if appState.isChatStreaming {
+                // Abort button
+                Button(action: {
+                    Task { await appState.abortChat() }
+                }) {
+                    Image(systemName: "stop.fill")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 28, height: 28)
+                        .background(Color.red, in: RoundedRectangle(cornerRadius: 7))
+                }
+                .buttonStyle(.plain)
+                .help("Stop generation")
+            } else {
+                // Send button
+                Button(action: sendMessage) {
+                    Image(systemName: "arrow.up")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 28, height: 28)
+                        .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 7))
+                }
+                .buttonStyle(.plain)
+                .disabled(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .keyboardShortcut(.return, modifiers: [.command])
             }
-            .buttonStyle(.plain)
-            .disabled(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || appState.isChatStreaming)
-            .keyboardShortcut(.return, modifiers: [.command])
         }
         .padding(10)
         .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 10))
@@ -173,8 +297,11 @@ struct ChatPanelView: View {
     }
 }
 
+// MARK: - Chat Message Bubble
+
 struct ChatMessageBubble: View {
     let message: ChatMessage
+    let agentName: String
     let onIssueTap: (String) -> Void
     let onOpenInCanvas: () -> Void
 
@@ -184,7 +311,7 @@ struct ChatMessageBubble: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 if message.role == .assistant {
-                    Text("AgentBoard")
+                    Text(agentName)
                         .font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(Color.accentColor)
                 }
@@ -209,7 +336,7 @@ struct ChatMessageBubble: View {
                 if message.role == .assistant && message.sentToCanvas {
                     Text("📋 Sent to canvas")
                         .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(Color.accentColor)
+                        .foregroundStyle(Color.accentColor)
                 }
             }
             .padding(.horizontal, 14)
@@ -281,6 +408,8 @@ struct ChatMessageBubble: View {
         )
     }
 }
+
+// MARK: - Markdown Segment Parser
 
 private enum MarkdownSegment {
     case markdown(String)

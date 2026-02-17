@@ -136,7 +136,51 @@
 - Notifications:
   - Added unread chat badge in right panel header.
   - Added session update badges for stopped/error transitions in session list.
-- Verification run completed:
+- Phase 6 verification run completed:
+  - `xcodegen generate` ✅
+  - `xcodebuild -project AgentBoard.xcodeproj -scheme AgentBoard -destination 'platform=macOS' build` ✅
+  - `xcodebuild -project AgentBoard.xcodeproj -scheme AgentBoard -destination 'platform=macOS' test` ✅
+
+## Chat Integration Rewrite (2026-02-16)
+
+**Problem:** Phase 3's chat used `POST /v1/chat/completions` (a stateless REST endpoint) which
+created throwaway sessions per request — never talking to the real main session. The `/api/sessions`
+REST endpoint didn't exist. The WebSocket was only used for ping health checks.
+
+**Fix:** Rewrote to use the gateway's native WebSocket JSON-RPC protocol.
+
+- **New file:** `AgentBoard/Services/GatewayClient.swift`
+  - WebSocket JSON-RPC client actor (connect handshake, request/response with UUIDs, event stream)
+  - Connect handshake uses protocol version 3 with token auth
+  - `JSONPayload` wrapper for `[String: Any]` to satisfy Swift 6 strict concurrency
+  - Convenience methods: `sendChat`, `chatHistory`, `abortChat`, `listSessions`, `patchSession`, `agentIdentity`
+  - Content extraction helper handles both string and array-of-parts message formats
+
+- **Rewritten:** `AgentBoard/Services/OpenClawService.swift`
+  - Now a thin wrapper around `GatewayClient` instead of managing raw HTTP/WS
+  - Removed: `streamChat`, `connectWebSocket`, `pingWebSocket`, `fetchSessions` (REST)
+  - Added: `sendChat`, `chatHistory`, `abortChat`, `listSessions`, `patchSession`, `agentIdentity`
+  - `OpenClawRemoteSession` type kept for `AgentsView` backward compat
+
+- **Modified:** `AgentBoard/App/AppState.swift`
+  - New state: `currentSessionKey`, `gatewaySessions`, `chatThinkingLevel`, `chatRunId`, `agentName`, `agentAvatar`
+  - Gateway event listener loop handles `chat` events (delta/final/error/aborted streaming states)
+  - `sendChatMessage` uses `chat.send` + event-driven streaming (not request/response)
+  - New methods: `switchSession`, `setThinkingLevel`, `loadChatHistory`, `loadAgentIdentity`, `abortChat`
+  - Gateway session list refreshes every 15 seconds via `sessions.list`
+  - History loaded on connect and session switch
+
+- **Modified:** `AgentBoard/Views/Chat/ChatPanelView.swift`
+  - Chat header: session picker dropdown, thinking level menu (brain icon), connection status
+  - Abort button (red stop) replaces send button during streaming
+  - Agent name from gateway identity instead of hardcoded "AgentBoard"
+  - `ChatMessageBubble` now accepts `agentName` parameter
+  - Context bar shows gateway session count instead of remote session count
+
+- **Spec:** `docs/CHAT-REWRITE-SPEC.md` documents the full gateway WS protocol
+- **ADR:** ADR-004 superseded by ADR-008
+
+- Chat rewrite verification run completed:
   - `xcodegen generate` ✅
   - `xcodebuild -project AgentBoard.xcodeproj -scheme AgentBoard -destination 'platform=macOS' build` ✅
   - `xcodebuild -project AgentBoard.xcodeproj -scheme AgentBoard -destination 'platform=macOS' test` ✅

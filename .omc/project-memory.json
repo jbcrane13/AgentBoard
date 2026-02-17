@@ -1,0 +1,116 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1771287471651,
+  "projectRoot": "/Users/blake/Projects/AgentBoard",
+  "techStack": {
+    "languages": [],
+    "frameworks": [],
+    "packageManager": null,
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": null,
+    "testCommand": null,
+    "lintCommand": null,
+    "devCommand": null,
+    "scripts": {}
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "docs"
+    ],
+    "gitBranches": {
+      "defaultBranch": "main",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "AgentBoard": {
+      "path": "AgentBoard",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1771287471606,
+      "keyFiles": [
+        "AgentBoard.entitlements"
+      ]
+    },
+    "AgentBoard.xcodeproj": {
+      "path": "AgentBoard.xcodeproj",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1771287471610,
+      "keyFiles": [
+        "project.pbxproj"
+      ]
+    },
+    "AgentBoardTests": {
+      "path": "AgentBoardTests",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1771287471614,
+      "keyFiles": [
+        "AgentBoardSmokeTests.swift"
+      ]
+    },
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 2,
+      "lastAccessed": 1771287471621,
+      "keyFiles": [
+        "ADR.md",
+        "CHAT-REWRITE-SPEC.md"
+      ]
+    },
+    "AgentBoard/App": {
+      "path": "AgentBoard/App",
+      "purpose": "Application code",
+      "fileCount": 2,
+      "lastAccessed": 1771287471629,
+      "keyFiles": [
+        "AgentBoardApp.swift",
+        "AppState.swift"
+      ]
+    },
+    "AgentBoard/Models": {
+      "path": "AgentBoard/Models",
+      "purpose": "Data models",
+      "fileCount": 10,
+      "lastAccessed": 1771287471630,
+      "keyFiles": [
+        "AppConfig.swift",
+        "Bead.swift",
+        "BeadDraft.swift"
+      ]
+    },
+    "AgentBoard/Services": {
+      "path": "AgentBoard/Services",
+      "purpose": "Business logic services",
+      "fileCount": 7,
+      "lastAccessed": 1771287471634,
+      "keyFiles": [
+        "AppConfigStore.swift",
+        "BeadsWatcher.swift",
+        "CanvasRenderer.swift"
+      ]
+    },
+    "AgentBoard/Views": {
+      "path": "AgentBoard/Views",
+      "purpose": "View templates",
+      "fileCount": 0,
+      "lastAccessed": 1771287471638,
+      "keyFiles": []
+    }
+  },
+  "hotPaths": [],
+  "userDirectives": []
+}

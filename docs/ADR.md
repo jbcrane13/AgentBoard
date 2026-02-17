@@ -45,7 +45,7 @@ A running log of significant architecture and design decisions. Both Daneel (Ope
 
 ## ADR-004: OpenClaw integration via WebSocket + REST
 **Date:** 2026-02-15  
-**Status:** Active  
+**Status:** Superseded by ADR-008  
 **Decision:** Connect to OpenClaw gateway for chat and session management. WS for health/streaming, REST for chat completions.  
 **Context:** AgentBoard is a frontend for OpenClaw workflows — needs to send messages and receive streaming responses.  
 **Consequences:**
@@ -54,6 +54,7 @@ A running log of significant architecture and design decisions. Both Daneel (Ope
 - Chat endpoint: `POST /v1/chat/completions` (SSE streaming with non-stream fallback)
 - Config discovery reads `~/.openclaw/openclaw.json` for gateway URL and auth token
 - Connection state model: connected/connecting/reconnecting/disconnected
+- **Problem discovered:** REST endpoint was stateless — every message created a throwaway session instead of talking to the real main session. The `/api/sessions` REST endpoint didn't exist (returned SPA HTML). See ADR-008.
 
 ---
 
@@ -89,10 +90,32 @@ A running log of significant architecture and design decisions. Both Daneel (Ope
 **Context:** Incremental delivery, each phase buildable and testable.  
 **Consequences:**
 - Phase 1 (skeleton) ✅ — three-panel layout with placeholders
-- Phase 3 (chat) ✅ — OpenClaw integration with markdown rendering
+- Phase 2 (beads) ✅ — Kanban board with real beads data, FSEvents watcher
+- Phase 3 (chat) ✅ — OpenClaw integration with markdown rendering (rewritten in ADR-008)
 - Phase 4 (session monitor) ✅ — tmux inspection and status display
-- Phase 2 (beads), 5 (canvas), 6 (polish) remaining
+- Phase 5 (canvas) ✅ — WKWebView rendering, canvas protocol, split mode
+- Phase 6 (polish) ✅ — Dark mode, keyboard shortcuts, git integration, agents/history views
 - Detailed plan in `IMPLEMENTATION-PLAN.md`
+
+---
+
+## ADR-008: Gateway WebSocket RPC protocol for chat
+**Date:** 2026-02-16  
+**Status:** Active  
+**Decision:** Replace the stateless REST `/v1/chat/completions` approach with the gateway's native WebSocket JSON-RPC protocol for chat, sessions, and agent identity.  
+**Context:** The Phase 3 implementation used `POST /v1/chat/completions` which created throwaway sessions per request — the chat never actually talked to the main OpenClaw session. The `/api/sessions` REST endpoint didn't exist. Investigation of the gateway source revealed it uses a WebSocket JSON-RPC protocol with methods like `chat.send`, `chat.history`, `sessions.list`, `sessions.patch`, and streaming via `chat` events.  
+**Consequences:**
+- New `GatewayClient` actor implements the WebSocket JSON-RPC protocol (request/response with UUIDs, event stream, connect handshake with token auth, protocol version 3)
+- `OpenClawService` simplified to a thin wrapper around `GatewayClient`
+- Chat now connects to the real main session and shows actual conversation history
+- Gateway events stream chat responses (delta messages contain full accumulated text, not incremental)
+- Session switching: users can pick which session to chat with via `sessions.list`
+- Thinking level control via `sessions.patch` (Default/Low/Medium/High)
+- Agent identity loaded via `agent.identity.get` — shows real agent name instead of hardcoded "AgentBoard"
+- Abort button for stopping generation via `chat.abort`
+- Gateway session list refreshes every 15 seconds
+- `JSONPayload` wrapper for `[String: Any]` to satisfy Swift 6 strict concurrency (`@unchecked Sendable`)
+- Spec documented in `docs/CHAT-REWRITE-SPEC.md`
 
 ---
 

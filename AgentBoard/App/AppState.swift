@@ -44,6 +44,12 @@ final class AppState {
     var chatConnectionState: OpenClawConnectionState = .disconnected
     var isChatStreaming = false
     var remoteChatSessions: [OpenClawRemoteSession] = []
+    var currentSessionKey: String = "main"
+    var gatewaySessions: [GatewaySession] = []
+    var chatThinkingLevel: String? = nil
+    var chatRunId: String? = nil
+    var agentName: String = "Assistant"
+    var agentAvatar: String? = nil
     var beadGitSummaries: [String: BeadGitSummary] = [:]
     var recentGitCommits: [GitCommitRecord] = []
     var currentGitBranch: String?
@@ -67,6 +73,8 @@ final class AppState {
     private let gitService = GitService()
     private var watchedFilePath: String?
     private var chatReconnectTask: Task<Void, Never>?
+    private var chatEventTask: Task<Void, Never>?
+    private var gatewaySessionRefreshTask: Task<Void, Never>?
     private var sessionMonitorTask: Task<Void, Never>?
     private var sessionStatusByID: [String: SessionStatus] = [:]
     private var sessionMonitorTick = 0
@@ -112,6 +120,7 @@ final class AppState {
         bootstrap()
         startChatConnectionLoop()
         startSessionMonitorLoop()
+        startGatewaySessionRefreshLoop()
     }
 
     func selectProject(_ project: Project) {
@@ -249,33 +258,100 @@ final class AppState {
         isChatStreaming = true
         errorMessage = nil
 
-        let snapshot = chatMessages
         do {
-            let streamedText = try await openClawService.streamChat(
-                messages: snapshot,
-                beadContext: contextID
-            ) { [weak self] chunk in
-                Task { @MainActor in
-                    self?.appendAssistantChunk(chunk, messageID: assistantID)
-                }
-            }
-
-            finalizeAssistantMessage(
-                messageID: assistantID,
-                streamedText: streamedText,
-                fallbackContent: "No response content received from OpenClaw."
+            try await openClawService.sendChat(
+                sessionKey: currentSessionKey,
+                message: trimmed
             )
+            // Response will stream via gateway events handled in the event listener.
+            // The event listener will call appendAssistantChunk and finalize the message.
         } catch {
             replaceAssistantMessage(
                 messageID: assistantID,
                 content: "Failed to send message: \(error.localizedDescription)"
             )
             errorMessage = error.localizedDescription
+            isChatStreaming = false
             startChatConnectionLoop()
         }
+    }
 
+    func abortChat() async {
+        do {
+            try await openClawService.abortChat(
+                sessionKey: currentSessionKey,
+                runId: chatRunId
+            )
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func switchSession(to sessionKey: String) async {
+        guard sessionKey != currentSessionKey else { return }
+        currentSessionKey = sessionKey
+        chatMessages = []
+        chatRunId = nil
         isChatStreaming = false
-        await refreshRemoteSessions()
+
+        await loadChatHistory()
+        await loadAgentIdentity()
+    }
+
+    func setThinkingLevel(_ level: String?) async {
+        do {
+            try await openClawService.patchSession(
+                key: currentSessionKey,
+                thinkingLevel: level
+            )
+            chatThinkingLevel = level
+            statusMessage = level != nil
+                ? "Thinking set to \(level!)."
+                : "Thinking set to default."
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func loadChatHistory() async {
+        do {
+            let history = try await openClawService.chatHistory(
+                sessionKey: currentSessionKey,
+                limit: 200
+            )
+
+            chatMessages = history.messages.map { msg in
+                let role: MessageRole = switch msg.role {
+                case "user": .user
+                case "assistant": .assistant
+                default: .system
+                }
+                return ChatMessage(
+                    role: role,
+                    content: msg.text,
+                    timestamp: msg.timestamp ?? .now
+                )
+            }
+            chatThinkingLevel = history.thinkingLevel
+        } catch {
+            // Don't show error for initial load — gateway may not be connected yet
+            if chatConnectionState == .connected {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    func loadAgentIdentity() async {
+        do {
+            let identity = try await openClawService.agentIdentity(
+                sessionKey: currentSessionKey
+            )
+            agentName = identity.name
+            agentAvatar = identity.avatar
+        } catch {
+            agentName = "Assistant"
+            agentAvatar = nil
+        }
     }
 
     func openIssueFromChat(issueID: String) {
@@ -720,6 +796,7 @@ final class AppState {
 
     private func startChatConnectionLoop() {
         chatReconnectTask?.cancel()
+        chatEventTask?.cancel()
         chatReconnectTask = Task { @MainActor [weak self] in
             guard let self else { return }
 
@@ -733,15 +810,27 @@ final class AppState {
 
                     self.chatConnectionState = attempt == 0 ? .connecting : .reconnecting
 
-                    try await self.openClawService.connectWebSocket()
+                    try await self.openClawService.connect()
                     self.chatConnectionState = .connected
-                    await self.refreshRemoteSessions()
+                    attempt = 0
 
+                    // Load history and identity on connect
+                    await self.loadChatHistory()
+                    await self.loadAgentIdentity()
+                    await self.refreshGatewaySessions()
+
+                    // Start event listener
+                    self.startGatewayEventListener()
+
+                    // Monitor connection — if we get here, the event listener
+                    // exited which means the connection dropped
                     while !Task.isCancelled {
-                        try await Task.sleep(nanoseconds: 30_000_000_000)
-                        try await self.openClawService.pingWebSocket()
+                        try await Task.sleep(nanoseconds: 5_000_000_000)
+                        let connected = await self.openClawService.isConnected
+                        if !connected {
+                            break
+                        }
                     }
-                    return
                 } catch {
                     attempt += 1
                     self.chatConnectionState = .reconnecting
@@ -755,12 +844,116 @@ final class AppState {
         }
     }
 
-    private func refreshRemoteSessions() async {
-        do {
-            remoteChatSessions = try await openClawService.fetchSessions()
-        } catch {
-            remoteChatSessions = []
+    private func startGatewayEventListener() {
+        chatEventTask?.cancel()
+        chatEventTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            let events = await self.openClawService.events
+
+            for await event in events {
+                guard !Task.isCancelled else { break }
+                await self.handleGatewayEvent(event)
+            }
         }
+    }
+
+    nonisolated private func handleGatewayEvent(_ event: GatewayEvent) async {
+        await MainActor.run {
+            handleGatewayEventOnMain(event)
+        }
+    }
+
+    private func handleGatewayEventOnMain(_ event: GatewayEvent) {
+        guard event.isChatEvent else { return }
+        guard event.chatSessionKey == currentSessionKey else { return }
+
+        let state = event.chatState ?? ""
+
+        switch state {
+        case "delta":
+            // Delta contains the full accumulated text so far
+            if let text = event.chatMessageText {
+                chatRunId = event.chatRunId
+
+                // Find the last assistant message and update it
+                if let index = chatMessages.lastIndex(where: { $0.role == .assistant }) {
+                    let msg = chatMessages[index]
+                    chatMessages[index] = ChatMessage(
+                        id: msg.id,
+                        role: .assistant,
+                        content: text,
+                        timestamp: msg.timestamp,
+                        beadContext: msg.beadContext,
+                        sentToCanvas: msg.sentToCanvas
+                    )
+                }
+            }
+
+        case "final":
+            isChatStreaming = false
+            chatRunId = nil
+
+            // Finalize — reload full history to be safe
+            Task {
+                await loadChatHistory()
+            }
+
+        case "error":
+            isChatStreaming = false
+            chatRunId = nil
+            let errorMsg = event.chatErrorMessage ?? "Chat error"
+
+            // Update the last assistant message with the error
+            if let index = chatMessages.lastIndex(where: { $0.role == .assistant }) {
+                let msg = chatMessages[index]
+                let content = msg.content.isEmpty
+                    ? "Error: \(errorMsg)"
+                    : msg.content
+                chatMessages[index] = ChatMessage(
+                    id: msg.id,
+                    role: .assistant,
+                    content: content,
+                    timestamp: msg.timestamp,
+                    beadContext: msg.beadContext,
+                    sentToCanvas: msg.sentToCanvas
+                )
+            }
+            errorMessage = errorMsg
+
+        case "aborted":
+            isChatStreaming = false
+            chatRunId = nil
+            statusMessage = "Response aborted."
+
+        default:
+            break
+        }
+    }
+
+    private func startGatewaySessionRefreshLoop() {
+        gatewaySessionRefreshTask?.cancel()
+        gatewaySessionRefreshTask = Task { @MainActor [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 15_000_000_000) // 15 seconds
+                guard let self, !Task.isCancelled else { break }
+                await self.refreshGatewaySessions()
+            }
+        }
+    }
+
+    private func refreshGatewaySessions() async {
+        do {
+            gatewaySessions = try await openClawService.listSessions(
+                activeMinutes: 120,
+                limit: 50
+            )
+        } catch {
+            // Silent failure — session list is supplementary
+        }
+    }
+
+    private func refreshRemoteSessions() async {
+        // Kept for backward compat — gateway sessions now served by refreshGatewaySessions()
         rebuildHistoryEvents()
     }
 

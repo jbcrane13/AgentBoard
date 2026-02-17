@@ -104,11 +104,11 @@
 - "Create Epic" sheet: title, description, child bead selector
 
 ### Deliverables
-- [ ] Board shows real beads from filesystem
-- [ ] Live updates when beads change externally (e.g., agent commits)
-- [ ] Create, edit, drag-drop beads
-- [ ] Epics view with progress
-- [ ] Config persisted across launches
+- [x] Board shows real beads from filesystem
+- [x] Live updates when beads change externally (e.g., agent commits)
+- [x] Create, edit, drag-drop beads
+- [x] Epics view with progress
+- [x] Config persisted across launches
 
 ---
 
@@ -150,11 +150,15 @@
 - Agent responses that reference bead IDs get linked back to the board
 
 ### Deliverables
-- [ ] Chat connected to OpenClaw gateway
-- [ ] Streaming responses render in real-time
-- [ ] Connection status indicator
-- [ ] Bead context linking between board and chat
-- [ ] Markdown rendering in messages
+- [x] Chat connected to OpenClaw gateway
+- [x] Streaming responses render in real-time
+- [x] Connection status indicator
+- [x] Bead context linking between board and chat
+- [x] Markdown rendering in messages
+- [x] Session switching (picker in chat header)
+- [x] Thinking level control (Default/Low/Medium/High)
+- [x] Abort button for stopping generation
+- [x] Gateway WebSocket RPC protocol (replaces stateless REST — see ADR-008)
 
 ---
 
@@ -195,10 +199,10 @@
 - Launches in tmux session with known name pattern
 
 ### Deliverables
-- [ ] Sidebar shows live coding sessions with status
-- [ ] Click session → terminal view in center panel
-- [ ] Launch new sessions from UI
-- [ ] Session ↔ bead linking
+- [x] Sidebar shows live coding sessions with status
+- [x] Click session → terminal view in center panel
+- [x] Launch new sessions from UI
+- [x] Session ↔ bead linking
 
 ---
 
@@ -248,11 +252,11 @@
 - Collapse canvas (full chat) or collapse chat (full canvas) by dragging to edge
 
 ### Deliverables
-- [ ] WKWebView canvas renders markdown, HTML, diffs, mermaid diagrams
-- [ ] Agent messages auto-push to canvas
-- [ ] User can drag files / paste images to canvas
-- [ ] Split mode with resizable divider
-- [ ] Content history navigation
+- [x] WKWebView canvas renders markdown, HTML, diffs, mermaid diagrams
+- [x] Agent messages auto-push to canvas
+- [x] User can drag files / paste images to canvas
+- [x] Split mode with resizable divider
+- [x] Content history navigation
 
 ---
 
@@ -303,12 +307,12 @@
 - macOS notification center integration for background events (optional)
 
 ### Deliverables
-- [ ] Dark mode
-- [ ] Keyboard shortcuts
-- [ ] Git info on task cards
-- [ ] Agents overview with token usage
-- [ ] History timeline
-- [ ] Notification badges
+- [x] Dark mode
+- [x] Keyboard shortcuts
+- [x] Git info on task cards
+- [x] Agents overview with token usage
+- [x] History timeline
+- [x] Notification badges
 
 ---
 
