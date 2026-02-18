@@ -19,10 +19,12 @@ struct AppConfigStore {
         }
 
         var config = AppConfig(
-            projects: discoverProjects(),
+            projects: discoverProjects(in: nil),
             selectedProjectPath: nil,
             openClawGatewayURL: nil,
-            openClawToken: nil
+            openClawToken: nil,
+            gatewayConfigSource: nil,
+            projectsDirectory: nil
         )
         config.selectedProjectPath = config.projects.first?.path
         config = hydrateOpenClawIfNeeded(config)
@@ -42,8 +44,8 @@ struct AppConfigStore {
         try data.write(to: configURL, options: .atomic)
     }
 
-    func discoverProjects() -> [ConfiguredProject] {
-        let projectsRoot = fileManager.homeDirectoryForCurrentUser.appendingPathComponent("Projects", isDirectory: true)
+    func discoverProjects(in directory: URL? = nil) -> [ConfiguredProject] {
+        let projectsRoot = directory ?? fileManager.homeDirectoryForCurrentUser.appendingPathComponent("Projects", isDirectory: true)
         guard let projectURLs = try? fileManager.contentsOfDirectory(
             at: projectsRoot,
             includingPropertiesForKeys: [.isDirectoryKey],

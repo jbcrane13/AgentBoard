@@ -212,6 +212,38 @@ final class AppState {
         }
     }
 
+    func updateProjectsDirectory(_ path: String?) {
+        appConfig.projectsDirectory = path
+        persistConfig()
+
+        // Re-discover projects from new directory, keeping manually-added ones
+        let manualPaths = Set(appConfig.projects.map(\.path))
+        let discovered = AppConfigStore().discoverProjects(in: appConfig.resolvedProjectsDirectory)
+        let newProjects = discovered.filter { !manualPaths.contains($0.path) }
+        appConfig.projects.append(contentsOf: newProjects)
+        persistConfig()
+        rebuildProjects()
+
+        if let first = projects.first {
+            selectProject(first)
+        }
+        statusMessage = "Projects directory updated."
+    }
+
+    func rescanProjectsDirectory() {
+        let discovered = AppConfigStore().discoverProjects(in: appConfig.resolvedProjectsDirectory)
+        let existingPaths = Set(appConfig.projects.map(\.path))
+        let newProjects = discovered.filter { !existingPaths.contains($0.path) }
+        if !newProjects.isEmpty {
+            appConfig.projects.append(contentsOf: newProjects)
+            persistConfig()
+            rebuildProjects()
+            statusMessage = "Found \(newProjects.count) new project(s)."
+        } else {
+            statusMessage = "No new projects found."
+        }
+    }
+
     func removeProject(_ project: Project) {
         appConfig.projects.removeAll { $0.path == project.path.path }
 

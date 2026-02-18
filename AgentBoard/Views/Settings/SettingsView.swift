@@ -8,6 +8,7 @@ struct SettingsView: View {
     @State private var token = ""
     @State private var isManualConfig = false
     @State private var showingProjectImporter = false
+    @State private var showingDirectoryPicker = false
     @State private var connectionTestResult: ConnectionTestResult?
     @State private var isTesting = false
 
@@ -19,9 +20,46 @@ struct SettingsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
+                sectionTitle("Projects Directory")
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("AgentBoard auto-discovers projects with a .beads/ folder in this directory.")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+
+                    HStack(spacing: 8) {
+                        Text(appState.appConfig.resolvedProjectsDirectory.path)
+                            .font(.system(size: 12, design: .monospaced))
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(8)
+                            .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 6))
+
+                        Button("Change…") {
+                            showingDirectoryPicker = true
+                        }
+
+                        Button {
+                            appState.rescanProjectsDirectory()
+                        } label: {
+                            Label("Rescan", systemImage: "arrow.clockwise")
+                                .font(.system(size: 11))
+                        }
+                        .buttonStyle(.borderless)
+                    }
+                }
+
                 sectionTitle("Projects")
 
                 VStack(alignment: .leading, spacing: 10) {
+                    if appState.projects.isEmpty {
+                        Text("No projects found. Add a project folder or change the projects directory above.")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                            .padding(10)
+                    }
+
                     ForEach(appState.projects) { project in
                         HStack(spacing: 10) {
                             Text(project.icon)
@@ -50,7 +88,7 @@ struct SettingsView: View {
                     Button {
                         showingProjectImporter = true
                     } label: {
-                        Label("Add Project", systemImage: "plus")
+                        Label("Add Project Folder…", systemImage: "plus")
                     }
                 }
 
@@ -180,6 +218,15 @@ struct SettingsView: View {
         ) { result in
             if case .success(let urls) = result, let url = urls.first {
                 appState.addProject(at: url)
+            }
+        }
+        .fileImporter(
+            isPresented: $showingDirectoryPicker,
+            allowedContentTypes: [.folder],
+            allowsMultipleSelection: false
+        ) { result in
+            if case .success(let urls) = result, let url = urls.first {
+                appState.updateProjectsDirectory(url.path)
             }
         }
     }
