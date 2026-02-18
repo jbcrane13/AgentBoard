@@ -148,10 +148,11 @@ actor GatewayClient {
             "minProtocol": 3,
             "maxProtocol": 3,
             "client": [
-                "id": "agentboard",
+                "id": "webchat",
                 "version": "1.0",
                 "platform": "macOS",
                 "mode": "webchat",
+                "displayName": "AgentBoard",
             ],
             "role": "operator",
             "scopes": ["operator.admin"],
