@@ -143,19 +143,43 @@ actor GatewayClient {
         // require the nonce to be echoed back in connect params).
         startReceiving()
 
-        // Send connect handshake
+        // Send connect handshake with device identity for scope authorization
+        let identity = DeviceIdentity.loadOrCreate()
+        let role = "operator"
+        let scopes = ["operator.read", "operator.write", "operator.admin"]
+        let clientId = "webchat"
+        let clientMode = "webchat"
+        let signedAtMs = Int64(Date().timeIntervalSince1970 * 1000)
+
+        let payload = identity.buildAuthPayload(
+            clientId: clientId,
+            clientMode: clientMode,
+            role: role,
+            scopes: scopes,
+            signedAtMs: signedAtMs,
+            token: token,
+            nonce: nil
+        )
+        let signature = identity.sign(payload: payload)
+
         var connectParams: [String: Any] = [
             "minProtocol": 3,
             "maxProtocol": 3,
             "client": [
-                "id": "webchat",
+                "id": clientId,
                 "version": "1.0",
                 "platform": "macOS",
-                "mode": "webchat",
+                "mode": clientMode,
                 "displayName": "AgentBoard",
             ],
-            "role": "operator",
-            "scopes": ["operator.read", "operator.write", "operator.admin"],
+            "device": [
+                "id": identity.deviceId,
+                "publicKey": identity.publicKeyBase64Url,
+                "signature": signature,
+                "signedAt": signedAtMs,
+            ] as [String: Any],
+            "role": role,
+            "scopes": scopes,
         ]
 
         if let token, !token.isEmpty {
