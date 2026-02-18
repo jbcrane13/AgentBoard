@@ -155,7 +155,7 @@ actor GatewayClient {
                 "displayName": "AgentBoard",
             ],
             "role": "operator",
-            "scopes": ["operator.admin"],
+            "scopes": ["operator.read", "operator.write", "operator.admin"],
         ]
 
         if let token, !token.isEmpty {
