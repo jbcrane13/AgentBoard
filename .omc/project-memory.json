@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastScanned": 1771287471651,
+  "lastScanned": 1771406788316,
   "projectRoot": "/Users/blake/Projects/AgentBoard",
   "techStack": {
     "languages": [],
@@ -38,7 +38,7 @@
       "path": "AgentBoard",
       "purpose": null,
       "fileCount": 1,
-      "lastAccessed": 1771287471606,
+      "lastAccessed": 1771406788302,
       "keyFiles": [
         "AgentBoard.entitlements"
       ]
@@ -47,7 +47,7 @@
       "path": "AgentBoard.xcodeproj",
       "purpose": null,
       "fileCount": 1,
-      "lastAccessed": 1771287471610,
+      "lastAccessed": 1771406788302,
       "keyFiles": [
         "project.pbxproj"
       ]
@@ -56,7 +56,7 @@
       "path": "AgentBoardTests",
       "purpose": null,
       "fileCount": 1,
-      "lastAccessed": 1771287471614,
+      "lastAccessed": 1771406788302,
       "keyFiles": [
         "AgentBoardSmokeTests.swift"
       ]
@@ -65,7 +65,7 @@
       "path": "docs",
       "purpose": "Documentation",
       "fileCount": 2,
-      "lastAccessed": 1771287471621,
+      "lastAccessed": 1771406788303,
       "keyFiles": [
         "ADR.md",
         "CHAT-REWRITE-SPEC.md"
@@ -75,7 +75,7 @@
       "path": "AgentBoard/App",
       "purpose": "Application code",
       "fileCount": 2,
-      "lastAccessed": 1771287471629,
+      "lastAccessed": 1771406788303,
       "keyFiles": [
         "AgentBoardApp.swift",
         "AppState.swift"
@@ -85,7 +85,7 @@
       "path": "AgentBoard/Models",
       "purpose": "Data models",
       "fileCount": 10,
-      "lastAccessed": 1771287471630,
+      "lastAccessed": 1771406788303,
       "keyFiles": [
         "AppConfig.swift",
         "Bead.swift",
@@ -95,8 +95,8 @@
     "AgentBoard/Services": {
       "path": "AgentBoard/Services",
       "purpose": "Business logic services",
-      "fileCount": 7,
-      "lastAccessed": 1771287471634,
+      "fileCount": 8,
+      "lastAccessed": 1771406788303,
       "keyFiles": [
         "AppConfigStore.swift",
         "BeadsWatcher.swift",
@@ -107,7 +107,7 @@
       "path": "AgentBoard/Views",
       "purpose": "View templates",
       "fileCount": 0,
-      "lastAccessed": 1771287471638,
+      "lastAccessed": 1771406788303,
       "keyFiles": []
     }
   },

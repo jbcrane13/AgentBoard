@@ -233,9 +233,10 @@ final class AppState {
         reloadSelectedProjectAndWatch()
     }
 
-    func updateOpenClaw(gatewayURL: String, token: String) {
+    func updateOpenClaw(gatewayURL: String, token: String, source: String = "auto") {
         appConfig.openClawGatewayURL = gatewayURL.isEmpty ? nil : gatewayURL
         appConfig.openClawToken = token.isEmpty ? nil : token
+        appConfig.gatewayConfigSource = source
         persistConfig()
         statusMessage = "Saved OpenClaw settings."
         startChatConnectionLoop()

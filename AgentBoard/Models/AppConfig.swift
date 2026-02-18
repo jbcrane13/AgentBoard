@@ -5,12 +5,19 @@ struct AppConfig: Codable, Sendable {
     var selectedProjectPath: String?
     var openClawGatewayURL: String?
     var openClawToken: String?
+    /// "auto" = re-read from openclaw.json every launch; "manual" = user-entered, don't overwrite
+    var gatewayConfigSource: String?
+
+    var isGatewayManual: Bool {
+        gatewayConfigSource == "manual"
+    }
 
     static let empty = AppConfig(
         projects: [],
         selectedProjectPath: nil,
         openClawGatewayURL: nil,
-        openClawToken: nil
+        openClawToken: nil,
+        gatewayConfigSource: nil
     )
 }
 

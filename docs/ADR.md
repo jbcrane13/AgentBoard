@@ -120,3 +120,19 @@ A running log of significant architecture and design decisions. Both Daneel (Ope
 ---
 
 *To add a new ADR: append with the next number, include date, status, decision, context, and consequences.*
+
+---
+
+## ADR-009: Always-fresh gateway config discovery
+**Date:** 2026-02-18  
+**Status:** Active  
+**Decision:** Always re-read gateway URL and auth token from `~/.openclaw/openclaw.json` on launch (in "auto" mode), and allow users to manually configure gateway connection settings.  
+**Context:** After a gateway reinstall, the auth token changed but AgentBoard had cached the old token in `~/.agentboard/config.json`. The `hydrateOpenClawIfNeeded` method only filled nil values, so the stale token was never refreshed — causing silent connection failures. Additionally, `discoverOpenClawConfig` looked for `gateway.url` which doesn't exist in openclaw.json (the URL must be constructed from `gateway.port` + `gateway.bind`). For users running non-standard gateway configurations (remote hosts, custom ports), there was no way to manually enter the connection details.  
+**Consequences:**
+- `AppConfig` gains `gatewayConfigSource` field: `"auto"` (default) syncs from openclaw.json every launch; `"manual"` preserves user-entered values
+- `discoverOpenClawConfig` now constructs URL from `gateway.port` (default 18789) and `gateway.bind` (default loopback → 127.0.0.1)
+- In auto mode, gateway URL and token are always refreshed from openclaw.json — never stale
+- Settings UI now has Auto/Manual picker, read-only display with Refresh button (auto mode), editable fields (manual mode), and a Test Connection button
+- `discoverOpenClawConfig` made `func` (not `private`) so SettingsView can call it for refresh
+- Breaking change: none (new field defaults to nil which is treated as "auto")
+

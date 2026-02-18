@@ -14,7 +14,7 @@ struct AppConfigStore {
         if fileManager.fileExists(atPath: configURL.path) {
             let data = try Data(contentsOf: configURL)
             let decoder = JSONDecoder()
-            var config = try decoder.decode(AppConfig.self, from: data)
+            let config = try decoder.decode(AppConfig.self, from: data)
             return hydrateOpenClawIfNeeded(config)
         }
 
@@ -71,21 +71,25 @@ struct AppConfigStore {
     }
 
     private func hydrateOpenClawIfNeeded(_ config: AppConfig) -> AppConfig {
+        // If user manually configured gateway settings, don't overwrite
+        guard !config.isGatewayManual else { return config }
+
         guard let openClaw = discoverOpenClawConfig() else {
             return config
         }
 
+        // Always sync from openclaw.json in auto mode
         var updated = config
-        if updated.openClawGatewayURL == nil {
-            updated.openClawGatewayURL = openClaw.gatewayURL
+        if let url = openClaw.gatewayURL {
+            updated.openClawGatewayURL = url
         }
-        if updated.openClawToken == nil {
-            updated.openClawToken = openClaw.token
+        if let token = openClaw.token {
+            updated.openClawToken = token
         }
         return updated
     }
 
-    private func discoverOpenClawConfig() -> (gatewayURL: String?, token: String?)? {
+    func discoverOpenClawConfig() -> (gatewayURL: String?, token: String?)? {
         let url = fileManager.homeDirectoryForCurrentUser
             .appendingPathComponent(".openclaw", isDirectory: true)
             .appendingPathComponent("openclaw.json", isDirectory: false)
@@ -98,7 +102,21 @@ struct AppConfigStore {
         let gateway = object["gateway"] as? [String: Any]
         let auth = gateway?["auth"] as? [String: Any]
         let token = auth?["token"] as? String
-        let gatewayURL = gateway?["url"] as? String
+
+        // Construct gateway URL from port + bind (gateway.url doesn't exist in config)
+        let port = gateway?["port"] as? Int ?? 18789
+        let bind = gateway?["bind"] as? String ?? "loopback"
+        let host: String
+        switch bind {
+        case "loopback", "localhost", "127.0.0.1":
+            host = "127.0.0.1"
+        case "0.0.0.0", "all":
+            host = "127.0.0.1"
+        default:
+            host = bind
+        }
+        let gatewayURL = "http://\(host):\(port)"
+
         return (gatewayURL, token)
     }
 }
