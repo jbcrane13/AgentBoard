@@ -361,6 +361,35 @@ actor GatewayClient {
         return sessions
     }
 
+    /// Create a new session.
+    func createSession(
+        label: String? = nil,
+        projectPath: String? = nil,
+        agentType: String? = nil,
+        beadId: String? = nil,
+        prompt: String? = nil
+    ) async throws -> GatewaySession {
+        var params: [String: Any] = [:]
+        if let label { params["label"] = label }
+        if let projectPath { params["projectPath"] = projectPath }
+        if let agentType { params["agentType"] = agentType }
+        if let beadId { params["beadId"] = beadId }
+        if let prompt { params["prompt"] = prompt }
+
+        let payload = try await request("sessions.create", params: params)
+        let key = payload["key"] as? String ?? payload["id"] as? String ?? UUID().uuidString
+        return GatewaySession(
+            id: key,
+            key: key,
+            label: payload["label"] as? String ?? label,
+            agentId: payload["agentId"] as? String,
+            model: payload["model"] as? String,
+            status: payload["status"] as? String,
+            lastActiveAt: parseTimestamp(payload["lastActiveAt"]),
+            thinkingLevel: payload["thinkingLevel"] as? String
+        )
+    }
+
     /// Patch session settings (thinking level, etc.)
     func patchSession(key: String, thinkingLevel: String?) async throws {
         var params: [String: Any] = ["key": key]

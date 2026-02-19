@@ -95,6 +95,23 @@ actor OpenClawService {
         try await client.listSessions(activeMinutes: activeMinutes, limit: limit)
     }
 
+    /// Create a new session via the gateway.
+    func createSession(
+        label: String? = nil,
+        projectPath: String? = nil,
+        agentType: String? = nil,
+        beadId: String? = nil,
+        prompt: String? = nil
+    ) async throws -> GatewaySession {
+        try await client.createSession(
+            label: label,
+            projectPath: projectPath,
+            agentType: agentType,
+            beadId: beadId,
+            prompt: prompt
+        )
+    }
+
     /// Update session settings (thinking level).
     func patchSession(key: String, thinkingLevel: String?) async throws {
         try await client.patchSession(key: key, thinkingLevel: thinkingLevel)

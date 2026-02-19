@@ -2,26 +2,32 @@ import SwiftUI
 
 struct ContentView: View {
     @Environment(AppState.self) private var appState
-    @State private var columnVisibility: NavigationSplitViewVisibility = .all
 
     var body: some View {
-        NavigationSplitView(columnVisibility: $columnVisibility) {
-            SidebarView()
-                .navigationSplitViewColumnWidth(min: 220, ideal: 220, max: 220)
-        } detail: {
-            if appState.boardVisible {
-                HSplitView {
-                    centerPanel
-                        .frame(minWidth: 400)
-
-                    RightPanelView()
-                        .frame(minWidth: 280, idealWidth: 340, maxWidth: 500)
-                }
-            } else {
-                RightPanelView()
+        HStack(spacing: 0) {
+            if appState.sidebarVisible {
+                SidebarView()
+                    .frame(width: 220)
+                    .transition(.move(edge: .leading))
             }
+
+            if appState.boardVisible {
+                if appState.sidebarVisible {
+                    Divider()
+                }
+                centerPanel
+                    .frame(minWidth: 400, maxWidth: .infinity)
+                    .transition(.move(edge: .leading))
+            }
+
+            Divider()
+
+            RightPanelView()
+                .frame(width: 380)
         }
-        .navigationSplitViewStyle(.balanced)
+        .clipped()
+        .animation(.easeInOut(duration: 0.25), value: appState.sidebarVisible)
+        .animation(.easeInOut(duration: 0.25), value: appState.boardVisible)
         .frame(minWidth: minWindowWidth, minHeight: 600)
         .toolbar {
             ToolbarItem(placement: .principal) {
@@ -32,21 +38,6 @@ struct ContentView: View {
                         .font(.system(size: 13, weight: .semibold))
                 }
                 .foregroundStyle(.primary)
-            }
-        }
-        .onAppear {
-            columnVisibility = appState.sidebarVisible ? .all : .detailOnly
-        }
-        .onChange(of: appState.sidebarVisible) { _, newValue in
-            withAnimation(.easeInOut(duration: 0.25)) {
-                columnVisibility = newValue ? .all : .detailOnly
-            }
-        }
-        .onChange(of: columnVisibility) { _, newValue in
-            let visible = (newValue != .detailOnly)
-            if appState.sidebarVisible != visible {
-                appState.sidebarVisible = visible
-                appState.persistLayoutState()
             }
         }
         .overlay(alignment: .top) {
@@ -91,10 +82,10 @@ struct ContentView: View {
     }
 
     private var minWindowWidth: CGFloat {
-        let sidebar: CGFloat = appState.sidebarVisible ? 220 : 0
-        let center: CGFloat = appState.boardVisible ? 400 : 0
-        let right: CGFloat = 320
-        return max(sidebar + center + right, 400)
+        var width: CGFloat = 380
+        if appState.sidebarVisible { width += 220 }
+        if appState.boardVisible { width += 400 }
+        return max(width, 400)
     }
 
     private var centerPanel: some View {

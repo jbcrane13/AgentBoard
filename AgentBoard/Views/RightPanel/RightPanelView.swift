@@ -27,6 +27,22 @@ struct RightPanelView: View {
     private var panelHeader: some View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {
+                Button {
+                    let showing = appState.sidebarVisible || appState.boardVisible
+                    appState.sidebarVisible = !showing
+                    appState.boardVisible = !showing
+                    appState.persistLayoutState()
+                } label: {
+                    Image(systemName: (appState.sidebarVisible || appState.boardVisible)
+                          ? "chevron.left" : "chevron.right")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 22, height: 22)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help(appState.boardVisible ? "Collapse panels" : "Expand panels")
+
                 Image(systemName: "sparkle")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.white)

@@ -213,21 +213,17 @@ final class AppState {
     }
 
     func toggleBoard() {
-        withAnimation(.easeInOut(duration: 0.2)) {
-            boardVisible.toggle()
-        }
+        boardVisible.toggle()
         persistLayoutState()
     }
 
     func toggleFocusMode() {
-        withAnimation(.easeInOut(duration: 0.25)) {
-            if isFocusMode {
-                sidebarVisible = true
-                boardVisible = true
-            } else {
-                sidebarVisible = false
-                boardVisible = false
-            }
+        if isFocusMode {
+            sidebarVisible = true
+            boardVisible = true
+        } else {
+            sidebarVisible = false
+            boardVisible = false
         }
         persistLayoutState()
     }
@@ -560,6 +556,30 @@ final class AppState {
             statusMessage = "Sent nudge to \(sessionID)."
         } catch {
             errorMessage = error.localizedDescription
+        }
+    }
+
+    func createGatewaySession(
+        project: Project,
+        agentType: AgentType,
+        beadID: String?,
+        prompt: String?
+    ) async -> Bool {
+        do {
+            let session = try await openClawService.createSession(
+                label: nil,
+                projectPath: project.path.path,
+                agentType: agentType.rawValue,
+                beadId: beadID,
+                prompt: prompt
+            )
+            await switchSession(to: session.key)
+            await refreshGatewaySessions()
+            statusMessage = "Created session \(session.key)."
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
         }
     }
 

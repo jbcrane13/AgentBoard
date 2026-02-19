@@ -11,32 +11,72 @@ struct NewSessionSheet: View {
     @State private var isLaunching = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 0) {
             Text("New Session")
                 .font(.system(size: 16, weight: .semibold))
+                .padding(.bottom, 14)
 
-            projectPicker
-            agentPicker
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    // Project
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Project")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(.secondary)
 
-            TextField("Linked bead ID (optional)", text: $beadID)
-                .textFieldStyle(.roundedBorder)
+                        Picker("Project", selection: $selectedProjectID) {
+                            ForEach(appState.projects) { project in
+                                Text(project.name).tag(Optional(project.id))
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .labelsHidden()
+                    }
 
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Prompt (optional)")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.secondary)
+                    // Agent
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Agent")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(.secondary)
 
-                TextEditor(text: $prompt)
-                    .font(.system(size: 12))
-                    .frame(minHeight: 100)
-                    .padding(4)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color.secondary.opacity(0.25), lineWidth: 1)
-                    )
+                        Picker("Agent", selection: $selectedAgentType) {
+                            ForEach(AgentType.allCases, id: \.self) { agent in
+                                Text(agentLabel(agent)).tag(agent)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
+                    }
+
+                    // Linked Bead
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Linked Bead (optional)")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(.secondary)
+
+                        TextField("e.g. AB-38b", text: $beadID)
+                            .textFieldStyle(.roundedBorder)
+                    }
+
+                    // Prompt
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Prompt (optional)")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(.secondary)
+
+                        TextEditor(text: $prompt)
+                            .font(.system(size: 12))
+                            .frame(minHeight: 100)
+                            .padding(4)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.secondary.opacity(0.25), lineWidth: 1)
+                            )
+                    }
+                }
             }
 
-            Spacer(minLength: 8)
+            Spacer(minLength: 12)
 
             HStack {
                 Spacer()
@@ -52,41 +92,13 @@ struct NewSessionSheet: View {
                 .keyboardShortcut(.defaultAction)
                 .disabled(isLaunching || selectedProject == nil)
             }
+            .padding(.top, 8)
         }
-        .padding(20)
-        .frame(width: 500, height: 360)
+        .padding(24)
+        .frame(width: 500)
+        .frame(minHeight: 500)
         .onAppear {
             selectedProjectID = appState.selectedProjectID ?? appState.projects.first?.id
-        }
-    }
-
-    private var projectPicker: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Project")
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(.secondary)
-
-            Picker("Project", selection: $selectedProjectID) {
-                ForEach(appState.projects) { project in
-                    Text(project.name).tag(Optional(project.id))
-                }
-            }
-            .pickerStyle(.menu)
-        }
-    }
-
-    private var agentPicker: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Agent")
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(.secondary)
-
-            Picker("Agent", selection: $selectedAgentType) {
-                ForEach(AgentType.allCases, id: \.self) { agent in
-                    Text(agentLabel(agent)).tag(agent)
-                }
-            }
-            .pickerStyle(.segmented)
         }
     }
 
@@ -102,12 +114,22 @@ struct NewSessionSheet: View {
         isLaunching = true
 
         Task { @MainActor in
-            let success = await appState.launchSession(
-                project: selectedProject,
-                agentType: selectedAgentType,
-                beadID: trimmedValue(beadID),
-                prompt: trimmedValue(prompt)
-            )
+            let success: Bool
+            if appState.chatConnectionState == .connected {
+                success = await appState.createGatewaySession(
+                    project: selectedProject,
+                    agentType: selectedAgentType,
+                    beadID: trimmedValue(beadID),
+                    prompt: trimmedValue(prompt)
+                )
+            } else {
+                success = await appState.launchSession(
+                    project: selectedProject,
+                    agentType: selectedAgentType,
+                    beadID: trimmedValue(beadID),
+                    prompt: trimmedValue(prompt)
+                )
+            }
             isLaunching = false
             if success {
                 dismiss()
