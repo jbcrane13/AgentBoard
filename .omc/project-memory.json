@@ -114,8 +114,14 @@
   "hotPaths": [
     {
       "path": "AgentBoard/App/AppState.swift",
+      "accessCount": 26,
+      "lastAccessed": 1771487438960,
+      "type": "file"
+    },
+    {
+      "path": "AgentBoard/Views/Board/BoardView.swift",
       "accessCount": 12,
-      "lastAccessed": 1771486861481,
+      "lastAccessed": 1771487425336,
       "type": "file"
     },
     {
@@ -125,9 +131,39 @@
       "type": "file"
     },
     {
+      "path": "AgentBoard/Models/Bead.swift",
+      "accessCount": 8,
+      "lastAccessed": 1771487439719,
+      "type": "file"
+    },
+    {
       "path": "AgentBoard/Views/MainWindow/ContentView.swift",
       "accessCount": 6,
       "lastAccessed": 1771486932043,
+      "type": "file"
+    },
+    {
+      "path": "",
+      "accessCount": 6,
+      "lastAccessed": 1771487055474,
+      "type": "directory"
+    },
+    {
+      "path": "AgentBoard/Services/JSONLParser.swift",
+      "accessCount": 5,
+      "lastAccessed": 1771487234077,
+      "type": "file"
+    },
+    {
+      "path": "AgentBoard/Views/Board/TaskCardView.swift",
+      "accessCount": 5,
+      "lastAccessed": 1771487279622,
+      "type": "file"
+    },
+    {
+      "path": "AgentBoard/Models/BeadDraft.swift",
+      "accessCount": 5,
+      "lastAccessed": 1771487344445,
       "type": "file"
     },
     {
@@ -155,15 +191,33 @@
       "type": "file"
     },
     {
+      "path": "AgentBoard/Services/BeadsWatcher.swift",
+      "accessCount": 2,
+      "lastAccessed": 1771487044963,
+      "type": "file"
+    },
+    {
+      "path": "AgentBoard/Models/Project.swift",
+      "accessCount": 2,
+      "lastAccessed": 1771487045226,
+      "type": "file"
+    },
+    {
+      "path": "AgentBoard/Utilities/ShellCommand.swift",
+      "accessCount": 2,
+      "lastAccessed": 1771487316111,
+      "type": "file"
+    },
+    {
+      "path": "AgentBoard/Views/Board/TaskDetailSheet.swift",
+      "accessCount": 2,
+      "lastAccessed": 1771487433008,
+      "type": "file"
+    },
+    {
       "path": "AgentBoard/Views/Chat",
       "accessCount": 1,
       "lastAccessed": 1771485723100,
-      "type": "directory"
-    },
-    {
-      "path": "",
-      "accessCount": 1,
-      "lastAccessed": 1771485735772,
       "type": "directory"
     },
     {
@@ -177,6 +231,36 @@
       "accessCount": 1,
       "lastAccessed": 1771486649441,
       "type": "file"
+    },
+    {
+      "path": "AgentBoard/Models/GitCommitRecord.swift",
+      "accessCount": 1,
+      "lastAccessed": 1771487042438,
+      "type": "file"
+    },
+    {
+      "path": "AgentBoard/Models/AppConfig.swift",
+      "accessCount": 1,
+      "lastAccessed": 1771487049019,
+      "type": "file"
+    },
+    {
+      "path": "AgentBoard/Models/CodingSession.swift",
+      "accessCount": 1,
+      "lastAccessed": 1771487058070,
+      "type": "file"
+    },
+    {
+      "path": "project.yml",
+      "accessCount": 1,
+      "lastAccessed": 1771487299099,
+      "type": "directory"
+    },
+    {
+      "path": "AgentBoard.xcodeproj/project.pbxproj",
+      "accessCount": 1,
+      "lastAccessed": 1771487445105,
+      "type": "directory"
     }
   ],
   "userDirectives": []
