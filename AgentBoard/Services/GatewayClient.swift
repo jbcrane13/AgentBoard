@@ -87,6 +87,7 @@ actor GatewayClient {
     private var webSocketTask: URLSessionWebSocketTask?
     private var pendingRequests: [String: CheckedContinuation<JSONPayload, Error>] = [:]
     private var eventContinuation: AsyncStream<GatewayEvent>.Continuation?
+    private var eventGeneration: Int = 0
     private var receiveTask: Task<Void, Never>?
     private var pingTask: Task<Void, Never>?
 
@@ -204,6 +205,10 @@ actor GatewayClient {
         webSocketTask?.cancel(with: .normalClosure, reason: nil)
         webSocketTask = nil
 
+        // Finish event stream so consumers exit cleanly
+        eventContinuation?.finish()
+        eventContinuation = nil
+
         // Fail all pending requests
         for (_, continuation) in pendingRequests {
             continuation.resume(throwing: GatewayClientError.notConnected)
@@ -242,18 +247,30 @@ actor GatewayClient {
     // MARK: - Event Stream
 
     /// Async stream of gateway events (chat, agent, presence, etc.)
+    /// Each call creates a fresh stream; the previous continuation is finished
+    /// so old consumers exit cleanly instead of hanging.
     var events: AsyncStream<GatewayEvent> {
-        AsyncStream { continuation in
-            eventContinuation = continuation
+        // Finish any previous stream so its consumer exits
+        eventContinuation?.finish()
+        eventContinuation = nil
+
+        eventGeneration += 1
+        let generation = eventGeneration
+
+        return AsyncStream { continuation in
+            self.eventContinuation = continuation
             continuation.onTermination = { @Sendable _ in
                 Task { [weak self] in
-                    await self?.clearEventContinuation()
+                    await self?.clearEventContinuation(generation: generation)
                 }
             }
         }
     }
 
-    private func clearEventContinuation() {
+    private func clearEventContinuation(generation: Int) {
+        // Only clear if this is still the current generation;
+        // prevents a stale stream's termination from wiping a newer one.
+        guard generation == eventGeneration else { return }
         eventContinuation = nil
     }
 
@@ -451,6 +468,10 @@ actor GatewayClient {
 
     private func handleDisconnect() {
         isConnected = false
+
+        // Finish event stream so consumers exit cleanly
+        eventContinuation?.finish()
+        eventContinuation = nil
 
         // Check WebSocket close code for specific error reasons
         let disconnectError: Error

@@ -77,7 +77,6 @@ final class AppState {
     private let gitService = GitService()
     private var watchedFilePath: String?
     private var chatReconnectTask: Task<Void, Never>?
-    private var chatEventTask: Task<Void, Never>?
     private var gatewaySessionRefreshTask: Task<Void, Never>?
     private var sessionMonitorTask: Task<Void, Never>?
     private var sessionStatusByID: [String: SessionStatus] = [:]
@@ -906,7 +905,6 @@ final class AppState {
 
     private func startChatConnectionLoop() {
         chatReconnectTask?.cancel()
-        chatEventTask?.cancel()
         chatReconnectTask = Task { @MainActor [weak self] in
             guard let self else { return }
 
@@ -931,18 +929,12 @@ final class AppState {
                     await self.loadAgentIdentity()
                     await self.refreshGatewaySessions()
 
-                    // Start event listener
-                    self.startGatewayEventListener()
+                    // Run event listener inline — blocks until the event
+                    // stream finishes (i.e. the WebSocket disconnects).
+                    // GatewayClient.disconnect/handleDisconnect finish the
+                    // continuation, so this returns promptly on any drop.
+                    await self.consumeGatewayEvents()
 
-                    // Monitor connection — if we get here, the event listener
-                    // exited which means the connection dropped
-                    while !Task.isCancelled {
-                        try await Task.sleep(nanoseconds: 5_000_000_000)
-                        let connected = await self.openClawService.isConnected
-                        if !connected {
-                            break
-                        }
-                    }
                 } catch {
                     attempt += 1
                     let classified = ConnectionError.classify(
@@ -967,22 +959,20 @@ final class AppState {
         }
     }
 
-    private func startGatewayEventListener() {
-        chatEventTask?.cancel()
-        chatEventTask = Task { @MainActor [weak self] in
-            guard let self else { return }
-            let events = await self.openClawService.events
+    /// Consumes gateway events until the stream finishes (WebSocket disconnect)
+    /// or the task is cancelled. Runs on MainActor so UI state updates are immediate.
+    private func consumeGatewayEvents() async {
+        let events = await openClawService.events
 
-            for await event in events {
-                guard !Task.isCancelled else { break }
-                await self.handleGatewayEvent(event)
-            }
-        }
-    }
-
-    nonisolated private func handleGatewayEvent(_ event: GatewayEvent) async {
-        await MainActor.run {
+        for await event in events {
+            guard !Task.isCancelled else { break }
             handleGatewayEventOnMain(event)
+        }
+
+        // Stream ended — connection dropped
+        if !Task.isCancelled {
+            isChatStreaming = false
+            chatConnectionState = .reconnecting
         }
     }
 
