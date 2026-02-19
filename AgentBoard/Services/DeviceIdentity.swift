@@ -38,9 +38,8 @@ struct DeviceIdentity: Codable {
         let privateKey = Curve25519.Signing.PrivateKey()
         let publicKeyRaw = privateKey.publicKey.rawRepresentation
 
-        // Device ID = SHA-256 of SPKI-encoded public key (matching gateway's deriveDeviceIdFromPublicKey)
-        let spkiBytes = ed25519SpkiPrefix + publicKeyRaw
-        let deviceId = SHA256.hash(data: spkiBytes)
+        // Device ID = SHA-256 of raw public key bytes (matching gateway's deriveDeviceIdFromPublicKey)
+        let deviceId = SHA256.hash(data: publicKeyRaw)
             .map { String(format: "%02x", $0) }
             .joined()
 
