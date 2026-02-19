@@ -35,6 +35,20 @@
                ReferencedContainer = "container:AgentBoard.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "NO"
+            buildForProfiling = "NO"
+            buildForArchiving = "NO"
+            buildForAnalyzing = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "F65605933CB8830866FE478A"
+               BuildableName = "AgentBoardUITests.xctest"
+               BlueprintName = "AgentBoardUITests"
+               ReferencedContainer = "container:AgentBoard.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
@@ -61,6 +75,17 @@
                BlueprintIdentifier = "A52DE9FF4B5F7581840FD2AF"
                BuildableName = "AgentBoardTests.xctest"
                BlueprintName = "AgentBoardTests"
+               ReferencedContainer = "container:AgentBoard.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "F65605933CB8830866FE478A"
+               BuildableName = "AgentBoardUITests.xctest"
+               BlueprintName = "AgentBoardUITests"
                ReferencedContainer = "container:AgentBoard.xcodeproj">
             </BuildableReference>
          </TestableReference>

@@ -68,6 +68,17 @@ targets:
         SWIFT_VERSION: "6.0"
     dependencies:
       - target: AgentBoard
+  AgentBoardUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    sources:
+      - path: AgentBoardUITests
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_VERSION: "6.0"
+    dependencies:
+      - target: AgentBoard
 
 schemes:
   AgentBoard:
@@ -75,7 +86,9 @@ schemes:
       targets:
         AgentBoard: all
         AgentBoardTests: [test]
+        AgentBoardUITests: [test]
     test:
       gatherCoverageData: false
       targets:
         - AgentBoardTests
+        - AgentBoardUITests
