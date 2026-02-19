@@ -111,6 +111,25 @@
       "keyFiles": []
     }
   },
-  "hotPaths": [],
+  "hotPaths": [
+    {
+      "path": "AgentBoard/Views/Chat/ChatPanelView.swift",
+      "accessCount": 6,
+      "lastAccessed": 1771485787715,
+      "type": "file"
+    },
+    {
+      "path": "AgentBoard/Views/Chat",
+      "accessCount": 1,
+      "lastAccessed": 1771485723100,
+      "type": "directory"
+    },
+    {
+      "path": "",
+      "accessCount": 1,
+      "lastAccessed": 1771485735772,
+      "type": "directory"
+    }
+  ],
   "userDirectives": []
 }

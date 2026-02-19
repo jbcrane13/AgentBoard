@@ -227,6 +227,15 @@ struct ChatPanelView: View {
                 .padding(.horizontal, 6)
                 .padding(.vertical, 2)
                 .focused($isInputFocused)
+                .onKeyPress(keys: [.return], phases: .down) { keyPress in
+                    if keyPress.modifiers.contains(.shift) {
+                        return .ignored // Shift+Enter inserts newline
+                    }
+                    if !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        sendMessage()
+                    }
+                    return .handled // Enter sends (or suppresses empty send)
+                }
                 .overlay(alignment: .topLeading) {
                     if inputText.isEmpty {
                         Text("Message your agents...")
@@ -262,7 +271,6 @@ struct ChatPanelView: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                .keyboardShortcut(.return, modifiers: [.command])
             }
         }
         .padding(10)
