@@ -189,6 +189,31 @@ struct SettingsView: View {
                                 .foregroundStyle(.red)
                         }
                     }
+
+                    // Live connection error
+                    if let connError = appState.connectionErrorDetail,
+                       appState.chatConnectionState != .connected {
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundStyle(connError.indicatorColor)
+                                Text(connError.briefLabel)
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundStyle(connError.indicatorColor)
+                            }
+                            Text(connError.userMessage)
+                                .font(.system(size: 11))
+                                .foregroundStyle(.secondary)
+                                .textSelection(.enabled)
+                        }
+                        .padding(10)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(connError.indicatorColor.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(connError.indicatorColor.opacity(0.3), lineWidth: 1)
+                        )
+                    }
                 }
 
                 if let status = appState.statusMessage {

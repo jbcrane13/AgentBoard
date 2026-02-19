@@ -451,9 +451,21 @@ actor GatewayClient {
 
     private func handleDisconnect() {
         isConnected = false
-        // Fail all pending requests
+
+        // Check WebSocket close code for specific error reasons
+        let disconnectError: Error
+        if let task = webSocketTask,
+           task.closeCode == .policyViolation,
+           let reasonData = task.closeReason,
+           let reason = String(data: reasonData, encoding: .utf8),
+           !reason.isEmpty {
+            disconnectError = GatewayClientError.connectionFailed(reason)
+        } else {
+            disconnectError = GatewayClientError.notConnected
+        }
+
         for (_, continuation) in pendingRequests {
-            continuation.resume(throwing: GatewayClientError.notConnected)
+            continuation.resume(throwing: disconnectError)
         }
         pendingRequests.removeAll()
     }

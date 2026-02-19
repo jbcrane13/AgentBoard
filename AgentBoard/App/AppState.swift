@@ -64,6 +64,10 @@ final class AppState {
     var newSessionSheetRequestID: Int = 0
     var createBeadSheetRequestID: Int = 0
     var chatInputFocusRequestID: Int = 0
+    var connectionErrorDetail: ConnectionError?
+    var showConnectionErrorToast = false
+    var sidebarVisible: Bool = !UserDefaults.standard.bool(forKey: "AB_sidebarCollapsed")
+    var boardVisible: Bool = !UserDefaults.standard.bool(forKey: "AB_boardCollapsed")
 
     private let configStore = AppConfigStore()
     private let parser = JSONLParser()
@@ -184,9 +188,54 @@ final class AppState {
         unreadChatCount = 0
     }
 
+    func dismissConnectionErrorToast() {
+        showConnectionErrorToast = false
+    }
+
+    private func dismissConnectionErrorToastAfterDelay() {
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 8_000_000_000)
+            self?.showConnectionErrorToast = false
+        }
+    }
+
     func clearSessionAlert(for sessionID: String) {
         guard sessionAlertSessionIDs.remove(sessionID) != nil else { return }
         unreadSessionAlertsCount = sessionAlertSessionIDs.count
+    }
+
+    var isFocusMode: Bool {
+        !sidebarVisible && !boardVisible
+    }
+
+    func toggleSidebar() {
+        sidebarVisible.toggle()
+        persistLayoutState()
+    }
+
+    func toggleBoard() {
+        withAnimation(.easeInOut(duration: 0.2)) {
+            boardVisible.toggle()
+        }
+        persistLayoutState()
+    }
+
+    func toggleFocusMode() {
+        withAnimation(.easeInOut(duration: 0.25)) {
+            if isFocusMode {
+                sidebarVisible = true
+                boardVisible = true
+            } else {
+                sidebarVisible = false
+                boardVisible = false
+            }
+        }
+        persistLayoutState()
+    }
+
+    func persistLayoutState() {
+        UserDefaults.standard.set(!sidebarVisible, forKey: "AB_sidebarCollapsed")
+        UserDefaults.standard.set(!boardVisible, forKey: "AB_boardCollapsed")
     }
 
     func gitSummary(for beadID: String) -> BeadGitSummary? {
@@ -845,6 +894,8 @@ final class AppState {
 
                     try await self.openClawService.connect()
                     self.chatConnectionState = .connected
+                    self.connectionErrorDetail = nil
+                    self.showConnectionErrorToast = false
                     attempt = 0
 
                     // Load history and identity on connect
@@ -866,7 +917,18 @@ final class AppState {
                     }
                 } catch {
                     attempt += 1
+                    let classified = ConnectionError.classify(
+                        error,
+                        gatewayURL: self.appConfig.openClawGatewayURL ?? "http://127.0.0.1:18789"
+                    )
+                    self.connectionErrorDetail = classified
                     self.chatConnectionState = .reconnecting
+
+                    // Show toast on first failure or when error type changes
+                    if attempt == 1 {
+                        self.showConnectionErrorToast = true
+                        self.dismissConnectionErrorToastAfterDelay()
+                    }
 
                     let backoffSeconds = min(pow(2.0, Double(max(attempt - 1, 0))), 30)
                     try? await Task.sleep(nanoseconds: UInt64(backoffSeconds * 1_000_000_000))

@@ -25,6 +25,27 @@ struct AgentBoardApp: App {
                 .keyboardShortcut("n", modifiers: [.command, .shift])
             }
 
+            CommandGroup(replacing: .sidebar) {
+                Button(appState.sidebarVisible ? "Hide Sidebar" : "Show Sidebar") {
+                    appState.toggleSidebar()
+                }
+                .keyboardShortcut("0", modifiers: [.command])
+            }
+
+            CommandGroup(after: .sidebar) {
+                Button(appState.boardVisible ? "Hide Board" : "Show Board") {
+                    appState.toggleBoard()
+                }
+                .keyboardShortcut("b", modifiers: [.command, .shift])
+
+                Divider()
+
+                Button(appState.isFocusMode ? "Exit Focus Mode" : "Focus Mode") {
+                    appState.toggleFocusMode()
+                }
+                .keyboardShortcut("f", modifiers: [.command, .shift])
+            }
+
             CommandMenu("Navigate") {
                 Button("Board") {
                     appState.switchToTab(.board)

@@ -2,22 +2,27 @@ import SwiftUI
 
 struct ContentView: View {
     @Environment(AppState.self) private var appState
+    @State private var columnVisibility: NavigationSplitViewVisibility = .all
 
     var body: some View {
-        NavigationSplitView {
+        NavigationSplitView(columnVisibility: $columnVisibility) {
             SidebarView()
                 .navigationSplitViewColumnWidth(min: 220, ideal: 220, max: 220)
         } detail: {
-            HSplitView {
-                centerPanel
-                    .frame(minWidth: 400)
+            if appState.boardVisible {
+                HSplitView {
+                    centerPanel
+                        .frame(minWidth: 400)
 
+                    RightPanelView()
+                        .frame(minWidth: 280, idealWidth: 340, maxWidth: 500)
+                }
+            } else {
                 RightPanelView()
-                    .frame(minWidth: 280, idealWidth: 340, maxWidth: 500)
             }
         }
         .navigationSplitViewStyle(.balanced)
-        .frame(minWidth: 900, minHeight: 600)
+        .frame(minWidth: minWindowWidth, minHeight: 600)
         .toolbar {
             ToolbarItem(placement: .principal) {
                 HStack(spacing: 8) {
@@ -29,6 +34,67 @@ struct ContentView: View {
                 .foregroundStyle(.primary)
             }
         }
+        .onAppear {
+            columnVisibility = appState.sidebarVisible ? .all : .detailOnly
+        }
+        .onChange(of: appState.sidebarVisible) { _, newValue in
+            withAnimation(.easeInOut(duration: 0.25)) {
+                columnVisibility = newValue ? .all : .detailOnly
+            }
+        }
+        .onChange(of: columnVisibility) { _, newValue in
+            let visible = (newValue != .detailOnly)
+            if appState.sidebarVisible != visible {
+                appState.sidebarVisible = visible
+                appState.persistLayoutState()
+            }
+        }
+        .overlay(alignment: .top) {
+            connectionErrorToast
+        }
+    }
+
+    // MARK: - Connection Error Toast
+
+    @ViewBuilder
+    private var connectionErrorToast: some View {
+        if appState.showConnectionErrorToast, let error = appState.connectionErrorDetail {
+            HStack(spacing: 8) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.white)
+                Text(error.userMessage)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.white)
+                    .lineLimit(2)
+                Spacer()
+                Button {
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        appState.dismissConnectionErrorToast()
+                    }
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(.white.opacity(0.7))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(error.indicatorColor, in: RoundedRectangle(cornerRadius: 8))
+            .shadow(color: .black.opacity(0.2), radius: 8, y: 4)
+            .padding(.horizontal, 40)
+            .padding(.top, 8)
+            .transition(.move(edge: .top).combined(with: .opacity))
+            .animation(.easeInOut(duration: 0.3), value: appState.showConnectionErrorToast)
+        }
+    }
+
+    private var minWindowWidth: CGFloat {
+        let sidebar: CGFloat = appState.sidebarVisible ? 220 : 0
+        let center: CGFloat = appState.boardVisible ? 400 : 0
+        let right: CGFloat = 320
+        return max(sidebar + center + right, 400)
     }
 
     private var centerPanel: some View {

@@ -113,9 +113,45 @@
   },
   "hotPaths": [
     {
+      "path": "AgentBoard/App/AppState.swift",
+      "accessCount": 12,
+      "lastAccessed": 1771486861481,
+      "type": "file"
+    },
+    {
       "path": "AgentBoard/Views/Chat/ChatPanelView.swift",
+      "accessCount": 11,
+      "lastAccessed": 1771486890835,
+      "type": "file"
+    },
+    {
+      "path": "AgentBoard/Views/MainWindow/ContentView.swift",
       "accessCount": 6,
-      "lastAccessed": 1771485787715,
+      "lastAccessed": 1771486932043,
+      "type": "file"
+    },
+    {
+      "path": "AgentBoard/Views/Settings/SettingsView.swift",
+      "accessCount": 3,
+      "lastAccessed": 1771486913565,
+      "type": "file"
+    },
+    {
+      "path": "AgentBoard/App/AgentBoardApp.swift",
+      "accessCount": 2,
+      "lastAccessed": 1771486709320,
+      "type": "file"
+    },
+    {
+      "path": "AgentBoard/Models/OpenClawConnectionState.swift",
+      "accessCount": 2,
+      "lastAccessed": 1771486801269,
+      "type": "file"
+    },
+    {
+      "path": "AgentBoard/Services/GatewayClient.swift",
+      "accessCount": 2,
+      "lastAccessed": 1771486807820,
       "type": "file"
     },
     {
@@ -129,6 +165,18 @@
       "accessCount": 1,
       "lastAccessed": 1771485735772,
       "type": "directory"
+    },
+    {
+      "path": "AgentBoard/Views/MainWindow/ProjectHeaderView.swift",
+      "accessCount": 1,
+      "lastAccessed": 1771486648907,
+      "type": "file"
+    },
+    {
+      "path": "AgentBoard/Services/OpenClawService.swift",
+      "accessCount": 1,
+      "lastAccessed": 1771486649441,
+      "type": "file"
     }
   ],
   "userDirectives": []

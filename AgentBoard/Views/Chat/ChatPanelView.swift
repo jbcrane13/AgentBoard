@@ -9,6 +9,7 @@ struct ChatPanelView: View {
     var body: some View {
         VStack(spacing: 0) {
             chatHeader
+            connectionErrorBanner
             messageList
             contextBar
             chatInput
@@ -28,7 +29,7 @@ struct ChatPanelView: View {
         HStack(spacing: 8) {
             // Connection indicator
             Circle()
-                .fill(appState.chatConnectionState.color)
+                .fill(connectionIndicatorColor)
                 .frame(width: 7, height: 7)
 
             // Session picker
@@ -108,15 +109,63 @@ struct ChatPanelView: View {
             .fixedSize()
 
             // Connection status text
-            Text(appState.chatConnectionState.label)
+            Text(connectionStatusLabel)
                 .font(.system(size: 9, weight: .medium))
-                .foregroundStyle(appState.chatConnectionState.color)
+                .foregroundStyle(connectionIndicatorColor)
+                .help(connectionStatusTooltip)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
         .overlay(alignment: .bottom) {
             Divider()
         }
+    }
+
+    // MARK: - Connection Error Banner
+
+    @ViewBuilder
+    private var connectionErrorBanner: some View {
+        if let error = appState.connectionErrorDetail,
+           appState.chatConnectionState != .connected {
+            HStack(spacing: 8) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.white)
+                Text(error.userMessage)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.white)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer()
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(error.indicatorColor.opacity(0.85))
+        }
+    }
+
+    private var connectionIndicatorColor: Color {
+        if let error = appState.connectionErrorDetail,
+           appState.chatConnectionState != .connected {
+            return error.indicatorColor
+        }
+        return appState.chatConnectionState.color
+    }
+
+    private var connectionStatusLabel: String {
+        if let error = appState.connectionErrorDetail,
+           appState.chatConnectionState != .connected {
+            return error.briefLabel
+        }
+        return appState.chatConnectionState.label
+    }
+
+    private var connectionStatusTooltip: String {
+        if let error = appState.connectionErrorDetail,
+           appState.chatConnectionState != .connected {
+            return error.userMessage
+        }
+        return appState.chatConnectionState.label
     }
 
     // MARK: - Message List
