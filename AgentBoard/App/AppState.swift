@@ -605,45 +605,66 @@ final class AppState {
         guard let project = selectedProject else { return }
         errorMessage = nil
 
-        do {
-            var arguments = [
-                "bd", "create",
-                "--title", draft.title,
-                "--type", draft.kind.beadsValue,
-                "--priority", "2",
-                "--silent",
+        let issuesURL = project.issuesFileURL
+        guard FileManager.default.fileExists(atPath: issuesURL.path) else {
+            errorMessage = "No issues.jsonl found. Initialize beads first."
+            return
+        }
+
+        let prefix = deriveBeadPrefix(projectName: project.name)
+        let existingIDs = Set(beads.map(\.id))
+        let newID = generateBeadID(prefix: prefix, existingIDs: existingIDs)
+
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        let timestamp = formatter.string(from: Date())
+
+        var entry: [String: Any] = [
+            "id": newID,
+            "title": draft.title.trimmingCharacters(in: .whitespacesAndNewlines),
+            "status": draft.status.beadsValue,
+            "priority": draft.priority,
+            "issue_type": draft.kind.beadsValue,
+            "created_at": timestamp,
+            "updated_at": timestamp,
+        ]
+
+        let desc = draft.description.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !desc.isEmpty {
+            entry["description"] = desc
+        }
+
+        let assignee = draft.assignee.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !assignee.isEmpty {
+            entry["owner"] = assignee
+        }
+
+        if !draft.labels.isEmpty {
+            entry["labels"] = draft.labels
+        }
+
+        if let epicId = draft.epicId, !epicId.isEmpty, draft.kind != .epic {
+            entry["dependencies"] = [
+                ["depends_on_id": epicId, "type": "parent-child"]
             ]
+        }
 
-            if !draft.description.isEmpty {
-                arguments.append(contentsOf: ["--description", draft.description])
+        do {
+            let jsonData = try JSONSerialization.data(withJSONObject: entry, options: [.sortedKeys])
+            guard var jsonLine = String(data: jsonData, encoding: .utf8) else {
+                throw NSError(domain: "AgentBoard", code: 1, userInfo: [
+                    NSLocalizedDescriptionKey: "Failed to encode bead as JSON."
+                ])
             }
+            jsonLine += "\n"
 
-            if !draft.labels.isEmpty {
-                arguments.append(contentsOf: ["--labels", draft.labels.joined(separator: ",")])
-            }
+            let handle = try FileHandle(forWritingTo: issuesURL)
+            defer { handle.closeFile() }
+            handle.seekToEndOfFile()
+            handle.write(jsonLine.data(using: .utf8)!)
 
-            if !draft.assignee.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                arguments.append(contentsOf: ["--assignee", draft.assignee])
-            }
-
-            if let epicId = draft.epicId,
-               !epicId.isEmpty,
-               draft.kind != .epic {
-                arguments.append(contentsOf: ["--parent", epicId])
-            }
-
-            let result = try await runBD(arguments: arguments, in: project)
-            let createdID = parseCreatedIssueID(from: result)
-
-            if draft.status != .open, let createdID {
-                _ = try await runBD(
-                    arguments: ["bd", "update", createdID, "--status", draft.status.beadsValue],
-                    in: project
-                )
-            }
-
-            statusMessage = "Created issue\(createdID.map { " \($0)" } ?? "")."
-            reloadSelectedProjectAndWatch()
+            statusMessage = "Created \(newID)."
+            loadBeads(for: project)
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -659,6 +680,7 @@ final class AppState {
                 "--title", draft.title,
                 "--type", draft.kind.beadsValue,
                 "--status", draft.status.beadsValue,
+                "--priority", "\(draft.priority)",
                 "--description", draft.description,
             ]
 
@@ -706,12 +728,18 @@ final class AppState {
     }
 
     func closeBead(_ bead: Bead) async {
+        await closeBeadWithReason(bead, reason: "Closed from AgentBoard board action")
+    }
+
+    func closeBeadWithReason(_ bead: Bead, reason: String) async {
         guard let project = selectedProject else { return }
         errorMessage = nil
 
         do {
+            let reasonText = reason.trimmingCharacters(in: .whitespacesAndNewlines)
+            let finalReason = reasonText.isEmpty ? "Closed from AgentBoard" : reasonText
             _ = try await runBD(
-                arguments: ["bd", "close", bead.id, "--reason", "Closed from AgentBoard board action"],
+                arguments: ["bd", "close", bead.id, "--reason", finalReason],
                 in: project
             )
             statusMessage = "Closed \(bead.id)."
@@ -1321,6 +1349,34 @@ final class AppState {
         }
 
         historyEvents = events.sorted { lhs, rhs in lhs.occurredAt > rhs.occurredAt }
+    }
+
+    private func deriveBeadPrefix(projectName: String) -> String {
+        if let existingID = beads.first?.id {
+            let parts = existingID.split(separator: "-", maxSplits: 1)
+            if parts.count == 2 {
+                return String(parts[0])
+            }
+        }
+        // Fallback: initials from project name words, or first 2 chars
+        let words = projectName.split(whereSeparator: { !$0.isLetter && !$0.isNumber })
+        if words.count >= 2 {
+            return words.prefix(3).map { String($0.prefix(1)).uppercased() }.joined()
+        }
+        return String(projectName.prefix(2)).uppercased()
+    }
+
+    private func generateBeadID(prefix: String, existingIDs: Set<String>) -> String {
+        let chars = Array("0123456789abcdefghijklmnopqrstuvwxyz")
+        for _ in 0..<100 {
+            let hash = String((0..<3).map { _ in chars.randomElement()! })
+            let candidate = "\(prefix)-\(hash)"
+            if !existingIDs.contains(candidate) {
+                return candidate
+            }
+        }
+        let fallback = String(Int(Date().timeIntervalSince1970) % 100000, radix: 36)
+        return "\(prefix)-\(fallback)"
     }
 
     private func runBD(arguments: [String], in project: Project) async throws -> ShellCommandResult {

@@ -11,6 +11,7 @@ struct BoardView: View {
     @State private var createDraft = BeadDraft()
     @State private var editDraft = BeadDraft()
     @State private var editingContext: EditingContext?
+    @State private var detailContext: EditingContext?
     @State private var handledCreateRequestID = 0
 
     private struct Column: Identifiable {
@@ -105,6 +106,11 @@ struct BoardView: View {
                 editDraft = BeadDraft.from(context.bead)
             }
         }
+        .sheet(item: $detailContext) { context in
+            TaskDetailSheet(bead: context.bead) {
+                detailContext = nil
+            }
+        }
     }
 
     private var filterBar: some View {
@@ -188,6 +194,7 @@ struct BoardView: View {
                                 }
                                 .onTapGesture {
                                     appState.selectedBeadID = bead.id
+                                    detailContext = EditingContext(bead: bead)
                                 }
                                 .contextMenu {
                                     Button("Edit") {
@@ -305,6 +312,7 @@ private enum KindFilter: String, CaseIterable {
     case bug
     case feature
     case epic
+    case chore
 
     var label: String {
         switch self {
@@ -318,6 +326,8 @@ private enum KindFilter: String, CaseIterable {
             return "Feature"
         case .epic:
             return "Epic"
+        case .chore:
+            return "Chore"
         }
     }
 
@@ -333,6 +343,8 @@ private enum KindFilter: String, CaseIterable {
             return .feature
         case .epic:
             return .epic
+        case .chore:
+            return .chore
         }
     }
 }
@@ -410,6 +422,14 @@ private struct BeadEditorForm: View {
                     ForEach(BeadStatus.allCases, id: \.self) { status in
                         Text(status.rawValue).tag(status)
                     }
+                }
+
+                Picker("Priority", selection: $draft.priority) {
+                    Text("P0 - Critical").tag(0)
+                    Text("P1 - High").tag(1)
+                    Text("P2 - Medium").tag(2)
+                    Text("P3 - Low").tag(3)
+                    Text("P4 - Backlog").tag(4)
                 }
 
                 TextField("Assignee", text: $draft.assignee)

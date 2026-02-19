@@ -41,6 +41,7 @@ struct JSONLParser {
                     body: record.description,
                     status: status,
                     kind: kind,
+                    priority: record.priority ?? 2,
                     epicId: epicId,
                     labels: record.labels ?? [],
                     assignee: record.owner,
@@ -61,6 +62,7 @@ private struct RawIssue: Decodable {
     let description: String?
     let status: String
     let issueType: String?
+    let priority: Int?
     let labels: [String]?
     let owner: String?
     let createdAt: String?
@@ -73,6 +75,7 @@ private struct RawIssue: Decodable {
         case description
         case status
         case issueType = "issue_type"
+        case priority
         case labels
         case owner
         case createdAt = "created_at"

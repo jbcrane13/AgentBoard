@@ -6,9 +6,15 @@ struct TaskCardView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(bead.id)
-                .font(.system(size: 10, design: .monospaced))
-                .foregroundStyle(.secondary)
+            HStack(spacing: 6) {
+                Text(bead.id)
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(.secondary)
+
+                Spacer()
+
+                priorityBadge
+            }
 
             Text(bead.title)
                 .font(.system(size: 13, weight: .semibold))
@@ -60,6 +66,28 @@ struct TaskCardView: View {
         case .bug: .red
         case .feature: .green
         case .epic: .purple
+        case .chore: .gray
+        }
+    }
+
+    private var priorityBadge: some View {
+        let label = "P\(bead.priority)"
+        let color = priorityColor
+        return Text(label)
+            .font(.system(size: 9, weight: .bold))
+            .padding(.horizontal, 5)
+            .padding(.vertical, 1)
+            .background(color.opacity(0.14), in: Capsule())
+            .foregroundStyle(color)
+    }
+
+    private var priorityColor: Color {
+        switch bead.priority {
+        case 0: .red
+        case 1: .orange
+        case 2: .yellow
+        case 3: .blue
+        default: .gray
         }
     }
 

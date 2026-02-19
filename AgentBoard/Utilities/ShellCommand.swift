@@ -35,6 +35,20 @@ enum ShellCommand {
         process.arguments = arguments
         process.currentDirectoryURL = workingDirectory
 
+        // macOS GUI apps have a restricted PATH. Add common tool directories
+        // so that user-installed CLIs (bd, git, etc.) are discoverable.
+        var env = ProcessInfo.processInfo.environment
+        let basePath = env["PATH"] ?? "/usr/bin:/bin:/usr/sbin:/sbin"
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        let extraPaths = [
+            "/opt/homebrew/bin",
+            "/opt/homebrew/sbin",
+            "/usr/local/bin",
+            "\(home)/.local/bin",
+        ]
+        env["PATH"] = (extraPaths + [basePath]).joined(separator: ":")
+        process.environment = env
+
         let stdoutPipe = Pipe()
         let stderrPipe = Pipe()
         process.standardOutput = stdoutPipe

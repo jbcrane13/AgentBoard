@@ -5,6 +5,7 @@ struct BeadDraft: Sendable {
     var description: String = ""
     var kind: BeadKind = .task
     var status: BeadStatus = .open
+    var priority: Int = 2
     var assignee: String = ""
     var labelsText: String = ""
     var epicId: String?
@@ -22,6 +23,7 @@ struct BeadDraft: Sendable {
             description: bead.body ?? "",
             kind: bead.kind,
             status: bead.status,
+            priority: bead.priority,
             assignee: bead.assignee ?? "",
             labelsText: bead.labels.joined(separator: ", "),
             epicId: bead.epicId
