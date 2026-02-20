@@ -16,6 +16,11 @@ struct Project: Identifiable, Hashable {
         beadsPath.appendingPathComponent("issues.jsonl", isDirectory: false)
     }
 
+    /// Whether this project has beads initialized (dolt backend or flat-file).
+    var isBeadsInitialized: Bool {
+        FileManager.default.fileExists(atPath: beadsPath.appendingPathComponent("config.yaml").path)
+    }
+
     static let samples: [Project] = [
         Project(
             id: UUID(),

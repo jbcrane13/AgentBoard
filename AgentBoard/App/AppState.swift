@@ -628,11 +628,11 @@ final class AppState {
         guard let project = selectedProject else { return }
         errorMessage = nil
 
-        let issuesURL = project.issuesFileURL
-        guard FileManager.default.fileExists(atPath: issuesURL.path) else {
-            errorMessage = "No issues.jsonl found. Initialize beads first."
+        guard project.isBeadsInitialized else {
+            errorMessage = "Beads not initialized. Initialize beads first."
             return
         }
+        let issuesURL = project.issuesFileURL
 
         let prefix = deriveBeadPrefix(projectName: project.name)
         let existingIDs = Set(beads.map(\.id))
@@ -1140,6 +1140,28 @@ final class AppState {
         defer { isLoadingBeads = false }
 
         let issuesURL = project.issuesFileURL
+
+        // If issues.jsonl doesn't exist but beads is initialized (dolt backend),
+        // fall back to running `bd list --json` and writing a transient issues.jsonl
+        if !FileManager.default.fileExists(atPath: issuesURL.path), project.isBeadsInitialized {
+            Task {
+                do {
+                    let result = try await runBD(arguments: ["bd", "list", "--json"], in: project)
+                    try result.stdout.write(to: issuesURL, atomically: true, encoding: .utf8)
+                    await MainActor.run { self.loadBeads(for: project) }
+                } catch {
+                    await MainActor.run {
+                        beads = []
+                        beadsFileMissing = true
+                        errorMessage = "Failed to load beads via CLI: \(error.localizedDescription)"
+                        refreshProjectCounts()
+                        rebuildHistoryEvents()
+                    }
+                }
+            }
+            return
+        }
+
         guard FileManager.default.fileExists(atPath: issuesURL.path) else {
             beads = []
             beadsFileMissing = true
@@ -1166,7 +1188,7 @@ final class AppState {
 
     private func watch(project: Project) {
         let issuesURL = project.issuesFileURL
-        guard FileManager.default.fileExists(atPath: issuesURL.path) else {
+        guard FileManager.default.fileExists(atPath: issuesURL.path) || project.isBeadsInitialized else {
             watcher.stop()
             watchedFilePath = nil
             return
