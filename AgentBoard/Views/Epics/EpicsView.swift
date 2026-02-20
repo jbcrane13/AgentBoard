@@ -144,71 +144,101 @@ struct EpicsView: View {
 
     private var createEpicSheet: some View {
         VStack(spacing: 0) {
+            // Header
             HStack {
                 Text("Create Epic")
                     .font(.system(size: 16, weight: .semibold))
                 Spacer()
+                Button {
+                    closeCreateEpicSheet()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
             }
             .padding(16)
-            .overlay(alignment: .bottom) {
-                Divider()
-            }
 
-            Form {
-                TextField("Epic title", text: $epicTitle)
+            Divider()
 
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Description")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                    TextEditor(text: $epicDescription)
-                        .frame(minHeight: 120)
-                }
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Child issues")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(.secondary)
-
-                    if candidateChildren.isEmpty {
-                        Text("No available child issues")
-                            .font(.system(size: 12))
+            // Content
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    // Title
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Title")
+                            .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(.secondary)
-                    } else {
-                        ForEach(candidateChildren) { bead in
-                            Toggle(
-                                isOn: Binding(
-                                    get: { selectedChildIssueIDs.contains(bead.id) },
-                                    set: { selected in
-                                        if selected {
-                                            selectedChildIssueIDs.insert(bead.id)
-                                        } else {
-                                            selectedChildIssueIDs.remove(bead.id)
+                        TextField("Epic title", text: $epicTitle)
+                            .textFieldStyle(.roundedBorder)
+                    }
+
+                    // Description
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Description")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                        TextEditor(text: $epicDescription)
+                            .frame(minHeight: 80, maxHeight: 120)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 5)
+                                    .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+                            )
+                    }
+
+                    // Child issues
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Child Issues (\(selectedChildIssueIDs.count) selected)")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(.secondary)
+
+                        if candidateChildren.isEmpty {
+                            Text("No available child issues")
+                                .font(.system(size: 12))
+                                .foregroundStyle(.secondary)
+                        } else {
+                            VStack(spacing: 2) {
+                                ForEach(candidateChildren) { bead in
+                                    Toggle(
+                                        isOn: Binding(
+                                            get: { selectedChildIssueIDs.contains(bead.id) },
+                                            set: { selected in
+                                                if selected {
+                                                    selectedChildIssueIDs.insert(bead.id)
+                                                } else {
+                                                    selectedChildIssueIDs.remove(bead.id)
+                                                }
+                                            }
+                                        )
+                                    ) {
+                                        HStack(spacing: 6) {
+                                            Text(bead.id)
+                                                .font(.system(size: 10, design: .monospaced))
+                                                .foregroundStyle(.secondary)
+                                            Text(bead.title)
+                                                .font(.system(size: 12))
+                                                .lineLimit(1)
                                         }
                                     }
-                                )
-                            ) {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("\(bead.id) - \(bead.title)")
-                                        .font(.system(size: 12))
-                                        .lineLimit(1)
-                                    if let assignee = bead.assignee, !assignee.isEmpty {
-                                        Text(assignee)
-                                            .font(.system(size: 10))
-                                            .foregroundStyle(.secondary)
-                                    }
+                                    .toggleStyle(.checkbox)
+                                    .padding(.vertical, 2)
                                 }
                             }
                         }
                     }
                 }
+                .padding(20)
             }
 
+            Divider()
+
+            // Footer
             HStack(spacing: 8) {
                 Spacer()
                 Button("Cancel") {
                     closeCreateEpicSheet()
                 }
+                .keyboardShortcut(.escape, modifiers: [])
                 Button("Create") {
                     let title = epicTitle.trimmingCharacters(in: .whitespacesAndNewlines)
                     let description = epicDescription.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -220,12 +250,11 @@ struct EpicsView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(epicTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .keyboardShortcut(.return, modifiers: .command)
             }
             .padding(16)
-            .overlay(alignment: .top) {
-                Divider()
-            }
         }
+        .frame(width: 560, minHeight: 400, idealHeight: 520, maxHeight: 640)
     }
 
     private var candidateChildren: [Bead] {
