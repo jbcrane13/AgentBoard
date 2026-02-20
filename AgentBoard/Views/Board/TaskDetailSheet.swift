@@ -271,9 +271,13 @@ struct TaskDetailSheet: View {
         .alert("Close \(bead.id)?", isPresented: $showCloseConfirm) {
             Button("Cancel", role: .cancel) {}
             Button("Close Issue", role: .destructive) {
+                let reason = closeReason
+                let beadToClose = bead
+                let state = appState
+                let dismiss = onDismiss
                 Task {
-                    await appState.closeBeadWithReason(bead, reason: closeReason)
-                    onDismiss()
+                    await state.closeBeadWithReason(beadToClose, reason: reason)
+                    await MainActor.run { dismiss() }
                 }
             }
         } message: {
