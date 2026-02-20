@@ -153,10 +153,10 @@ struct CanvasPanelView: View {
                 Image(systemName: "rectangle.on.rectangle.angled")
                     .font(.system(size: 36))
                     .foregroundStyle(.secondary.opacity(0.4))
-                Text("Canvas is empty.")
+                Text("No Canvas Content")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(.secondary)
-                Text("Canvas is empty. Chat with your agent to see content here.")
+                Text("Chat with your agent or drop a file here to get started.")
                     .font(.system(size: 12))
                     .foregroundStyle(.tertiary)
             }

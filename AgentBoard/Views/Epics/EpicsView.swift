@@ -135,7 +135,11 @@ struct EpicsView: View {
             }
         }
         .padding(14)
-        .background(.background, in: RoundedRectangle(cornerRadius: 10))
+        .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 10))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(AppTheme.subtleBorder, lineWidth: 1)
+        )
     }
 
     private var createEpicSheet: some View {

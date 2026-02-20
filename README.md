@@ -8,8 +8,16 @@ A native macOS command center for AI-assisted software development.
 
 ---
 
-<!-- Screenshots will be added here -->
-<!-- ![AgentBoard screenshot](docs/screenshot.png) -->
+## Screenshots
+
+> Screenshots coming soon. To see AgentBoard in action, build from source and connect to an OpenClaw gateway.
+
+<!--
+![Board View](docs/screenshots/board.png)
+![Chat + Canvas Split](docs/screenshots/split.png)
+![Terminal View](docs/screenshots/terminal.png)
+![Dark Mode](docs/screenshots/dark-mode.png)
+-->
 
 ## What is AgentBoard?
 
@@ -95,7 +103,9 @@ AgentBoard connects to the OpenClaw gateway for chat and session management. By 
 
 ### Projects
 
-AgentBoard reads project configuration from `~/.agentboard/config.json`. Projects are directories that contain a `.beads/` folder for issue tracking.
+AgentBoard auto-discovers projects by scanning a configured directory for folders containing a `.beads/` subfolder. The default scan directory is `~/Projects`. You can change it in the Settings view, or add individual project folders manually.
+
+You can also provide a config file at `~/.agentboard/config.json`:
 
 ```json
 {
@@ -120,7 +130,7 @@ AgentBoard is a SwiftUI application with a three-panel layout:
 ```
 ┌───────────┬──────────────────────┬────────────────┐
 │  Sidebar   │   Center Panel       │  Right Panel   │
-│  (220pt)   │   (flexible)         │  (340pt)       │
+│  (220pt)   │   (flexible)         │  (380pt)       │
 │            │                      │                │
 │  Projects  │  Board / Epics /     │  Chat          │
 │  Sessions  │  Agents / History /  │  Canvas        │

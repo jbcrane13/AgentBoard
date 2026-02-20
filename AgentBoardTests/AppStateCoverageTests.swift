@@ -220,6 +220,7 @@ struct AppStateCoverageTests {
             body: nil,
             status: .open,
             kind: .task,
+            priority: 2,
             epicId: nil,
             labels: [],
             assignee: nil,

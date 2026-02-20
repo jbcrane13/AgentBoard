@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ProjectHeaderView: View {
+    @Environment(AppState.self) private var appState
     let project: Project
 
     var body: some View {
@@ -9,11 +10,9 @@ struct ProjectHeaderView: View {
                 .font(.system(size: 20, weight: .bold, design: .default))
                 .foregroundStyle(.primary)
 
-            statusBadge
+            connectionBadge
 
             Spacer()
-
-            headerButtons
 
             statsRow
         }
@@ -26,50 +25,19 @@ struct ProjectHeaderView: View {
         }
     }
 
-    private var statusBadge: some View {
-        HStack(spacing: 5) {
+    private var connectionBadge: some View {
+        let state = appState.chatConnectionState
+        return HStack(spacing: 5) {
             Circle()
-                .fill(Color(red: 0.204, green: 0.78, blue: 0.349))
+                .fill(state.color)
                 .frame(width: 6, height: 6)
-            Text("Live")
+            Text(state.label)
                 .font(.system(size: 11, weight: .semibold))
         }
-        .foregroundStyle(Color(red: 0.102, green: 0.541, blue: 0.243))
+        .foregroundStyle(state.color)
         .padding(.horizontal, 10)
         .padding(.vertical, 3)
-        .background(Color(red: 0.91, green: 0.973, blue: 0.925), in: Capsule())
-    }
-
-    private var headerButtons: some View {
-        HStack(spacing: 8) {
-            Button(action: {}) {
-                HStack(spacing: 5) {
-                    Image(systemName: "bolt.fill")
-                        .font(.system(size: 10))
-                    Text("Live Edit")
-                        .font(.system(size: 12, weight: .semibold))
-                }
-                .foregroundStyle(.white)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 6)
-                .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 7))
-            }
-            .buttonStyle(.plain)
-
-            Button(action: {}) {
-                Text("Plan")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.primary)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 6)
-                    .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 7))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 7)
-                            .stroke(AppTheme.subtleBorder, lineWidth: 1)
-                    )
-            }
-            .buttonStyle(.plain)
-        }
+        .background(state.color.opacity(0.12), in: Capsule())
     }
 
     private var statsRow: some View {

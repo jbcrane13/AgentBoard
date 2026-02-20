@@ -62,7 +62,7 @@ struct SidebarView: View {
             HStack(spacing: 8) {
                 Image(systemName: "plus")
                     .font(.system(size: 12, weight: .medium))
-                Text("+ New Session")
+                Text("New Session")
                     .font(.system(size: 13))
             }
             .foregroundStyle(.white.opacity(0.6))

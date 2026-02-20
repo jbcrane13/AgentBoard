@@ -47,7 +47,6 @@ struct TaskCardView: View {
         .padding(12)
         .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 8))
         .shadow(color: .black.opacity(0.06), radius: 1.5, y: 1)
-        .shadow(color: .black.opacity(0.04), radius: 0, y: 0)
         .opacity(bead.status == .done ? 0.7 : 1.0)
     }
 
