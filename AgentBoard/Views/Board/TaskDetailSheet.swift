@@ -8,6 +8,7 @@ struct TaskDetailSheet: View {
     @State private var draft: BeadDraft
     @State private var closeReason = ""
     @State private var showCloseConfirm = false
+    @State private var showDeleteConfirm = false
     @State private var isSaving = false
 
     init(bead: Bead, onDismiss: @escaping () -> Void) {
@@ -238,32 +239,47 @@ struct TaskDetailSheet: View {
         .background(Color.primary.opacity(0.03), in: RoundedRectangle(cornerRadius: 8))
     }
 
-    // MARK: - Close Section
+    // MARK: - Actions Section
 
     private var closeSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Close Issue")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
+        VStack(alignment: .leading, spacing: 12) {
+            // Close
+            if bead.status != .done {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Close Issue")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .textCase(.uppercase)
 
-            HStack(spacing: 8) {
-                TextField("Close reason (optional)", text: $closeReason)
-                    .textFieldStyle(.roundedBorder)
-                    .font(.system(size: 13))
+                    HStack(spacing: 8) {
+                        TextField("Close reason (optional)", text: $closeReason)
+                            .textFieldStyle(.roundedBorder)
+                            .font(.system(size: 13))
 
-                Button("Close") {
-                    showCloseConfirm = true
+                        Button("Close") {
+                            showCloseConfirm = true
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(.red)
+                    }
+                }
+            } else {
+                Text("This issue is closed.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
+
+            // Delete
+            HStack {
+                Spacer()
+                Button(role: .destructive) {
+                    showDeleteConfirm = true
+                } label: {
+                    Label("Delete Issue", systemImage: "trash")
+                        .font(.system(size: 12))
                 }
                 .buttonStyle(.bordered)
                 .tint(.red)
-                .disabled(bead.status == .done)
-            }
-
-            if bead.status == .done {
-                Text("This issue is already closed.")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
             }
         }
         .padding(12)
@@ -282,6 +298,20 @@ struct TaskDetailSheet: View {
             }
         } message: {
             Text("This will mark the issue as done. \(closeReason.isEmpty ? "" : "Reason: \(closeReason)")")
+        }
+        .alert("Delete \(bead.id)?", isPresented: $showDeleteConfirm) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete Permanently", role: .destructive) {
+                let beadToDelete = bead
+                let state = appState
+                let dismiss = onDismiss
+                Task {
+                    await state.deleteBead(beadToDelete)
+                    await MainActor.run { dismiss() }
+                }
+            }
+        } message: {
+            Text("This will permanently delete the issue. This cannot be undone.")
         }
     }
 

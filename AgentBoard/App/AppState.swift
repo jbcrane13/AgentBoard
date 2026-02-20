@@ -740,7 +740,7 @@ final class AppState {
 
             _ = try await runBD(arguments: arguments, in: project)
             statusMessage = "Updated \(bead.id)."
-            reloadSelectedProjectAndWatch()
+            await refreshBeadsFromCLI(for: project)
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -757,7 +757,7 @@ final class AppState {
                 in: project
             )
             statusMessage = "Moved \(bead.id) to \(status.rawValue)."
-            reloadSelectedProjectAndWatch()
+            await refreshBeadsFromCLI(for: project)
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -779,9 +779,25 @@ final class AppState {
                 in: project
             )
             statusMessage = "Closed \(bead.id)."
-            reloadSelectedProjectAndWatch()
+            await refreshBeadsFromCLI(for: project)
         } catch {
             errorMessage = error.localizedDescription
+        }
+    }
+
+    func deleteBead(_ bead: Bead) async {
+        guard let project = selectedProject else { return }
+        errorMessage = nil
+
+        do {
+            _ = try await runBD(
+                arguments: ["bd", "delete", bead.id, "--force"],
+                in: project
+            )
+            statusMessage = "Deleted \(bead.id)."
+            await refreshBeadsFromCLI(for: project)
+        } catch {
+            errorMessage = "Failed to delete bead: \(error.localizedDescription)"
         }
     }
 
