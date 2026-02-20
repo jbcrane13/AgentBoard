@@ -1166,7 +1166,7 @@ final class AppState {
         if !FileManager.default.fileExists(atPath: issuesURL.path), project.isBeadsInitialized {
             Task {
                 do {
-                    let result = try await runBD(arguments: ["bd", "list", "--json"], in: project)
+                    let result = try await runBD(arguments: ["bd", "list", "--all", "--json"], in: project)
                     // bd list --json returns a JSON array; convert to JSONL for the parser
                     let stdout = result.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
                     if let data = stdout.data(using: .utf8),
