@@ -641,11 +641,12 @@ final class AppState {
         }
 
         // Use bd CLI to create beads — works with both dolt and flat-file backends
+        // Note: bd create doesn't support --status; we set it via bd update after creation
+        let desiredStatus = draft.status.beadsValue
         var arguments = [
             "bd", "create",
             draft.title.trimmingCharacters(in: .whitespacesAndNewlines),
             "--type", draft.kind.beadsValue,
-            "--status", draft.status.beadsValue,
             "--priority", "\(draft.priority)",
         ]
 
@@ -674,6 +675,10 @@ final class AppState {
             let output = result.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
             // Extract bead ID from output (typically first word)
             let newID = output.components(separatedBy: .whitespaces).first ?? "bead"
+            // bd create doesn't support --status, so set it via update if non-default
+            if desiredStatus != "backlog" && desiredStatus != "open" {
+                _ = try? await runBD(arguments: ["bd", "update", newID, "--status", desiredStatus], in: project)
+            }
             statusMessage = "Created \(newID)."
             // Regenerate issues.jsonl from bd list for consistency
             await refreshBeadsFromCLI(for: project)
