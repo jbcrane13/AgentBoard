@@ -1167,7 +1167,20 @@ final class AppState {
             Task {
                 do {
                     let result = try await runBD(arguments: ["bd", "list", "--json"], in: project)
-                    try result.stdout.write(to: issuesURL, atomically: true, encoding: .utf8)
+                    // bd list --json returns a JSON array; convert to JSONL for the parser
+                    let stdout = result.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if let data = stdout.data(using: .utf8),
+                       let array = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
+                        let jsonl = array.compactMap { obj -> String? in
+                            guard let line = try? JSONSerialization.data(withJSONObject: obj),
+                                  let str = String(data: line, encoding: .utf8) else { return nil }
+                            return str
+                        }.joined(separator: "\n")
+                        try jsonl.write(to: issuesURL, atomically: true, encoding: .utf8)
+                    } else {
+                        // Might already be JSONL or empty
+                        try stdout.write(to: issuesURL, atomically: true, encoding: .utf8)
+                    }
                     await MainActor.run { self.loadBeads(for: project) }
                 } catch {
                     await MainActor.run {
