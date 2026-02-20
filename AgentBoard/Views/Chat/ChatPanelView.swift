@@ -174,7 +174,14 @@ struct ChatPanelView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(spacing: 12) {
-                    ForEach(appState.chatMessages) { message in
+                    ForEach(appState.chatMessages.filter { msg in
+                        // Hide empty/NO_REPLY assistant messages (streaming placeholder excluded)
+                        if msg.role == .assistant {
+                            let text = msg.content.trimmingCharacters(in: .whitespacesAndNewlines)
+                            if text.isEmpty || text == "NO_REPLY" { return false }
+                        }
+                        return true
+                    }) { message in
                         ChatMessageBubble(
                             message: message,
                             agentName: appState.agentName,

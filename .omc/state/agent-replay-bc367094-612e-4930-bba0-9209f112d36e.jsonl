@@ -4,3 +4,4 @@
 {"t":0,"agent":"a3f86df","agent_type":"explore","event":"agent_stop","success":true,"duration_ms":47691}
 {"t":0,"agent":"a30d8e0","agent_type":"explore","event":"agent_stop","success":true,"duration_ms":33398}
 {"t":0,"agent":"ab1ee02","agent_type":"explore","event":"agent_stop","success":true,"duration_ms":95872}
+{"t":0,"agent":"a21a194","agent_type":"test-engineer","event":"agent_stop","success":true}

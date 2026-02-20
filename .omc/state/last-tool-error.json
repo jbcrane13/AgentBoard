@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"git stash pop\",\"description\":\"Restore the new test files\"}",
+  "error": "Exit code 1\nerror: Your local changes to the following files would be overwritten by merge:\n\t.omc/state/agent-replay-bc367094-612e-4930-bba0-9209f112d36e.jsonl\n\t.omc/state/subagent-tracking.json\nPlease commit your changes or stash them before you merge.\nAborting\nOn branch codex/phase1-skeleton-layout\nYour branch is ahead of 'origin/codex/phase1-skeleton-layout' by 11 commits.\n  (use \"git push\" to publish your local commits)\n\nChanges not staged for commit:\n  (use \"git add <file>...\" to update wha...",
+  "timestamp": "2026-02-20T18:04:21.638Z",
+  "retry_count": 1
+}
