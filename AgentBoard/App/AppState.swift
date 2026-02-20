@@ -401,12 +401,19 @@ final class AppState {
                 limit: 200
             )
 
-            chatMessages = history.messages.map { msg in
+            chatMessages = history.messages.compactMap { msg in
                 let role: MessageRole = switch msg.role {
                 case "user": .user
                 case "assistant": .assistant
                 default: .system
                 }
+                let text = msg.text.trimmingCharacters(in: .whitespacesAndNewlines)
+
+                // Filter out NO_REPLY markers and empty assistant messages
+                if role == .assistant {
+                    if text.isEmpty || text == "NO_REPLY" { return nil }
+                }
+
                 return ChatMessage(
                     role: role,
                     content: msg.text,
@@ -1011,9 +1018,15 @@ final class AppState {
             // Delta contains the full accumulated text so far
             if let text = event.chatMessageText {
                 chatRunId = event.chatRunId
+                isChatStreaming = true
 
-                // Find the last assistant message and update it
-                if let index = chatMessages.lastIndex(where: { $0.role == .assistant }) {
+                // Find the streaming assistant message to update.
+                // During active streaming, the last assistant message is either
+                // an empty placeholder (from sendChatMessage) or one we created
+                // for an unsolicited reply. Match by checking if it's the last
+                // message and is an assistant message.
+                let lastIsAssistant = chatMessages.last?.role == .assistant
+                if lastIsAssistant, let index = chatMessages.indices.last {
                     let msg = chatMessages[index]
                     chatMessages[index] = ChatMessage(
                         id: msg.id,
@@ -1022,6 +1035,12 @@ final class AppState {
                         timestamp: msg.timestamp,
                         beadContext: msg.beadContext,
                         sentToCanvas: msg.sentToCanvas
+                    )
+                } else {
+                    // No active assistant message — unsolicited reply
+                    // (heartbeat, cron, external message)
+                    chatMessages.append(
+                        ChatMessage(role: .assistant, content: text)
                     )
                 }
             }
