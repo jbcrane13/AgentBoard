@@ -1155,6 +1155,7 @@ final class AppState {
     }
 
     private func loadBeads(for project: Project) {
+        guard !isLoadingBeads else { return }
         isLoadingBeads = true
         defer { isLoadingBeads = false }
 
@@ -1207,20 +1208,25 @@ final class AppState {
 
     private func watch(project: Project) {
         let issuesURL = project.issuesFileURL
-        guard FileManager.default.fileExists(atPath: issuesURL.path) || project.isBeadsInitialized else {
+        // For dolt-backend projects, watch config.yaml instead since issues.jsonl
+        // may not exist yet (it gets created on first load via bd list --json)
+        let watchURL: URL
+        if FileManager.default.fileExists(atPath: issuesURL.path) {
+            watchURL = issuesURL
+        } else if project.isBeadsInitialized {
+            watchURL = project.beadsPath.appendingPathComponent("config.yaml")
+        } else {
             watcher.stop()
             watchedFilePath = nil
             return
         }
 
-        guard watchedFilePath != issuesURL.path else { return }
-        watchedFilePath = issuesURL.path
-        watcher.watch(fileURL: issuesURL) { [weak self] in
+        guard watchedFilePath != watchURL.path else { return }
+        watchedFilePath = watchURL.path
+        watcher.watch(fileURL: watchURL) { [weak self] in
             Task { @MainActor in
                 guard let self else { return }
-                guard let current = self.selectedProject, current.issuesFileURL.path == issuesURL.path else {
-                    return
-                }
+                guard let current = self.selectedProject else { return }
                 self.loadBeads(for: current)
             }
         }
