@@ -14,8 +14,23 @@ struct AppConfigStore {
         if fileManager.fileExists(atPath: configURL.path) {
             let data = try Data(contentsOf: configURL)
             let decoder = JSONDecoder()
-            let config = try decoder.decode(AppConfig.self, from: data)
-            return hydrateOpenClawIfNeeded(config)
+            var config = try decoder.decode(AppConfig.self, from: data)
+
+            // Migrate: if token exists in JSON, move it to Keychain
+            if let jsonToken = config.openClawToken, !jsonToken.isEmpty {
+                try? KeychainService.saveToken(jsonToken)
+                config.openClawToken = nil
+                try? save(config) // Strip token from JSON
+            }
+
+            config = hydrateOpenClawIfNeeded(config)
+
+            // Hydrate token from Keychain (unless auto-discover already set one)
+            if config.openClawToken == nil || config.openClawToken?.isEmpty == true {
+                config.openClawToken = KeychainService.loadToken()
+            }
+
+            return config
         }
 
         var config = AppConfig(
@@ -28,6 +43,12 @@ struct AppConfigStore {
         )
         config.selectedProjectPath = config.projects.first?.path
         config = hydrateOpenClawIfNeeded(config)
+
+        // Hydrate token from Keychain
+        if config.openClawToken == nil || config.openClawToken?.isEmpty == true {
+            config.openClawToken = KeychainService.loadToken()
+        }
+
         try save(config)
         return config
     }
@@ -38,9 +59,18 @@ struct AppConfigStore {
             try fileManager.createDirectory(at: dirURL, withIntermediateDirectories: true)
         }
 
+        // Save token to Keychain instead of config JSON
+        if let token = config.openClawToken, !token.isEmpty {
+            try? KeychainService.saveToken(token)
+        }
+
+        // Strip token before writing JSON
+        var stripped = config
+        stripped.openClawToken = nil
+
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        let data = try encoder.encode(config)
+        let data = try encoder.encode(stripped)
         try data.write(to: configURL, options: .atomic)
     }
 

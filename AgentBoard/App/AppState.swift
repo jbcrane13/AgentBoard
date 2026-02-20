@@ -309,6 +309,10 @@ final class AppState {
         reloadSelectedProjectAndWatch()
     }
 
+    func retryConnection() {
+        startChatConnectionLoop()
+    }
+
     func updateOpenClaw(gatewayURL: String, token: String, source: String = "auto") {
         appConfig.openClawGatewayURL = gatewayURL.isEmpty ? nil : gatewayURL
         appConfig.openClawToken = token.isEmpty ? nil : token

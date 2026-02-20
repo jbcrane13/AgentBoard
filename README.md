@@ -99,7 +99,53 @@ AgentBoard connects to the OpenClaw gateway for chat and session management. By 
 }
 ```
 
-**Remote gateway:** To connect to a gateway on another machine, update the URL in the app settings or in the OpenClaw config file.
+**Manual configuration:** Switch to Manual mode in Settings and enter the gateway URL and auth token directly. Auth tokens are stored securely in the macOS Keychain.
+
+### Remote Gateway Setup
+
+AgentBoard supports connecting to an OpenClaw gateway running on a different machine. There are several ways to reach a remote gateway:
+
+**LAN / Direct IP**
+
+If the gateway machine is on the same network, use its LAN IP:
+
+1. On the gateway machine, start OpenClaw with `gateway.bind` set to `"0.0.0.0"` (or the machine's LAN IP) in `~/.openclaw/openclaw.json`
+2. In AgentBoard, open Settings, switch to Manual, and enter `http://<gateway-ip>:18789`
+3. Click "Scan Network" to auto-discover gateways advertising via Bonjour/mDNS
+
+**Tailscale / VPN**
+
+With [Tailscale](https://tailscale.com) or another VPN, use the gateway machine's VPN IP:
+
+```
+http://100.x.y.z:18789
+```
+
+No port forwarding or firewall changes needed.
+
+**SSH Tunnel**
+
+Forward the gateway port over SSH for encrypted access without exposing ports:
+
+```bash
+ssh -L 18789:localhost:18789 user@gateway-host
+```
+
+Then connect to `http://127.0.0.1:18789` in AgentBoard as if the gateway were local.
+
+**Device Pairing**
+
+Each device must be approved by the gateway on first connection:
+
+1. Connect to the gateway — AgentBoard will show a pairing guide if approval is needed
+2. On the gateway machine, run the approval command shown in the guide (e.g. `openclaw devices approve <device-id>`)
+3. Click "Retry Connection" in AgentBoard
+
+Device identity is stored in `~/.agentboard/device-identity.json` (Ed25519 keypair generated on first launch).
+
+**Token Security**
+
+Gateway auth tokens are stored in the macOS Keychain, not in plain-text config files. When you save a token in Settings, it is written to Keychain and stripped from `~/.agentboard/config.json`. Existing plain-text tokens are automatically migrated to Keychain on first launch.
 
 ### Projects
 
