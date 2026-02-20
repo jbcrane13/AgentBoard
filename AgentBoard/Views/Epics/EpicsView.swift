@@ -254,7 +254,7 @@ struct EpicsView: View {
             }
             .padding(16)
         }
-        .frame(width: 560, minHeight: 400, idealHeight: 520, maxHeight: 640)
+        .frame(minHeight: 400, maxHeight: 640)
     }
 
     private var candidateChildren: [Bead] {

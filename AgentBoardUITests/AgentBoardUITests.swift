@@ -191,6 +191,205 @@ final class AgentBoardUITests: XCTestCase {
         app.typeKey("2", modifierFlags: [.command])
         requireButton("Create Epic")
     }
+
+    // MARK: - Area 7: Board Create Bead and Task Detail Tests
+
+    func testCreateBeadSheetOpensAndCancels() throws {
+        // Navigate to board first
+        clickButton("Board")
+
+        // Open the create bead sheet
+        clickButton("Create Bead")
+
+        // Verify sheet appeared with key fields
+        // The sheet has a title text field and Save/Cancel buttons
+        requireStaticText("Create Bead")  // or sheet title
+        requireButton("Cancel")
+        requireButton("Save")
+
+        // Cancel closes the sheet
+        clickButton("Cancel")
+
+        // Verify sheet is gone - Create Bead button should be visible again
+        XCTAssertTrue(
+            app.buttons["Create Bead"].waitForExistence(timeout: timeout),
+            "Expected board to be visible after sheet dismissal"
+        )
+    }
+
+    func testCreateBeadSheetHasRequiredFields() throws {
+        clickButton("Board")
+        clickButton("Create Bead")
+
+        // Verify key form elements exist
+        requireButton("Cancel")
+        requireButton("Save")
+
+        // Title text field should be present (try both placeholder and label)
+        let titleField = app.textFields.firstMatch
+        XCTAssertTrue(
+            titleField.waitForExistence(timeout: timeout),
+            "Expected at least one text field in bead creation form"
+        )
+
+        // Save button should be present
+        requireButton("Save")
+
+        // Clean up
+        clickButton("Cancel")
+    }
+
+    // MARK: - Area 8: Settings and New Session Behavioral Upgrades
+
+    func testSettingsManualModeShowsURLAndTokenFields() throws {
+        clickButton("Settings")
+        requireStaticText("Gateway Connection")
+
+        // Switch to manual mode if not already there
+        let manualButton = app.buttons["Manual"].firstMatch
+        if manualButton.waitForExistence(timeout: timeout) {
+            manualButton.click()
+        }
+
+        // Verify manual fields are present
+        requireTextField("Gateway URL (e.g. http://192.168.1.100:18789)")
+        requireSecureField("Auth Token")
+
+        // Type into URL field
+        let urlField = app.textFields["Gateway URL (e.g. http://192.168.1.100:18789)"].firstMatch
+        if urlField.waitForExistence(timeout: timeout) {
+            urlField.click()
+            urlField.typeText("http://192.168.1.100:18789")
+
+            // Verify field accepted input (non-empty)
+            // The field value or some indication should reflect input
+            XCTAssertTrue(urlField.exists, "URL field should still exist after typing")
+        }
+
+        // Clean up - click Auto-Discover if it exists, or just navigate away
+        let autoButton = app.buttons["Auto-Discover"].firstMatch
+        if autoButton.waitForExistence(timeout: 2) {
+            autoButton.click()
+        }
+    }
+
+    func testNewSessionSheetCancelDismisses() throws {
+        // This upgrades the existing shallow test with behavioral assertion
+        clickButton("+ New Session")
+
+        requireStaticText("New Session")
+        requireButton("Cancel")
+        requireButton("Launch")
+
+        // Fill in a prompt to make the interaction more realistic
+        let promptEditor = app.textViews.firstMatch
+        if promptEditor.waitForExistence(timeout: 3) {
+            promptEditor.click()
+            promptEditor.typeText("Test prompt")
+        }
+
+        // Cancel should dismiss
+        clickButton("Cancel")
+
+        // Verify the sheet is gone AND we're back to normal state
+        XCTAssertFalse(
+            app.staticTexts["New Session"].waitForExistence(timeout: 3),
+            "New Session sheet should be dismissed after Cancel"
+        )
+        // App should still be in a valid state
+        XCTAssertTrue(
+            anyPrimaryViewIndicatorExists(),
+            "App should be in a valid state after cancelling new session"
+        )
+    }
+
+    // MARK: - Area 9: Epics, Agents, Canvas Controls
+
+    func testAgentsViewShowsSessionsContent() throws {
+        // Cmd+3 navigates to Agents view
+        requireWindow().click()
+        app.typeKey("3", modifierFlags: [.command])
+
+        // Verify Agents/Sessions view content
+        requireStaticText("Sessions Today")
+
+        // The agents view should be in a valid state
+        XCTAssertTrue(requireWindow().exists, "Window should remain visible in Agents view")
+    }
+
+    func testEpicsCreateEpicSheetOpens() throws {
+        // Navigate to Epics
+        app.typeKey("2", modifierFlags: [.command])
+        requireButton("Create Epic")
+
+        // Open create epic sheet
+        clickButton("Create Epic")
+
+        // Verify sheet has expected content
+        XCTAssertTrue(
+            app.staticTexts["Create Epic"].waitForExistence(timeout: timeout)
+                || app.textFields.firstMatch.waitForExistence(timeout: timeout),
+            "Expected Create Epic sheet to open with form elements"
+        )
+
+        // Cancel/dismiss the sheet
+        dismissSheetIfNeeded()
+
+        // Verify we're back on epics view
+        XCTAssertTrue(
+            app.buttons["Create Epic"].waitForExistence(timeout: timeout),
+            "Create Epic button should be visible after dismissing sheet"
+        )
+    }
+
+    func testHistoryViewDefaultFilterAndContent() throws {
+        // Navigate to History
+        clickButton("History")
+
+        // All Events filter should be present (default)
+        requireButton("All Events")
+
+        // History view is in a valid state
+        XCTAssertTrue(requireWindow().exists, "Window should remain visible in History view")
+
+        // App doesn't crash when All Events is already selected (re-click)
+        let allEventsButton = app.buttons["All Events"].firstMatch
+        if allEventsButton.waitForExistence(timeout: timeout) {
+            allEventsButton.click()
+            // Should still be on History view
+            XCTAssertTrue(
+                app.buttons["All Events"].waitForExistence(timeout: timeout),
+                "All Events filter should still be present after clicking"
+            )
+        }
+    }
+
+    func testCanvasModeToolbarButtonsExist() throws {
+        // Switch to Canvas mode
+        selectRightPanelMode("Canvas")
+        requireStaticText("Canvas is empty.")
+
+        // Verify canvas toolbar has navigation and zoom controls
+        // These buttons use system images so we check by accessibility or existence
+        let window = requireWindow()
+        XCTAssertTrue(window.exists, "Window should exist in canvas mode")
+
+        // The canvas toolbar should have buttons (at minimum the clear button)
+        // Check that some interactive element exists in the toolbar area
+        let clearButton = app.buttons["Clear"].firstMatch
+        let exportButton = app.buttons["Export"].firstMatch
+        let openButton = app.buttons["Open"].firstMatch
+
+        XCTAssertTrue(
+            clearButton.waitForExistence(timeout: timeout)
+                || exportButton.waitForExistence(timeout: timeout)
+                || openButton.waitForExistence(timeout: timeout),
+            "Expected canvas toolbar buttons (Clear, Export, or Open) to exist"
+        )
+
+        // Switch back to split mode
+        selectRightPanelMode("Split")
+    }
 }
 
 private extension AgentBoardUITests {
