@@ -639,64 +639,65 @@ final class AppState {
             errorMessage = "Beads not initialized. Initialize beads first."
             return
         }
-        let issuesURL = project.issuesFileURL
 
-        let prefix = deriveBeadPrefix(projectName: project.name)
-        let existingIDs = Set(beads.map(\.id))
-        let newID = generateBeadID(prefix: prefix, existingIDs: existingIDs)
-
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime]
-        let timestamp = formatter.string(from: Date())
-
-        var entry: [String: Any] = [
-            "id": newID,
-            "title": draft.title.trimmingCharacters(in: .whitespacesAndNewlines),
-            "status": draft.status.beadsValue,
-            "priority": draft.priority,
-            "issue_type": draft.kind.beadsValue,
-            "created_at": timestamp,
-            "updated_at": timestamp,
+        // Use bd CLI to create beads — works with both dolt and flat-file backends
+        var arguments = [
+            "bd", "create",
+            draft.title.trimmingCharacters(in: .whitespacesAndNewlines),
+            "--type", draft.kind.beadsValue,
+            "--status", draft.status.beadsValue,
+            "--priority", "\(draft.priority)",
         ]
 
         let desc = draft.description.trimmingCharacters(in: .whitespacesAndNewlines)
         if !desc.isEmpty {
-            entry["description"] = desc
+            arguments.append(contentsOf: ["--description", desc])
         }
 
         let assignee = draft.assignee.trimmingCharacters(in: .whitespacesAndNewlines)
         if !assignee.isEmpty {
-            entry["owner"] = assignee
+            arguments.append(contentsOf: ["--assignee", assignee])
         }
 
         if !draft.labels.isEmpty {
-            entry["labels"] = draft.labels
+            for label in draft.labels {
+                arguments.append(contentsOf: ["--set-labels", label])
+            }
         }
 
         if let epicId = draft.epicId, !epicId.isEmpty, draft.kind != .epic {
-            entry["dependencies"] = [
-                ["depends_on_id": epicId, "type": "parent-child"]
-            ]
+            arguments.append(contentsOf: ["--parent", epicId])
         }
 
         do {
-            let jsonData = try JSONSerialization.data(withJSONObject: entry, options: [.sortedKeys])
-            guard var jsonLine = String(data: jsonData, encoding: .utf8) else {
-                throw NSError(domain: "AgentBoard", code: 1, userInfo: [
-                    NSLocalizedDescriptionKey: "Failed to encode bead as JSON."
-                ])
-            }
-            jsonLine += "\n"
-
-            let handle = try FileHandle(forWritingTo: issuesURL)
-            defer { handle.closeFile() }
-            handle.seekToEndOfFile()
-            handle.write(jsonLine.data(using: .utf8)!)
-
+            let result = try await runBD(arguments: arguments, in: project)
+            let output = result.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
+            // Extract bead ID from output (typically first word)
+            let newID = output.components(separatedBy: .whitespaces).first ?? "bead"
             statusMessage = "Created \(newID)."
+            // Regenerate issues.jsonl from bd list for consistency
+            await refreshBeadsFromCLI(for: project)
+        } catch {
+            errorMessage = "Failed to create bead: \(error.localizedDescription)"
+        }
+    }
+
+    private func refreshBeadsFromCLI(for project: Project) async {
+        do {
+            let result = try await runBD(arguments: ["bd", "list", "--all", "--json"], in: project)
+            let stdout = result.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
+            if let data = stdout.data(using: .utf8),
+               let array = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
+                let jsonl = array.compactMap { obj -> String? in
+                    guard let line = try? JSONSerialization.data(withJSONObject: obj),
+                          let str = String(data: line, encoding: .utf8) else { return nil }
+                    return str
+                }.joined(separator: "\n")
+                try jsonl.write(to: project.issuesFileURL, atomically: true, encoding: .utf8)
+            }
             loadBeads(for: project)
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = "Failed to refresh beads: \(error.localizedDescription)"
         }
     }
 
@@ -784,12 +785,27 @@ final class AppState {
         errorMessage = nil
 
         do {
+            // Update assignee in beads
             _ = try await runBD(
-                arguments: ["bd", "update", bead.id, "--assignee", assignee],
+                arguments: ["bd", "update", bead.id, "--assignee", assignee, "--status", "in-progress"],
                 in: project
             )
-            statusMessage = "Assigned \(bead.id) to \(assignee)."
-            reloadSelectedProjectAndWatch()
+
+            // Launch a tmux Claude Code session to work on the bead
+            let prompt = "Work on bead \(bead.id): \(bead.title)"
+                + (bead.body.map { ". Description: \($0)" } ?? "")
+                + ". When done, run: bd close \(bead.id)"
+            let sessionID = try await sessionMonitor.launchSession(
+                projectPath: project.path,
+                agentType: .claudeCode,
+                beadID: bead.id,
+                prompt: prompt
+            )
+
+            statusMessage = "Assigned \(bead.id) to agent — session \(sessionID) launched."
+            activeSessionID = sessionID
+            await refreshSessionsFromMonitor()
+            await refreshBeadsFromCLI(for: project)
         } catch {
             errorMessage = error.localizedDescription
         }

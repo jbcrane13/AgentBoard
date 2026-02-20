@@ -114,22 +114,13 @@ struct NewSessionSheet: View {
         isLaunching = true
 
         Task { @MainActor in
-            let success: Bool
-            if appState.chatConnectionState == .connected {
-                success = await appState.createGatewaySession(
-                    project: selectedProject,
-                    agentType: selectedAgentType,
-                    beadID: trimmedValue(beadID),
-                    prompt: trimmedValue(prompt)
-                )
-            } else {
-                success = await appState.launchSession(
-                    project: selectedProject,
-                    agentType: selectedAgentType,
-                    beadID: trimmedValue(beadID),
-                    prompt: trimmedValue(prompt)
-                )
-            }
+            // Always launch as tmux session — visible to user and monitored
+            let success = await appState.launchSession(
+                project: selectedProject,
+                agentType: selectedAgentType,
+                beadID: trimmedValue(beadID),
+                prompt: trimmedValue(prompt)
+            )
             isLaunching = false
             if success {
                 dismiss()

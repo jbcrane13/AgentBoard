@@ -376,16 +376,26 @@ actor GatewayClient {
         if let beadId { params["beadId"] = beadId }
         if let prompt { params["prompt"] = prompt }
 
-        let payload = try await request("sessions.create", params: params)
-        let key = payload["key"] as? String ?? payload["id"] as? String ?? UUID().uuidString
+        // Gateway doesn't have sessions.create — use chat.send which
+        // implicitly creates a session when given a message
+        var chatParams: [String: Any] = [:]
+        if let label { chatParams["sessionLabel"] = label }
+        if let prompt { chatParams["message"] = prompt }
+        if let agentType { chatParams["agentId"] = agentType }
+
+        let payload = try await request("chat.send", params: chatParams)
+        let key = payload["sessionKey"] as? String
+            ?? payload["key"] as? String
+            ?? payload["id"] as? String
+            ?? UUID().uuidString
         return GatewaySession(
             id: key,
             key: key,
             label: payload["label"] as? String ?? label,
-            agentId: payload["agentId"] as? String,
+            agentId: payload["agentId"] as? String ?? agentType,
             model: payload["model"] as? String,
-            status: payload["status"] as? String,
-            lastActiveAt: parseTimestamp(payload["lastActiveAt"]),
+            status: "active",
+            lastActiveAt: Date(),
             thinkingLevel: payload["thinkingLevel"] as? String
         )
     }
