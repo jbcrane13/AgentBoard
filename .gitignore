@@ -30,3 +30,7 @@ Package.resolved
 # Temporary files
 *.tmp
 *.bak
+
+# Beads issue tracker (local)
+.beads/
+beads/
