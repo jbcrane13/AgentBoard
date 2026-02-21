@@ -72,6 +72,17 @@ enum ConnectionError: Sendable, Equatable {
         }
     }
 
+    /// Whether this error is permanent until the user changes config/state.
+    /// Reconnect loops should stop retrying for these.
+    var isNonRetryable: Bool {
+        switch self {
+        case .deviceMismatch, .pairingRequired, .authFailed:
+            return true
+        case .connectionRefused, .generic:
+            return false
+        }
+    }
+
     var indicatorColor: Color {
         switch self {
         case .deviceMismatch, .pairingRequired, .authFailed:
@@ -92,7 +103,7 @@ enum ConnectionError: Sendable, Equatable {
         if message.contains("pairing required") {
             return .pairingRequired
         }
-        if message.contains("unauthorized") || message.contains("invalid token") || message.contains("authentication failed") {
+        if message.contains("unauthorized") || message.contains("invalid token") || message.contains("authentication failed") || message.contains("token missing") || message.contains("token_missing") {
             return .authFailed
         }
 

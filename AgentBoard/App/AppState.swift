@@ -1017,7 +1017,6 @@ final class AppState {
                         gatewayURL: self.appConfig.openClawGatewayURL ?? "http://127.0.0.1:18789"
                     )
                     self.connectionErrorDetail = classified
-                    self.chatConnectionState = .reconnecting
 
                     // Show toast on first failure or when error type changes
                     if attempt == 1 {
@@ -1025,6 +1024,13 @@ final class AppState {
                         self.dismissConnectionErrorToastAfterDelay()
                     }
 
+                    // Stop retrying for auth/pairing errors — user must fix config
+                    if classified.isNonRetryable {
+                        self.chatConnectionState = .disconnected
+                        break
+                    }
+
+                    self.chatConnectionState = .reconnecting
                     let backoffSeconds = min(pow(2.0, Double(max(attempt - 1, 0))), 30)
                     try? await Task.sleep(nanoseconds: UInt64(backoffSeconds * 1_000_000_000))
                 }
