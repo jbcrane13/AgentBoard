@@ -122,6 +122,14 @@ actor SessionMonitor {
         beadID: String?,
         prompt: String?
     ) async throws -> String {
+        // Ensure socket directory exists
+        let socketDir = URL(fileURLWithPath: tmuxSocketPath).deletingLastPathComponent()
+        try? FileManager.default.createDirectory(
+            at: socketDir,
+            withIntermediateDirectories: true,
+            attributes: nil
+        )
+
         let projectSlug = Self.slug(from: projectPath.lastPathComponent)
         let contextSlug = Self.slug(from: beadID ?? String(Int(Date().timeIntervalSince1970)))
         var sessionName = "ab-\(projectSlug)-\(contextSlug)"

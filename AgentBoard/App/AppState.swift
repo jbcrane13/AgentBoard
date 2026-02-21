@@ -611,6 +611,21 @@ final class AppState {
             statusMessage = "Launched session \(sessionID)."
             await refreshSessionsFromMonitor()
             activeSessionID = sessionID
+
+            // Open the session in a terminal window
+            let tmuxSocketPath = "/tmp/openclaw-tmux-sockets/openclaw.sock"
+            let attachCommand = "tmux -S \(tmuxSocketPath) attach -t \(sessionID)"
+
+            do {
+                try await TerminalLauncher.openInTerminal(
+                    command: attachCommand,
+                    workingDirectory: project.path.path
+                )
+            } catch {
+                // Terminal launch failed, but session was created - just log the error
+                print("Failed to open terminal window: \(error.localizedDescription)")
+            }
+
             return true
         } catch {
             errorMessage = error.localizedDescription
@@ -871,21 +886,13 @@ final class AppState {
         guard let project = selectedProject else { return }
         errorMessage = nil
 
-        let escapedPath = shellSingleQuoted(project.path.path)
-        let command = "cd \(escapedPath); bd show \(bead.id)"
-        let escapedCommand = command
-            .replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "\"", with: "\\\"")
-
-        let script = """
-        tell application "Terminal"
-            activate
-            do script "\(escapedCommand)"
-        end tell
-        """
+        let command = "bd show \(bead.id)"
 
         do {
-            _ = try await ShellCommand.runAsync(arguments: ["osascript", "-e", script])
+            try await TerminalLauncher.openInTerminal(
+                command: command,
+                workingDirectory: project.path.path
+            )
         } catch {
             errorMessage = error.localizedDescription
         }

@@ -127,8 +127,8 @@
   "hotPaths": [
     {
       "path": "AgentBoard/App/AppState.swift",
-      "accessCount": 6,
-      "lastAccessed": 1771628090772,
+      "accessCount": 10,
+      "lastAccessed": 1771647715806,
       "type": "file"
     },
     {
@@ -168,6 +168,12 @@
       "type": "file"
     },
     {
+      "path": "AgentBoard/Services/SessionMonitor.swift",
+      "accessCount": 2,
+      "lastAccessed": 1771647695133,
+      "type": "file"
+    },
+    {
       "path": "AgentBoard/Services/KeychainService.swift",
       "accessCount": 1,
       "lastAccessed": 1771624225855,
@@ -183,6 +189,24 @@
       "path": "AgentBoard/Services/AppConfigStore.swift",
       "accessCount": 1,
       "lastAccessed": 1771624235699,
+      "type": "file"
+    },
+    {
+      "path": "AgentBoard/Utilities/ShellCommand.swift",
+      "accessCount": 1,
+      "lastAccessed": 1771647669339,
+      "type": "file"
+    },
+    {
+      "path": "AgentBoard/Utilities/TerminalLauncher.swift",
+      "accessCount": 1,
+      "lastAccessed": 1771647685269,
+      "type": "file"
+    },
+    {
+      "path": "project.yml",
+      "accessCount": 1,
+      "lastAccessed": 1771647743115,
       "type": "file"
     }
   ],
