@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"git stash pop\",\"description\":\"Restore the new test files\"}",
-  "error": "Exit code 1\nerror: Your local changes to the following files would be overwritten by merge:\n\t.omc/state/agent-replay-bc367094-612e-4930-bba0-9209f112d36e.jsonl\n\t.omc/state/subagent-tracking.json\nPlease commit your changes or stash them before you merge.\nAborting\nOn branch codex/phase1-skeleton-layout\nYour branch is ahead of 'origin/codex/phase1-skeleton-layout' by 11 commits.\n  (use \"git push\" to publish your local commits)\n\nChanges not staged for commit:\n  (use \"git add <file>...\" to update wha...",
-  "timestamp": "2026-02-20T18:04:21.638Z",
+  "tool_input_preview": "{\"command\":\"openclaw system event --text \\\"Done: AgentBoard test batch 1 (AB-1ct, AB-206, AB-369) complete\\\" --mode now\",\"description\":\"Send completion notification\"}",
+  "error": "Exit code 1\nNo Ollama models found on local instance\ngateway connect failed: Error: unauthorized: device token mismatch (rotate/reissue device token)\nError: gateway closed (1008): unauthorized: device token mismatch (rotate/reissue device token)\nGateway target: ws://127.0.0.1:18789\nSource: local loopback\nConfig: /Users/blake/.openclaw/openclaw.json\nBind: loopback\n\nNo Ollama models found on local instance\ngateway connect failed: Error: unauthorized: device token mismatch (rotate/reissue device to...",
+  "timestamp": "2026-02-20T22:08:00.859Z",
   "retry_count": 1
 }

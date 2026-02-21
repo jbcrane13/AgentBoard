@@ -64,4 +64,28 @@ struct AppStateMiscTests {
         #expect(state.gitSummary(for: "AB-1") != nil)
         #expect(state.gitSummary(for: "MISSING") == nil)
     }
+
+    @Test("updateOpenClaw writes config and sets statusMessage")
+    func updateOpenClawWritesConfigAndStatus() {
+        let state = AppState()
+        state.updateOpenClaw(gatewayURL: "http://localhost:8080", token: "secret-token", source: "manual")
+
+        #expect(state.appConfig.openClawGatewayURL == "http://localhost:8080")
+        #expect(state.appConfig.openClawToken == "secret-token")
+        #expect(state.appConfig.gatewayConfigSource == "manual")
+        #expect(state.statusMessage == "Saved OpenClaw settings.")
+    }
+
+    @Test("updateOpenClaw with empty strings sets config fields to nil")
+    func updateOpenClawEmptyStringSetsNil() {
+        let state = AppState()
+        state.appConfig.openClawGatewayURL = "http://old.com"
+        state.appConfig.openClawToken = "old-token"
+
+        state.updateOpenClaw(gatewayURL: "", token: "", source: "manual")
+
+        #expect(state.appConfig.openClawGatewayURL == nil)
+        #expect(state.appConfig.openClawToken == nil)
+        #expect(state.statusMessage == "Saved OpenClaw settings.")
+    }
 }

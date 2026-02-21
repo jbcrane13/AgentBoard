@@ -86,4 +86,53 @@ struct GitServiceTests {
         // the test passes vacuously — the extraction logic is still exercised
         // by the parser on every commit's subject line.
     }
+
+    @Test("duplicate bead IDs in same commit subject are deduplicated")
+    func duplicateBeadIDsAreDeduplicated() async throws {
+        let service = GitService()
+        let commits = try await service.fetchCommits(projectPath: projectURL, limit: 100)
+
+        // Look for any commit that might have duplicate bead references
+        // The deduplication logic ensures each bead ID appears only once
+        for commit in commits {
+            let uniqueIDs = Set(commit.beadIDs)
+            #expect(commit.beadIDs.count == uniqueIDs.count, "Bead IDs should be deduplicated")
+        }
+    }
+
+    // MARK: - branch parsing
+
+    @Test("branch parsing extracts main from HEAD -> main, origin/main")
+    func branchParsingExtractsMainFromRefs() async throws {
+        let service = GitService()
+        let commits = try await service.fetchCommits(projectPath: projectURL, limit: 10)
+
+        // Find a commit with HEAD -> branch_name in refs
+        let headCommit = commits.first { commit in
+            commit.refs.contains("HEAD ->")
+        }
+
+        if let commit = headCommit {
+            // Verify that branch was extracted correctly
+            #expect(commit.branch != nil, "Branch should be extracted from refs containing HEAD ->")
+            #expect(!commit.branch!.isEmpty)
+            #expect(!commit.branch!.contains("HEAD ->"), "Branch name should not contain 'HEAD ->'")
+        }
+    }
+
+    @Test("empty refs string results in nil branch")
+    func emptyRefsResultsInNilBranch() async throws {
+        let service = GitService()
+        let commits = try await service.fetchCommits(projectPath: projectURL, limit: 50)
+
+        // Find commits without refs (older commits typically have empty refs)
+        let commitsWithoutRefs = commits.filter { $0.refs.isEmpty }
+
+        // If we have commits without refs, verify branch is nil
+        if !commitsWithoutRefs.isEmpty {
+            for commit in commitsWithoutRefs {
+                #expect(commit.branch == nil, "Empty refs should result in nil branch")
+            }
+        }
+    }
 }

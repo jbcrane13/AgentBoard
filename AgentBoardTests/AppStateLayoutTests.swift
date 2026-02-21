@@ -98,4 +98,22 @@ struct AppStateLayoutTests {
         let collapsed = UserDefaults.standard.bool(forKey: "AB_sidebarCollapsed")
         #expect(collapsed == !state.sidebarVisible)
     }
+
+    @Test("sidebarVisible initializes from UserDefaults AB_sidebarCollapsed")
+    func sidebarVisibleInitializesFromUserDefaults() {
+        defer {
+            UserDefaults.standard.removeObject(forKey: "AB_sidebarCollapsed")
+            UserDefaults.standard.removeObject(forKey: "AB_boardCollapsed")
+        }
+
+        // Test 1: When AB_sidebarCollapsed is true, sidebarVisible should be false
+        UserDefaults.standard.set(true, forKey: "AB_sidebarCollapsed")
+        let state1 = AppState()
+        #expect(state1.sidebarVisible == false)
+
+        // Clean up and test 2: When AB_sidebarCollapsed is false, sidebarVisible should be true
+        UserDefaults.standard.set(false, forKey: "AB_sidebarCollapsed")
+        let state2 = AppState()
+        #expect(state2.sidebarVisible == true)
+    }
 }

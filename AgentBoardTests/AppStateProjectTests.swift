@@ -128,4 +128,22 @@ struct AppStateProjectTests {
 
         #expect(state.activeSessionID == nil)
     }
+
+    // MARK: - rescanProjectsDirectory
+
+    @Test("rescanProjectsDirectory with no new projects sets status message")
+    func rescanProjectsDirectoryNoNewProjects() {
+        let state = AppState()
+        // Pre-populate with some projects to ensure no new ones are discovered
+        state.appConfig.projects = [
+            ConfiguredProject(path: "/tmp/existing-1", icon: "📁"),
+            ConfiguredProject(path: "/tmp/existing-2", icon: "📁"),
+        ]
+        // Set projectsDirectory to a path that won't discover new projects
+        state.appConfig.projectsDirectory = "/tmp/nonexistent-\(UUID().uuidString)"
+
+        state.rescanProjectsDirectory()
+
+        #expect(state.statusMessage == "No new projects found.")
+    }
 }

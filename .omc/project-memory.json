@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastScanned": 1771534493644,
+  "lastScanned": 1771624195980,
   "projectRoot": "/Users/blake/Projects/AgentBoard",
   "techStack": {
     "languages": [],
@@ -38,7 +38,7 @@
       "path": "AgentBoard",
       "purpose": null,
       "fileCount": 1,
-      "lastAccessed": 1771534493632,
+      "lastAccessed": 1771624195963,
       "keyFiles": [
         "AgentBoard.entitlements"
       ]
@@ -47,7 +47,7 @@
       "path": "AgentBoard.xcodeproj",
       "purpose": null,
       "fileCount": 1,
-      "lastAccessed": 1771534493633,
+      "lastAccessed": 1771624195968,
       "keyFiles": [
         "project.pbxproj"
       ]
@@ -55,20 +55,21 @@
     "AgentBoardTests": {
       "path": "AgentBoardTests",
       "purpose": null,
-      "fileCount": 4,
-      "lastAccessed": 1771534493633,
+      "fileCount": 10,
+      "lastAccessed": 1771624195968,
       "keyFiles": [
         "AgentBoardSmokeTests.swift",
+        "AppConfigStoreTests.swift",
         "AppStateCoverageTests.swift",
-        "ModelCoverageTests.swift",
-        "UtilityCoverageTests.swift"
+        "AppStateLayoutTests.swift",
+        "AppStateMiscTests.swift"
       ]
     },
     "AgentBoardUITests": {
       "path": "AgentBoardUITests",
       "purpose": null,
       "fileCount": 1,
-      "lastAccessed": 1771534493633,
+      "lastAccessed": 1771624195968,
       "keyFiles": [
         "AgentBoardUITests.swift"
       ]
@@ -77,7 +78,7 @@
       "path": "docs",
       "purpose": "Documentation",
       "fileCount": 2,
-      "lastAccessed": 1771534493633,
+      "lastAccessed": 1771624195968,
       "keyFiles": [
         "ADR.md",
         "CHAT-REWRITE-SPEC.md"
@@ -87,7 +88,7 @@
       "path": "AgentBoard/App",
       "purpose": "Application code",
       "fileCount": 2,
-      "lastAccessed": 1771534493634,
+      "lastAccessed": 1771624195969,
       "keyFiles": [
         "AgentBoardApp.swift",
         "AppState.swift"
@@ -97,7 +98,7 @@
       "path": "AgentBoard/Models",
       "purpose": "Data models",
       "fileCount": 10,
-      "lastAccessed": 1771534493634,
+      "lastAccessed": 1771624195969,
       "keyFiles": [
         "AppConfig.swift",
         "Bead.swift",
@@ -107,8 +108,8 @@
     "AgentBoard/Services": {
       "path": "AgentBoard/Services",
       "purpose": "Business logic services",
-      "fileCount": 9,
-      "lastAccessed": 1771534493635,
+      "fileCount": 11,
+      "lastAccessed": 1771624195969,
       "keyFiles": [
         "AppConfigStore.swift",
         "BeadsWatcher.swift",
@@ -119,309 +120,69 @@
       "path": "AgentBoard/Views",
       "purpose": "View templates",
       "fileCount": 0,
-      "lastAccessed": 1771534493635,
+      "lastAccessed": 1771624195969,
       "keyFiles": []
     }
   },
   "hotPaths": [
     {
       "path": "AgentBoard/App/AppState.swift",
-      "accessCount": 16,
-      "lastAccessed": 1771610210352,
-      "type": "file"
-    },
-    {
-      "path": "README.md",
-      "accessCount": 10,
-      "lastAccessed": 1771589197459,
-      "type": "file"
-    },
-    {
-      "path": "AgentBoard/Views/MainWindow/ProjectHeaderView.swift",
       "accessCount": 6,
-      "lastAccessed": 1771610173298,
+      "lastAccessed": 1771628090772,
       "type": "file"
     },
     {
-      "path": "AgentBoard/Views/Settings/SettingsView.swift",
-      "accessCount": 6,
-      "lastAccessed": 1771610175806,
-      "type": "file"
-    },
-    {
-      "path": "AgentBoardTests/AppStateCoverageTests.swift",
-      "accessCount": 6,
-      "lastAccessed": 1771610186678,
-      "type": "file"
-    },
-    {
-      "path": "AgentBoardTests/ModelCoverageTests.swift",
-      "accessCount": 6,
-      "lastAccessed": 1771610186783,
-      "type": "file"
-    },
-    {
-      "path": "AgentBoard/Services/AppConfigStore.swift",
-      "accessCount": 6,
-      "lastAccessed": 1771610197751,
-      "type": "file"
-    },
-    {
-      "path": "",
-      "accessCount": 5,
-      "lastAccessed": 1771588869581,
-      "type": "directory"
-    },
-    {
-      "path": "AgentBoard/Views/Board/TaskCardView.swift",
+      "path": "AgentBoardTests/AppStateLayoutTests.swift",
       "accessCount": 4,
-      "lastAccessed": 1771610169285,
+      "lastAccessed": 1771628898701,
       "type": "file"
     },
     {
-      "path": "AgentBoard/Views/Sidebar/SidebarView.swift",
-      "accessCount": 4,
-      "lastAccessed": 1771610176376,
-      "type": "file"
-    },
-    {
-      "path": "AgentBoard/Models/OpenClawConnectionState.swift",
-      "accessCount": 4,
-      "lastAccessed": 1771610194468,
-      "type": "file"
-    },
-    {
-      "path": "AgentBoard/Services/GatewayClient.swift",
-      "accessCount": 4,
-      "lastAccessed": 1771610200467,
-      "type": "file"
-    },
-    {
-      "path": "AgentBoard/Views/Canvas/CanvasPanelView.swift",
+      "path": "AgentBoardTests/AppStateMiscTests.swift",
       "accessCount": 3,
-      "lastAccessed": 1771610169673,
+      "lastAccessed": 1771624431467,
       "type": "file"
     },
     {
-      "path": "AgentBoard/Views/Chat/ChatPanelView.swift",
+      "path": "AgentBoardTests/GitServiceTests.swift",
       "accessCount": 3,
-      "lastAccessed": 1771610169899,
+      "lastAccessed": 1771625259793,
       "type": "file"
     },
     {
-      "path": "AgentBoardTests/UtilityCoverageTests.swift",
+      "path": "AgentBoardTests/AppConfigStoreTests.swift",
       "accessCount": 3,
-      "lastAccessed": 1771610186986,
+      "lastAccessed": 1771625261472,
       "type": "file"
     },
     {
-      "path": "AgentBoard/Models/AppConfig.swift",
+      "path": "AgentBoardTests/AppStateProjectTests.swift",
       "accessCount": 3,
-      "lastAccessed": 1771610189852,
+      "lastAccessed": 1771628090137,
       "type": "file"
     },
     {
-      "path": "project.yml",
-      "accessCount": 3,
-      "lastAccessed": 1771610193082,
-      "type": "file"
-    },
-    {
-      "path": "AgentBoard/Services/DeviceIdentity.swift",
-      "accessCount": 3,
-      "lastAccessed": 1771610200117,
+      "path": "AgentBoardTests/KeychainServiceTests.swift",
+      "accessCount": 2,
+      "lastAccessed": 1771624241450,
       "type": "file"
     },
     {
       "path": "AgentBoard/Services/KeychainService.swift",
-      "accessCount": 3,
-      "lastAccessed": 1771610202961,
-      "type": "file"
-    },
-    {
-      "path": "LICENSE",
-      "accessCount": 2,
-      "lastAccessed": 1771587330145,
-      "type": "file"
-    },
-    {
-      "path": "AgentBoard/Views/Epics/EpicsView.swift",
-      "accessCount": 2,
-      "lastAccessed": 1771587467218,
-      "type": "file"
-    },
-    {
-      "path": "AgentBoard/AgentBoard.entitlements",
-      "accessCount": 2,
-      "lastAccessed": 1771589171958,
-      "type": "file"
-    },
-    {
-      "path": "AgentBoard/Views/Board/BoardView.swift",
-      "accessCount": 2,
-      "lastAccessed": 1771610169100,
-      "type": "file"
-    },
-    {
-      "path": "AgentBoard/Views/Board/TaskDetailSheet.swift",
-      "accessCount": 2,
-      "lastAccessed": 1771610169460,
-      "type": "file"
-    },
-    {
-      "path": "AgentBoard/Views/Agents/AgentsView.swift",
-      "accessCount": 2,
-      "lastAccessed": 1771610172440,
-      "type": "file"
-    },
-    {
-      "path": "AgentBoard/Views/History/HistoryView.swift",
-      "accessCount": 2,
-      "lastAccessed": 1771610172586,
-      "type": "file"
-    },
-    {
-      "path": "AgentBoard/Views/MainWindow/ContentView.swift",
-      "accessCount": 2,
-      "lastAccessed": 1771610172833,
-      "type": "file"
-    },
-    {
-      "path": "AgentBoard/Views/RightPanel/RightPanelView.swift",
-      "accessCount": 2,
-      "lastAccessed": 1771610173329,
-      "type": "file"
-    },
-    {
-      "path": "AgentBoard/Views/RightPanel/SplitPanelView.swift",
-      "accessCount": 2,
-      "lastAccessed": 1771610175752,
-      "type": "file"
-    },
-    {
-      "path": "AgentBoard/Views/Settings/PairingGuideView.swift",
-      "accessCount": 2,
-      "lastAccessed": 1771610176090,
-      "type": "file"
-    },
-    {
-      "path": "AgentBoard/Views/Sidebar/SessionListView.swift",
-      "accessCount": 2,
-      "lastAccessed": 1771610179045,
-      "type": "file"
-    },
-    {
-      "path": "AgentBoard/Views/Sidebar/NewSessionSheet.swift",
-      "accessCount": 2,
-      "lastAccessed": 1771610179315,
-      "type": "file"
-    },
-    {
-      "path": "AgentBoard/Views/Terminal/TerminalView.swift",
-      "accessCount": 2,
-      "lastAccessed": 1771610179868,
-      "type": "file"
-    },
-    {
-      "path": "AgentBoardTests/AgentBoardSmokeTests.swift",
-      "accessCount": 2,
-      "lastAccessed": 1771610186451,
-      "type": "file"
-    },
-    {
-      "path": "AgentBoardUITests/AgentBoardUITests.swift",
-      "accessCount": 2,
-      "lastAccessed": 1771610187204,
-      "type": "file"
-    },
-    {
-      "path": "AgentBoard/Models/Bead.swift",
-      "accessCount": 2,
-      "lastAccessed": 1771610187685,
-      "type": "file"
-    },
-    {
-      "path": "AgentBoard/Utilities/AppTheme.swift",
-      "accessCount": 2,
-      "lastAccessed": 1771610194700,
-      "type": "file"
-    },
-    {
-      "path": "AgentBoard/Services/GatewayDiscovery.swift",
-      "accessCount": 2,
-      "lastAccessed": 1771610200849,
-      "type": "file"
-    },
-    {
-      "path": "AgentBoard/Services/OpenClawService.swift",
-      "accessCount": 2,
-      "lastAccessed": 1771610203367,
-      "type": "file"
-    },
-    {
-      "path": "DESIGN.md",
       "accessCount": 1,
-      "lastAccessed": 1771534502770,
+      "lastAccessed": 1771624225855,
       "type": "file"
     },
     {
-      "path": "IMPLEMENTATION-PLAN.md",
+      "path": "AgentBoard/Services/GitService.swift",
       "accessCount": 1,
-      "lastAccessed": 1771534503039,
+      "lastAccessed": 1771624225961,
       "type": "file"
     },
     {
-      "path": "AgentBoard",
+      "path": "AgentBoard/Services/AppConfigStore.swift",
       "accessCount": 1,
-      "lastAccessed": 1771587440615,
-      "type": "directory"
-    },
-    {
-      "path": "AgentBoard/Views",
-      "accessCount": 1,
-      "lastAccessed": 1771588874780,
-      "type": "directory"
-    },
-    {
-      "path": "AgentBoard/Views/Sidebar/ProjectListView.swift",
-      "accessCount": 1,
-      "lastAccessed": 1771610176616,
-      "type": "file"
-    },
-    {
-      "path": "AgentBoard/Views/Sidebar/ViewsNavView.swift",
-      "accessCount": 1,
-      "lastAccessed": 1771610179605,
-      "type": "file"
-    },
-    {
-      "path": "AgentBoard/Models/ChatMessage.swift",
-      "accessCount": 1,
-      "lastAccessed": 1771610187461,
-      "type": "file"
-    },
-    {
-      "path": "AgentBoard/Models/BeadDraft.swift",
-      "accessCount": 1,
-      "lastAccessed": 1771610187876,
-      "type": "file"
-    },
-    {
-      "path": "AgentBoard/Models/Project.swift",
-      "accessCount": 1,
-      "lastAccessed": 1771610188144,
-      "type": "file"
-    },
-    {
-      "path": "AgentBoard/Models/CodingSession.swift",
-      "accessCount": 1,
-      "lastAccessed": 1771610190032,
-      "type": "file"
-    },
-    {
-      "path": "AgentBoard/Models/GitCommitRecord.swift",
-      "accessCount": 1,
-      "lastAccessed": 1771610191604,
+      "lastAccessed": 1771624235699,
       "type": "file"
     }
   ],
