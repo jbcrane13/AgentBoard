@@ -6,6 +6,7 @@ struct SidebarView: View {
     @State private var sessionsExpanded = true
     @State private var viewsExpanded = true
     @State private var showingNewSessionSheet = false
+    @State private var showingProjectImporter = false
     @State private var handledNewSessionRequestID = 0
 
     var body: some View {
@@ -14,7 +15,9 @@ struct SidebarView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     section(
                         title: "Projects",
-                        isExpanded: $projectsExpanded
+                        isExpanded: $projectsExpanded,
+                        showAddButton: true,
+                        onAdd: { showingProjectImporter = true }
                     ) {
                         ProjectListView(showHeader: false)
                     }
@@ -53,6 +56,15 @@ struct SidebarView: View {
         .sheet(isPresented: $showingNewSessionSheet) {
             NewSessionSheet()
         }
+        .fileImporter(
+            isPresented: $showingProjectImporter,
+            allowedContentTypes: [.folder],
+            allowsMultipleSelection: false
+        ) { result in
+            if case .success(let urls) = result, let url = urls.first {
+                appState.addProject(at: url)
+            }
+        }
     }
 
     private var newSessionButton: some View {
@@ -77,18 +89,35 @@ struct SidebarView: View {
     private func section<Content: View>(
         title: String,
         isExpanded: Binding<Bool>,
+        showAddButton: Bool = false,
+        onAdd: @escaping () -> Void = {},
         @ViewBuilder content: @escaping () -> Content
     ) -> some View {
         DisclosureGroup(isExpanded: isExpanded) {
             content()
         } label: {
-            Text(title)
-                .font(.system(size: 10, weight: .semibold))
-                .textCase(.uppercase)
-                .tracking(0.8)
-                .foregroundStyle(AppTheme.sidebarMutedText)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 6)
+            HStack {
+                Text(title)
+                    .font(.system(size: 10, weight: .semibold))
+                    .textCase(.uppercase)
+                    .tracking(0.8)
+                    .foregroundStyle(AppTheme.sidebarMutedText)
+
+                Spacer()
+
+                if showAddButton {
+                    Button {
+                        onAdd()
+                    } label: {
+                        Image(systemName: "plus")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundStyle(AppTheme.sidebarMutedText)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
         }
         .padding(.horizontal, 2)
         .tint(AppTheme.sidebarMutedText)

@@ -303,6 +303,75 @@ final class AgentBoardUITests: XCTestCase {
         )
     }
 
+    func testSettingsAutoDiscoverMode() throws {
+        clickButton("Settings")
+        requireStaticText("Gateway Connection")
+
+        let manualButton = testApp.buttons["Manual"].firstMatch
+        if manualButton.waitForExistence(timeout: timeout) {
+            manualButton.click()
+            XCTAssertTrue(
+                testApp.textFields.firstMatch.waitForExistence(timeout: timeout),
+                "Expected URL field to appear in Manual mode"
+            )
+        }
+
+        let autoButton = testApp.buttons["Auto-Discover"].firstMatch
+        if autoButton.waitForExistence(timeout: timeout) {
+            autoButton.click()
+            XCTAssertTrue(requireWindow().exists, "App should remain stable after switching to Auto-Discover")
+        }
+    }
+
+    func testCreateBeadWithTitle() throws {
+        clickButton("Board")
+        clickButton("Create Bead")
+
+        requireButton("Cancel")
+        requireButton("Save")
+
+        let titleField = testApp.textFields.firstMatch
+        if titleField.waitForExistence(timeout: timeout) {
+            titleField.click()
+            titleField.typeText("Test Bead from UI")
+        }
+
+        clickButton("Save")
+
+        XCTAssertTrue(
+            testApp.buttons["Create Bead"].waitForExistence(timeout: timeout),
+            "Expected board to be visible after saving bead"
+        )
+    }
+
+    func testTaskDetailSheetOpensAndCancels() throws {
+        clickButton("Board")
+
+        let firstBeadCard = testApp.buttons.matching(NSPredicate(format: "label CONTAINS 'AB-' OR label CONTAINS 'bead")).firstMatch
+
+        if firstBeadCard.waitForExistence(timeout: timeout) {
+            firstBeadCard.click()
+
+            XCTAssertTrue(
+                testApp.buttons["Close"].waitForExistence(timeout: timeout)
+                    || testApp.buttons["Cancel"].waitForExistence(timeout: timeout),
+                "Expected detail sheet with Close or Cancel button"
+            )
+
+            let closeButton = testApp.buttons["Close"].firstMatch
+            if closeButton.waitForExistence(timeout: 2) {
+                closeButton.click()
+            } else {
+                testApp.buttons["Cancel"].firstMatch.click()
+            }
+
+            XCTAssertTrue(
+                testApp.buttons["Create Bead"].waitForExistence(timeout: timeout),
+                "Expected board to be visible after closing detail sheet"
+            )
+        }
+    }
+
     // MARK: - Area 9: Epics, Agents, Canvas Controls
 
     func testAgentsViewShowsSessionsContent() throws {
