@@ -19,6 +19,13 @@ actor SessionMonitor {
 
     init(tmuxSocketPath: String = "/tmp/openclaw-tmux-sockets/openclaw.sock") {
         self.tmuxSocketPath = tmuxSocketPath
+        // Create socket directory immediately since it's needed for listSessions
+        let socketDir = URL(fileURLWithPath: tmuxSocketPath).deletingLastPathComponent()
+        try? FileManager.default.createDirectory(
+            at: socketDir,
+            withIntermediateDirectories: true,
+            attributes: nil
+        )
     }
 
     func listSessions() async throws -> [CodingSession] {
@@ -122,19 +129,27 @@ actor SessionMonitor {
         beadID: String?,
         prompt: String?
     ) async throws -> String {
-        // Ensure socket directory exists
         let socketDir = URL(fileURLWithPath: tmuxSocketPath).deletingLastPathComponent()
-        try? FileManager.default.createDirectory(
-            at: socketDir,
-            withIntermediateDirectories: true,
-            attributes: nil
-        )
+        do {
+            try FileManager.default.createDirectory(
+                at: socketDir,
+                withIntermediateDirectories: true,
+                attributes: nil
+            )
+        } catch {
+            throw SessionMonitorError.launchFailed("Failed to create tmux socket directory: \(error.localizedDescription)")
+        }
 
         let projectSlug = Self.slug(from: projectPath.lastPathComponent)
         let contextSlug = Self.slug(from: beadID ?? String(Int(Date().timeIntervalSince1970)))
         var sessionName = "ab-\(projectSlug)-\(contextSlug)"
         if sessionName == "ab--" {
             throw SessionMonitorError.invalidSessionName
+        }
+
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: projectPath.path, isDirectory: &isDirectory), isDirectory.boolValue else {
+            throw SessionMonitorError.launchFailed("Project path does not exist: \(projectPath.path)")
         }
 
         if try await sessionExists(sessionName) {
@@ -151,6 +166,22 @@ actor SessionMonitor {
                 "-c", projectPath.path,
                 launchCommand,
             ])
+        } catch let error as ShellCommandError {
+            let errorMsg: String
+            switch error {
+            case .executableNotFound:
+                errorMsg = "tmux command not found. Please install tmux."
+            case .failed(let result):
+                let output = result.combinedOutput
+                if output.contains("command not found") || output.contains("not found") {
+                    errorMsg = "Agent command '\(launchCommand)' not found. Please ensure \(agentType.rawValue) is installed and in PATH."
+                } else if output.contains("No such file or directory") {
+                    errorMsg = "Project path not found: \(projectPath.path)"
+                } else {
+                    errorMsg = "Failed to launch session: \(output)"
+                }
+            }
+            throw SessionMonitorError.launchFailed(errorMsg)
         } catch {
             throw SessionMonitorError.launchFailed(error.localizedDescription)
         }
@@ -395,6 +426,7 @@ actor SessionMonitor {
             || message.contains("failed to connect to server")
             || message.contains("no such file")
             || message.contains("can't find socket")
+            || message.contains("error connecting to")
     }
 
     private static func slug(from rawValue: String) -> String {

@@ -2,7 +2,7 @@ import CoreGraphics
 import XCTest
 
 final class AgentBoardUITests: XCTestCase {
-    private var app: XCUIApplication!
+    private var testApp: XCUIApplication!
 
     private let timeout: TimeInterval = 10
     private let minimumWindowWidth: CGFloat = 900
@@ -10,12 +10,12 @@ final class AgentBoardUITests: XCTestCase {
 
     override func setUpWithError() throws {
         continueAfterFailure = false
-        app = XCUIApplication()
-        app.launch()
+        testApp = XCUIApplication()
+        testApp.launch()
     }
 
     override func tearDownWithError() throws {
-        app = nil
+        testApp = nil
     }
 
     func testLaunchAndWindowSizing() throws {
@@ -63,7 +63,7 @@ final class AgentBoardUITests: XCTestCase {
         requireButton("main")
         requireStaticText("Message your agents...")
 
-        let sendButton = app.buttons.matching(
+        let sendButton = testApp.buttons.matching(
             NSPredicate(format: "label == 'arrow.up' OR identifier == 'arrow.up'")
         ).firstMatch
         XCTAssertTrue(
@@ -82,8 +82,8 @@ final class AgentBoardUITests: XCTestCase {
         requireTextField("Gateway URL (e.g. http://192.168.1.100:18789)")
         requireSecureField("Auth Token")
 
-        let testConnectionButton = app.buttons["Test Connection"].firstMatch
-        let testingButton = app.buttons["Testing…"].firstMatch
+        let testConnectionButton = testApp.buttons["Test Connection"].firstMatch
+        let testingButton = testApp.buttons["Testing…"].firstMatch
         XCTAssertTrue(
             testConnectionButton.waitForExistence(timeout: timeout)
                 || testingButton.waitForExistence(timeout: timeout),
@@ -94,44 +94,44 @@ final class AgentBoardUITests: XCTestCase {
     func testKeyboardShortcutsCmd1ThroughCmd8CmdNCmdComma() throws {
         requireWindow().click()
 
-        app.typeKey("1", modifierFlags: [.command])
+        testApp.typeKey("1", modifierFlags: [.command])
         requireButton("Create Bead")
 
-        app.typeKey("2", modifierFlags: [.command])
+        testApp.typeKey("2", modifierFlags: [.command])
         requireButton("Create Epic")
 
-        app.typeKey("3", modifierFlags: [.command])
+        testApp.typeKey("3", modifierFlags: [.command])
         requireStaticText("Sessions Today")
 
-        app.typeKey("4", modifierFlags: [.command])
+        testApp.typeKey("4", modifierFlags: [.command])
         requireButton("All Events")
 
         for key in ["5", "6", "7", "8"] {
-            app.typeKey(key, modifierFlags: [.command])
+            testApp.typeKey(key, modifierFlags: [.command])
             XCTAssertTrue(requireWindow().exists)
             XCTAssertTrue(
                 anyPrimaryViewIndicatorExists(),
-                "Expected app to remain in a valid visible state after Cmd+\(key)"
+                "Expected testApp to remain in a valid visible state after Cmd+\(key)"
             )
         }
 
-        app.typeKey("n", modifierFlags: [.command])
+        testApp.typeKey("n", modifierFlags: [.command])
         XCTAssertTrue(
-            app.staticTexts["Create Bead"].waitForExistence(timeout: timeout)
-                || app.staticTexts["New Session"].waitForExistence(timeout: timeout),
+            testApp.staticTexts["Create Bead"].waitForExistence(timeout: timeout)
+                || testApp.staticTexts["New Session"].waitForExistence(timeout: timeout),
             "Expected Cmd+N to open a creation sheet"
         )
         dismissSheetIfNeeded()
 
-        app.typeKey("n", modifierFlags: [.command, .shift])
+        testApp.typeKey("n", modifierFlags: [.command, .shift])
         XCTAssertTrue(
-            app.staticTexts["New Session"].waitForExistence(timeout: timeout),
+            testApp.staticTexts["New Session"].waitForExistence(timeout: timeout),
             "Expected Cmd+Shift+N to open New Session"
         )
         dismissSheetIfNeeded()
 
-        app.typeKey(",", modifierFlags: [.command])
-        if !app.staticTexts["Gateway Connection"].waitForExistence(timeout: 2) {
+        testApp.typeKey(",", modifierFlags: [.command])
+        if !testApp.staticTexts["Gateway Connection"].waitForExistence(timeout: 2) {
             clickButton("Settings")
         }
         requireStaticText("Gateway Connection")
@@ -161,7 +161,7 @@ final class AgentBoardUITests: XCTestCase {
         requireButton("Launch")
 
         clickButton("Cancel")
-        XCTAssertFalse(app.staticTexts["New Session"].exists)
+        XCTAssertFalse(testApp.staticTexts["New Session"].exists)
     }
 
     func testWindowMinimumSizeConstraints() throws {
@@ -176,7 +176,7 @@ final class AgentBoardUITests: XCTestCase {
     }
 
     func testTabPersistenceAcrossNavigation() throws {
-        app.typeKey("2", modifierFlags: [.command])
+        testApp.typeKey("2", modifierFlags: [.command])
         requireButton("Create Epic")
 
         selectRightPanelMode("Canvas")
@@ -188,7 +188,7 @@ final class AgentBoardUITests: XCTestCase {
         clickButton("Settings")
         requireStaticText("Gateway Connection")
 
-        app.typeKey("2", modifierFlags: [.command])
+        testApp.typeKey("2", modifierFlags: [.command])
         requireButton("Create Epic")
     }
 
@@ -201,7 +201,7 @@ final class AgentBoardUITests: XCTestCase {
         // Open the create bead sheet
         clickButton("Create Bead")
 
-        // Verify sheet appeared with key fields
+        // Verify sheet testAppeared with key fields
         // The sheet has a title text field and Save/Cancel buttons
         requireStaticText("Create Bead")  // or sheet title
         requireButton("Cancel")
@@ -212,7 +212,7 @@ final class AgentBoardUITests: XCTestCase {
 
         // Verify sheet is gone - Create Bead button should be visible again
         XCTAssertTrue(
-            app.buttons["Create Bead"].waitForExistence(timeout: timeout),
+            testApp.buttons["Create Bead"].waitForExistence(timeout: timeout),
             "Expected board to be visible after sheet dismissal"
         )
     }
@@ -226,7 +226,7 @@ final class AgentBoardUITests: XCTestCase {
         requireButton("Save")
 
         // Title text field should be present (try both placeholder and label)
-        let titleField = app.textFields.firstMatch
+        let titleField = testApp.textFields.firstMatch
         XCTAssertTrue(
             titleField.waitForExistence(timeout: timeout),
             "Expected at least one text field in bead creation form"
@@ -246,7 +246,7 @@ final class AgentBoardUITests: XCTestCase {
         requireStaticText("Gateway Connection")
 
         // Switch to manual mode if not already there
-        let manualButton = app.buttons["Manual"].firstMatch
+        let manualButton = testApp.buttons["Manual"].firstMatch
         if manualButton.waitForExistence(timeout: timeout) {
             manualButton.click()
         }
@@ -256,7 +256,7 @@ final class AgentBoardUITests: XCTestCase {
         requireSecureField("Auth Token")
 
         // Type into URL field
-        let urlField = app.textFields["Gateway URL (e.g. http://192.168.1.100:18789)"].firstMatch
+        let urlField = testApp.textFields["Gateway URL (e.g. http://192.168.1.100:18789)"].firstMatch
         if urlField.waitForExistence(timeout: timeout) {
             urlField.click()
             urlField.typeText("http://192.168.1.100:18789")
@@ -267,7 +267,7 @@ final class AgentBoardUITests: XCTestCase {
         }
 
         // Clean up - click Auto-Discover if it exists, or just navigate away
-        let autoButton = app.buttons["Auto-Discover"].firstMatch
+        let autoButton = testApp.buttons["Auto-Discover"].firstMatch
         if autoButton.waitForExistence(timeout: 2) {
             autoButton.click()
         }
@@ -282,7 +282,7 @@ final class AgentBoardUITests: XCTestCase {
         requireButton("Launch")
 
         // Fill in a prompt to make the interaction more realistic
-        let promptEditor = app.textViews.firstMatch
+        let promptEditor = testApp.textViews.firstMatch
         if promptEditor.waitForExistence(timeout: 3) {
             promptEditor.click()
             promptEditor.typeText("Test prompt")
@@ -293,7 +293,7 @@ final class AgentBoardUITests: XCTestCase {
 
         // Verify the sheet is gone AND we're back to normal state
         XCTAssertFalse(
-            app.staticTexts["New Session"].waitForExistence(timeout: 3),
+            testApp.staticTexts["New Session"].waitForExistence(timeout: 3),
             "New Session sheet should be dismissed after Cancel"
         )
         // App should still be in a valid state
@@ -308,7 +308,7 @@ final class AgentBoardUITests: XCTestCase {
     func testAgentsViewShowsSessionsContent() throws {
         // Cmd+3 navigates to Agents view
         requireWindow().click()
-        app.typeKey("3", modifierFlags: [.command])
+        testApp.typeKey("3", modifierFlags: [.command])
 
         // Verify Agents/Sessions view content
         requireStaticText("Sessions Today")
@@ -319,7 +319,7 @@ final class AgentBoardUITests: XCTestCase {
 
     func testEpicsCreateEpicSheetOpens() throws {
         // Navigate to Epics
-        app.typeKey("2", modifierFlags: [.command])
+        testApp.typeKey("2", modifierFlags: [.command])
         requireButton("Create Epic")
 
         // Open create epic sheet
@@ -327,8 +327,8 @@ final class AgentBoardUITests: XCTestCase {
 
         // Verify sheet has expected content
         XCTAssertTrue(
-            app.staticTexts["Create Epic"].waitForExistence(timeout: timeout)
-                || app.textFields.firstMatch.waitForExistence(timeout: timeout),
+            testApp.staticTexts["Create Epic"].waitForExistence(timeout: timeout)
+                || testApp.textFields.firstMatch.waitForExistence(timeout: timeout),
             "Expected Create Epic sheet to open with form elements"
         )
 
@@ -337,7 +337,7 @@ final class AgentBoardUITests: XCTestCase {
 
         // Verify we're back on epics view
         XCTAssertTrue(
-            app.buttons["Create Epic"].waitForExistence(timeout: timeout),
+            testApp.buttons["Create Epic"].waitForExistence(timeout: timeout),
             "Create Epic button should be visible after dismissing sheet"
         )
     }
@@ -353,12 +353,12 @@ final class AgentBoardUITests: XCTestCase {
         XCTAssertTrue(requireWindow().exists, "Window should remain visible in History view")
 
         // App doesn't crash when All Events is already selected (re-click)
-        let allEventsButton = app.buttons["All Events"].firstMatch
+        let allEventsButton = testApp.buttons["All Events"].firstMatch
         if allEventsButton.waitForExistence(timeout: timeout) {
             allEventsButton.click()
             // Should still be on History view
             XCTAssertTrue(
-                app.buttons["All Events"].waitForExistence(timeout: timeout),
+                testApp.buttons["All Events"].waitForExistence(timeout: timeout),
                 "All Events filter should still be present after clicking"
             )
         }
@@ -376,9 +376,9 @@ final class AgentBoardUITests: XCTestCase {
 
         // The canvas toolbar should have buttons (at minimum the clear button)
         // Check that some interactive element exists in the toolbar area
-        let clearButton = app.buttons["Clear"].firstMatch
-        let exportButton = app.buttons["Export"].firstMatch
-        let openButton = app.buttons["Open"].firstMatch
+        let clearButton = testApp.buttons["Clear"].firstMatch
+        let exportButton = testApp.buttons["Export"].firstMatch
+        let openButton = testApp.buttons["Open"].firstMatch
 
         XCTAssertTrue(
             clearButton.waitForExistence(timeout: timeout)
@@ -399,7 +399,7 @@ private extension AgentBoardUITests {
         file: StaticString = #filePath,
         line: UInt = #line
     ) -> XCUIElement {
-        let window = app.windows.firstMatch
+        let window = testApp.windows.firstMatch
         XCTAssertTrue(
             window.waitForExistence(timeout: timeout ?? self.timeout),
             "Expected main window to exist",
@@ -416,7 +416,7 @@ private extension AgentBoardUITests {
         file: StaticString = #filePath,
         line: UInt = #line
     ) -> XCUIElement {
-        let button = app.buttons[label].firstMatch
+        let button = testApp.buttons[label].firstMatch
         XCTAssertTrue(
             button.waitForExistence(timeout: timeout ?? self.timeout),
             "Expected button '\(label)' to exist",
@@ -433,7 +433,7 @@ private extension AgentBoardUITests {
         file: StaticString = #filePath,
         line: UInt = #line
     ) -> XCUIElement {
-        let text = app.staticTexts[label].firstMatch
+        let text = testApp.staticTexts[label].firstMatch
         XCTAssertTrue(
             text.waitForExistence(timeout: timeout ?? self.timeout),
             "Expected text '\(label)' to exist",
@@ -452,7 +452,7 @@ private extension AgentBoardUITests {
     ) -> XCUIElement {
         let perLabelTimeout = max((timeout ?? self.timeout) / Double(max(labels.count, 1)), 0.5)
         for label in labels {
-            let text = app.staticTexts[label].firstMatch
+            let text = testApp.staticTexts[label].firstMatch
             if text.waitForExistence(timeout: perLabelTimeout) {
                 return text
             }
@@ -463,7 +463,7 @@ private extension AgentBoardUITests {
             file: file,
             line: line
         )
-        return app.staticTexts[labels.first ?? ""].firstMatch
+        return testApp.staticTexts[labels.first ?? ""].firstMatch
     }
 
     @discardableResult
@@ -473,7 +473,7 @@ private extension AgentBoardUITests {
         file: StaticString = #filePath,
         line: UInt = #line
     ) -> XCUIElement {
-        let field = app.textFields[placeholder].firstMatch
+        let field = testApp.textFields[placeholder].firstMatch
         XCTAssertTrue(
             field.waitForExistence(timeout: timeout ?? self.timeout),
             "Expected text field '\(placeholder)' to exist",
@@ -490,7 +490,7 @@ private extension AgentBoardUITests {
         file: StaticString = #filePath,
         line: UInt = #line
     ) -> XCUIElement {
-        let field = app.secureTextFields[placeholder].firstMatch
+        let field = testApp.secureTextFields[placeholder].firstMatch
         XCTAssertTrue(
             field.waitForExistence(timeout: timeout ?? self.timeout),
             "Expected secure field '\(placeholder)' to exist",
@@ -553,15 +553,15 @@ private extension AgentBoardUITests {
     }
 
     func anyPrimaryViewIndicatorExists() -> Bool {
-        app.buttons["Create Bead"].exists
-            || app.buttons["Create Epic"].exists
-            || app.staticTexts["Sessions Today"].exists
-            || app.buttons["All Events"].exists
-            || app.staticTexts["Gateway Connection"].exists
+        testApp.buttons["Create Bead"].exists
+            || testApp.buttons["Create Epic"].exists
+            || testApp.staticTexts["Sessions Today"].exists
+            || testApp.buttons["All Events"].exists
+            || testApp.staticTexts["Gateway Connection"].exists
     }
 
     func dismissSheetIfNeeded() {
-        let cancelButton = app.buttons["Cancel"].firstMatch
+        let cancelButton = testApp.buttons["Cancel"].firstMatch
         if cancelButton.waitForExistence(timeout: 2) {
             cancelButton.click()
         }

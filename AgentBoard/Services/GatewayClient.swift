@@ -1,23 +1,19 @@
 import Foundation
+import OSLog
 
-// MARK: - Sendable wrapper for untyped JSON
+private let gatewayLog = Logger(subsystem: "com.agentboard.gateway", category: "GatewayClient")
 
-/// Wraps a `[String: Any]` dictionary so it can cross actor boundaries.
-/// The underlying data came from JSONSerialization and is effectively immutable.
 struct JSONPayload: @unchecked Sendable {
     let value: [String: Any]
     init(_ value: [String: Any]) { self.value = value }
     subscript(key: String) -> Any? { value[key] }
 }
 
-// MARK: - Gateway Event Types
-
 struct GatewayEvent: @unchecked Sendable {
     let event: String
     let payload: [String: Any]
     let seq: Int?
 
-    // Chat event helpers
     var isChatEvent: Bool { event == "chat" }
     var chatSessionKey: String? { payload["sessionKey"] as? String }
     var chatRunId: String? { payload["runId"] as? String }
@@ -58,8 +54,6 @@ struct GatewayChatMessage: Sendable {
     let timestamp: Date?
 }
 
-// MARK: - Gateway Client
-
 enum GatewayClientError: LocalizedError {
     case notConnected
     case connectionFailed(String)
@@ -86,10 +80,15 @@ enum GatewayClientError: LocalizedError {
 actor GatewayClient {
     private var webSocketTask: URLSessionWebSocketTask?
     private var pendingRequests: [String: CheckedContinuation<JSONPayload, Error>] = [:]
-    private var eventContinuation: AsyncStream<GatewayEvent>.Continuation?
-    private var eventGeneration: Int = 0
+    private var eventSubscribers: [UUID: AsyncStream<GatewayEvent>.Continuation] = [:]
     private var receiveTask: Task<Void, Never>?
     private var pingTask: Task<Void, Never>?
+
+    /// Tracks if we're in a reconnecting state (transient disconnect)
+    private(set) var isReconnecting = false
+
+    /// Sequence number for event ordering - used to detect missed events on reconnect
+    private var lastEventSeq: Int?
 
     private let session: URLSession
 
@@ -99,11 +98,33 @@ actor GatewayClient {
         self.session = session
     }
 
-    /// Connect to the gateway WebSocket and perform the connect handshake.
     func connect(url: URL, token: String?) async throws {
-        disconnect()
+        // On reconnect, don't call disconnect() which finishes subscribers
+        // Instead, just clean up the socket without touching subscribers
+        if isConnected || isReconnecting {
+            gatewayLog.info("Reconnecting to gateway (wasConnected=\(self.isConnected), wasReconnecting=\(self.isReconnecting))")
+            receiveTask?.cancel()
+            receiveTask = nil
+            pingTask?.cancel()
+            pingTask = nil
+            webSocketTask?.cancel(with: .normalClosure, reason: nil)
+            webSocketTask = nil
+            isConnected = false
+        } else {
+            gatewayLog.info("Connecting to gateway at \(url.absoluteString, privacy: .public)")
+        }
 
-        // Build WebSocket URL (same port, ws:// scheme)
+
+
+
+
+
+
+
+
+
+
+
         var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
         switch components?.scheme {
         case "https": components?.scheme = "wss"
@@ -111,7 +132,6 @@ actor GatewayClient {
         case "wss", "ws": break
         default: components?.scheme = "ws"
         }
-        // Connect to root path — gateway multiplexes HTTP and WS on the same port
         components?.path = ""
 
         guard let wsURL = components?.url else {
@@ -121,9 +141,6 @@ actor GatewayClient {
         var wsRequest = URLRequest(url: wsURL)
         wsRequest.timeoutInterval = 15
 
-        // The gateway validates the Origin header on WebSocket upgrade.
-        // URLSessionWebSocketTask does not set one by default, so we must
-        // provide it explicitly using the gateway's own origin.
         if let origin = components.flatMap({ c -> URL? in
             var o = URLComponents()
             o.scheme = (c.scheme == "wss") ? "https" : "http"
@@ -139,12 +156,8 @@ actor GatewayClient {
         task.resume()
         webSocketTask = task
 
-        // Start receiving messages before the handshake so we catch the
-        // connect.challenge event (informational — the gateway does not
-        // require the nonce to be echoed back in connect params).
         startReceiving()
 
-        // Send connect handshake with device identity for scope authorization
         let identity = DeviceIdentity.loadOrCreate()
         let role = "operator"
         let scopes = ["operator.read", "operator.write", "operator.admin"]
@@ -188,16 +201,21 @@ actor GatewayClient {
         }
 
         let hello = try await request("connect", params: connectParams)
-        _ = hello // Hello payload received — connection is established
+        _ = hello
         isConnected = true
+        isReconnecting = false  // Clear reconnecting flag on successful connect
+        gatewayLog.notice("Successfully connected to gateway")
 
-        // Start periodic ping to keep connection alive
+
         startPingLoop()
     }
 
-    /// Disconnect from the gateway.
     func disconnect() {
+        gatewayLog.notice("Disconnecting from gateway (user-initiated)")
         isConnected = false
+        isReconnecting = false
+
+
         receiveTask?.cancel()
         receiveTask = nil
         pingTask?.cancel()
@@ -205,20 +223,15 @@ actor GatewayClient {
         webSocketTask?.cancel(with: .normalClosure, reason: nil)
         webSocketTask = nil
 
-        // Finish event stream so consumers exit cleanly
-        eventContinuation?.finish()
-        eventContinuation = nil
+        // Only finish subscribers on explicit disconnect (user action)
+        finishAllEventSubscribers()
 
-        // Fail all pending requests
         for (_, continuation) in pendingRequests {
             continuation.resume(throwing: GatewayClientError.notConnected)
         }
         pendingRequests.removeAll()
     }
 
-    // MARK: - RPC
-
-    /// Send a JSON-RPC request and wait for the response.
     func request(_ method: String, params: [String: Any]) async throws -> [String: Any] {
         guard let task = webSocketTask else {
             throw GatewayClientError.notConnected
@@ -244,39 +257,43 @@ actor GatewayClient {
         return wrapped.value
     }
 
-    // MARK: - Event Stream
-
-    /// Async stream of gateway events (chat, agent, presence, etc.)
-    /// Each call creates a fresh stream; the previous continuation is finished
-    /// so old consumers exit cleanly instead of hanging.
     var events: AsyncStream<GatewayEvent> {
-        // Finish any previous stream so its consumer exits
-        eventContinuation?.finish()
-        eventContinuation = nil
-
-        eventGeneration += 1
-        let generation = eventGeneration
+        let subscriberId = UUID()
 
         return AsyncStream { continuation in
-            self.eventContinuation = continuation
+            self.eventSubscribers[subscriberId] = continuation
             continuation.onTermination = { @Sendable _ in
                 Task { [weak self] in
-                    await self?.clearEventContinuation(generation: generation)
+                    await self?.removeEventSubscriber(id: subscriberId)
                 }
             }
         }
     }
 
-    private func clearEventContinuation(generation: Int) {
-        // Only clear if this is still the current generation;
-        // prevents a stale stream's termination from wiping a newer one.
-        guard generation == eventGeneration else { return }
-        eventContinuation = nil
+    private func removeEventSubscriber(id: UUID) {
+        eventSubscribers.removeValue(forKey: id)
     }
 
-    // MARK: - Convenience Methods
+    private func broadcastEvent(_ event: GatewayEvent) {
+        if eventSubscribers.isEmpty {
+            gatewayLog.debug("Event '\(event.event, privacy: .public)' received but no subscribers to receive it")
+        }
+        for (_, continuation) in eventSubscribers {
+            continuation.yield(event)
+        }
+    }
 
-    /// Send a chat message to a session.
+
+
+
+
+    private func finishAllEventSubscribers() {
+        for (_, continuation) in eventSubscribers {
+            continuation.finish()
+        }
+        eventSubscribers.removeAll()
+    }
+
     func sendChat(sessionKey: String, message: String) async throws {
         let idempotencyKey = UUID().uuidString
         _ = try await request("chat.send", params: [
@@ -287,7 +304,6 @@ actor GatewayClient {
         ])
     }
 
-    /// Load chat history for a session.
     func chatHistory(sessionKey: String, limit: Int = 200) async throws -> GatewayChatHistory {
         let payload = try await request("chat.history", params: [
             "sessionKey": sessionKey,
@@ -316,7 +332,6 @@ actor GatewayClient {
         return GatewayChatHistory(messages: messages, thinkingLevel: thinkingLevel)
     }
 
-    /// Abort a running chat generation.
     func abortChat(sessionKey: String, runId: String? = nil) async throws {
         var params: [String: Any] = ["sessionKey": sessionKey]
         if let runId {
@@ -325,7 +340,6 @@ actor GatewayClient {
         _ = try await request("chat.abort", params: params)
     }
 
-    /// List gateway sessions.
     func listSessions(activeMinutes: Int? = nil, limit: Int? = nil) async throws -> [GatewaySession] {
         var params: [String: Any] = [
             "includeGlobal": true,
@@ -361,7 +375,6 @@ actor GatewayClient {
         return sessions
     }
 
-    /// Create a new session.
     func createSession(
         label: String? = nil,
         projectPath: String? = nil,
@@ -369,15 +382,6 @@ actor GatewayClient {
         beadId: String? = nil,
         prompt: String? = nil
     ) async throws -> GatewaySession {
-        var params: [String: Any] = [:]
-        if let label { params["label"] = label }
-        if let projectPath { params["projectPath"] = projectPath }
-        if let agentType { params["agentType"] = agentType }
-        if let beadId { params["beadId"] = beadId }
-        if let prompt { params["prompt"] = prompt }
-
-        // Gateway doesn't have sessions.create — use chat.send which
-        // implicitly creates a session when given a message
         var chatParams: [String: Any] = [:]
         if let label { chatParams["sessionLabel"] = label }
         if let prompt { chatParams["message"] = prompt }
@@ -400,7 +404,6 @@ actor GatewayClient {
         )
     }
 
-    /// Patch session settings (thinking level, etc.)
     func patchSession(key: String, thinkingLevel: String?) async throws {
         var params: [String: Any] = ["key": key]
         if let thinkingLevel {
@@ -411,7 +414,6 @@ actor GatewayClient {
         _ = try await request("sessions.patch", params: params)
     }
 
-    /// Get agent identity for a session.
     func agentIdentity(sessionKey: String? = nil) async throws -> GatewayAgentIdentity {
         var params: [String: Any] = [:]
         if let sessionKey {
@@ -425,8 +427,6 @@ actor GatewayClient {
             avatar: payload["avatar"] as? String
         )
     }
-
-    // MARK: - Private
 
     private func startReceiving() {
         receiveTask = Task { [weak self] in
@@ -496,23 +496,40 @@ actor GatewayClient {
         let payload = json["payload"] as? [String: Any] ?? [:]
         let seq = json["seq"] as? Int
 
-        // connect.challenge is informational — no action needed
         if event == "connect.challenge" {
             return
         }
 
+        // Detect sequence gap (possible missed events during reconnect)
+        if let seq, let lastSeq = lastEventSeq, seq > lastSeq + 1 {
+            gatewayLog.warning("Event sequence gap detected: expected \(lastSeq + 1) but got \(seq) - may have missed \(seq - lastSeq - 1) events")
+        }
+        if let seq {
+            lastEventSeq = seq
+        }
+
         let gatewayEvent = GatewayEvent(event: event, payload: payload, seq: seq)
-        eventContinuation?.yield(gatewayEvent)
+        broadcastEvent(gatewayEvent)
     }
 
+
+
+
+
+
+
+
+
+
+
+
     private func handleDisconnect() {
+        let wasConnected = isConnected
         isConnected = false
 
-        // Finish event stream so consumers exit cleanly
-        eventContinuation?.finish()
-        eventContinuation = nil
+        gatewayLog.warning("WebSocket disconnected (wasConnected=\(wasConnected))")
 
-        // Check WebSocket close code for specific error reasons
+        // Determine the disconnect error
         let disconnectError: Error
         if let task = webSocketTask,
            task.closeCode == .policyViolation,
@@ -524,17 +541,30 @@ actor GatewayClient {
             disconnectError = GatewayClientError.notConnected
         }
 
+        // Fail pending requests
         for (_, continuation) in pendingRequests {
             continuation.resume(throwing: disconnectError)
         }
         pendingRequests.removeAll()
+
+        // Don't finish event subscribers on transient disconnect!
+        // This allows the event stream to continue when we reconnect.
+        // The reconnection logic in AppState will:
+        // 1. Call connect() again
+        // 2. Request chat history to catch missed messages
+        // 3. Events will resume flowing to existing subscribers
+        //
+        // Only finish subscribers on explicit disconnect() call.
+
+        // Mark as reconnecting so UI can show status
+        isReconnecting = true
     }
 
     private func startPingLoop() {
         pingTask?.cancel()
         pingTask = Task { [weak self] in
             while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 30_000_000_000) // 30s
+                try? await Task.sleep(nanoseconds: 30_000_000_000)
                 guard let self, !Task.isCancelled else { break }
                 guard let task = await self.webSocketTask else { break }
                 task.sendPing { error in
@@ -546,9 +576,6 @@ actor GatewayClient {
         }
     }
 
-    // MARK: - Helpers
-
-    /// Extract text from a gateway message content field (string or array of parts).
     static func extractText(from content: Any?) -> String? {
         if let str = content as? String {
             return str

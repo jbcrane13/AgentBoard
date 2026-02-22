@@ -2,6 +2,13 @@ import SwiftUI
 
 struct ContentView: View {
     @Environment(AppState.self) private var appState
+    @State private var rightPanelWidth: CGFloat = 380
+    @State private var isDraggingPanel = false
+
+    private let defaultRightPanelWidth: CGFloat = 380
+    private let minRightPanelWidth: CGFloat = 280
+    private let maxRightPanelWidth: CGFloat = 600
+    private let dividerWidth: CGFloat = 8
 
     var body: some View {
         HStack(spacing: 0) {
@@ -20,14 +27,15 @@ struct ContentView: View {
                     .transition(.move(edge: .leading))
             }
 
-            Divider()
+            rightPanelDivider
 
             RightPanelView()
-                .frame(width: 380)
+                .frame(width: rightPanelWidth)
         }
         .clipped()
         .animation(.easeInOut(duration: 0.25), value: appState.sidebarVisible)
         .animation(.easeInOut(duration: 0.25), value: appState.boardVisible)
+        .animation(isDraggingPanel ? .none : .easeInOut(duration: 0.15), value: rightPanelWidth)
         .frame(minWidth: minWindowWidth, minHeight: 600)
         .toolbar {
             ToolbarItem(placement: .principal) {
@@ -82,10 +90,43 @@ struct ContentView: View {
     }
 
     private var minWindowWidth: CGFloat {
-        var width: CGFloat = 380
+        var width: CGFloat = rightPanelWidth
         if appState.sidebarVisible { width += 220 }
         if appState.boardVisible { width += 400 }
         return max(width, 400)
+    }
+
+    private var rightPanelDivider: some View {
+        ZStack {
+            Rectangle()
+                .fill(Color.primary.opacity(0.08))
+                .frame(width: 1)
+
+            Capsule()
+                .fill(Color.secondary.opacity(isDraggingPanel ? 0.9 : 0.5))
+                .frame(width: 3, height: 30)
+        }
+        .frame(width: dividerWidth)
+        .contentShape(Rectangle())
+        .onHover { inside in
+            if inside {
+                NSCursor.resizeLeftRight.push()
+            } else {
+                NSCursor.pop()
+            }
+        }
+        .gesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { value in
+                    isDraggingPanel = true
+                    let delta = -value.translation.width
+                    let newWidth = rightPanelWidth + delta
+                    rightPanelWidth = min(max(newWidth, minRightPanelWidth), maxRightPanelWidth)
+                }
+                .onEnded { _ in
+                    isDraggingPanel = false
+                }
+        )
     }
 
     private var centerPanel: some View {

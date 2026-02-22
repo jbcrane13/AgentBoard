@@ -76,6 +76,14 @@ struct NewSessionSheet: View {
                 }
             }
 
+            // Error message display
+            if let errorMessage = appState.errorMessage {
+                Text(errorMessage)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.red)
+                    .padding(.vertical, 8)
+            }
+
             Spacer(minLength: 12)
 
             HStack {
@@ -99,6 +107,7 @@ struct NewSessionSheet: View {
         .frame(minHeight: 500)
         .onAppear {
             selectedProjectID = appState.selectedProjectID ?? appState.projects.first?.id
+            appState.errorMessage = nil
         }
     }
 
