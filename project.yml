@@ -43,7 +43,7 @@ targets:
         CODE_SIGN_ENTITLEMENTS: AgentBoard/AgentBoard.entitlements
         DEVELOPMENT_ASSET_PATHS: "\"AgentBoard/Resources/Preview Content\""
         ENABLE_PREVIEWS: YES
-        INFOPLIST_KEY_NSHumanReadableCopyright: ""
+        INFOPLIST_KEY_NSHumanReadableCopyright: "Copyright © 2026 Blake Crane. All rights reserved."
         COMBINE_HIDPI_IMAGES: YES
       configs:
         Debug:
