@@ -24,6 +24,7 @@
 		3E96B4557DFB397E3FDBDC8A /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E2DF7595890403B84F1A090 /* AppTheme.swift */; };
 		44097275AD1DC9E186E35F66 /* CanvasRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5F4500B562B9987DE72A37A /* CanvasRenderer.swift */; };
 		4BA90DB3C58DEFD4A1FDA51A /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB72F151C5258F99F3949B6C /* AppConfig.swift */; };
+		4BBD995FFF6928C345F8BDAB /* NewSessionOutcomeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66270992D27B8F640D0F7452 /* NewSessionOutcomeTests.swift */; };
 		4E59C7C591C48925D86509F9 /* GitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B70C99F0DC6498D9190C7535 /* GitService.swift */; };
 		563C1AEC2AE5B2C15AFB5224 /* BeadDraft.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72FBE50FAAA5B79FB22D609C /* BeadDraft.swift */; };
 		58F4A64A5D37DB4E8D3EE1D8 /* SplitPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C58E348553C3BD9682EE30E /* SplitPanelView.swift */; };
@@ -118,6 +119,7 @@
 		5EDB7B68F558BF1ECE861C33 /* CanvasPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CanvasPanelView.swift; sourceTree = "<group>"; };
 		5FC28C0601EBA88EF87AEEE1 /* RightPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RightPanelView.swift; sourceTree = "<group>"; };
 		638CE870A90FCCB044DE399A /* GitServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitServiceTests.swift; sourceTree = "<group>"; };
+		66270992D27B8F640D0F7452 /* NewSessionOutcomeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewSessionOutcomeTests.swift; sourceTree = "<group>"; };
 		6CECBA4E697CE435C748A132 /* AppStateMiscTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStateMiscTests.swift; sourceTree = "<group>"; };
 		70E2D666A3AF7864C433CF6A /* AgentBoardSmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentBoardSmokeTests.swift; sourceTree = "<group>"; };
 		72FBE50FAAA5B79FB22D609C /* BeadDraft.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeadDraft.swift; sourceTree = "<group>"; };
@@ -326,6 +328,7 @@
 			children = (
 				3B1E1058B3742AB6D3408B34 /* AgentBoardUITests.swift */,
 				4F93EA97DA8377B92672C98A /* BeadOutcomeTests.swift */,
+				66270992D27B8F640D0F7452 /* NewSessionOutcomeTests.swift */,
 				D0D1BFBF69B8B8FC3D8C2E88 /* UIStateQueryHelpers.swift */,
 			);
 			path = AgentBoardUITests;
@@ -617,6 +620,7 @@
 			files = (
 				C00964004DA1654BE58F43B1 /* AgentBoardUITests.swift in Sources */,
 				BDBE9B4C951859856CA2ADB3 /* BeadOutcomeTests.swift in Sources */,
+				4BBD995FFF6928C345F8BDAB /* NewSessionOutcomeTests.swift in Sources */,
 				24AC8485D78A258BA88180C0 /* UIStateQueryHelpers.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -683,7 +687,7 @@
 				DEVELOPMENT_ASSET_PATHS = "\"AgentBoard/Resources/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Blake Crane. All rights reserved.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -845,7 +849,7 @@
 				DEVELOPMENT_ASSET_PATHS = "\"AgentBoard/Resources/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Blake Crane. All rights reserved.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
