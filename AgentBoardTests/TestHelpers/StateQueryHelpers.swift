@@ -465,3 +465,13 @@ final class TestCleanupHelper {
         clearStatus()
     }
 }
+// MARK: - InMemoryTokenStorage
+
+/// Drop-in replacement for KeychainTokenStorage in tests.
+/// No Keychain access — no permission dialogs.
+final class InMemoryTokenStorage: TokenStorage, @unchecked Sendable {
+    private var token: String?
+    func saveToken(_ token: String) throws { self.token = token }
+    func loadToken() -> String? { token }
+    func deleteToken() { token = nil }
+}

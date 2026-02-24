@@ -1,6 +1,17 @@
 import Foundation
 import Security
 
+// MARK: - Protocol
+
+/// Abstraction over token storage — swap for InMemoryTokenStorage in tests.
+protocol TokenStorage: Sendable {
+    func saveToken(_ token: String) throws
+    func loadToken() -> String?
+    func deleteToken()
+}
+
+// MARK: - Real Keychain implementation
+
 /// Stores and retrieves the gateway auth token in the macOS Keychain.
 enum KeychainService {
     private static let service = "com.agentboard.gateway"
@@ -60,6 +71,17 @@ enum KeychainService {
         ]
         SecItemDelete(query as CFDictionary)
     }
+
+}
+
+// MARK: - KeychainTokenStorage (TokenStorage conformance wrapping static KeychainService)
+
+/// Production token storage backed by macOS Keychain.
+/// Inject this in the app; use InMemoryTokenStorage in tests.
+struct KeychainTokenStorage: TokenStorage {
+    func saveToken(_ token: String) throws { try KeychainService.saveToken(token) }
+    func loadToken() -> String? { KeychainService.loadToken() }
+    func deleteToken() { KeychainService.deleteToken() }
 }
 
 enum KeychainError: LocalizedError {

@@ -2,6 +2,11 @@ import Foundation
 
 struct AppConfigStore {
     private let fileManager = FileManager.default
+    private let tokenStorage: any TokenStorage
+
+    init(tokenStorage: any TokenStorage = KeychainTokenStorage()) {
+        self.tokenStorage = tokenStorage
+    }
 
     private var configURL: URL {
         let home = fileManager.homeDirectoryForCurrentUser
@@ -18,7 +23,7 @@ struct AppConfigStore {
 
             // Migrate: if token exists in JSON, move it to Keychain
             if let jsonToken = config.openClawToken, !jsonToken.isEmpty {
-                try? KeychainService.saveToken(jsonToken)
+                try? tokenStorage.saveToken(jsonToken)
                 config.openClawToken = nil
                 try? save(config) // Strip token from JSON
             }
@@ -27,7 +32,7 @@ struct AppConfigStore {
 
             // Hydrate token from Keychain (unless auto-discover already set one)
             if config.openClawToken == nil || config.openClawToken?.isEmpty == true {
-                config.openClawToken = KeychainService.loadToken()
+                config.openClawToken = tokenStorage.loadToken()
             }
 
             return config
@@ -46,7 +51,7 @@ struct AppConfigStore {
 
         // Hydrate token from Keychain
         if config.openClawToken == nil || config.openClawToken?.isEmpty == true {
-            config.openClawToken = KeychainService.loadToken()
+            config.openClawToken = tokenStorage.loadToken()
         }
 
         try save(config)
@@ -61,7 +66,7 @@ struct AppConfigStore {
 
         // Save token to Keychain instead of config JSON
         if let token = config.openClawToken, !token.isEmpty {
-            try? KeychainService.saveToken(token)
+            try? tokenStorage.saveToken(token)
         }
 
         // Strip token before writing JSON
