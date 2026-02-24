@@ -1,0 +1,25 @@
+{
+  "thinkingLevel": "high",
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": "Please summarize AB-48z status."
+        }
+      ],
+      "timestamp": 1766000000000
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "AB-48z is in progress with QA audit updates."
+        }
+      ],
+      "timestamp": 1766000003456
+    }
+  ]
+}

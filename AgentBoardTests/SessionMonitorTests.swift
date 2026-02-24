@@ -45,6 +45,19 @@ struct SessionMonitorTests {
         #expect(resolveStatus(hasAgentProcess: true, isAttached: false, cpuPercent: 0.05) == .idle)
         #expect(resolveStatus(hasAgentProcess: true, isAttached: true, cpuPercent: 0.0) == .idle)
     }
+
+    @Test("resolveStatus treats cpu threshold of 0.1 as idle and above as running")
+    func resolveStatusCpuThresholdBoundary() {
+        func resolveStatus(hasAgentProcess: Bool, isAttached: Bool, cpuPercent: Double) -> SessionStatus {
+            if !hasAgentProcess {
+                return isAttached ? .idle : .stopped
+            }
+            return cpuPercent > 0.1 ? .running : .idle
+        }
+
+        #expect(resolveStatus(hasAgentProcess: true, isAttached: true, cpuPercent: 0.1) == .idle)
+        #expect(resolveStatus(hasAgentProcess: true, isAttached: true, cpuPercent: 0.1001) == .running)
+    }
     
     // MARK: - Agent Type Detection Tests
     

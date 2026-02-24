@@ -324,14 +324,18 @@ actor GatewayClient {
         eventSubscribers.removeAll()
     }
 
-    func sendChat(sessionKey: String, message: String) async throws {
+    func sendChat(sessionKey: String, message: String, thinking: String? = nil) async throws {
         let idempotencyKey = UUID().uuidString
-        _ = try await request("chat.send", params: [
+        var params: [String: Any] = [
             "sessionKey": sessionKey,
             "message": message,
             "deliver": false,
             "idempotencyKey": idempotencyKey,
-        ])
+        ]
+        if let thinking {
+            params["thinking"] = thinking
+        }
+        _ = try await request("chat.send", params: params)
     }
 
     func chatHistory(sessionKey: String, limit: Int = 200) async throws -> GatewayChatHistory {
@@ -339,27 +343,7 @@ actor GatewayClient {
             "sessionKey": sessionKey,
             "limit": limit,
         ])
-
-        let thinkingLevel = payload["thinkingLevel"] as? String
-
-        var messages: [GatewayChatMessage] = []
-        if let rawMessages = payload["messages"] as? [[String: Any]] {
-            for raw in rawMessages {
-                let role = raw["role"] as? String ?? "system"
-                let text = GatewayClient.extractText(from: raw["content"]) ?? ""
-                let timestamp: Date?
-                if let ts = raw["timestamp"] as? TimeInterval {
-                    timestamp = Date(timeIntervalSince1970: ts / 1000)
-                } else if let ts = raw["timestamp"] as? Int {
-                    timestamp = Date(timeIntervalSince1970: TimeInterval(ts) / 1000)
-                } else {
-                    timestamp = nil
-                }
-                messages.append(GatewayChatMessage(role: role, text: text, timestamp: timestamp))
-            }
-        }
-
-        return GatewayChatHistory(messages: messages, thinkingLevel: thinkingLevel)
+        return try Self.decodeChatHistoryPayload(payload)
     }
 
     func abortChat(sessionKey: String, runId: String? = nil) async throws {
@@ -384,25 +368,7 @@ actor GatewayClient {
 
         let payload = try await request("sessions.list", params: params)
 
-        var sessions: [GatewaySession] = []
-        if let rawSessions = payload["sessions"] as? [[String: Any]] {
-            for raw in rawSessions {
-                let key = raw["key"] as? String ?? raw["id"] as? String ?? ""
-                guard !key.isEmpty else { continue }
-                sessions.append(GatewaySession(
-                    id: key,
-                    key: key,
-                    label: raw["label"] as? String,
-                    agentId: raw["agentId"] as? String,
-                    model: raw["model"] as? String,
-                    status: raw["status"] as? String,
-                    lastActiveAt: parseTimestamp(raw["lastActiveAt"] ?? raw["updatedAt"]),
-                    thinkingLevel: raw["thinkingLevel"] as? String
-                ))
-            }
-        }
-
-        return sessions
+        return try Self.decodeSessionsPayload(payload)
     }
 
     func createSession(
@@ -451,11 +417,7 @@ actor GatewayClient {
         }
 
         let payload = try await request("agent.identity.get", params: params)
-        return GatewayAgentIdentity(
-            agentId: payload["agentId"] as? String,
-            name: payload["name"] as? String ?? "Assistant",
-            avatar: payload["avatar"] as? String
-        )
+        return try Self.decodeAgentIdentityPayload(payload)
     }
 
     private func startReceiving() {
@@ -486,9 +448,25 @@ actor GatewayClient {
     }
 
     private func handleMessage(_ text: String) {
-        guard let data = text.data(using: .utf8),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let type = json["type"] as? String else {
+        guard let data = text.data(using: .utf8) else {
+            gatewayLog.error("Received non-UTF8 websocket payload")
+            return
+        }
+
+        let json: [String: Any]
+        do {
+            guard let parsed = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                gatewayLog.error("Received non-object websocket payload")
+                return
+            }
+            json = parsed
+        } catch {
+            gatewayLog.error("Failed to parse websocket payload: \(error.localizedDescription, privacy: .public)")
+            return
+        }
+
+        guard let type = json["type"] as? String else {
+            gatewayLog.error("Received websocket payload missing type")
             return
         }
         lastInboundMessageAt = Date()
@@ -778,7 +756,63 @@ actor GatewayClient {
         return nil
     }
 
-    private func parseTimestamp(_ value: Any?) -> Date? {
+    static func decodeChatHistoryPayload(_ payload: [String: Any]) throws -> GatewayChatHistory {
+        guard let rawMessages = payload["messages"] as? [[String: Any]] else {
+            throw GatewayClientError.invalidResponse
+        }
+
+        let messages = rawMessages.map { raw in
+            let role = raw["role"] as? String ?? "system"
+            let text = extractText(from: raw["content"]) ?? ""
+            let timestamp = parseTimestamp(raw["timestamp"])
+            return GatewayChatMessage(role: role, text: text, timestamp: timestamp)
+        }
+
+        return GatewayChatHistory(
+            messages: messages,
+            thinkingLevel: payload["thinkingLevel"] as? String
+        )
+    }
+
+    static func decodeSessionsPayload(_ payload: [String: Any]) throws -> [GatewaySession] {
+        guard let rawSessions = payload["sessions"] as? [[String: Any]] else {
+            throw GatewayClientError.invalidResponse
+        }
+
+        var sessions: [GatewaySession] = []
+        sessions.reserveCapacity(rawSessions.count)
+
+        for raw in rawSessions {
+            let key = raw["key"] as? String ?? raw["id"] as? String ?? ""
+            guard !key.isEmpty else { continue }
+            sessions.append(GatewaySession(
+                id: key,
+                key: key,
+                label: raw["label"] as? String,
+                agentId: raw["agentId"] as? String,
+                model: raw["model"] as? String,
+                status: raw["status"] as? String,
+                lastActiveAt: parseTimestamp(raw["lastActiveAt"] ?? raw["updatedAt"]),
+                thinkingLevel: raw["thinkingLevel"] as? String
+            ))
+        }
+        return sessions
+    }
+
+    static func decodeAgentIdentityPayload(_ payload: [String: Any]) throws -> GatewayAgentIdentity {
+        guard let name = payload["name"] as? String,
+              !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw GatewayClientError.invalidResponse
+        }
+
+        return GatewayAgentIdentity(
+            agentId: payload["agentId"] as? String,
+            name: name,
+            avatar: payload["avatar"] as? String
+        )
+    }
+
+    private static func parseTimestamp(_ value: Any?) -> Date? {
         if let ms = value as? TimeInterval {
             return Date(timeIntervalSince1970: ms > 1e12 ? ms / 1000 : ms)
         }

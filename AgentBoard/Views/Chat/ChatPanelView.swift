@@ -63,23 +63,42 @@ struct ChatPanelView: View {
 
             Spacer()
 
-            // Thinking level display (set via Control UI)
-            HStack(spacing: 3) {
-                Image(systemName: "brain")
-                    .font(.system(size: 10))
-                Text(appState.chatThinkingLevel?.capitalized ?? "Think")
-                    .font(.system(size: 10, weight: .medium))
+            // Thinking level control
+            Menu {
+                Button("Default") {
+                    Task { await appState.setThinkingLevel(nil) }
+                }
+                Button("Off") {
+                    Task { await appState.setThinkingLevel("off") }
+                }
+                Button("Low") {
+                    Task { await appState.setThinkingLevel("low") }
+                }
+                Button("Medium") {
+                    Task { await appState.setThinkingLevel("medium") }
+                }
+                Button("High") {
+                    Task { await appState.setThinkingLevel("high") }
+                }
+            } label: {
+                HStack(spacing: 3) {
+                    Image(systemName: "brain")
+                        .font(.system(size: 10))
+                    Text(thinkingLevelLabel)
+                        .font(.system(size: 10, weight: .medium))
+                }
+                .foregroundStyle(appState.chatThinkingLevel != nil ? Color.accentColor : .secondary)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
+                .background(
+                    appState.chatThinkingLevel != nil
+                        ? Color.accentColor.opacity(0.1)
+                        : Color.primary.opacity(0.04),
+                    in: RoundedRectangle(cornerRadius: 4)
+                )
             }
-            .foregroundStyle(appState.chatThinkingLevel != nil ? Color.accentColor : .secondary)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 3)
-            .background(
-                appState.chatThinkingLevel != nil
-                    ? Color.accentColor.opacity(0.1)
-                    : Color.primary.opacity(0.04),
-                in: RoundedRectangle(cornerRadius: 4)
-            )
-            .help("Thinking level (change via Control UI)")
+            .menuStyle(.borderlessButton)
+            .help("Set session thinking level")
 
             // Connection status text
             Text(connectionStatusLabel)
@@ -139,6 +158,27 @@ struct ChatPanelView: View {
             return error.userMessage
         }
         return appState.chatConnectionState.label
+    }
+
+    private var thinkingLevelLabel: String {
+        guard let level = appState.chatThinkingLevel?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !level.isEmpty else {
+            return "Default"
+        }
+        switch level.lowercased() {
+        case "off":
+            return "Off"
+        case "low":
+            return "Low"
+        case "medium":
+            return "Medium"
+        case "high":
+            return "High"
+        case "minimal":
+            return "Minimal"
+        default:
+            return level.capitalized
+        }
     }
 
     // MARK: - Message List

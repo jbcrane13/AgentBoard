@@ -1,5 +1,48 @@
 import Foundation
 
+protocol GatewayClientServing: Actor {
+    var isConnected: Bool { get }
+    var events: AsyncStream<GatewayEvent> { get }
+
+    func connect(url: URL, token: String?) async throws
+    func disconnect()
+    func sendChat(sessionKey: String, message: String, thinking: String?) async throws
+    func chatHistory(sessionKey: String, limit: Int) async throws -> GatewayChatHistory
+    func abortChat(sessionKey: String, runId: String?) async throws
+    func listSessions(activeMinutes: Int?, limit: Int?) async throws -> [GatewaySession]
+    func createSession(
+        label: String?,
+        projectPath: String?,
+        agentType: String?,
+        beadId: String?,
+        prompt: String?
+    ) async throws -> GatewaySession
+    func patchSession(key: String, thinkingLevel: String?) async throws
+    func agentIdentity(sessionKey: String?) async throws -> GatewayAgentIdentity
+}
+
+protocol OpenClawServicing: Actor {
+    var isConnected: Bool { get async }
+    var events: AsyncStream<GatewayEvent> { get async }
+
+    func configure(gatewayURLString: String?, token: String?) throws
+    func connect() async throws
+    func disconnect() async
+    func sendChat(sessionKey: String, message: String, thinking: String?) async throws
+    func chatHistory(sessionKey: String, limit: Int) async throws -> GatewayChatHistory
+    func abortChat(sessionKey: String, runId: String?) async throws
+    func listSessions(activeMinutes: Int?, limit: Int?) async throws -> [GatewaySession]
+    func createSession(
+        label: String?,
+        projectPath: String?,
+        agentType: String?,
+        beadId: String?,
+        prompt: String?
+    ) async throws -> GatewaySession
+    func patchSession(key: String, thinkingLevel: String?) async throws
+    func agentIdentity(sessionKey: String?) async throws -> GatewayAgentIdentity
+}
+
 // Legacy type kept for AgentsView compatibility — will be replaced by GatewaySession
 struct OpenClawRemoteSession: Identifiable, Sendable {
     let id: String
@@ -34,9 +77,13 @@ enum OpenClawServiceError: LocalizedError {
 /// Wraps GatewayClient for use by AppState. Manages connection lifecycle and
 /// provides typed methods for chat, sessions, and agent identity.
 actor OpenClawService {
-    private let client = GatewayClient()
+    private let client: any GatewayClientServing
     private var gatewayURL: URL = URL(string: "http://127.0.0.1:18789")!
     private var authToken: String?
+
+    init(client: any GatewayClientServing = GatewayClient()) {
+        self.client = client
+    }
 
     var isConnected: Bool {
         get async { await client.isConnected }
@@ -74,8 +121,8 @@ actor OpenClawService {
     // MARK: - Chat
 
     /// Send a chat message to a session.
-    func sendChat(sessionKey: String, message: String) async throws {
-        try await client.sendChat(sessionKey: sessionKey, message: message)
+    func sendChat(sessionKey: String, message: String, thinking: String? = nil) async throws {
+        try await client.sendChat(sessionKey: sessionKey, message: message, thinking: thinking)
     }
 
     /// Load chat history for a session.
@@ -124,3 +171,6 @@ actor OpenClawService {
         try await client.agentIdentity(sessionKey: sessionKey)
     }
 }
+
+extension GatewayClient: GatewayClientServing {}
+extension OpenClawService: OpenClawServicing {}

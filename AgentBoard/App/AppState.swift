@@ -72,7 +72,7 @@ final class AppState {
     private let configStore = AppConfigStore()
     private let parser = JSONLParser()
     private let watcher = BeadsWatcher()
-    private let openClawService = OpenClawService()
+    private let openClawService: any OpenClawServicing
     private let sessionMonitor = SessionMonitor()
     private let gitService = GitService()
     private var watchedFilePath: String?
@@ -119,11 +119,21 @@ final class AppState {
         return sessions.first(where: { $0.id == activeSessionID })
     }
 
-    init() {
-        bootstrap()
-        startChatConnectionLoop()
-        startSessionMonitorLoop()
-        startGatewaySessionRefreshLoop()
+    init(
+        openClawService: any OpenClawServicing = OpenClawService(),
+        bootstrapOnInit: Bool = true,
+        startBackgroundLoops: Bool = true
+    ) {
+        self.openClawService = openClawService
+
+        if bootstrapOnInit {
+            bootstrap()
+        }
+        if startBackgroundLoops {
+            startChatConnectionLoop()
+            startSessionMonitorLoop()
+            startGatewaySessionRefreshLoop()
+        }
     }
 
     func selectProject(_ project: Project) {
@@ -340,10 +350,13 @@ final class AppState {
         errorMessage = nil
 
         do {
+            let thinking = effectiveThinkingLevelForOutgoingMessage()
             try await openClawService.sendChat(
                 sessionKey: currentSessionKey,
-                message: trimmed
+                message: trimmed,
+                thinking: thinking
             )
+            await refreshGatewaySessions()
             // Response will stream via gateway events handled in the event listener.
             // The event listener will call appendAssistantChunk and finalize the message.
         } catch {
@@ -370,6 +383,19 @@ final class AppState {
 
     func switchSession(to sessionKey: String) async {
         guard sessionKey != currentSessionKey else { return }
+        let previousSessionKey = currentSessionKey
+        let previousRunId = chatRunId
+        let hadStreamingRun = isChatStreaming
+        if hadStreamingRun {
+            do {
+                try await openClawService.abortChat(
+                    sessionKey: previousSessionKey,
+                    runId: previousRunId
+                )
+            } catch {
+                // Best-effort abort. We still switch to keep UI responsive.
+            }
+        }
         currentSessionKey = sessionKey
         chatMessages = []
         chatRunId = nil
@@ -380,15 +406,18 @@ final class AppState {
     }
 
     func setThinkingLevel(_ level: String?) async {
+        let normalized = normalizedThinkingLevel(level)
         do {
             try await openClawService.patchSession(
                 key: currentSessionKey,
-                thinkingLevel: level
+                thinkingLevel: normalized
             )
-            chatThinkingLevel = level
-            statusMessage = level != nil
-                ? "Thinking set to \(level!)."
-                : "Thinking set to default."
+            chatThinkingLevel = normalized
+            if let normalized {
+                statusMessage = "Thinking set to \(normalized)."
+            } else {
+                statusMessage = "Thinking set to default."
+            }
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -420,7 +449,7 @@ final class AppState {
                     timestamp: msg.timestamp ?? .now
                 )
             }
-            chatThinkingLevel = history.thinkingLevel
+            chatThinkingLevel = normalizedThinkingLevel(history.thinkingLevel)
         } catch {
             // Don't show error for initial load — gateway may not be connected yet
             if chatConnectionState == .connected {
@@ -986,6 +1015,9 @@ final class AppState {
             var attempt = 0
             while !Task.isCancelled {
                 do {
+                    if attempt > 0 {
+                        self.refreshAutoDiscoveredGatewayConfigOnReconnect()
+                    }
                     try await self.openClawService.configure(
                         gatewayURLString: self.appConfig.openClawGatewayURL,
                         token: self.appConfig.openClawToken
@@ -1059,7 +1091,10 @@ final class AppState {
 
     private func handleGatewayEventOnMain(_ event: GatewayEvent) {
         guard event.isChatEvent else { return }
-        guard event.chatSessionKey == currentSessionKey else { return }
+        guard Self.matchesCurrentSessionKey(
+            incoming: event.chatSessionKey,
+            current: currentSessionKey
+        ) else { return }
 
         let state = event.chatState ?? ""
 
@@ -1161,6 +1196,51 @@ final class AppState {
     private func refreshRemoteSessions() async {
         // Kept for backward compat — gateway sessions now served by refreshGatewaySessions()
         rebuildHistoryEvents()
+    }
+
+    private static func matchesCurrentSessionKey(incoming: String?, current: String) -> Bool {
+        guard let incoming else { return false }
+        let incomingNormalized = incoming.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let currentNormalized = current.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if incomingNormalized == currentNormalized {
+            return true
+        }
+        if (incomingNormalized == "agent:main:main" && currentNormalized == "main") ||
+            (incomingNormalized == "main" && currentNormalized == "agent:main:main")
+        {
+            return true
+        }
+        return false
+    }
+
+    private func normalizedThinkingLevel(_ raw: String?) -> String? {
+        guard let raw else { return nil }
+        let normalized = raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        switch normalized {
+        case "":
+            return nil
+        case "default":
+            return nil
+        case "off", "minimal", "low", "medium", "high":
+            return normalized
+        default:
+            return nil
+        }
+    }
+
+    private func effectiveThinkingLevelForOutgoingMessage() -> String {
+        normalizedThinkingLevel(chatThinkingLevel) ?? "off"
+    }
+
+    private func refreshAutoDiscoveredGatewayConfigOnReconnect() {
+        guard !appConfig.isGatewayManual else { return }
+        guard let discovered = configStore.discoverOpenClawConfig() else { return }
+        if let url = discovered.gatewayURL, !url.isEmpty {
+            appConfig.openClawGatewayURL = url
+        }
+        if let token = discovered.token, !token.isEmpty {
+            appConfig.openClawToken = token
+        }
     }
 
     private func rebuildProjects() {
@@ -1286,13 +1366,21 @@ final class AppState {
 
         guard watchedFilePath != watchURL.path else { return }
         watchedFilePath = watchURL.path
-        watcher.watch(fileURL: watchURL) { [weak self] in
-            Task { @MainActor in
-                guard let self else { return }
-                guard let current = self.selectedProject else { return }
-                self.loadBeads(for: current)
+        watcher.watch(
+            fileURL: watchURL,
+            onChange: { [weak self] in
+                Task { @MainActor in
+                    guard let self else { return }
+                    guard let current = self.selectedProject else { return }
+                    self.loadBeads(for: current)
+                }
+            },
+            onError: { [weak self] message in
+                Task { @MainActor in
+                    self?.errorMessage = message
+                }
             }
-        }
+        )
     }
 
     private func refreshProjectCounts() {

@@ -1,0 +1,21 @@
+{
+  "sessions": [
+    {
+      "key": "main",
+      "label": "Primary",
+      "agentId": "codex",
+      "model": "gpt-5.3-codex",
+      "status": "active",
+      "lastActiveAt": 1766000100000,
+      "thinkingLevel": "medium"
+    },
+    {
+      "id": "session-2",
+      "label": "Secondary",
+      "agentId": "claude",
+      "model": "claude-opus",
+      "status": "idle",
+      "updatedAt": 1766000200000
+    }
+  ]
+}

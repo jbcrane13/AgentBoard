@@ -11,11 +11,19 @@ final class BeadsWatcher {
         stop()
     }
 
-    func watch(fileURL: URL, onChange: @escaping @Sendable () -> Void) {
+    func watch(
+        fileURL: URL,
+        onChange: @escaping @Sendable () -> Void,
+        onError: ((String) -> Void)? = nil
+    ) {
         stop()
 
         fileDescriptor = open(fileURL.path, O_EVTONLY)
-        guard fileDescriptor >= 0 else { return }
+        guard fileDescriptor >= 0 else {
+            let reason = String(cString: strerror(errno))
+            onError?("Unable to watch \(fileURL.lastPathComponent): \(reason)")
+            return
+        }
 
         let source = DispatchSource.makeFileSystemObjectSource(
             fileDescriptor: fileDescriptor,

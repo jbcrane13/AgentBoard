@@ -43,7 +43,7 @@ actor GitService {
         return result.stdout
     }
 
-    private func parseCommitRecords(from output: String) -> [GitCommitRecord] {
+    func parseCommitRecords(from output: String) -> [GitCommitRecord] {
         let records = output
             .split(separator: "\u{1e}", omittingEmptySubsequences: true)
             .compactMap { rawRecord -> GitCommitRecord? in

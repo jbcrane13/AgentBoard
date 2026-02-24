@@ -20,7 +20,9 @@ struct AppConfigStoreTests {
         let results = store.discoverProjects(in: tempDir)
 
         #expect(results.count == 1)
-        #expect(results[0].path == projectDir.path)
+        let actualPath = URL(fileURLWithPath: results[0].path).standardizedFileURL.path
+        let expectedPath = projectDir.standardizedFileURL.path
+        #expect(actualPath == expectedPath)
     }
 
     @Test("discoverProjects ignores directories without .beads subfolder")
@@ -76,7 +78,9 @@ struct AppConfigStoreTests {
         let results = store.discoverProjects(in: tempDir)
 
         let project = try #require(results.first)
-        #expect(project.path == projectDir.path)
+        let actualPath = URL(fileURLWithPath: project.path).standardizedFileURL.path
+        let expectedPath = projectDir.standardizedFileURL.path
+        #expect(actualPath == expectedPath)
         #expect(project.icon == "📁")
     }
 
