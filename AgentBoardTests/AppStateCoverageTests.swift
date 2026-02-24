@@ -213,19 +213,69 @@ struct AppStateCoverageTests {
         #expect(state.unreadSessionAlertsCount == 1)
     }
 
+    @Test("epicBeads returns only epic-kind beads sorted by updatedAt descending")
+    func epicBeadsFilteredAndSorted() {
+        let state = AppState()
+        let older = makeBead(id: "AB-epic1", kind: .epic, updatedAt: Date(timeIntervalSince1970: 1_700_000_000))
+        let newer = makeBead(id: "AB-epic2", kind: .epic, updatedAt: Date(timeIntervalSince1970: 1_700_001_000))
+        let task = makeBead(id: "AB-task1", kind: .task, updatedAt: Date(timeIntervalSince1970: 1_700_002_000))
+        state.beads = [older, task, newer]
+
+        let epics = state.epicBeads
+        #expect(epics.count == 2)
+        #expect(epics[0].id == "AB-epic2") // newer first
+        #expect(epics[1].id == "AB-epic1")
+    }
+
+    @Test("epicBeads is empty when no epic-kind beads exist")
+    func epicBeadsEmptyWhenNoEpics() {
+        let state = AppState()
+        state.beads = [makeBead(id: "AB-1", kind: .task)]
+        #expect(state.epicBeads.isEmpty)
+    }
+
+    @Test("activeSession returns session matching activeSessionID")
+    func activeSessionReturnsMatchingSession() {
+        let state = AppState()
+        let session = makeSession(id: "ses-42")
+        state.sessions = [session, makeSession(id: "ses-99")]
+        state.activeSessionID = "ses-42"
+        #expect(state.activeSession?.id == "ses-42")
+    }
+
+    @Test("activeSession returns nil when activeSessionID is nil")
+    func activeSessionNilWhenIDNil() {
+        let state = AppState()
+        state.sessions = [makeSession(id: "ses-1")]
+        state.activeSessionID = nil
+        #expect(state.activeSession == nil)
+    }
+
+    @Test("activeSession returns nil when no session matches activeSessionID")
+    func activeSessionNilWhenNoMatch() {
+        let state = AppState()
+        state.sessions = [makeSession(id: "ses-1")]
+        state.activeSessionID = "ses-missing"
+        #expect(state.activeSession == nil)
+    }
+
     private func makeBead(id: String) -> Bead {
+        makeBead(id: id, kind: .task, updatedAt: Date(timeIntervalSince1970: 1_700_000_100))
+    }
+
+    private func makeBead(id: String, kind: BeadKind, updatedAt: Date = Date(timeIntervalSince1970: 1_700_000_100)) -> Bead {
         Bead(
             id: id,
             title: "Title \(id)",
             body: nil,
             status: .open,
-            kind: .task,
+            kind: kind,
             priority: 2,
             epicId: nil,
             labels: [],
             assignee: nil,
             createdAt: Date(timeIntervalSince1970: 1_700_000_000),
-            updatedAt: Date(timeIntervalSince1970: 1_700_000_100),
+            updatedAt: updatedAt,
             dependencies: [],
             gitBranch: nil,
             lastCommit: nil
