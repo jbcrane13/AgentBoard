@@ -80,17 +80,27 @@ enum GatewayClientError: LocalizedError {
 actor GatewayClient {
     private var webSocketTask: URLSessionWebSocketTask?
     private var pendingRequests: [String: CheckedContinuation<JSONPayload, Error>] = [:]
+    private var requestTimeoutTasks: [String: Task<Void, Never>] = [:]
     private var eventSubscribers: [UUID: AsyncStream<GatewayEvent>.Continuation] = [:]
+    private var pendingConnectChallenge: CheckedContinuation<String, Error>?
+    private var bufferedConnectChallengeNonce: String?
+    private var connectChallengeTimeoutTask: Task<Void, Never>?
     private var receiveTask: Task<Void, Never>?
     private var pingTask: Task<Void, Never>?
+    private var tickWatchdogTask: Task<Void, Never>?
 
     /// Tracks if we're in a reconnecting state (transient disconnect)
     private(set) var isReconnecting = false
 
     /// Sequence number for event ordering - used to detect missed events on reconnect
     private var lastEventSeq: Int?
+    private var lastInboundMessageAt: Date?
+    private var tickIntervalMs: Double = 30_000
 
     private let session: URLSession
+    private let connectChallengeTimeoutSeconds: Double = 6
+    private let connectRequestTimeoutSeconds: Double = 12
+    private let defaultRequestTimeoutSeconds: Double = 15
 
     private(set) var isConnected = false
 
@@ -107,6 +117,8 @@ actor GatewayClient {
             receiveTask = nil
             pingTask?.cancel()
             pingTask = nil
+            tickWatchdogTask?.cancel()
+            tickWatchdogTask = nil
             webSocketTask?.cancel(with: .normalClosure, reason: nil)
             webSocketTask = nil
             isConnected = false
@@ -114,16 +126,7 @@ actor GatewayClient {
             gatewayLog.info("Connecting to gateway at \(url.absoluteString, privacy: .public)")
         }
 
-
-
-
-
-
-
-
-
-
-
+        resetConnectChallengeState()
 
         var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
         switch components?.scheme {
@@ -157,57 +160,69 @@ actor GatewayClient {
         webSocketTask = task
 
         startReceiving()
+        do {
+            let nonce = try await waitForConnectChallenge(timeoutSeconds: connectChallengeTimeoutSeconds)
 
-        let identity = DeviceIdentity.loadOrCreate()
-        let role = "operator"
-        let scopes = ["operator.read", "operator.write", "operator.admin"]
-        let clientId = "webchat"
-        let clientMode = "webchat"
-        let signedAtMs = Int64(Date().timeIntervalSince1970 * 1000)
+            let identity = DeviceIdentity.loadOrCreate()
+            let role = "operator"
+            let scopes = ["operator.read", "operator.write", "operator.admin"]
+            let clientId = "webchat"
+            let clientMode = "webchat"
+            let signedAtMs = Int64(Date().timeIntervalSince1970 * 1000)
 
-        let payload = identity.buildAuthPayload(
-            clientId: clientId,
-            clientMode: clientMode,
-            role: role,
-            scopes: scopes,
-            signedAtMs: signedAtMs,
-            token: token,
-            nonce: nil
-        )
-        let signature = identity.sign(payload: payload)
+            let payload = identity.buildAuthPayload(
+                clientId: clientId,
+                clientMode: clientMode,
+                role: role,
+                scopes: scopes,
+                signedAtMs: signedAtMs,
+                token: token,
+                nonce: nonce
+            )
+            let signature = identity.sign(payload: payload)
 
-        var connectParams: [String: Any] = [
-            "minProtocol": 3,
-            "maxProtocol": 3,
-            "client": [
-                "id": clientId,
-                "version": "1.0",
-                "platform": "macOS",
-                "mode": clientMode,
-                "displayName": "AgentBoard",
-            ],
-            "device": [
-                "id": identity.deviceId,
-                "publicKey": identity.publicKeyBase64Url,
-                "signature": signature,
-                "signedAt": signedAtMs,
-            ] as [String: Any],
-            "role": role,
-            "scopes": scopes,
-        ]
+            var connectParams: [String: Any] = [
+                "minProtocol": 3,
+                "maxProtocol": 3,
+                "client": [
+                    "id": clientId,
+                    "version": "1.0",
+                    "platform": "macOS",
+                    "mode": clientMode,
+                    "displayName": "AgentBoard",
+                ],
+                "device": [
+                    "id": identity.deviceId,
+                    "publicKey": identity.publicKeyBase64Url,
+                    "signature": signature,
+                    "signedAt": signedAtMs,
+                    "nonce": nonce,
+                ] as [String: Any],
+                "role": role,
+                "scopes": scopes,
+            ]
 
-        if let token, !token.isEmpty {
-            connectParams["auth"] = ["token": token]
+            if let token, !token.isEmpty {
+                connectParams["auth"] = ["token": token]
+            }
+
+            let hello = try await request(
+                "connect",
+                params: connectParams,
+                timeoutSeconds: connectRequestTimeoutSeconds
+            )
+            updateConnectionPolicy(from: hello)
+            isConnected = true
+            isReconnecting = false  // Clear reconnecting flag on successful connect
+            lastInboundMessageAt = Date()
+            gatewayLog.notice("Successfully connected to gateway")
+
+            startPingLoop()
+            startTickWatchdog()
+        } catch {
+            cleanupAfterFailedConnect(error: error)
+            throw error
         }
-
-        let hello = try await request("connect", params: connectParams)
-        _ = hello
-        isConnected = true
-        isReconnecting = false  // Clear reconnecting flag on successful connect
-        gatewayLog.notice("Successfully connected to gateway")
-
-
-        startPingLoop()
     }
 
     func disconnect() {
@@ -220,6 +235,11 @@ actor GatewayClient {
         receiveTask = nil
         pingTask?.cancel()
         pingTask = nil
+        tickWatchdogTask?.cancel()
+        tickWatchdogTask = nil
+        failConnectChallengeWaiter(error: GatewayClientError.notConnected)
+        bufferedConnectChallengeNonce = nil
+        cancelAllRequestTimeouts()
         webSocketTask?.cancel(with: .normalClosure, reason: nil)
         webSocketTask = nil
 
@@ -232,12 +252,17 @@ actor GatewayClient {
         pendingRequests.removeAll()
     }
 
-    func request(_ method: String, params: [String: Any]) async throws -> [String: Any] {
-        guard let task = webSocketTask else {
+    func request(
+        _ method: String,
+        params: [String: Any],
+        timeoutSeconds: Double? = nil
+    ) async throws -> [String: Any] {
+        guard webSocketTask != nil else {
             throw GatewayClientError.notConnected
         }
 
         let requestId = UUID().uuidString
+        let effectiveTimeout = timeoutSeconds ?? defaultRequestTimeoutSeconds
 
         let message: [String: Any] = [
             "type": "req",
@@ -249,10 +274,15 @@ actor GatewayClient {
         let data = try JSONSerialization.data(withJSONObject: message)
         let string = String(data: data, encoding: .utf8) ?? ""
 
-        try await task.send(.string(string))
-
         let wrapped: JSONPayload = try await withCheckedThrowingContinuation { continuation in
             pendingRequests[requestId] = continuation
+            requestTimeoutTasks[requestId] = Task { [weak self] in
+                try? await Task.sleep(nanoseconds: UInt64(effectiveTimeout * 1_000_000_000))
+                await self?.timeoutRequest(requestId)
+            }
+            Task { [weak self] in
+                await self?.sendRequestMessage(string, requestId: requestId)
+            }
         }
         return wrapped.value
     }
@@ -461,6 +491,7 @@ actor GatewayClient {
               let type = json["type"] as? String else {
             return
         }
+        lastInboundMessageAt = Date()
 
         switch type {
         case "res":
@@ -479,6 +510,7 @@ actor GatewayClient {
               let continuation = pendingRequests.removeValue(forKey: id) else {
             return
         }
+        cancelRequestTimeout(for: id)
 
         let ok = json["ok"] as? Bool ?? false
         if ok {
@@ -497,6 +529,12 @@ actor GatewayClient {
         let seq = json["seq"] as? Int
 
         if event == "connect.challenge" {
+            if let nonce = payload["nonce"] as? String,
+               nonce.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false {
+                handleConnectChallenge(nonce)
+            } else {
+                gatewayLog.warning("Received connect.challenge without valid nonce")
+            }
             return
         }
 
@@ -528,6 +566,10 @@ actor GatewayClient {
         isConnected = false
 
         gatewayLog.warning("WebSocket disconnected (wasConnected=\(wasConnected))")
+        pingTask?.cancel()
+        pingTask = nil
+        tickWatchdogTask?.cancel()
+        tickWatchdogTask = nil
 
         // Determine the disconnect error
         let disconnectError: Error
@@ -540,6 +582,10 @@ actor GatewayClient {
         } else {
             disconnectError = GatewayClientError.notConnected
         }
+
+        failConnectChallengeWaiter(error: disconnectError)
+        bufferedConnectChallengeNonce = nil
+        cancelAllRequestTimeouts()
 
         // Fail pending requests
         for (_, continuation) in pendingRequests {
@@ -560,6 +606,124 @@ actor GatewayClient {
         isReconnecting = true
     }
 
+    private func sendRequestMessage(_ string: String, requestId: String) async {
+        guard let task = webSocketTask else {
+            failPendingRequest(requestId, error: GatewayClientError.notConnected)
+            return
+        }
+
+        do {
+            try await task.send(.string(string))
+        } catch {
+            failPendingRequest(requestId, error: GatewayClientError.connectionFailed(error.localizedDescription))
+            handleDisconnect()
+        }
+    }
+
+    private func failPendingRequest(_ requestId: String, error: Error) {
+        cancelRequestTimeout(for: requestId)
+        guard let continuation = pendingRequests.removeValue(forKey: requestId) else { return }
+        continuation.resume(throwing: error)
+    }
+
+    private func timeoutRequest(_ requestId: String) {
+        guard pendingRequests[requestId] != nil else {
+            cancelRequestTimeout(for: requestId)
+            return
+        }
+        failPendingRequest(requestId, error: GatewayClientError.timeout)
+    }
+
+    private func waitForConnectChallenge(timeoutSeconds: Double = 6.0) async throws -> String {
+        if let nonce = bufferedConnectChallengeNonce {
+            bufferedConnectChallengeNonce = nil
+            return nonce
+        }
+
+        return try await withCheckedThrowingContinuation { continuation in
+            pendingConnectChallenge = continuation
+            connectChallengeTimeoutTask?.cancel()
+            connectChallengeTimeoutTask = Task { [weak self] in
+                try? await Task.sleep(nanoseconds: UInt64(timeoutSeconds * 1_000_000_000))
+                await self?.failConnectChallengeWaiter(
+                    error: GatewayClientError.connectionFailed("Timed out waiting for connect.challenge")
+                )
+            }
+        }
+    }
+
+    private func handleConnectChallenge(_ nonce: String) {
+        if let continuation = pendingConnectChallenge {
+            pendingConnectChallenge = nil
+            connectChallengeTimeoutTask?.cancel()
+            connectChallengeTimeoutTask = nil
+            continuation.resume(returning: nonce)
+            return
+        }
+
+        bufferedConnectChallengeNonce = nonce
+    }
+
+    private func failConnectChallengeWaiter(error: Error) {
+        connectChallengeTimeoutTask?.cancel()
+        connectChallengeTimeoutTask = nil
+        guard let continuation = pendingConnectChallenge else { return }
+        pendingConnectChallenge = nil
+        continuation.resume(throwing: error)
+    }
+
+    private func resetConnectChallengeState() {
+        connectChallengeTimeoutTask?.cancel()
+        connectChallengeTimeoutTask = nil
+        bufferedConnectChallengeNonce = nil
+        failConnectChallengeWaiter(error: GatewayClientError.notConnected)
+    }
+
+    private func cancelRequestTimeout(for requestId: String) {
+        requestTimeoutTasks.removeValue(forKey: requestId)?.cancel()
+    }
+
+    private func cancelAllRequestTimeouts() {
+        for (_, task) in requestTimeoutTasks {
+            task.cancel()
+        }
+        requestTimeoutTasks.removeAll()
+    }
+
+    private func updateConnectionPolicy(from helloPayload: [String: Any]) {
+        guard let policy = helloPayload["policy"] as? [String: Any] else {
+            return
+        }
+
+        if let tickMs = policy["tickIntervalMs"] as? Double, tickMs > 0 {
+            tickIntervalMs = tickMs
+        } else if let tickMs = policy["tickIntervalMs"] as? Int, tickMs > 0 {
+            tickIntervalMs = Double(tickMs)
+        }
+    }
+
+    private func cleanupAfterFailedConnect(error: Error) {
+        gatewayLog.warning("Gateway connect failed: \(error.localizedDescription, privacy: .public)")
+        receiveTask?.cancel()
+        receiveTask = nil
+        pingTask?.cancel()
+        pingTask = nil
+        tickWatchdogTask?.cancel()
+        tickWatchdogTask = nil
+        failConnectChallengeWaiter(error: error)
+        bufferedConnectChallengeNonce = nil
+        cancelAllRequestTimeouts()
+
+        for (_, continuation) in pendingRequests {
+            continuation.resume(throwing: error)
+        }
+        pendingRequests.removeAll()
+
+        webSocketTask?.cancel(with: .goingAway, reason: nil)
+        webSocketTask = nil
+        isConnected = false
+    }
+
     private func startPingLoop() {
         pingTask?.cancel()
         pingTask = Task { [weak self] in
@@ -572,6 +736,30 @@ actor GatewayClient {
                         Task { await self.handleDisconnect() }
                     }
                 }
+            }
+        }
+    }
+
+    private func startTickWatchdog() {
+        tickWatchdogTask?.cancel()
+        tickWatchdogTask = Task { [weak self] in
+            await self?.runTickWatchdog()
+        }
+    }
+
+    private func runTickWatchdog() async {
+        while !Task.isCancelled {
+            let watchdogMs = max(tickIntervalMs, 1_000) * 2
+            try? await Task.sleep(nanoseconds: UInt64(watchdogMs * 1_000_000))
+            guard !Task.isCancelled else { break }
+            guard isConnected else { break }
+
+            guard let lastInboundMessageAt else { continue }
+            let elapsedMs = Date().timeIntervalSince(lastInboundMessageAt) * 1_000
+            if elapsedMs > watchdogMs {
+                gatewayLog.warning("Gateway watchdog missed inbound frames; reconnecting")
+                handleDisconnect()
+                break
             }
         }
     }

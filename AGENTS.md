@@ -38,6 +38,62 @@ bd sync               # Sync with git
 - NEVER say "ready to push when you are" - YOU must push
 - If push fails, resolve and retry until it succeeds
 
+## Gateway Connection (read this before touching GatewayClient or OpenClawService)
+
+AgentBoard connects to the local OpenClaw gateway over **WebSocket JSON-RPC** (`ws://127.0.0.1:18789`).
+
+### Required: Info.plist ATS exception
+
+The project uses a **real** `AgentBoard/AgentBoard-Info.plist` — `GENERATE_INFOPLIST_FILE = NO`.
+**Do not re-enable auto-generation.** The plist must contain:
+
+```xml
+<key>NSAppTransportSecurity</key>
+<dict>
+    <key>NSAllowsLocalNetworking</key>
+    <true/>
+</dict>
+```
+
+Without this, macOS 26 ATS blocks `ws://` (unencrypted WebSocket) on loopback and the app silently fails to connect with `"Socket is not connected"` on every attempt.
+
+### Required: nonce in every connect handshake
+
+Every call to `GatewayClient.connect()` must:
+1. Wait for `connect.challenge` and read `payload.nonce`
+2. Pass it to `buildAuthPayload(nonce: nonce)` (selects v2 format)
+3. Include `"nonce": nonce` in the `device` dict sent to the gateway
+
+The gateway's JSON schema enforces `nonce` as a required field. Missing it gives `/device must have required property 'nonce'`.
+
+### Config auto-discovery
+
+`AppConfigStore.discoverOpenClawConfig()` reads `~/.openclaw/openclaw.json`:
+- URL: built from `gateway.port` + `gateway.bind`
+- Token: `gateway.auth.token`
+
+### Reconnect model
+
+- Transient disconnects → `handleDisconnect()` — fails pending requests, marks reconnecting, does **not** finish event subscribers. AppState's `startChatConnectionLoop()` will reconnect.
+- User disconnect → `disconnect()` — finishes subscribers, clears all state.
+- Request timeout defaults to ~15s; connect challenge timeout is ~6s; connect RPC timeout is ~12s.
+- Gateway watchdog monitors inbound frame activity (`~2x` policy tick interval). Missed ticks/frames trigger disconnect and reconnect.
+
+### ⚠️ Never edit `AgentBoard.xcodeproj/project.pbxproj` directly
+
+`project.yml` is the source of truth. XcodeGen regenerates the xcodeproj from it — direct pbxproj edits are silently overwritten. All build settings, plist properties, and target config go in `project.yml`. After editing, run:
+```bash
+xcodegen generate
+```
+
+The ATS config (`NSAllowsLocalNetworking`) lives in `project.yml` under `targets.AgentBoard.info.properties` and is written to `AgentBoard/AgentBoard-Info.plist` by XcodeGen.
+
+### Verified working on macOS 26 after 2026-02-24 fixes
+
+See `CLAUDE.md` → "Gateway Connection: Implementation Reference" for full protocol details, diagnosis notes, and the list of issues that were found and fixed.
+
+---
+
 ## Phase 1 Snapshot (2026-02-14)
 
 - Epic `AgentBoard-qrw` and child tasks `AgentBoard-qrw.1` through `AgentBoard-qrw.5` are closed.

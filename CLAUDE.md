@@ -141,6 +141,93 @@
   - `xcodebuild -project AgentBoard.xcodeproj -scheme AgentBoard -destination 'platform=macOS' build` ✅
   - `xcodebuild -project AgentBoard.xcodeproj -scheme AgentBoard -destination 'platform=macOS' test` ✅
 
+## Gateway Connection: Implementation Reference (2026-02-24)
+
+### How the connection works end-to-end
+
+AgentBoard connects to the OpenClaw gateway over a **WebSocket JSON-RPC** protocol.
+
+**Config discovery (automatic)**
+
+`AppConfigStore.discoverOpenClawConfig()` reads `~/.openclaw/openclaw.json` and extracts:
+- Gateway URL: constructed from `gateway.port` + `gateway.bind` → `http://127.0.0.1:18789`
+- Auth token: `gateway.auth.token`
+
+This is used when the user hasn't manually configured a gateway URL in app settings.
+
+**Connection sequence (`GatewayClient.connect`)**
+
+1. Convert `http://` → `ws://` (or `https://` → `wss://`), strip path to root.
+2. Create `URLSessionWebSocketTask` with a 15 s timeout and 16 MB max message size.
+3. Call `task.resume()` + start receive loop.
+4. Wait for `connect.challenge` and read `payload.nonce`.
+5. Load (or generate) `DeviceIdentity` from `~/.agentboard/device-identity.json` — Ed25519 keypair, device ID = SHA-256 of public key raw bytes.
+6. Call `buildAuthPayload(nonce: nonce)` → v2 payload string (pipe-separated: `v2|deviceId|clientId|clientMode|role|scopes|signedAtMs|token|nonce`).
+7. Sign the payload with the Ed25519 private key → base64url signature.
+8. Send `connect` RPC with `minProtocol/maxProtocol: 3`, client metadata, `device: { id, publicKey, signature, signedAt, nonce }`, and `auth: { token }`.
+9. Await `connect` response. On success, set `isConnected = true` and start the ping loop (30 s interval).
+10. Start watchdog timers:
+   - request timeout: default ~15 s
+   - connect challenge timeout: ~6 s
+   - connect request timeout: ~12 s
+   - inbound-frame watchdog: ~2x gateway `policy.tickIntervalMs` (triggers reconnect when stale)
+
+**RPC message format**
+
+Requests: `{ type: "req", id: "<uuid>", method: "<method>", params: { ... } }`
+Responses: `{ type: "res", id: "<uuid>", ok: true/false, payload: { ... } }`
+Events: `{ type: "event", event: "<name>", payload: { ... }, seq: N }`
+
+**Chat streaming**
+
+Events with `event: "chat"` carry `state: "delta" | "final" | "error" | "aborted"`:
+- `delta`: accumulated text so far (not a diff — replace current bubble)
+- `final`: stream complete; reload history via `chat.history` RPC
+- `error` / `aborted`: surfaced in UI
+
+### Issues found and fixed (2026-02-24)
+
+**1. App Transport Security (ATS) blocked `ws://` on loopback**
+
+- **Symptom:** `nw_read_request_report Receive failed with error "Socket is not connected"` on every connection attempt. `wasConnected=false` — never connected. `nw_flow_service_reads No output handler`.
+- **Root cause:** macOS 26 enforces ATS for `URLSessionWebSocketTask` even on loopback (`127.0.0.1`). The auto-generated Info.plist had no ATS config, so `ws://` (unencrypted) was blocked by default.
+- **Diagnosis:** `curl` WebSocket upgrade to `http://127.0.0.1:18789/` returned **101** — the gateway was fine. The failure was purely in-app ATS enforcement.
+- **Fix:** Replaced `GENERATE_INFOPLIST_FILE = YES` with a real `AgentBoard/AgentBoard-Info.plist` containing:
+  ```xml
+  <key>NSAppTransportSecurity</key>
+  <dict>
+      <key>NSAllowsLocalNetworking</key>
+      <true/>
+  </dict>
+  ```
+  `NSAllowsLocalNetworking` grants an ATS exception for loopback + link-local without disabling ATS globally for remote connections.
+- **Build setting:** Set `GENERATE_INFOPLIST_FILE = NO` + `INFOPLIST_FILE = AgentBoard/AgentBoard-Info.plist` in both Debug and Release.
+
+**2. Gateway rejected handshake: missing `nonce` in device object**
+
+- **Symptom:** `/device must have required property 'nonce'` error from gateway schema validation after WebSocket connected.
+- **Root cause:** `GatewayClient.connect()` passed `nonce: nil` to `buildAuthPayload()`, selecting v1 format, and omitted `nonce` from the `device` dict in `connectParams`. The gateway's schema requires `nonce`.
+- **Fix:** Wait for `connect.challenge` and use `payload.nonce`; pass it to `buildAuthPayload(nonce: nonce)` (v2 format), and include `"nonce": nonce` in the `device` dict.
+
+**3. `Preview Content` folder missing**
+
+- **Symptom:** Xcode warning: `One of the paths in DEVELOPMENT_ASSET_PATHS does not exist: .../Preview Content`.
+- **Fix:** `mkdir -p "AgentBoard/Resources/Preview Content"`.
+
+### Key invariants for future coding agents
+
+- **ATS is active.** `ws://` requires `NSAllowsLocalNetworking = YES` in Info.plist. `wss://` works without exception.
+- **`nonce` is required** in the `device` dict and must come from the server's `connect.challenge`.
+- **`buildAuthPayload` v2** is selected when `nonce != nil`. Always pass a nonce.
+- **DeviceIdentity keypair** lives at `~/.agentboard/device-identity.json`. Generated once, reused. Device ID = SHA-256 of raw Ed25519 public key bytes.
+- **Protocol version:** `minProtocol: 3, maxProtocol: 3`.
+- **Token auth:** include `auth: { token: "<gateway token>" }` in connect params. Token is read from `~/.openclaw/openclaw.json` → `gateway.auth.token`.
+- **Reconnect on disconnect:** `handleDisconnect()` does NOT finish event subscribers — streams remain live across reconnects. Only `disconnect()` (user-initiated) finishes subscribers.
+- **`project.yml` is the source of truth** — XcodeGen regenerates the xcodeproj from it. Never edit `AgentBoard.xcodeproj/project.pbxproj` directly; changes will be overwritten on the next `xcodegen generate`. All build settings, plist properties, and target config belong in `project.yml`.
+- **ATS config lives in `project.yml` under `targets.AgentBoard.info.properties`** — XcodeGen's `info` key generates `AgentBoard/AgentBoard-Info.plist` and sets `INFOPLIST_FILE` automatically. Adding `NSAppTransportSecurity.NSAllowsLocalNetworking: true` there is the correct and durable way to configure ATS. Do not use `INFOPLIST_KEY_*` build settings for nested dict values — they only work for flat strings.
+
+---
+
 ## Chat Integration Rewrite (2026-02-16)
 
 **Problem:** Phase 3's chat used `POST /v1/chat/completions` (a stateless REST endpoint) which

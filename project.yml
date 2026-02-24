@@ -24,6 +24,12 @@ targets:
   AgentBoard:
     type: application
     platform: macOS
+    info:
+      path: AgentBoard/AgentBoard-Info.plist
+      properties:
+        NSHumanReadableCopyright: "Copyright © 2026 Blake Crane. All rights reserved."
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
     sources:
       - path: AgentBoard
         excludes:
@@ -39,11 +45,9 @@ targets:
         CURRENT_PROJECT_VERSION: 1
         SWIFT_STRICT_CONCURRENCY: complete
         SWIFT_VERSION: "6.0"
-        GENERATE_INFOPLIST_FILE: YES
         CODE_SIGN_ENTITLEMENTS: AgentBoard/AgentBoard.entitlements
         DEVELOPMENT_ASSET_PATHS: "\"AgentBoard/Resources/Preview Content\""
         ENABLE_PREVIEWS: YES
-        INFOPLIST_KEY_NSHumanReadableCopyright: "Copyright © 2026 Blake Crane. All rights reserved."
         COMBINE_HIDPI_IMAGES: YES
       configs:
         Debug:
