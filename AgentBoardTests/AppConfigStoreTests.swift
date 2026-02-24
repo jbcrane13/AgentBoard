@@ -4,7 +4,7 @@ import Testing
 
 @Suite("AppConfigStore Tests")
 struct AppConfigStoreTests {
-    private let store = AppConfigStore()
+    private let store = AppConfigStore(tokenStorage: InMemoryTokenStorage())
 
     // MARK: - discoverProjects
 
@@ -156,7 +156,7 @@ struct AppConfigStoreTests {
         // by ensuring the store handles missing files gracefully.
 
         // Create a store instance
-        let store = AppConfigStore()
+        let store = AppConfigStore(tokenStorage: InMemoryTokenStorage())
 
         // Call discoverOpenClawConfig - if ~/.openclaw/openclaw.json doesn't exist,
         // it should return nil without crashing

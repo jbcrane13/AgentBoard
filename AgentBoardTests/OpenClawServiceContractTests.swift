@@ -12,6 +12,13 @@ actor MockGatewayClient: GatewayClientServing {
     var lastSentChat: (sessionKey: String, message: String, thinking: String?)?
     var nextSessions: [GatewaySession] = []
 
+    // Tracking for forwarding tests
+    var chatHistoryRequests: [(sessionKey: String, limit: Int)] = []
+    var abortChatRequests: [(sessionKey: String, runId: String?)] = []
+    var patchSessionRequests: [(key: String, thinkingLevel: String?)] = []
+    var agentIdentityRequests: [String?] = []
+    var createSessionRequests: [(label: String?, agentType: String?, beadId: String?)] = []
+
     func connect(url: URL, token: String?) async throws {
         isConnected = true
     }
@@ -28,10 +35,13 @@ actor MockGatewayClient: GatewayClientServing {
     }
 
     func chatHistory(sessionKey: String, limit: Int) async throws -> GatewayChatHistory {
-        GatewayChatHistory(messages: [], thinkingLevel: nil)
+        chatHistoryRequests.append((sessionKey: sessionKey, limit: limit))
+        return GatewayChatHistory(messages: [], thinkingLevel: nil)
     }
 
-    func abortChat(sessionKey: String, runId: String?) async throws {}
+    func abortChat(sessionKey: String, runId: String?) async throws {
+        abortChatRequests.append((sessionKey: sessionKey, runId: runId))
+    }
 
     func listSessions(activeMinutes: Int?, limit: Int?) async throws -> [GatewaySession] {
         nextSessions
@@ -44,7 +54,8 @@ actor MockGatewayClient: GatewayClientServing {
         beadId: String?,
         prompt: String?
     ) async throws -> GatewaySession {
-        GatewaySession(
+        createSessionRequests.append((label: label, agentType: agentType, beadId: beadId))
+        return GatewaySession(
             id: "new-session",
             key: "new-session",
             label: label,
@@ -56,10 +67,13 @@ actor MockGatewayClient: GatewayClientServing {
         )
     }
 
-    func patchSession(key: String, thinkingLevel: String?) async throws {}
+    func patchSession(key: String, thinkingLevel: String?) async throws {
+        patchSessionRequests.append((key: key, thinkingLevel: thinkingLevel))
+    }
 
     func agentIdentity(sessionKey: String?) async throws -> GatewayAgentIdentity {
-        GatewayAgentIdentity(agentId: "codex", name: "AgentBoard Assistant", avatar: nil)
+        agentIdentityRequests.append(sessionKey)
+        return GatewayAgentIdentity(agentId: "codex", name: "AgentBoard Assistant", avatar: nil)
     }
 }
 
@@ -129,5 +143,115 @@ struct OpenClawServiceContractTests {
         } catch {
             #expect(error.localizedDescription.lowercased().contains("internet"))
         }
+    }
+
+    @Test("configure with nil URL falls back to default http://127.0.0.1:18789")
+    func configureNilURLFallsBackToDefault() async throws {
+        let client = MockGatewayClient()
+        let service = OpenClawService(client: client)
+        // nil URL → should not throw and use default
+        try await service.configure(gatewayURLString: nil, token: nil)
+        // Connect to verify it used a valid URL (would throw if URL was nil/invalid)
+        try await service.connect()
+        let connected = await client.isConnected
+        #expect(connected == true)
+    }
+
+    @Test("configure with empty string URL falls back to default")
+    func configureEmptyStringURLFallsBackToDefault() async throws {
+        let client = MockGatewayClient()
+        let service = OpenClawService(client: client)
+        try await service.configure(gatewayURLString: "", token: nil)
+        try await service.connect()
+        let connected = await client.isConnected
+        #expect(connected == true)
+    }
+
+    @Test("configure with empty token sets nil auth")
+    func configureEmptyTokenSetsNilAuth() async throws {
+        let client = MockGatewayClient()
+        let service = OpenClawService(client: client)
+        // Empty token should be treated as nil (no auth)
+        try await service.configure(gatewayURLString: "http://127.0.0.1:18789", token: "")
+        // Should still connect successfully with nil token
+        try await service.connect()
+        let connected = await client.isConnected
+        #expect(connected == true)
+    }
+
+    @Test("chatHistory forwards sessionKey and limit to gateway client")
+    func chatHistoryForwardsToClient() async throws {
+        let client = MockGatewayClient()
+        let service = OpenClawService(client: client)
+        try await service.configure(gatewayURLString: "http://127.0.0.1:18789", token: nil)
+
+        _ = try await service.chatHistory(sessionKey: "main", limit: 50)
+
+        let requests = await client.chatHistoryRequests
+        #expect(requests.count == 1)
+        #expect(requests[0].sessionKey == "main")
+        #expect(requests[0].limit == 50)
+    }
+
+    @Test("abortChat forwards sessionKey and runId to gateway client")
+    func abortChatForwardsToClient() async throws {
+        let client = MockGatewayClient()
+        let service = OpenClawService(client: client)
+        try await service.configure(gatewayURLString: "http://127.0.0.1:18789", token: nil)
+
+        try await service.abortChat(sessionKey: "main", runId: "run-xyz")
+
+        let requests = await client.abortChatRequests
+        #expect(requests.count == 1)
+        #expect(requests[0].sessionKey == "main")
+        #expect(requests[0].runId == "run-xyz")
+    }
+
+    @Test("patchSession forwards key and thinkingLevel to gateway client")
+    func patchSessionForwardsToClient() async throws {
+        let client = MockGatewayClient()
+        let service = OpenClawService(client: client)
+        try await service.configure(gatewayURLString: "http://127.0.0.1:18789", token: nil)
+
+        try await service.patchSession(key: "main", thinkingLevel: "high")
+
+        let requests = await client.patchSessionRequests
+        #expect(requests.count == 1)
+        #expect(requests[0].key == "main")
+        #expect(requests[0].thinkingLevel == "high")
+    }
+
+    @Test("agentIdentity forwards sessionKey to gateway client")
+    func agentIdentityForwardsToClient() async throws {
+        let client = MockGatewayClient()
+        let service = OpenClawService(client: client)
+        try await service.configure(gatewayURLString: "http://127.0.0.1:18789", token: nil)
+
+        let identity = try await service.agentIdentity(sessionKey: "my-session")
+
+        let requests = await client.agentIdentityRequests
+        #expect(requests.count == 1)
+        #expect(requests[0] == "my-session")
+        #expect(identity.name == "AgentBoard Assistant")
+    }
+
+    @Test("agentIdentity with nil sessionKey passes nil to gateway client")
+    func agentIdentityNilSessionKeyPassedThrough() async throws {
+        let client = MockGatewayClient()
+        let service = OpenClawService(client: client)
+        try await service.configure(gatewayURLString: "http://127.0.0.1:18789", token: nil)
+
+        _ = try await service.agentIdentity(sessionKey: nil)
+
+        let requests = await client.agentIdentityRequests
+        #expect(requests.count == 1)
+        #expect(requests[0] == nil)
+    }
+
+    @Test("OpenClawServiceError descriptions are non-empty and descriptive")
+    func openClawServiceErrorDescriptions() {
+        #expect(OpenClawServiceError.invalidGatewayURL.errorDescription?.isEmpty == false)
+        #expect(OpenClawServiceError.notConnected.errorDescription?.isEmpty == false)
+        #expect(OpenClawServiceError.requestFailed("oops").errorDescription?.contains("oops") == true)
     }
 }

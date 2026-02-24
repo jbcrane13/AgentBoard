@@ -25,7 +25,7 @@ struct SettingsPersistenceTests {
         #expect(state.statusMessage == "Saved OpenClaw settings.")
         
         // Verify persistence via AppConfigStore
-        let store = AppConfigStore()
+        let store = AppConfigStore(tokenStorage: InMemoryTokenStorage())
         let loaded = try store.loadOrCreate()
         #expect(loaded.openClawGatewayURL == "http://192.168.1.100:18789")
         #expect(loaded.gatewayConfigSource == "manual")
@@ -89,7 +89,7 @@ struct SettingsPersistenceTests {
         #expect(state.appConfig.isGatewayManual == true)
         
         // Verify persistence
-        let store = AppConfigStore()
+        let store = AppConfigStore(tokenStorage: InMemoryTokenStorage())
         let loaded = try store.loadOrCreate()
         #expect(loaded.isGatewayManual == true)
     }
@@ -146,7 +146,7 @@ struct SettingsPersistenceTests {
         #expect(state.statusMessage == "Projects directory updated.")
         
         // Verify persistence
-        let store = AppConfigStore()
+        let store = AppConfigStore(tokenStorage: InMemoryTokenStorage())
         let loaded = try store.loadOrCreate()
         #expect(loaded.projectsDirectory == tempDir.path)
     }

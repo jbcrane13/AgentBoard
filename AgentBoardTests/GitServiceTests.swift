@@ -135,4 +135,48 @@ struct GitServiceTests {
             }
         }
     }
+
+    // MARK: - fetchCommitDiff
+
+    @Test("fetchCommitDiff returns non-empty diff for the most recent commit")
+    func fetchCommitDiffReturnsContent() async throws {
+        let service = GitService()
+        let commits = try await service.fetchCommits(projectPath: projectURL, limit: 1)
+        let sha = try #require(commits.first?.sha)
+
+        let diff = try await service.fetchCommitDiff(projectPath: projectURL, commitSHA: sha)
+        #expect(!diff.isEmpty)
+    }
+
+    @Test("fetchCommitDiff for non-git directory throws")
+    func fetchCommitDiffOnNonGitDirectoryThrows() async throws {
+        let service = GitService()
+        let tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        do {
+            _ = try await service.fetchCommitDiff(projectPath: tempDir, commitSHA: "abc1234")
+            Issue.record("Expected fetchCommitDiff to throw for non-git directory")
+        } catch {
+            #expect(true)
+        }
+    }
+
+    @Test("fetchCommits on non-git directory throws")
+    func fetchCommitsOnNonGitDirectoryThrows() async throws {
+        let service = GitService()
+        let tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        do {
+            _ = try await service.fetchCommits(projectPath: tempDir, limit: 10)
+            Issue.record("Expected fetchCommits to throw for non-git directory")
+        } catch {
+            #expect(true)
+        }
+    }
 }
