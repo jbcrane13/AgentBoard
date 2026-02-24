@@ -71,16 +71,12 @@ struct ChatSendAndThinkingLevelTests {
 
     private func makeStateWithService() -> (state: AppState, service: HappyPathOpenClawService) {
         let service = HappyPathOpenClawService()
-        AppState(
+        let state = AppState(
             openClawService: service,
             bootstrapOnInit: false,
             startBackgroundLoops: false
         )
-        return (state: AppState(
-            openClawService: service,
-            bootstrapOnInit: false,
-            startBackgroundLoops: false
-        ), service: service)
+        return (state: state, service: service)
     }
 
     // MARK: - Send Message Tests

@@ -1099,7 +1099,7 @@ final class AppState {
         let state = event.chatState ?? ""
 
         switch state {
-        case "delta":
+        case "delta", "streaming":
             // Delta contains the full accumulated text so far
             if let text = event.chatMessageText {
                 chatRunId = event.chatRunId
@@ -1130,7 +1130,7 @@ final class AppState {
                 }
             }
 
-        case "final":
+        case "final", "done":
             isChatStreaming = false
             chatRunId = nil
 
