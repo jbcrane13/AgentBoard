@@ -127,11 +127,6 @@ struct SettingsView: View {
                         HStack(spacing: 8) {
                             SecureField("Auth Token", text: $token)
                                 .textFieldStyle(.roundedBorder)
-
-                            Image(systemName: "lock.fill")
-                                .font(.system(size: 11))
-                                .foregroundStyle(.green)
-                                .help("Token is stored in macOS Keychain")
                         }
                     } else {
                         HStack(spacing: 8) {
@@ -151,12 +146,6 @@ struct SettingsView: View {
                                     Text(token.isEmpty ? "Not found" : maskedToken(token))
                                         .font(.system(size: 11, design: .monospaced))
                                         .foregroundStyle(token.isEmpty ? .red : .primary)
-                                    if !token.isEmpty {
-                                        Image(systemName: "lock.fill")
-                                            .font(.system(size: 9))
-                                            .foregroundStyle(.green)
-                                            .help("Stored in macOS Keychain")
-                                    }
                                 }
                             }
 
@@ -355,7 +344,7 @@ struct SettingsView: View {
                 remoteGuideItem(
                     icon: "lock.fill",
                     title: "Token Security",
-                    text: "Auth tokens are stored in the macOS Keychain, not in config files. They never leave your machine unencrypted."
+                    text: "Auth tokens are saved in ~/.agentboard/config.json on this machine. Restrict local account access if this device is shared."
                 )
             }
             .padding(.top, 6)
@@ -435,10 +424,6 @@ struct SettingsView: View {
         if let discovered = store.discoverOpenClawConfig() {
             gatewayURL = discovered.gatewayURL ?? ""
             token = discovered.token ?? ""
-        }
-        // Also check Keychain
-        if token.isEmpty, let keychainToken = KeychainService.loadToken() {
-            token = keychainToken
         }
     }
 

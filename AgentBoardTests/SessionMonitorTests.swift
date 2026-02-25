@@ -136,21 +136,20 @@ struct SessionMonitorTests {
     
     @Test("isMissingTmuxServer detects tmux server errors")
     func isMissingTmuxServerDetection() {
-        func isMissingTmuxServer(message: String) -> Bool {
-            let lower = message.lowercased()
-            return lower.contains("no server running on")
-                || lower.contains("failed to connect to server")
-                || lower.contains("no such file")
-                || lower.contains("can't find socket")
-                || lower.contains("error connecting to")
-        }
-        
-        #expect(isMissingTmuxServer(message: "no server running on /tmp/socket"))
-        #expect(isMissingTmuxServer(message: "Failed to connect to server"))
-        #expect(isMissingTmuxServer(message: "No such file or directory"))
-        #expect(isMissingTmuxServer(message: "can't find socket"))
-        #expect(isMissingTmuxServer(message: "error connecting to /tmp/socket"))
-        #expect(!isMissingTmuxServer(message: "session already exists"))
-        #expect(!isMissingTmuxServer(message: "command succeeded"))
+        #expect(SessionMonitor.isMissingTmuxServerMessage("no server running on /tmp/socket"))
+        #expect(SessionMonitor.isMissingTmuxServerMessage("Failed to connect to server"))
+        #expect(SessionMonitor.isMissingTmuxServerMessage("No such file or directory"))
+        #expect(SessionMonitor.isMissingTmuxServerMessage("can't find socket"))
+        #expect(SessionMonitor.isMissingTmuxServerMessage("error connecting to /tmp/socket"))
+        #expect(!SessionMonitor.isMissingTmuxServerMessage("session already exists"))
+        #expect(!SessionMonitor.isMissingTmuxServerMessage("command succeeded"))
+    }
+
+    @Test("isMissingSessionQueryMessage treats missing socket/server as session not found")
+    func isMissingSessionQueryMessageDetection() {
+        #expect(SessionMonitor.isMissingSessionQueryMessage("can't find session: test"))
+        #expect(SessionMonitor.isMissingSessionQueryMessage("error connecting to /tmp/openclaw-tmux-sockets/openclaw.sock (No such file or directory)"))
+        #expect(SessionMonitor.isMissingSessionQueryMessage("failed to connect to server"))
+        #expect(!SessionMonitor.isMissingSessionQueryMessage("session already exists"))
     }
 }

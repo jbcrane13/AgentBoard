@@ -154,8 +154,8 @@
   "hotPaths": [
     {
       "path": "AgentBoard/App/AppState.swift",
-      "accessCount": 15,
-      "lastAccessed": 1771980572963,
+      "accessCount": 34,
+      "lastAccessed": 1771996180008,
       "type": "file"
     },
     {
@@ -180,6 +180,18 @@
       "path": "AgentBoardTests/KeychainServiceTests.swift",
       "accessCount": 3,
       "lastAccessed": 1771968310454,
+      "type": "file"
+    },
+    {
+      "path": "AgentBoard/Views/MainWindow/ContentView.swift",
+      "accessCount": 3,
+      "lastAccessed": 1771996117396,
+      "type": "file"
+    },
+    {
+      "path": "AgentBoard/App/AgentBoardApp.swift",
+      "accessCount": 3,
+      "lastAccessed": 1771996185155,
       "type": "file"
     },
     {
@@ -246,12 +258,6 @@
       "path": "AgentBoard/Utilities/AppTheme.swift",
       "accessCount": 2,
       "lastAccessed": 1771980470047,
-      "type": "file"
-    },
-    {
-      "path": "AgentBoard/Views/MainWindow/ContentView.swift",
-      "accessCount": 2,
-      "lastAccessed": 1771980520584,
       "type": "file"
     },
     {
@@ -385,6 +391,54 @@
       "accessCount": 1,
       "lastAccessed": 1771980489174,
       "type": "file"
+    },
+    {
+      "path": "AgentBoard/Views/Board/BoardView.swift",
+      "accessCount": 1,
+      "lastAccessed": 1771996094685,
+      "type": "file"
+    },
+    {
+      "path": "AgentBoard/Models/Bead.swift",
+      "accessCount": 1,
+      "lastAccessed": 1771996095131,
+      "type": "file"
+    },
+    {
+      "path": "AgentBoard/Services/BeadsWatcher.swift",
+      "accessCount": 1,
+      "lastAccessed": 1771996095424,
+      "type": "file"
+    },
+    {
+      "path": "AgentBoard/Views",
+      "accessCount": 1,
+      "lastAccessed": 1771996114631,
+      "type": "directory"
+    },
+    {
+      "path": "AgentBoard/Models/Project.swift",
+      "accessCount": 1,
+      "lastAccessed": 1771996117077,
+      "type": "file"
+    },
+    {
+      "path": "AgentBoard/Views/MainWindow/ProjectHeaderView.swift",
+      "accessCount": 1,
+      "lastAccessed": 1771996117595,
+      "type": "file"
+    },
+    {
+      "path": "AgentBoard/Services/JSONLParser.swift",
+      "accessCount": 1,
+      "lastAccessed": 1771996120543,
+      "type": "file"
+    },
+    {
+      "path": "AgentBoard",
+      "accessCount": 1,
+      "lastAccessed": 1771996121480,
+      "type": "directory"
     }
   ],
   "userDirectives": []

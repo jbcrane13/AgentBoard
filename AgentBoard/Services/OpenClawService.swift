@@ -95,7 +95,10 @@ actor OpenClawService {
             ? gatewayURLString!
             : "http://127.0.0.1:18789"
 
-        guard let url = URL(string: normalized) else {
+        guard let url = URL(string: normalized),
+              let scheme = url.scheme?.lowercased(),
+              (scheme == "http" || scheme == "https" || scheme == "ws" || scheme == "wss"),
+              url.host != nil else {
             throw OpenClawServiceError.invalidGatewayURL
         }
 

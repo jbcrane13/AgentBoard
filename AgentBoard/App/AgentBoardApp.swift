@@ -46,6 +46,13 @@ struct AgentBoardApp: App {
                 .keyboardShortcut("f", modifiers: [.command, .shift])
             }
 
+            CommandGroup(after: .toolbar) {
+                Button("Refresh Beads") {
+                    appState.refreshBeads()
+                }
+                .keyboardShortcut("r", modifiers: [.command])
+            }
+
             CommandMenu("Navigate") {
                 Button("Board") {
                     appState.switchToTab(.board)

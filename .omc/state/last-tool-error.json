@@ -1,7 +1,7 @@
 {
   "tool_name": "Read",
-  "tool_input_preview": "{\"file_path\":\"/Users/blake/Projects/AgentBoard/AgentBoard/Views/ContentView.swift\"}",
-  "error": "File does not exist. Note: your current working directory is /Users/blake/Projects/AgentBoard.",
-  "timestamp": "2026-02-25T00:47:24.162Z",
+  "tool_input_preview": "{\"file_path\":\"/Users/blake/Projects/AgentBoard/AgentBoard/App\"}",
+  "error": "EISDIR: illegal operation on a directory, read '/Users/blake/Projects/AgentBoard/AgentBoard/App'",
+  "timestamp": "2026-02-25T05:08:08.182Z",
   "retry_count": 1
 }

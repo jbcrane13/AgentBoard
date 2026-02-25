@@ -2,11 +2,11 @@ import Foundation
 
 struct AppConfigStore {
     private let fileManager = FileManager.default
-    private let tokenStorage: any TokenStorage
 
-    init(tokenStorage: any TokenStorage = KeychainTokenStorage()) {
-        self.tokenStorage = tokenStorage
-    }
+    init() {}
+
+    // Kept for test/backward compatibility; token storage is no longer used.
+    init(tokenStorage _: any TokenStorage) {}
 
     private var configURL: URL {
         let home = fileManager.homeDirectoryForCurrentUser
@@ -21,20 +21,7 @@ struct AppConfigStore {
             let decoder = JSONDecoder()
             var config = try decoder.decode(AppConfig.self, from: data)
 
-            // Migrate: if token exists in JSON, move it to Keychain
-            if let jsonToken = config.openClawToken, !jsonToken.isEmpty {
-                try? tokenStorage.saveToken(jsonToken)
-                config.openClawToken = nil
-                try? save(config) // Strip token from JSON
-            }
-
             config = hydrateOpenClawIfNeeded(config)
-
-            // Hydrate token from Keychain (unless auto-discover already set one)
-            if config.openClawToken == nil || config.openClawToken?.isEmpty == true {
-                config.openClawToken = tokenStorage.loadToken()
-            }
-
             return config
         }
 
@@ -49,11 +36,6 @@ struct AppConfigStore {
         config.selectedProjectPath = config.projects.first?.path
         config = hydrateOpenClawIfNeeded(config)
 
-        // Hydrate token from Keychain
-        if config.openClawToken == nil || config.openClawToken?.isEmpty == true {
-            config.openClawToken = tokenStorage.loadToken()
-        }
-
         try save(config)
         return config
     }
@@ -64,18 +46,9 @@ struct AppConfigStore {
             try fileManager.createDirectory(at: dirURL, withIntermediateDirectories: true)
         }
 
-        // Save token to Keychain instead of config JSON
-        if let token = config.openClawToken, !token.isEmpty {
-            try? tokenStorage.saveToken(token)
-        }
-
-        // Strip token before writing JSON
-        var stripped = config
-        stripped.openClawToken = nil
-
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        let data = try encoder.encode(stripped)
+        let data = try encoder.encode(config)
         try data.write(to: configURL, options: .atomic)
     }
 

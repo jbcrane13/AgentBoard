@@ -137,6 +137,7 @@ final class AppState {
             startChatConnectionLoop()
             startSessionMonitorLoop()
             startGatewaySessionRefreshLoop()
+            startBeadsPollingLoop()
             coordinationService.startPolling()
             notesService.goToToday()
         }
@@ -740,6 +741,13 @@ final class AppState {
             await refreshBeadsFromCLI(for: project)
         } catch {
             errorMessage = "Failed to create bead: \(error.localizedDescription)"
+        }
+    }
+
+    func refreshBeads() {
+        guard let project = selectedProject else { return }
+        Task {
+            await refreshBeadsFromCLI(for: project)
         }
     }
 
@@ -1358,6 +1366,16 @@ final class AppState {
             beadsFileMissing = true
             errorMessage = error.localizedDescription
             rebuildHistoryEvents()
+        }
+    }
+
+    private func startBeadsPollingLoop() {
+        Task { @MainActor in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(10))
+                guard let project = selectedProject else { continue }
+                loadBeads(for: project)
+            }
         }
     }
 

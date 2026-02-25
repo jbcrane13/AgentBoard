@@ -89,7 +89,7 @@ struct OpenClawServiceContractTests {
         let service = OpenClawService(client: client)
 
         do {
-            try await service.configure(gatewayURLString: "://broken-url", token: nil)
+            try await service.configure(gatewayURLString: "http://", token: nil)
             Issue.record("Expected invalidGatewayURL error.")
         } catch OpenClawServiceError.invalidGatewayURL {
             #expect(true)
@@ -106,7 +106,7 @@ struct OpenClawServiceContractTests {
 
         try await service.sendChat(sessionKey: "main", message: "hello", thinking: "high")
 
-        let sent = client.lastSentChat
+        let sent = await client.lastSentChat
         #expect(sent?.sessionKey == "main")
         #expect(sent?.message == "hello")
         #expect(sent?.thinking == "high")
@@ -115,7 +115,7 @@ struct OpenClawServiceContractTests {
     @Test("listSessions returns gateway client payload")
     func listSessionsReturnsClientData() async throws {
         let client = MockGatewayClient()
-        client.nextSessions = [
+        await client.setNextSessions([
             GatewaySession(
                 id: "main",
                 key: "main",
@@ -126,7 +126,7 @@ struct OpenClawServiceContractTests {
                 lastActiveAt: Date(),
                 thinkingLevel: "low"
             )
-        ]
+        ])
         let service = OpenClawService(client: client)
 
         let sessions = try await service.listSessions(activeMinutes: 60, limit: 5)
@@ -138,14 +138,16 @@ struct OpenClawServiceContractTests {
     @Test("sendChat surfaces gateway errors to callers")
     func sendChatSurfacesGatewayErrors() async throws {
         let client = MockGatewayClient()
-        client.sendChatError = URLError(.notConnectedToInternet)
+        await client.setSendChatError(URLError(.notConnectedToInternet))
         let service = OpenClawService(client: client)
 
         do {
             try await service.sendChat(sessionKey: "main", message: "fail")
             Issue.record("Expected sendChat to throw.")
+        } catch let error as URLError {
+            #expect(error.code == .notConnectedToInternet)
         } catch {
-            #expect(error.localizedDescription.lowercased().contains("internet"))
+            Issue.record("Unexpected error type: \(error)")
         }
     }
 
@@ -157,7 +159,7 @@ struct OpenClawServiceContractTests {
         try await service.configure(gatewayURLString: nil, token: nil)
         // Connect to verify it used a valid URL (would throw if URL was nil/invalid)
         try await service.connect()
-        let connected = client.isConnected
+        let connected = await client.isConnected
         #expect(connected == true)
     }
 
@@ -167,7 +169,7 @@ struct OpenClawServiceContractTests {
         let service = OpenClawService(client: client)
         try await service.configure(gatewayURLString: "", token: nil)
         try await service.connect()
-        let connected = client.isConnected
+        let connected = await client.isConnected
         #expect(connected == true)
     }
 
@@ -179,7 +181,7 @@ struct OpenClawServiceContractTests {
         try await service.configure(gatewayURLString: "http://127.0.0.1:18789", token: "")
         // Should still connect successfully with nil token
         try await service.connect()
-        let connected = client.isConnected
+        let connected = await client.isConnected
         #expect(connected == true)
     }
 
@@ -191,7 +193,7 @@ struct OpenClawServiceContractTests {
 
         _ = try await service.chatHistory(sessionKey: "main", limit: 50)
 
-        let requests = client.chatHistoryRequests
+        let requests = await client.chatHistoryRequests
         #expect(requests.count == 1)
         #expect(requests[0].sessionKey == "main")
         #expect(requests[0].limit == 50)
@@ -205,7 +207,7 @@ struct OpenClawServiceContractTests {
 
         try await service.abortChat(sessionKey: "main", runId: "run-xyz")
 
-        let requests = client.abortChatRequests
+        let requests = await client.abortChatRequests
         #expect(requests.count == 1)
         #expect(requests[0].sessionKey == "main")
         #expect(requests[0].runId == "run-xyz")
@@ -219,7 +221,7 @@ struct OpenClawServiceContractTests {
 
         try await service.patchSession(key: "main", thinkingLevel: "high")
 
-        let requests = client.patchSessionRequests
+        let requests = await client.patchSessionRequests
         #expect(requests.count == 1)
         #expect(requests[0].key == "main")
         #expect(requests[0].thinkingLevel == "high")
@@ -233,7 +235,7 @@ struct OpenClawServiceContractTests {
 
         let identity = try await service.agentIdentity(sessionKey: "my-session")
 
-        let requests = client.agentIdentityRequests
+        let requests = await client.agentIdentityRequests
         #expect(requests.count == 1)
         #expect(requests[0] == "my-session")
         #expect(identity.name == "AgentBoard Assistant")
@@ -247,7 +249,7 @@ struct OpenClawServiceContractTests {
 
         _ = try await service.agentIdentity(sessionKey: nil)
 
-        let requests = client.agentIdentityRequests
+        let requests = await client.agentIdentityRequests
         #expect(requests.count == 1)
         #expect(requests[0] == nil)
     }

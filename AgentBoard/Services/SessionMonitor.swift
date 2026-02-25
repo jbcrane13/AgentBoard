@@ -152,7 +152,11 @@ actor SessionMonitor {
             throw SessionMonitorError.launchFailed("Project path does not exist: \(projectPath.path)")
         }
 
-        if try await sessionExists(sessionName) {
+        // On first launch there may be no tmux server/socket yet; probing with
+        // `has-session` in that state can fail before `new-session` bootstraps it.
+        // Only run collision checks when the socket already exists.
+        if FileManager.default.fileExists(atPath: tmuxSocketPath),
+           try await sessionExists(sessionName) {
             sessionName += "-\(Int(Date().timeIntervalSince1970) % 10_000)"
         }
 
@@ -387,8 +391,8 @@ actor SessionMonitor {
             if let commandError = error as? ShellCommandError {
                 switch commandError {
                 case .failed(let result):
-                    if result.stderr.localizedCaseInsensitiveContains("can't find session")
-                        || result.stdout.localizedCaseInsensitiveContains("can't find session") {
+                    if Self.isMissingSessionQueryMessage(result.stderr)
+                        || Self.isMissingSessionQueryMessage(result.stdout) {
                         return false
                     }
                 case .executableNotFound:
@@ -421,12 +425,22 @@ actor SessionMonitor {
     }
 
     static func isMissingTmuxServer(error: Error) -> Bool {
-        let message = error.localizedDescription.lowercased()
-        return message.contains("no server running on")
-            || message.contains("failed to connect to server")
-            || message.contains("no such file")
-            || message.contains("can't find socket")
-            || message.contains("error connecting to")
+        isMissingTmuxServerMessage(error.localizedDescription)
+    }
+
+    static func isMissingTmuxServerMessage(_ message: String) -> Bool {
+        let lower = message.lowercased()
+        return lower.contains("no server running on")
+            || lower.contains("failed to connect to server")
+            || lower.contains("no such file")
+            || lower.contains("can't find socket")
+            || lower.contains("error connecting to")
+    }
+
+    static func isMissingSessionQueryMessage(_ message: String) -> Bool {
+        let lower = message.lowercased()
+        return lower.contains("can't find session")
+            || isMissingTmuxServerMessage(lower)
     }
 
     private static func slug(from rawValue: String) -> String {
