@@ -19,6 +19,10 @@ actor MockGatewayClient: GatewayClientServing {
     var agentIdentityRequests: [String?] = []
     var createSessionRequests: [(label: String?, agentType: String?, beadId: String?)] = []
 
+    // Setters for test setup — actor properties can't be assigned from outside the actor.
+    func setNextSessions(_ sessions: [GatewaySession]) { nextSessions = sessions }
+    func setSendChatError(_ error: Error?) { sendChatError = error }
+
     func connect(url: URL, token: String?) async throws {
         isConnected = true
     }
@@ -102,7 +106,7 @@ struct OpenClawServiceContractTests {
 
         try await service.sendChat(sessionKey: "main", message: "hello", thinking: "high")
 
-        let sent = await client.lastSentChat
+        let sent = client.lastSentChat
         #expect(sent?.sessionKey == "main")
         #expect(sent?.message == "hello")
         #expect(sent?.thinking == "high")
@@ -111,7 +115,7 @@ struct OpenClawServiceContractTests {
     @Test("listSessions returns gateway client payload")
     func listSessionsReturnsClientData() async throws {
         let client = MockGatewayClient()
-        await client.nextSessions = [
+        client.nextSessions = [
             GatewaySession(
                 id: "main",
                 key: "main",
@@ -134,7 +138,7 @@ struct OpenClawServiceContractTests {
     @Test("sendChat surfaces gateway errors to callers")
     func sendChatSurfacesGatewayErrors() async throws {
         let client = MockGatewayClient()
-        await client.sendChatError = URLError(.notConnectedToInternet)
+        client.sendChatError = URLError(.notConnectedToInternet)
         let service = OpenClawService(client: client)
 
         do {
@@ -153,7 +157,7 @@ struct OpenClawServiceContractTests {
         try await service.configure(gatewayURLString: nil, token: nil)
         // Connect to verify it used a valid URL (would throw if URL was nil/invalid)
         try await service.connect()
-        let connected = await client.isConnected
+        let connected = client.isConnected
         #expect(connected == true)
     }
 
@@ -163,7 +167,7 @@ struct OpenClawServiceContractTests {
         let service = OpenClawService(client: client)
         try await service.configure(gatewayURLString: "", token: nil)
         try await service.connect()
-        let connected = await client.isConnected
+        let connected = client.isConnected
         #expect(connected == true)
     }
 
@@ -175,7 +179,7 @@ struct OpenClawServiceContractTests {
         try await service.configure(gatewayURLString: "http://127.0.0.1:18789", token: "")
         // Should still connect successfully with nil token
         try await service.connect()
-        let connected = await client.isConnected
+        let connected = client.isConnected
         #expect(connected == true)
     }
 
@@ -187,7 +191,7 @@ struct OpenClawServiceContractTests {
 
         _ = try await service.chatHistory(sessionKey: "main", limit: 50)
 
-        let requests = await client.chatHistoryRequests
+        let requests = client.chatHistoryRequests
         #expect(requests.count == 1)
         #expect(requests[0].sessionKey == "main")
         #expect(requests[0].limit == 50)
@@ -201,7 +205,7 @@ struct OpenClawServiceContractTests {
 
         try await service.abortChat(sessionKey: "main", runId: "run-xyz")
 
-        let requests = await client.abortChatRequests
+        let requests = client.abortChatRequests
         #expect(requests.count == 1)
         #expect(requests[0].sessionKey == "main")
         #expect(requests[0].runId == "run-xyz")
@@ -215,7 +219,7 @@ struct OpenClawServiceContractTests {
 
         try await service.patchSession(key: "main", thinkingLevel: "high")
 
-        let requests = await client.patchSessionRequests
+        let requests = client.patchSessionRequests
         #expect(requests.count == 1)
         #expect(requests[0].key == "main")
         #expect(requests[0].thinkingLevel == "high")
@@ -229,7 +233,7 @@ struct OpenClawServiceContractTests {
 
         let identity = try await service.agentIdentity(sessionKey: "my-session")
 
-        let requests = await client.agentIdentityRequests
+        let requests = client.agentIdentityRequests
         #expect(requests.count == 1)
         #expect(requests[0] == "my-session")
         #expect(identity.name == "AgentBoard Assistant")
@@ -243,7 +247,7 @@ struct OpenClawServiceContractTests {
 
         _ = try await service.agentIdentity(sessionKey: nil)
 
-        let requests = await client.agentIdentityRequests
+        let requests = client.agentIdentityRequests
         #expect(requests.count == 1)
         #expect(requests[0] == nil)
     }

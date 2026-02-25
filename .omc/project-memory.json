@@ -153,6 +153,18 @@
   },
   "hotPaths": [
     {
+      "path": "AgentBoard/App/AppState.swift",
+      "accessCount": 15,
+      "lastAccessed": 1771980572963,
+      "type": "file"
+    },
+    {
+      "path": "AgentBoard/Views/Agents/AgentsView.swift",
+      "accessCount": 5,
+      "lastAccessed": 1771980443785,
+      "type": "file"
+    },
+    {
       "path": "AgentBoardTests/AppStateCoverageTests.swift",
       "accessCount": 4,
       "lastAccessed": 1771968468809,
@@ -183,12 +195,6 @@
       "type": "file"
     },
     {
-      "path": "AgentBoard/App/AppState.swift",
-      "accessCount": 2,
-      "lastAccessed": 1771968044281,
-      "type": "file"
-    },
-    {
       "path": "AgentBoardTests/GitServiceParserTests.swift",
       "accessCount": 2,
       "lastAccessed": 1771968133295,
@@ -216,6 +222,42 @@
       "path": "AgentBoardTests/GatewayClientMessageParsingTests.swift",
       "accessCount": 2,
       "lastAccessed": 1771969002522,
+      "type": "file"
+    },
+    {
+      "path": "AgentBoard/Services/CoordinationService.swift",
+      "accessCount": 2,
+      "lastAccessed": 1771980442753,
+      "type": "file"
+    },
+    {
+      "path": "project.yml",
+      "accessCount": 2,
+      "lastAccessed": 1771980453719,
+      "type": "file"
+    },
+    {
+      "path": "AgentBoard/Views/Epics/EpicsView.swift",
+      "accessCount": 2,
+      "lastAccessed": 1771980454282,
+      "type": "file"
+    },
+    {
+      "path": "AgentBoard/Utilities/AppTheme.swift",
+      "accessCount": 2,
+      "lastAccessed": 1771980470047,
+      "type": "file"
+    },
+    {
+      "path": "AgentBoard/Views/MainWindow/ContentView.swift",
+      "accessCount": 2,
+      "lastAccessed": 1771980520584,
+      "type": "file"
+    },
+    {
+      "path": "AgentBoard/Views/Notes/NotesView.swift",
+      "accessCount": 2,
+      "lastAccessed": 1771980550043,
       "type": "file"
     },
     {
@@ -336,6 +378,12 @@
       "path": "AgentBoardTests/AppStateLayoutTests.swift",
       "accessCount": 1,
       "lastAccessed": 1771968366112,
+      "type": "file"
+    },
+    {
+      "path": "AgentBoard/Services/WorkspaceNotesService.swift",
+      "accessCount": 1,
+      "lastAccessed": 1771980489174,
       "type": "file"
     }
   ],

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		014673DCB9DAA060E3D14E47 /* NotesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEE2184D170DEFFBFA2E8898 /* NotesView.swift */; };
 		0510FD77905F204D3FD2200E /* sessions_list_payload.json in Resources */ = {isa = PBXBuildFile; fileRef = 0F01C2E4266CAFC698B2C13F /* sessions_list_payload.json */; };
 		06DC69705C80751A73297E5B /* ProjectListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4DCF267A1558BD01676605F /* ProjectListView.swift */; };
 		0CE498117629DB0A727BE18F /* GitServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 638CE870A90FCCB044DE399A /* GitServiceTests.swift */; };
@@ -74,6 +75,7 @@
 		D03ED94E929136826B2AFBB1 /* TaskDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDF3231CBEE1D572FDB3FA64 /* TaskDetailSheet.swift */; };
 		D44E94BCDFF571BFFD134662 /* GatewayClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4A6C3D36DCC3D583EF0EE2C /* GatewayClient.swift */; };
 		D8E15309117BB782C08A6C76 /* KeychainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6AE7C2D1BC9B6257D23BAD6 /* KeychainService.swift */; };
+		D95DEAB1AD16521BC6D9459A /* WorkspaceNotesService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91B8514E13FF5DE34605F75F /* WorkspaceNotesService.swift */; };
 		DCE0BC40F6DA625CC533D1BF /* GitServiceParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EB74FF6925EF3E111789D3F /* GitServiceParserTests.swift */; };
 		E452FD5CFB11D0CDEDF1D0BF /* CodingSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 145A4BFC09317FCCBABE69B4 /* CodingSession.swift */; };
 		E5C8EBC6F508CF015641CF6B /* AppStateMiscTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CECBA4E697CE435C748A132 /* AppStateMiscTests.swift */; };
@@ -157,6 +159,7 @@
 		8A5DFB4072DF173AEE5FFD04 /* KeychainServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainServiceTests.swift; sourceTree = "<group>"; };
 		8AF1D87D885DF54C43FB53EF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		8D806B0CF6162E5EE89CA61C /* AppStateLayoutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStateLayoutTests.swift; sourceTree = "<group>"; };
+		91B8514E13FF5DE34605F75F /* WorkspaceNotesService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceNotesService.swift; sourceTree = "<group>"; };
 		981E315477AEB367FA9FBC21 /* Project.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Project.swift; sourceTree = "<group>"; };
 		99E22E6B21241B648DFB4223 /* JSONLParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONLParser.swift; sourceTree = "<group>"; };
 		9E251AF742713D24615AA037 /* ConnectionErrorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionErrorTests.swift; sourceTree = "<group>"; };
@@ -164,6 +167,7 @@
 		AB72F151C5258F99F3949B6C /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
 		AC5F7C8ACBBD4BD4FF6282C2 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		AEE0B3D9A03ABB448D5D391E /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		AEE2184D170DEFFBFA2E8898 /* NotesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesView.swift; sourceTree = "<group>"; };
 		B4A6C3D36DCC3D583EF0EE2C /* GatewayClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GatewayClient.swift; sourceTree = "<group>"; };
 		B4F0F32D49217E1515476A4B /* BoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardView.swift; sourceTree = "<group>"; };
 		B70C99F0DC6498D9190C7535 /* GitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitService.swift; sourceTree = "<group>"; };
@@ -364,6 +368,7 @@
 				F6AE7C2D1BC9B6257D23BAD6 /* KeychainService.swift */,
 				F8AC6743B67E34EB380FAAB0 /* OpenClawService.swift */,
 				45105CB7F88820AC05447A0C /* SessionMonitor.swift */,
+				91B8514E13FF5DE34605F75F /* WorkspaceNotesService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -396,6 +401,14 @@
 			path = Board;
 			sourceTree = "<group>";
 		};
+		ACE2A09B10077EEC0B3D99D9 /* Notes */ = {
+			isa = PBXGroup;
+			children = (
+				AEE2184D170DEFFBFA2E8898 /* NotesView.swift */,
+			);
+			path = Notes;
+			sourceTree = "<group>";
+		};
 		B05139B781F837B0C3F97591 /* Models */ = {
 			isa = PBXGroup;
 			children = (
@@ -423,6 +436,7 @@
 				4F8EEDF5AC1AE590A1A46F64 /* Epics */,
 				567DBBD77119BE736026649A /* History */,
 				7462C50CBB7780C4CB74E6B2 /* MainWindow */,
+				ACE2A09B10077EEC0B3D99D9 /* Notes */,
 				391E0DA6917EB84B3FF1AE57 /* RightPanel */,
 				591210C1672E8E6506D997B6 /* Settings */,
 				206BA880DB35C446143EC249 /* Sidebar */,
@@ -638,6 +652,7 @@
 				7B0EF9976BDD4197E73B81A4 /* JSONLParser.swift in Sources */,
 				D8E15309117BB782C08A6C76 /* KeychainService.swift in Sources */,
 				BDA09B57C4BAB789606943C8 /* NewSessionSheet.swift in Sources */,
+				014673DCB9DAA060E3D14E47 /* NotesView.swift in Sources */,
 				BC6C0E8237F921FD44C0F1AB /* OpenClawConnectionState.swift in Sources */,
 				CE46C7D0263F5CBF136A7CC5 /* OpenClawService.swift in Sources */,
 				8F1D4A27BA64ABBAE159D78E /* PairingGuideView.swift in Sources */,
@@ -656,6 +671,7 @@
 				FB84EA666E26BB900A708BDA /* TerminalLauncher.swift in Sources */,
 				AFB23CE97AF9A6B629F7283A /* TerminalView.swift in Sources */,
 				B22F734D30C4B7226097DE3C /* ViewsNavView.swift in Sources */,
+				D95DEAB1AD16521BC6D9459A /* WorkspaceNotesService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

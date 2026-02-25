@@ -31,8 +31,11 @@ struct BeadsWatcherTests {
         try "".write(to: fileURL, atomically: true, encoding: .utf8)
 
         let watcher = BeadsWatcher()
-        var changeCount = 0
-        var errorMessage: String?
+        // nonisolated(unsafe): changeCount is mutated from a file-watcher callback
+        // (background thread). Safe here because Task.sleep + watcher.stop() ensure
+        // all mutations complete before we read the value in #expect.
+        nonisolated(unsafe) var changeCount = 0
+        nonisolated(unsafe) var errorMessage: String?
 
         watcher.watch(fileURL: fileURL, onChange: {
             changeCount += 1

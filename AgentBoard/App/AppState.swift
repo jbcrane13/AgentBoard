@@ -5,6 +5,7 @@ enum CenterTab: String, CaseIterable, Sendable {
     case board = "Board"
     case epics = "Epics"
     case agents = "Agents"
+    case notes = "Notes"
     case history = "History"
 }
 
@@ -70,6 +71,7 @@ final class AppState {
     var boardVisible: Bool = !UserDefaults.standard.bool(forKey: "AB_boardCollapsed")
 
     let coordinationService = CoordinationService()
+    let notesService = WorkspaceNotesService()
 
     private let configStore = AppConfigStore()
     private let parser = JSONLParser()
@@ -136,6 +138,7 @@ final class AppState {
             startSessionMonitorLoop()
             startGatewaySessionRefreshLoop()
             coordinationService.startPolling()
+            notesService.goToToday()
         }
     }
 
@@ -175,6 +178,8 @@ final class AppState {
         case .history:
             sidebarNavSelection = .history
         case .agents:
+            break
+        case .notes:
             break
         }
     }
