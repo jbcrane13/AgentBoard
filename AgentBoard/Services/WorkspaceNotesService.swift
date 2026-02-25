@@ -16,8 +16,14 @@ final class WorkspaceNotesService {
     var dailyNotes: String = ""
     var ontologyEntries: [OntologyDayEntry] = []
 
-    private let workspaceRoot = NSString(string: "~/.openclaw/workspace").expandingTildeInPath
-    private let ontologyPath = NSString(string: "~/.openclaw/workspace/memory/ontology/graph.jsonl").expandingTildeInPath
+    private let workspaceRoot: String
+    private let ontologyPath: String
+
+    init(workspaceRoot: String = NSString(string: "~/.openclaw/workspace").expandingTildeInPath,
+         ontologyPath: String = NSString(string: "~/.openclaw/workspace/memory/ontology/graph.jsonl").expandingTildeInPath) {
+        self.workspaceRoot = workspaceRoot
+        self.ontologyPath = ontologyPath
+    }
 
     private let dayFormatter: DateFormatter = {
         let f = DateFormatter()
