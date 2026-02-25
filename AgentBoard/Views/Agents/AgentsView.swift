@@ -17,14 +17,214 @@ struct AgentsView: View {
         let startedAt: Date?
     }
 
+    @State private var expandedHandoffID: String?
+
     var body: some View {
-        VStack(spacing: 10) {
-            statsRow
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                statsRow
+                agentStatusSection
+                handoffsSection
+                sessionTableSection
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    // MARK: - Agent Status Cards
+
+    private var agentStatusSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Agent Status")
+                .font(.system(size: 18, weight: .semibold))
+
+            let statuses = appState.coordinationService.agentStatuses
+            if statuses.isEmpty {
+                HStack {
+                    Spacer()
+                    Text("No agent status data")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                }
+                .padding(.vertical, 20)
+                .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 10))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(AppTheme.subtleBorder, lineWidth: 1)
+                )
+            } else {
+                HStack(spacing: 10) {
+                    ForEach(statuses) { entry in
+                        agentStatusCard(entry)
+                    }
+                    if statuses.count < 2 {
+                        Spacer()
+                    }
+                }
+            }
+        }
+    }
+
+    private func agentStatusCard(_ entry: AgentStatusEntry) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(agentEmoji(entry.agent) + " " + entry.agent.capitalized)
+                    .font(.system(size: 14, weight: .semibold))
+                Spacer()
+                agentStatusBadge(entry.status)
+            }
+
+            Text(entry.currentTask.isEmpty ? "No active task" : entry.currentTask)
+                .font(.system(size: 12))
+                .foregroundStyle(entry.currentTask.isEmpty ? .secondary : .primary)
+                .lineLimit(2)
+
+            Text("Updated: \(entry.updated)")
+                .font(.system(size: 10))
+                .foregroundStyle(.secondary)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 10))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(AppTheme.subtleBorder, lineWidth: 1)
+        )
+    }
+
+    private func agentEmoji(_ agent: String) -> String {
+        switch agent.lowercased() {
+        case "daneel": return "🤖"
+        case "quentin": return "🔬"
+        default: return "🔹"
+        }
+    }
+
+    private func agentStatusBadge(_ status: String) -> some View {
+        Text(status.capitalized)
+            .font(.system(size: 10, weight: .semibold))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .foregroundStyle(.white)
+            .background(agentStatusColor(status), in: Capsule())
+            .opacity(status.lowercased() == "offline" ? 0.5 : 1.0)
+    }
+
+    private func agentStatusColor(_ status: String) -> Color {
+        switch status.lowercased() {
+        case "idle": return .gray
+        case "working": return .blue
+        case "blocked": return .orange
+        case "offline": return .gray
+        default: return .gray
+        }
+    }
+
+    // MARK: - Active Handoffs
+
+    private var handoffsSection: some View {
+        let activeHandoffs = appState.coordinationService.handoffs
+            .filter { $0.status != "done" && $0.status != "rejected" }
+
+        return VStack(alignment: .leading, spacing: 8) {
+            Text("Active Handoffs")
+                .font(.system(size: 18, weight: .semibold))
+
+            if activeHandoffs.isEmpty {
+                HStack {
+                    Spacer()
+                    Text("No active handoffs")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                }
+                .padding(.vertical, 14)
+                .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 10))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(AppTheme.subtleBorder, lineWidth: 1)
+                )
+            } else {
+                VStack(spacing: 6) {
+                    ForEach(activeHandoffs) { handoff in
+                        handoffRow(handoff)
+                    }
+                }
+            }
+        }
+    }
+
+    private func handoffRow(_ handoff: HandoffEntry) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                Text("\(agentEmoji(handoff.fromAgent)) → \(agentEmoji(handoff.toAgent))")
+                    .font(.system(size: 13))
+
+                Text(handoff.task)
+                    .font(.system(size: 12))
+                    .lineLimit(1)
+                    .foregroundStyle(.primary)
+
+                Spacer()
+
+                handoffStatusBadge(handoff.status)
+
+                Text(handoff.date)
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+            }
+
+            if expandedHandoffID == handoff.id {
+                Text(handoff.context)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 2)
+            }
+        }
+        .padding(10)
+        .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 8))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(AppTheme.subtleBorder, lineWidth: 1)
+        )
+        .contentShape(Rectangle())
+        .onTapGesture {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                expandedHandoffID = expandedHandoffID == handoff.id ? nil : handoff.id
+            }
+        }
+    }
+
+    private func handoffStatusBadge(_ status: String) -> some View {
+        Text(status.replacingOccurrences(of: "_", with: " ").capitalized)
+            .font(.system(size: 10, weight: .semibold))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .foregroundStyle(.white)
+            .background(handoffStatusColor(status), in: Capsule())
+    }
+
+    private func handoffStatusColor(_ status: String) -> Color {
+        switch status.lowercased() {
+        case "pending": return .orange
+        case "accepted", "in_progress": return .blue
+        case "done": return .green
+        case "rejected": return .red
+        default: return .gray
+        }
+    }
+
+    // MARK: - Sessions Table
+
+    private var sessionTableSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Sessions")
+                .font(.system(size: 18, weight: .semibold))
             agentTable
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var rows: [AgentRow] {

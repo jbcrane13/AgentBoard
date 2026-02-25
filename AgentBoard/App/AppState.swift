@@ -69,6 +69,8 @@ final class AppState {
     var sidebarVisible: Bool = !UserDefaults.standard.bool(forKey: "AB_sidebarCollapsed")
     var boardVisible: Bool = !UserDefaults.standard.bool(forKey: "AB_boardCollapsed")
 
+    let coordinationService = CoordinationService()
+
     private let configStore = AppConfigStore()
     private let parser = JSONLParser()
     private let watcher = BeadsWatcher()
@@ -133,6 +135,7 @@ final class AppState {
             startChatConnectionLoop()
             startSessionMonitorLoop()
             startGatewaySessionRefreshLoop()
+            coordinationService.startPolling()
         }
     }
 
@@ -431,11 +434,15 @@ final class AppState {
             )
 
             chatMessages = history.messages.compactMap { msg in
-                let role: MessageRole = switch msg.role {
-                case "user": .user
-                case "assistant": .assistant
-                default: .system
+                // Only surface user and assistant turns — filter out tool calls,
+                // tool results, system prompts, and any other internal role types
+                let role: MessageRole
+                switch msg.role {
+                case "user": role = .user
+                case "assistant": role = .assistant
+                default: return nil
                 }
+
                 let text = msg.text.trimmingCharacters(in: .whitespacesAndNewlines)
 
                 // Filter out NO_REPLY markers and empty assistant messages
