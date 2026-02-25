@@ -99,6 +99,7 @@ struct AgentsView: View {
         switch agent.lowercased() {
         case "daneel": return "🤖"
         case "quentin": return "🔬"
+        case "argus": return "⚙️"
         default: return "🔹"
         }
     }

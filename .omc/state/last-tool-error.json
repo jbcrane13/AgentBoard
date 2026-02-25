@@ -1,7 +1,0 @@
-{
-  "tool_name": "Read",
-  "tool_input_preview": "{\"file_path\":\"/Users/blake/Projects/AgentBoard/AgentBoard/App\"}",
-  "error": "EISDIR: illegal operation on a directory, read '/Users/blake/Projects/AgentBoard/AgentBoard/App'",
-  "timestamp": "2026-02-25T05:08:08.182Z",
-  "retry_count": 1
-}

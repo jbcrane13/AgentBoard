@@ -5,6 +5,7 @@ enum CenterTab: String, CaseIterable, Sendable {
     case board = "Board"
     case epics = "Epics"
     case agents = "Agents"
+    case agentTasks = "Agent Tasks"
     case notes = "Notes"
     case history = "History"
 }
@@ -12,6 +13,7 @@ enum CenterTab: String, CaseIterable, Sendable {
 enum SidebarNavItem: String, CaseIterable, Sendable {
     case board = "Board"
     case epics = "Epics"
+    case agentTasks = "Agent Tasks"
     case history = "History"
     case settings = "Settings"
 }
@@ -161,6 +163,8 @@ final class AppState {
             selectedTab = .board
         case .epics:
             selectedTab = .epics
+        case .agentTasks:
+            selectedTab = .agentTasks
         case .history:
             selectedTab = .history
         case .settings:
@@ -176,6 +180,8 @@ final class AppState {
             sidebarNavSelection = .board
         case .epics:
             sidebarNavSelection = .epics
+        case .agentTasks:
+            sidebarNavSelection = .agentTasks
         case .history:
             sidebarNavSelection = .history
         case .agents:

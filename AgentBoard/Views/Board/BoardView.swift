@@ -432,7 +432,12 @@ private struct BeadEditorForm: View {
                     Text("P4 - Backlog").tag(4)
                 }
 
-                TextField("Assignee", text: $draft.assignee)
+                Picker("Assignee", selection: $draft.assignee) {
+                    Text("Unassigned").tag("")
+                    Text("🤖 Daneel").tag("daneel")
+                    Text("🔬 Quentin").tag("quentin")
+                    Text("⚙️ Argus").tag("argus")
+                }
                 TextField("Labels (comma-separated)", text: $draft.labelsText)
 
                 if draft.kind != .epic {

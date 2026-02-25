@@ -195,6 +195,8 @@ struct ContentView: View {
             EpicsView()
         case .agents:
             AgentsView()
+        case .agentTasks:
+            AgentTasksView()
         case .notes:
             NotesView()
         case .history:

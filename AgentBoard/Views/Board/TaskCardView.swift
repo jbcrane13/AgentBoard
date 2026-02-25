@@ -28,7 +28,7 @@ struct TaskCardView: View {
                 Spacer()
 
                 if let assignee = bead.assignee, !assignee.isEmpty {
-                    Text(assignee)
+                    Text(agentDisplayName(assignee))
                         .font(.system(size: 10))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -87,6 +87,15 @@ struct TaskCardView: View {
         case 2: .yellow
         case 3: .blue
         default: .gray
+        }
+    }
+
+    private func agentDisplayName(_ agentID: String) -> String {
+        switch agentID.lowercased() {
+        case "daneel": return "🤖 Daneel"
+        case "quentin": return "🔬 Quentin"
+        case "argus": return "⚙️ Argus"
+        default: return agentID
         }
     }
 

@@ -141,9 +141,14 @@ struct TaskDetailSheet: View {
                         .foregroundStyle(.secondary)
                         .textCase(.uppercase)
 
-                    TextField("Unassigned", text: $draft.assignee)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 200)
+                    Picker("", selection: $draft.assignee) {
+                        Text("Unassigned").tag("")
+                        Text("🤖 Daneel").tag("daneel")
+                        Text("🔬 Quentin").tag("quentin")
+                        Text("⚙️ Argus").tag("argus")
+                    }
+                    .labelsHidden()
+                    .frame(width: 200)
                 }
 
                 if draft.kind != .epic {
