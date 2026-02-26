@@ -372,6 +372,35 @@ final class AgentBoardUITests: XCTestCase {
         }
     }
 
+    func testHistoryFilterInteraction() throws {
+        // Navigate to History view
+        clickButton("History")
+
+        // Verify All Events filter button is present (default)
+        requireButton("All Events")
+
+        // Verify window is stable in History view
+        XCTAssertTrue(requireWindow().exists, "Window should exist in History view")
+
+        // Look for Commits filter button and click if it exists
+        let commitsButton = testApp.buttons["Commits"].firstMatch
+        if commitsButton.waitForExistence(timeout: 2) {
+            commitsButton.click()
+
+            // Verify app remains stable after clicking Commits filter
+            XCTAssertTrue(
+                requireWindow().exists,
+                "Window should remain visible after clicking Commits filter"
+            )
+
+            // Verify History view is still active (filter buttons should still be accessible)
+            XCTAssertTrue(
+                testApp.buttons["All Events"].waitForExistence(timeout: 2),
+                "History filter buttons should still be accessible after clicking Commits"
+            )
+        }
+    }
+
     // MARK: - Area 9: Epics, Agents, Canvas Controls
 
     func testAgentsViewShowsSessionsContent() throws {
