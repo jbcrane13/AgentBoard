@@ -22,6 +22,21 @@ struct AppConfigStore {
             var config = try decoder.decode(AppConfig.self, from: data)
 
             config = hydrateOpenClawIfNeeded(config)
+
+            // Auto-discover projects if none configured
+            if config.projects.isEmpty {
+                var updatedConfig = config
+                updatedConfig.projects = discoverProjects(in: config.resolvedProjectsDirectory)
+                updatedConfig.selectedProjectPath = updatedConfig.projects.first?.path
+                config = updatedConfig
+                try? save(config)
+            }
+
+            // Hydrate token from Keychain (unless auto-discover already set one)
+            if config.openClawToken == nil || config.openClawToken?.isEmpty == true {
+                config.openClawToken = KeychainService.loadToken()
+            }
+
             return config
         }
 

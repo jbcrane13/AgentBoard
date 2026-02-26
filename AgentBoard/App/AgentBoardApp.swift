@@ -5,11 +5,11 @@ struct AgentBoardApp: App {
     @State private var appState = AppState()
 
     var body: some Scene {
-        WindowGroup("AgentBoard") {
+        WindowGroup("AgentBoard", content: {
             ContentView()
                 .environment(appState)
                 .preferredColorScheme(nil)
-        }
+        })
         .defaultSize(width: 1280, height: 820)
         .windowResizability(.contentSize)
         .commands {

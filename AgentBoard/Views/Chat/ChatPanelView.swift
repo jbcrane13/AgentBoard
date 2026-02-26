@@ -4,6 +4,7 @@ struct ChatPanelView: View {
     @Environment(AppState.self) private var appState
     @State private var inputText = ""
     @State private var handledFocusRequestID = 0
+    @State private var showingEmojiPicker = false
     @FocusState private var isInputFocused: Bool
 
     var body: some View {
@@ -13,6 +14,9 @@ struct ChatPanelView: View {
             messageList
             contextBar
             chatInput
+        }
+        .popover(isPresented: $showingEmojiPicker, arrowEdge: .bottom) {
+            emojiPickerPopover
         }
         .onAppear {
             appState.clearUnreadChatCount()
@@ -220,12 +224,16 @@ struct ChatPanelView: View {
                 Text(appState.agentName)
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(Color.accentColor)
-                HStack(spacing: 4) {
-                    Circle().frame(width: 6, height: 6)
-                    Circle().frame(width: 6, height: 6)
-                    Circle().frame(width: 6, height: 6)
+                TimelineView(.animation(minimumInterval: 0.1, paused: false)) { _ in
+                    HStack(spacing: 4) {
+                        ForEach(0..<3) { index in
+                            Circle()
+                                .frame(width: 6, height: 6)
+                                .opacity(typingDotOpacity(for: index))
+                        }
+                    }
+                    .foregroundStyle(.secondary)
                 }
-                .foregroundStyle(.secondary)
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
@@ -237,6 +245,12 @@ struct ChatPanelView: View {
             ))
             Spacer(minLength: 20)
         }
+    }
+
+    private func typingDotOpacity(for index: Int) -> Double {
+        let offset = Double(index) * 0.2
+        let phase = (Date().timeIntervalSince1970 + offset).truncatingRemainder(dividingBy: 0.6) / 0.6
+        return 0.3 + 0.7 * abs(sin(phase * .pi))
     }
 
     // MARK: - Context Bar
@@ -277,6 +291,16 @@ struct ChatPanelView: View {
 
     private var chatInput: some View {
         HStack(alignment: .bottom, spacing: 8) {
+            // Emoji picker button
+            Button(action: showEmojiPicker) {
+                Image(systemName: "face.smiling")
+                    .font(.system(size: 16))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 28, height: 28)
+            }
+            .buttonStyle(.plain)
+            .help("Insert emoji")
+
             TextEditor(text: $inputText)
                 .font(.system(size: 13))
                 .frame(minHeight: 40, maxHeight: 110)
@@ -334,6 +358,40 @@ struct ChatPanelView: View {
         .shadow(color: .black.opacity(0.04), radius: 1.5, y: 1)
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
+    }
+
+    private func showEmojiPicker() {
+        showingEmojiPicker = true
+    }
+
+    private var emojiPickerPopover: some View {
+        let commonEmojis = ["👍", "👎", "❤️", "🎉", "🤔", "👏", "🔥", "✅", "❌", "🚀",
+                           "😀", "😂", "🙂", "🙃", "😉", "😊", "🤗", "🤩", "🥳", "😎",
+                           "👀", "💡", "⚠️", "🐛", "🔧", "📊", "📈", "📉", "💾", "🗑️"]
+
+        return VStack(spacing: 8) {
+            Text("Insert Emoji")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.secondary)
+
+            LazyVGrid(columns: Array(repeating: GridItem(.fixed(32)), count: 10), spacing: 4) {
+                ForEach(commonEmojis, id: \.self) { emoji in
+                    Button(action: {
+                        inputText.append(emoji)
+                        showingEmojiPicker = false
+                        isInputFocused = true
+                    }) {
+                        Text(emoji)
+                            .font(.system(size: 20))
+                    }
+                    .buttonStyle(.plain)
+                    .frame(width: 32, height: 32)
+                }
+            }
+            .padding(8)
+        }
+        .padding(12)
+        .frame(width: 360)
     }
 
     private func sendMessage() {

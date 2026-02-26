@@ -48,6 +48,8 @@ struct TaskCardView: View {
         .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 8))
         .shadow(color: .black.opacity(0.06), radius: 1.5, y: 1)
         .opacity(bead.status == .done ? 0.7 : 1.0)
+        .accessibilityIdentifier("BeadCard")
+        .accessibilityLabel("\(bead.id): \(bead.title)")
     }
 
     private var kindTag: some View {

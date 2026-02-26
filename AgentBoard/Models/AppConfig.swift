@@ -9,6 +9,8 @@ struct AppConfig: Codable, Sendable {
     var gatewayConfigSource: String?
     /// Root directory for auto-discovering projects with .beads/ folders. Defaults to ~/Projects.
     var projectsDirectory: String?
+    /// Show detailed tool/subagent output in chat. Default: false (suppressed)
+    var showToolOutputInChat: Bool?
 
     var isGatewayManual: Bool {
         gatewayConfigSource == "manual"

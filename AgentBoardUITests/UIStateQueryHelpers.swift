@@ -21,7 +21,8 @@ final class UIStateQueryHelper {
     
     /// Check if a bead with the given title is visible
     func beadIsVisible(title: String) -> Bool {
-        app.staticTexts[title].exists || app.buttons[title].exists
+        app.staticTexts[title].exists 
+            || app.buttons.matching(NSPredicate(format: "label CONTAINS %@", title)).firstMatch.exists
     }
     
     /// Find a bead card by title

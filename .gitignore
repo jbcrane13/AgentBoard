@@ -42,3 +42,6 @@ beads.db
 .beads/interactions.jsonl
 .claude/
 .claude-code-supervisor.yml
+
+# Claude Code
+.claude/

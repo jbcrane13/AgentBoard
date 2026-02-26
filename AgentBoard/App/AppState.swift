@@ -43,6 +43,9 @@ final class AppState {
     var isLoadingBeads = false
     var statusMessage: String?
     var errorMessage: String?
+    private var errorDismissTask: Task<Void, Never>?
+    private var errorProjectID: UUID?
+    private var streamingSafetyTimeoutTask: Task<Void, Never>?
     var selectedBeadID: String?
     var chatConnectionState: OpenClawConnectionState = .disconnected
     var isChatStreaming = false
@@ -145,9 +148,69 @@ final class AppState {
         sidebarNavSelection = .board
         selectedTab = .board
         activeSessionID = nil
+        clearErrorIfProjectChanged()
         persistSelectedProject()
         updateActiveProjectFlags()
         reloadSelectedProjectAndWatch()
+    }
+
+    private func clearErrorIfProjectChanged() {
+        if let currentProjectID = selectedProjectID,
+           let errorProject = errorProjectID,
+           currentProjectID != errorProject {
+            errorMessage = nil
+        }
+    }
+
+    func setError(_ message: String?) {
+        if let message {
+            errorMessage = message
+            startErrorDismissTimer()
+        } else {
+            errorMessage = nil
+            cancelErrorDismissTimer()
+        }
+    }
+
+    private func startErrorDismissTimer() {
+        cancelErrorDismissTimer()
+        errorProjectID = selectedProjectID
+        errorDismissTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(30))
+            guard let self, !Task.isCancelled else { return }
+            await MainActor.run {
+                self.errorMessage = nil
+                self.errorProjectID = nil
+            }
+        }
+    }
+
+    private func cancelErrorDismissTimer() {
+        errorDismissTask?.cancel()
+        errorDismissTask = nil
+    }
+
+    /// Starts a safety timeout to clear streaming indicator if final event never arrives
+    private func startStreamingSafetyTimeout(timeoutSeconds: Int = 120) {
+        streamingSafetyTimeoutTask?.cancel()
+        streamingSafetyTimeoutTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(timeoutSeconds))
+            guard let self, !Task.isCancelled else { return }
+            await MainActor.run {
+                // Only clear if we're still in the same run
+                self.isChatStreaming = false
+            }
+        }
+    }
+
+    private func cancelStreamingSafetyTimeout() {
+        streamingSafetyTimeoutTask?.cancel()
+        streamingSafetyTimeoutTask = nil
+    }
+
+    func updateShowToolOutput(_ value: Bool) {
+        appConfig.showToolOutputInChat = value
+        persistConfig()
     }
 
     func navigate(to item: SidebarNavItem) {
@@ -373,7 +436,7 @@ final class AppState {
                 messageID: assistantID,
                 content: "Failed to send message: \(error.localizedDescription)"
             )
-            errorMessage = error.localizedDescription
+            setError(error.localizedDescription)
             isChatStreaming = false
             startChatConnectionLoop()
         }
@@ -386,7 +449,7 @@ final class AppState {
                 runId: chatRunId
             )
         } catch {
-            errorMessage = error.localizedDescription
+            setError(error.localizedDescription)
         }
     }
 
@@ -428,7 +491,7 @@ final class AppState {
                 statusMessage = "Thinking set to default."
             }
         } catch {
-            errorMessage = error.localizedDescription
+            setError(error.localizedDescription)
         }
     }
 
@@ -466,7 +529,7 @@ final class AppState {
         } catch {
             // Don't show error for initial load — gateway may not be connected yet
             if chatConnectionState == .connected {
-                errorMessage = error.localizedDescription
+                setError(error.localizedDescription)
             }
         }
     }
@@ -549,7 +612,7 @@ final class AppState {
             rightPanelMode = .canvas
             statusMessage = "Opened \(url.lastPathComponent) in canvas."
         } catch {
-            errorMessage = error.localizedDescription
+            setError(error.localizedDescription)
         }
     }
 
@@ -580,7 +643,7 @@ final class AppState {
             rightPanelMode = .canvas
             statusMessage = "Opened \(summary.latestCommit.shortSHA) diff in canvas."
         } catch {
-            errorMessage = error.localizedDescription
+            setError(error.localizedDescription)
         }
     }
 
@@ -608,7 +671,7 @@ final class AppState {
             try await sessionMonitor.sendNudge(session: sessionID)
             statusMessage = "Sent nudge to \(sessionID)."
         } catch {
-            errorMessage = error.localizedDescription
+            setError(error.localizedDescription)
         }
     }
 
@@ -631,9 +694,15 @@ final class AppState {
             statusMessage = "Created session \(session.key)."
             return true
         } catch {
-            errorMessage = error.localizedDescription
+            setError(error.localizedDescription)
             return false
         }
+    }
+
+    /// Check if running in UI test mode with mocked terminal launcher
+    private var isMockTerminalLauncherEnabled: Bool {
+        UserDefaults.standard.bool(forKey: "AB_mockTerminalLauncher")
+            || ProcessInfo.processInfo.arguments.contains("--mock-terminal-launcher")
     }
 
     @discardableResult
@@ -654,23 +723,25 @@ final class AppState {
             await refreshSessionsFromMonitor()
             activeSessionID = sessionID
 
-            // Open the session in a terminal window
-            let tmuxSocketPath = "/tmp/openclaw-tmux-sockets/openclaw.sock"
-            let attachCommand = "tmux -S \(tmuxSocketPath) attach -t \(sessionID)"
+            // Open the session in a terminal window (skip during UI tests)
+            if !isMockTerminalLauncherEnabled {
+                let tmuxSocketPath = "/tmp/openclaw-tmux-sockets/openclaw.sock"
+                let attachCommand = "tmux -S \(tmuxSocketPath) attach -t \(sessionID)"
 
-            do {
-                try await TerminalLauncher.openInTerminal(
-                    command: attachCommand,
-                    workingDirectory: project.path.path
-                )
-            } catch {
-                // Terminal launch failed, but session was created - just log the error
-                print("Failed to open terminal window: \(error.localizedDescription)")
+                do {
+                    try await TerminalLauncher.openInTerminal(
+                        command: attachCommand,
+                        workingDirectory: project.path.path
+                    )
+                } catch {
+                    // Terminal launch failed, but session was created - just log the error
+                    print("Failed to open terminal window: \(error.localizedDescription)")
+                }
             }
 
             return true
         } catch {
-            errorMessage = error.localizedDescription
+            setError(error.localizedDescription)
             return false
         }
     }
@@ -684,7 +755,7 @@ final class AppState {
             statusMessage = "Initialized beads for \(project.name)."
             reloadSelectedProjectAndWatch()
         } catch {
-            errorMessage = error.localizedDescription
+            setError(error.localizedDescription)
         }
     }
 
@@ -809,7 +880,7 @@ final class AppState {
             statusMessage = "Updated \(bead.id)."
             await refreshBeadsFromCLI(for: project)
         } catch {
-            errorMessage = error.localizedDescription
+            setError(error.localizedDescription)
         }
     }
 
@@ -826,7 +897,7 @@ final class AppState {
             statusMessage = "Moved \(bead.id) to \(status.rawValue)."
             await refreshBeadsFromCLI(for: project)
         } catch {
-            errorMessage = error.localizedDescription
+            setError(error.localizedDescription)
         }
     }
 
@@ -848,7 +919,7 @@ final class AppState {
             statusMessage = "Closed \(bead.id)."
             await refreshBeadsFromCLI(for: project)
         } catch {
-            errorMessage = error.localizedDescription
+            setError(error.localizedDescription)
         }
     }
 
@@ -895,7 +966,7 @@ final class AppState {
             await refreshSessionsFromMonitor()
             await refreshBeadsFromCLI(for: project)
         } catch {
-            errorMessage = error.localizedDescription
+            setError(error.localizedDescription)
         }
     }
 
@@ -930,7 +1001,7 @@ final class AppState {
             statusMessage = "Created epic \(epicID)."
             reloadSelectedProjectAndWatch()
         } catch {
-            errorMessage = error.localizedDescription
+            setError(error.localizedDescription)
         }
     }
 
@@ -946,7 +1017,7 @@ final class AppState {
                 workingDirectory: project.path.path
             )
         } catch {
-            errorMessage = error.localizedDescription
+            setError(error.localizedDescription)
         }
     }
 
@@ -955,7 +1026,7 @@ final class AppState {
             appConfig = try configStore.loadOrCreate()
         } catch {
             appConfig = .empty
-            errorMessage = error.localizedDescription
+            setError(error.localizedDescription)
         }
 
         rebuildProjects()
@@ -969,6 +1040,7 @@ final class AppState {
 
         updateActiveProjectFlags()
         reloadSelectedProjectAndWatch()
+        startAutoRefresh(intervalSeconds: 210)
     }
 
     private func startSessionMonitorLoop() {
@@ -1019,7 +1091,7 @@ final class AppState {
         } catch {
             sessions = []
             if !SessionMonitor.isMissingTmuxServer(error: error) {
-                errorMessage = error.localizedDescription
+                setError(error.localizedDescription)
             }
             activeSessionID = nil
             sessionStatusByID = [:]
@@ -1053,6 +1125,10 @@ final class AppState {
                     self.connectionErrorDetail = nil
                     self.showConnectionErrorToast = false
                     attempt = 0
+                    
+                    // Reset to main session on fresh connect
+                    self.currentSessionKey = "main"
+                    self.chatMessages = []
 
                     // Load history and identity on connect
                     await self.loadChatHistory()
@@ -1064,6 +1140,9 @@ final class AppState {
                     // GatewayClient.disconnect/handleDisconnect finish the
                     // continuation, so this returns promptly on any drop.
                     await self.consumeGatewayEvents()
+                    
+                    // After event stream ends (disconnect), mark as disconnected
+                    self.chatConnectionState = .disconnected
 
                 } catch {
                     attempt += 1
@@ -1125,8 +1204,21 @@ final class AppState {
         case "delta", "streaming":
             // Delta contains the full accumulated text so far
             if let text = event.chatMessageText {
+                // Suppress tool/subagent output unless explicitly enabled
+                let showToolOutput = appConfig.showToolOutputInChat ?? false
+                if isToolOutput(text) && !showToolOutput {
+                    // Skip tool output - don't add to chat
+                    // But still track that we're in a run
+                    chatRunId = event.chatRunId
+                    isChatStreaming = true
+                    // Start a safety timeout to clear streaming if final never arrives
+                    startStreamingSafetyTimeout()
+                    return
+                }
+
                 chatRunId = event.chatRunId
                 isChatStreaming = true
+                startStreamingSafetyTimeout()
 
                 // Find the streaming assistant message to update.
                 // During active streaming, the last assistant message is either
@@ -1156,6 +1248,7 @@ final class AppState {
         case "final", "done":
             isChatStreaming = false
             chatRunId = nil
+            cancelStreamingSafetyTimeout()
 
             // Finalize — reload full history to be safe
             Task {
@@ -1165,6 +1258,7 @@ final class AppState {
         case "error":
             isChatStreaming = false
             chatRunId = nil
+            cancelStreamingSafetyTimeout()
             let errorMsg = event.chatErrorMessage ?? "Chat error"
 
             // Update the last assistant message with the error
@@ -1187,6 +1281,7 @@ final class AppState {
         case "aborted":
             isChatStreaming = false
             chatRunId = nil
+            cancelStreamingSafetyTimeout()
             statusMessage = "Response aborted."
 
         default:
@@ -1300,6 +1395,26 @@ final class AppState {
         }
     }
 
+        private var autoRefreshTask: Task<Void, Never>?
+
+    func startAutoRefresh(intervalSeconds: Int = 60) {
+        stopAutoRefresh()
+        autoRefreshTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(intervalSeconds))
+                guard let self, !Task.isCancelled else { break }
+                await self.refreshBeads()
+            }
+        }
+    }
+
+    func stopAutoRefresh() {
+        autoRefreshTask?.cancel()
+        autoRefreshTask = nil
+    }
+
+    private var isInitialLoad = true
+
     private func loadBeads(for project: Project) {
         guard !isLoadingBeads else { return }
         isLoadingBeads = true
@@ -1307,9 +1422,12 @@ final class AppState {
 
         let issuesURL = project.issuesFileURL
 
-        // If issues.jsonl doesn't exist but beads is initialized (dolt backend),
-        // fall back to running `bd list --json` and writing a transient issues.jsonl
-        if !FileManager.default.fileExists(atPath: issuesURL.path), project.isBeadsInitialized {
+        // For dolt backend projects, always refresh from CLI on initial load or if file is missing
+        // This ensures we never show stale data from a previous session
+        let shouldRefreshFromCLI = project.isBeadsInitialized && (isInitialLoad || !FileManager.default.fileExists(atPath: issuesURL.path))
+        
+        if shouldRefreshFromCLI {
+            isInitialLoad = false
             Task {
                 do {
                     try await fetchAndWriteIssuesJSONL(for: project)
@@ -1346,7 +1464,7 @@ final class AppState {
         } catch {
             beads = []
             beadsFileMissing = true
-            errorMessage = error.localizedDescription
+            setError(error.localizedDescription)
             rebuildHistoryEvents()
         }
     }
@@ -1435,7 +1553,7 @@ final class AppState {
         do {
             try configStore.save(appConfig)
         } catch {
-            errorMessage = error.localizedDescription
+            setError(error.localizedDescription)
         }
     }
 
@@ -1724,4 +1842,51 @@ final class AppState {
         return nil
     }
 
+    private func shellSingleQuoted(_ value: String) -> String {
+        "'" + value.replacingOccurrences(of: "'", with: "'\"'\"'") + "'"
+    }
+
+    /// Detects if content is tool/subagent output that should be suppressed
+    private func isToolOutput(_ text: String) -> Bool {
+        let toolPatterns = [
+            // Agent completion patterns
+            "## Task Complete:",
+            "## Summary",
+            "Stats: runtime",
+            "subagent task",
+            "A subagent task",
+            "There are still",
+            "active subagent runs",
+            "Files Modified/Created:",
+            "### Files Modified",
+            "### Files Created",
+            "### Changes Made:",
+            "Bead Status:",
+            "✓ Created issue:",
+            "✓ Updated issue:",
+            "✓ Closed",
+            // Debug/logging patterns - embedded run logs
+            "embedded run",
+            "\"meta\":",
+            "\"runtime\":",
+            "\"runtimeVersion\":",
+            "\"logLevelId\":",
+            "\"logLevelName\":",
+            "\"subsystem\":",
+            "\"parentNames\":",
+            "\"fullFilePath\":",
+            "\"fileName\":",
+            "\"method\":",
+            "\"date\":",
+            "os/kern",
+            "ViewBridge",
+            "NSViewBridgeError",
+            "invalid display identifier",
+            "CALocalDisplayUpdateBlock"
+        ]
+        
+        return toolPatterns.contains { pattern in
+            text.contains(pattern)
+        }
+    }
 }

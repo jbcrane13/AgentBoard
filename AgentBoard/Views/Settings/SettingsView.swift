@@ -12,6 +12,7 @@ struct SettingsView: View {
     @State private var connectionTestResult: ConnectionTestResult?
     @State private var isTesting = false
     @State private var showRemoteGuide = false
+    @State private var showToolOutput = false
     @StateObject private var discovery = GatewayDiscovery()
 
     private enum ConnectionTestResult {
@@ -240,6 +241,14 @@ struct SettingsView: View {
                         .font(.system(size: 12))
                         .foregroundStyle(.red)
                 }
+
+                sectionTitle("Chat")
+
+                Toggle("Show tool output in chat", isOn: $showToolOutput)
+                    .onChange(of: showToolOutput) { _, newValue in
+                        appState.updateShowToolOutput(newValue)
+                    }
+                    .help("When enabled, detailed tool and subagent output will appear in chat messages")
             }
             .padding(20)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -248,6 +257,7 @@ struct SettingsView: View {
             gatewayURL = appState.appConfig.openClawGatewayURL ?? ""
             token = appState.appConfig.openClawToken ?? ""
             isManualConfig = appState.appConfig.isGatewayManual
+            showToolOutput = appState.appConfig.showToolOutputInChat ?? false
         }
         .fileImporter(
             isPresented: $showingProjectImporter,

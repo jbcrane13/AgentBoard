@@ -142,7 +142,7 @@ struct BoardView: View {
             Spacer()
 
             Button {
-                Task {
+                Task<Void, Never> {
                     isRefreshing = true
                     await appState.refreshBeads()
                     isRefreshing = false

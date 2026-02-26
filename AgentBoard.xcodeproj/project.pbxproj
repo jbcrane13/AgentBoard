@@ -62,6 +62,12 @@
 		CE46C7D0263F5CBF136A7CC5 /* OpenClawService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8AC6743B67E34EB380FAAB0 /* OpenClawService.swift */; };
 		D03ED94E929136826B2AFBB1 /* TaskDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDF3231CBEE1D572FDB3FA64 /* TaskDetailSheet.swift */; };
 		D44E94BCDFF571BFFD134662 /* GatewayClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4A6C3D36DCC3D583EF0EE2C /* GatewayClient.swift */; };
+		A611223344556677889900A6 /* NotesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A511223344556677889900A5 /* NotesView.swift */; };
+		A411223344556677889900A4 /* AgentTasksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A311223344556677889900A3 /* AgentTasksView.swift */; };
+		A211223344556677889900A2 /* JSONLEntityParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = A111223344556677889900A1 /* JSONLEntityParser.swift */; };
+		FF11223344556677889900FF /* AgentDefinition.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE11223344556677889900EE /* AgentDefinition.swift */; };
+		BB11223344556677889900BB /* CoordinationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11223344556677889900AA /* CoordinationService.swift */; };
+		DD11223344556677889900DD /* WorkspaceNotesService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC11223344556677889900CC /* WorkspaceNotesService.swift */; };
 		D8E15309117BB782C08A6C76 /* KeychainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6AE7C2D1BC9B6257D23BAD6 /* KeychainService.swift */; };
 		E452FD5CFB11D0CDEDF1D0BF /* CodingSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 145A4BFC09317FCCBABE69B4 /* CodingSession.swift */; };
 		E5C8EBC6F508CF015641CF6B /* AppStateMiscTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CECBA4E697CE435C748A132 /* AppStateMiscTests.swift */; };
@@ -140,9 +146,15 @@
 		AC5F7C8ACBBD4BD4FF6282C2 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		AEE0B3D9A03ABB448D5D391E /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		B4A6C3D36DCC3D583EF0EE2C /* GatewayClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GatewayClient.swift; sourceTree = "<group>"; };
+		A511223344556677889900A5 /* NotesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesView.swift; sourceTree = "<group>"; };
+		A311223344556677889900A3 /* AgentTasksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentTasksView.swift; sourceTree = "<group>"; };
+		A111223344556677889900A1 /* JSONLEntityParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JSONLEntityParser.swift; sourceTree = "<group>"; };
+		AA11223344556677889900AA /* CoordinationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoordinationService.swift; sourceTree = "<group>"; };
+		CC11223344556677889900CC /* WorkspaceNotesService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceNotesService.swift; sourceTree = "<group>"; };
 		B4F0F32D49217E1515476A4B /* BoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardView.swift; sourceTree = "<group>"; };
 		B70C99F0DC6498D9190C7535 /* GitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitService.swift; sourceTree = "<group>"; };
 		B8BD042FBDF2DF4F78C483F3 /* Bead.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bead.swift; sourceTree = "<group>"; };
+		EE11223344556677889900EE /* AgentDefinition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentDefinition.swift; sourceTree = "<group>"; };
 		BD8201A1E527D30542D3C8A4 /* BeadsWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeadsWatcher.swift; sourceTree = "<group>"; };
 		C4DCF267A1558BD01676605F /* ProjectListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectListView.swift; sourceTree = "<group>"; };
 		C7761D77C22F466FC9D48245 /* StateQueryHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StateQueryHelpers.swift; sourceTree = "<group>"; };
@@ -313,6 +325,9 @@
 				E5F4500B562B9987DE72A37A /* CanvasRenderer.swift */,
 				24FC294C78AFD11FC7F83C0C /* DeviceIdentity.swift */,
 				B4A6C3D36DCC3D583EF0EE2C /* GatewayClient.swift */,
+				A111223344556677889900A1 /* JSONLEntityParser.swift */,
+				AA11223344556677889900AA /* CoordinationService.swift */,
+				CC11223344556677889900CC /* WorkspaceNotesService.swift */,
 				A7FBECECA248FE8D05DA69A3 /* GatewayDiscovery.swift */,
 				B70C99F0DC6498D9190C7535 /* GitService.swift */,
 				99E22E6B21241B648DFB4223 /* JSONLParser.swift */,
@@ -357,6 +372,7 @@
 			children = (
 				AB72F151C5258F99F3949B6C /* AppConfig.swift */,
 				B8BD042FBDF2DF4F78C483F3 /* Bead.swift */,
+				EE11223344556677889900EE /* AgentDefinition.swift */,
 				72FBE50FAAA5B79FB22D609C /* BeadDraft.swift */,
 				3AF8D4C20B83696E82466BAA /* CanvasContent.swift */,
 				135E66390F73C051F01659FC /* ChatMessage.swift */,
@@ -377,6 +393,7 @@
 				FBF4BC3ACD3B36EE001A15AE /* Canvas */,
 				9D1C8E2732972C0CD898C4BB /* Chat */,
 				4F8EEDF5AC1AE590A1A46F64 /* Epics */,
+				A711223344556677889900A7 /* Notes */,
 				567DBBD77119BE736026649A /* History */,
 				7462C50CBB7780C4CB74E6B2 /* MainWindow */,
 				391E0DA6917EB84B3FF1AE57 /* RightPanel */,
@@ -391,8 +408,18 @@
 			isa = PBXGroup;
 			children = (
 				1E0F7610C4D50C0819EBE9C3 /* AgentsView.swift */,
+				A311223344556677889900A3 /* AgentTasksView.swift */,
 			);
 			path = Agents;
+			sourceTree = "<group>";
+		};
+
+		A711223344556677889900A7 /* Notes */ = {
+			isa = PBXGroup;
+			children = (
+				A511223344556677889900A5 /* NotesView.swift */,
+			);
+			path = Notes;
 			sourceTree = "<group>";
 		};
 		C847F076E68CA2CE7664358F /* Resources */ = {
@@ -417,6 +444,7 @@
 				1E2DF7595890403B84F1A090 /* AppTheme.swift */,
 				ECA6BA3AA54E81CDCDA7D3AE /* ShellCommand.swift */,
 				07B335A5FB8B0A5DBD4C83FC /* TerminalLauncher.swift */,
+				A111223344556677889900A1 /* JSONLEntityParser.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -546,11 +574,14 @@
 			files = (
 				FBCF78054253963AFE5E26D2 /* AgentBoardApp.swift in Sources */,
 				837C81E9912212E704C50800 /* AgentsView.swift in Sources */,
+				A611223344556677889900A6 /* NotesView.swift in Sources */,
+				A411223344556677889900A4 /* AgentTasksView.swift in Sources */,
 				4BA90DB3C58DEFD4A1FDA51A /* AppConfig.swift in Sources */,
 				8D944BFF2054DFA7D799290F /* AppConfigStore.swift in Sources */,
 				B2E3A7C30FF91279BDF5E2A3 /* AppState.swift in Sources */,
 				3E96B4557DFB397E3FDBDC8A /* AppTheme.swift in Sources */,
 				8D07F948D756A586B1470BAF /* Bead.swift in Sources */,
+				FF11223344556677889900FF /* AgentDefinition.swift in Sources */,
 				563C1AEC2AE5B2C15AFB5224 /* BeadDraft.swift in Sources */,
 				9414BECE28CF2D8589DFFD2B /* BeadsWatcher.swift in Sources */,
 				B4A3C0D200BE41D27D4DB5BA /* BoardView.swift in Sources */,
@@ -564,6 +595,9 @@
 				AF67BA2744B6567E9F2E75A5 /* DeviceIdentity.swift in Sources */,
 				F2B26C6622D4236465BCF1D3 /* EpicsView.swift in Sources */,
 				D44E94BCDFF571BFFD134662 /* GatewayClient.swift in Sources */,
+				A211223344556677889900A2 /* JSONLEntityParser.swift in Sources */,
+				BB11223344556677889900BB /* CoordinationService.swift in Sources */,
+				DD11223344556677889900DD /* WorkspaceNotesService.swift in Sources */,
 				3009B7A2C4525DD9A47DE2E4 /* GatewayDiscovery.swift in Sources */,
 				FCA8353A2693E9EDBB582089 /* GitCommitRecord.swift in Sources */,
 				4E59C7C591C48925D86509F9 /* GitService.swift in Sources */,

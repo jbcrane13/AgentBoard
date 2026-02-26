@@ -269,6 +269,9 @@ actor GatewayClient {
         return wrapped.value
     }
 
+    /// Returns a new AsyncStream that receives all gateway events.
+    /// Multiple callers can subscribe simultaneously - each receives a unique stream
+    /// and events are broadcast to all active subscribers.
     var events: AsyncStream<GatewayEvent> {
         let subscriberId = UUID()
 
@@ -295,6 +298,8 @@ actor GatewayClient {
         }
     }
 
+    /// Finishes all event subscriber streams and clears the subscriber dictionary.
+    /// Called only on explicit disconnect (user action), not on transient disconnects.
     private func finishAllEventSubscribers() {
         for (_, continuation) in eventSubscribers {
             continuation.finish()
