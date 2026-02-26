@@ -32,11 +32,6 @@ struct AppConfigStore {
                 try? save(config)
             }
 
-            // Hydrate token from Keychain (unless auto-discover already set one)
-            if config.openClawToken == nil || config.openClawToken?.isEmpty == true {
-                config.openClawToken = KeychainService.loadToken()
-            }
-
             return config
         }
 
