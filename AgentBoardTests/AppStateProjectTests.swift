@@ -8,6 +8,13 @@ struct AppStateProjectTests {
 
     // MARK: - Helpers
 
+    private func makeTempStore() throws -> (AppConfigStore, URL) {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ABProjectTests-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return (AppConfigStore(directory: dir), dir)
+    }
+
     private func makeProject(path: String) -> Project {
         Project(
             id: UUID(),
@@ -25,8 +32,11 @@ struct AppStateProjectTests {
     // MARK: - addProject
 
     @Test("addProject with duplicate path sets status message and leaves count unchanged")
-    func addProjectDuplicatePathSetsStatusMessage() {
-        let state = AppState()
+    func addProjectDuplicatePathSetsStatusMessage() throws {
+        let (store, dir) = try makeTempStore()
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let state = AppState(configStore: store)
         let path = "/tmp/test-project-duplicate"
         state.appConfig.projects = [ConfiguredProject(path: path, icon: "📁")]
         let countBefore = state.appConfig.projects.count
@@ -38,8 +48,11 @@ struct AppStateProjectTests {
     }
 
     @Test("addProject with new path appends an entry to appConfig.projects")
-    func addProjectNewPathAppendsToConfig() {
-        let state = AppState()
+    func addProjectNewPathAppendsToConfig() throws {
+        let (store, dir) = try makeTempStore()
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let state = AppState(configStore: store)
         state.appConfig.projects = []
         let newPath = "/tmp/test-project-new-\(UUID().uuidString)"
         let countBefore = state.appConfig.projects.count
@@ -52,8 +65,11 @@ struct AppStateProjectTests {
     // MARK: - removeProject
 
     @Test("removeProject removes the matching path from appConfig.projects")
-    func removeProjectRemovesFromConfig() {
-        let state = AppState()
+    func removeProjectRemovesFromConfig() throws {
+        let (store, dir) = try makeTempStore()
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let state = AppState(configStore: store)
         let pathA = "/tmp/test-project-a"
         let pathB = "/tmp/test-project-b"
         state.appConfig.projects = [
@@ -69,8 +85,11 @@ struct AppStateProjectTests {
     }
 
     @Test("removeProject when project is selected falls back to the next project's path")
-    func removeProjectWhenSelectedFallsBackToNext() {
-        let state = AppState()
+    func removeProjectWhenSelectedFallsBackToNext() throws {
+        let (store, dir) = try makeTempStore()
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let state = AppState(configStore: store)
         let pathA = "/tmp/test-project-fallback-a"
         let pathB = "/tmp/test-project-fallback-b"
         state.appConfig.projects = [
@@ -82,15 +101,17 @@ struct AppStateProjectTests {
         let projectA = makeProject(path: pathA)
         state.removeProject(projectA)
 
-        // After removing A, selected path must not still point to A.
         #expect(state.appConfig.selectedProjectPath != pathA)
     }
 
     // MARK: - selectProject
 
     @Test("selectProject sets selectedProjectID, clears activeSessionID, and navigates to board")
-    func selectProjectSetsState() {
-        let state = AppState()
+    func selectProjectSetsState() throws {
+        let (store, dir) = try makeTempStore()
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let state = AppState(configStore: store)
         let pathA = "/tmp/test-select-a"
         let pathB = "/tmp/test-select-b"
         state.appConfig.projects = [
@@ -116,22 +137,10 @@ struct AppStateProjectTests {
 
     @Test("selectProject clears activeSessionID regardless of previous value")
     func selectProjectClearsActiveSession() throws {
-        // Backup real config — this test mutates appConfig.projects which persists to disk
-        let configURL = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".agentboard/config.json")
-        let fm = FileManager.default
-        let backup: URL? = fm.fileExists(atPath: configURL.path) ? {
-            let b = configURL.deletingLastPathComponent()
-                .appendingPathComponent("config.json.bak-\(UUID().uuidString)")
-            try? fm.copyItem(at: configURL, to: b)
-            return b
-        }() : nil
-        defer {
-            if fm.fileExists(atPath: configURL.path) { try? fm.removeItem(at: configURL) }
-            if let backup { try? fm.moveItem(at: backup, to: configURL) }
-        }
+        let (store, dir) = try makeTempStore()
+        defer { try? FileManager.default.removeItem(at: dir) }
 
-        let state = AppState()
+        let state = AppState(configStore: store)
         let path = "/tmp/test-select-clear-session"
         state.appConfig.projects = [ConfiguredProject(path: path, icon: "📁")]
 
@@ -147,14 +156,15 @@ struct AppStateProjectTests {
     // MARK: - rescanProjectsDirectory
 
     @Test("rescanProjectsDirectory with no new projects sets status message")
-    func rescanProjectsDirectoryNoNewProjects() {
-        let state = AppState()
-        // Pre-populate with some projects to ensure no new ones are discovered
+    func rescanProjectsDirectoryNoNewProjects() throws {
+        let (store, dir) = try makeTempStore()
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let state = AppState(configStore: store)
         state.appConfig.projects = [
             ConfiguredProject(path: "/tmp/existing-1", icon: "📁"),
             ConfiguredProject(path: "/tmp/existing-2", icon: "📁"),
         ]
-        // Set projectsDirectory to a path that won't discover new projects
         state.appConfig.projectsDirectory = "/tmp/nonexistent-\(UUID().uuidString)"
 
         state.rescanProjectsDirectory()

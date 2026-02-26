@@ -77,7 +77,7 @@ final class AppState {
     let coordinationService = CoordinationService()
     let notesService = WorkspaceNotesService()
 
-    private let configStore = AppConfigStore()
+    private let configStore: AppConfigStore
     private let parser = JSONLParser()
     private let watcher = BeadsWatcher()
     private let openClawService: any OpenClawServicing
@@ -125,9 +125,11 @@ final class AppState {
 
     init(
         openClawService: any OpenClawServicing = OpenClawService(),
+        configStore: AppConfigStore = AppConfigStore(),
         bootstrapOnInit: Bool = true,
         startBackgroundLoops: Bool = true
     ) {
+        self.configStore = configStore
         self.openClawService = openClawService
 
         if bootstrapOnInit {
@@ -345,7 +347,7 @@ final class AppState {
 
         // Re-discover projects from new directory, keeping manually-added ones
         let manualPaths = Set(appConfig.projects.map(\.path))
-        let discovered = AppConfigStore().discoverProjects(in: appConfig.resolvedProjectsDirectory)
+        let discovered = configStore.discoverProjects(in: appConfig.resolvedProjectsDirectory)
         let newProjects = discovered.filter { !manualPaths.contains($0.path) }
         appConfig.projects.append(contentsOf: newProjects)
         persistConfig()
@@ -358,7 +360,7 @@ final class AppState {
     }
 
     func rescanProjectsDirectory() {
-        let discovered = AppConfigStore().discoverProjects(in: appConfig.resolvedProjectsDirectory)
+        let discovered = configStore.discoverProjects(in: appConfig.resolvedProjectsDirectory)
         let existingPaths = Set(appConfig.projects.map(\.path))
         let newProjects = discovered.filter { !existingPaths.contains($0.path) }
         if !newProjects.isEmpty {

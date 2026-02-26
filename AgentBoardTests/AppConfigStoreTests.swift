@@ -185,55 +185,28 @@ struct AppConfigStoreTests {
 
 // MARK: - AB-c0f: AppConfigStore Lifecycle Tests
 
-/// These tests exercise loadOrCreate, save, and hydrate behaviour against the
-/// real ~/.agentboard/config.json path.  Each test that mutates the file
-/// saves a backup before touching it and restores (or removes) it in a defer
-/// block so the suite leaves the user's config unchanged.
+/// These tests exercise loadOrCreate, save, and hydrate behaviour using
+/// isolated temp directories — never touches ~/.agentboard/config.json.
 @Suite("AppConfigStore Lifecycle Tests")
 struct AppConfigStoreLifecycleTests {
 
     private let fm = FileManager.default
-    private let store = AppConfigStore()
 
-    /// Canonical config path used by AppConfigStore.
-    private var configURL: URL {
-        fm.homeDirectoryForCurrentUser
-            .appendingPathComponent(".agentboard", isDirectory: true)
-            .appendingPathComponent("config.json", isDirectory: false)
-    }
-
-    /// Saves existing config.json aside and returns the backup URL (nil if file
-    /// did not exist before the test).
-    private func backupConfig() throws -> URL? {
-        guard fm.fileExists(atPath: configURL.path) else { return nil }
-        let backup = configURL.deletingLastPathComponent()
-            .appendingPathComponent("config.json.bak-\(UUID().uuidString)")
-        try fm.copyItem(at: configURL, to: backup)
-        return backup
-    }
-
-    /// Restores from backup, or removes the config if there was no pre-existing
-    /// file.
-    private func restoreConfig(from backup: URL?) throws {
-        if fm.fileExists(atPath: configURL.path) {
-            try fm.removeItem(at: configURL)
-        }
-        if let backup {
-            try fm.moveItem(at: backup, to: configURL)
-        }
+    /// Creates an isolated AppConfigStore backed by a temp directory.
+    private func makeTempStore() throws -> (store: AppConfigStore, dir: URL, configURL: URL) {
+        let dir = fm.temporaryDirectory.appendingPathComponent("ABLifecycle-\(UUID().uuidString)")
+        try fm.createDirectory(at: dir, withIntermediateDirectories: true)
+        let store = AppConfigStore(directory: dir)
+        let configURL = dir.appendingPathComponent("config.json")
+        return (store, dir, configURL)
     }
 
     // MARK: 1 — loadOrCreate creates a default config when the file is missing
 
     @Test("loadOrCreate creates default config when file is missing")
     func loadOrCreateCreatesDefaultConfigWhenFileMissing() throws {
-        let backup = try backupConfig()
-        defer { try? restoreConfig(from: backup) }
-
-        // Remove the file so we exercise the "create" branch.
-        if fm.fileExists(atPath: configURL.path) {
-            try fm.removeItem(at: configURL)
-        }
+        let (store, dir, configURL) = try makeTempStore()
+        defer { try? fm.removeItem(at: dir) }
 
         let config = try store.loadOrCreate()
 
@@ -248,12 +221,12 @@ struct AppConfigStoreLifecycleTests {
 
     @Test("loadOrCreate reads existing config from disk")
     func loadOrCreateLoadsExistingConfigFromDisk() throws {
-        let backup = try backupConfig()
-        defer { try? restoreConfig(from: backup) }
+        let (store, dir, configURL) = try makeTempStore()
+        defer { try? fm.removeItem(at: dir) }
 
-        // Write a known config to disk.
+        // Write a known config to disk (include a project so auto-discover doesn't override).
         let written = AppConfig(
-            projects: [],
+            projects: [ConfiguredProject(path: "/tmp/ab-test-project", icon: "📁")],
             selectedProjectPath: "/tmp/ab-test-project",
             openClawGatewayURL: "http://127.0.0.1:19999",
             openClawToken: "stored-token",
@@ -275,8 +248,8 @@ struct AppConfigStoreLifecycleTests {
 
     @Test("loadOrCreate round-trip preserves custom values after save")
     func loadOrCreateRoundTrip() throws {
-        let backup = try backupConfig()
-        defer { try? restoreConfig(from: backup) }
+        let (store, dir, configURL) = try makeTempStore()
+        defer { try? fm.removeItem(at: dir) }
 
         let original = AppConfig(
             projects: [ConfiguredProject(path: "/tmp/proj-abc", icon: "🚀")],
@@ -289,7 +262,7 @@ struct AppConfigStoreLifecycleTests {
         try store.save(original)
 
         // Create a new store instance (same backing file) and load.
-        let freshStore = AppConfigStore()
+        let freshStore = AppConfigStore(directory: dir)
         let loaded = try freshStore.loadOrCreate()
 
         #expect(loaded.selectedProjectPath == "/tmp/proj-abc")
@@ -305,8 +278,8 @@ struct AppConfigStoreLifecycleTests {
 
     @Test("save writes valid JSON file to disk")
     func saveWritesJSONToDisk() throws {
-        let backup = try backupConfig()
-        defer { try? restoreConfig(from: backup) }
+        let (store, dir, configURL) = try makeTempStore()
+        defer { try? fm.removeItem(at: dir) }
 
         let config = AppConfig(
             projects: [],
@@ -331,8 +304,8 @@ struct AppConfigStoreLifecycleTests {
 
     @Test("hydrateOpenClaw fills missing gateway URL in auto mode")
     func hydrateOpenClawFillsMissingGatewayURL() throws {
-        let backup = try backupConfig()
-        defer { try? restoreConfig(from: backup) }
+        let (store, dir, configURL) = try makeTempStore()
+        defer { try? fm.removeItem(at: dir) }
 
         // Back up ~/.openclaw/openclaw.json if it exists.
         let openClawDir = fm.homeDirectoryForCurrentUser
@@ -388,8 +361,8 @@ struct AppConfigStoreLifecycleTests {
 
     @Test("hydrateOpenClaw does not overwrite manually-set gateway URL")
     func hydrateOpenClawDoesNotOverwriteManualGatewayURL() throws {
-        let backup = try backupConfig()
-        defer { try? restoreConfig(from: backup) }
+        let (store, dir, configURL) = try makeTempStore()
+        defer { try? fm.removeItem(at: dir) }
 
         // Back up ~/.openclaw/openclaw.json if it exists.
         let openClawDir = fm.homeDirectoryForCurrentUser
@@ -438,8 +411,8 @@ struct AppConfigStoreLifecycleTests {
 
     @Test("hydrateOpenClaw fills missing token in auto mode")
     func hydrateOpenClawFillsMissingToken() throws {
-        let backup = try backupConfig()
-        defer { try? restoreConfig(from: backup) }
+        let (store, dir, configURL) = try makeTempStore()
+        defer { try? fm.removeItem(at: dir) }
 
         let openClawDir = fm.homeDirectoryForCurrentUser
             .appendingPathComponent(".openclaw", isDirectory: true)
@@ -485,8 +458,8 @@ struct AppConfigStoreLifecycleTests {
 
     @Test("hydrateOpenClaw ignores discovery when both URL and token are manually set")
     func hydrateOpenClawIgnoresDiscoveryWhenBothFieldsSet() throws {
-        let backup = try backupConfig()
-        defer { try? restoreConfig(from: backup) }
+        let (store, dir, configURL) = try makeTempStore()
+        defer { try? fm.removeItem(at: dir) }
 
         let openClawDir = fm.homeDirectoryForCurrentUser
             .appendingPathComponent(".openclaw", isDirectory: true)
@@ -562,7 +535,7 @@ struct AppConfigStoreLifecycleTests {
         // Note: the current implementation always constructs a URL from port/bind
         // defaults even when JSON parsing fails for the inner keys, but when
         // JSONSerialization itself fails the method returns nil.
-        let result = store.discoverOpenClawConfig()
+        let result = AppConfigStore().discoverOpenClawConfig()
         // The method returns nil when JSONSerialization.jsonObject fails.
         #expect(result == nil)
     }
@@ -591,7 +564,7 @@ struct AppConfigStoreLifecycleTests {
             }
         }
 
-        let result = store.discoverOpenClawConfig()
+        let result = AppConfigStore().discoverOpenClawConfig()
         #expect(result == nil)
     }
 }

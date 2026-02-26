@@ -8,21 +8,21 @@ struct AppStateMiscTests {
 
     @Test("sendChatMessage with empty string does not append any messages")
     func sendChatMessageEmptyStringDoesNothing() async {
-        let state = AppState()
+        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString); try! FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true); let state = AppState(configStore: AppConfigStore(directory: _d))
         await state.sendChatMessage("")
         #expect(state.chatMessages.isEmpty)
     }
 
     @Test("sendChatMessage with whitespace-only string does not append any messages")
     func sendChatMessageWhitespaceDoesNothing() async {
-        let state = AppState()
+        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString); try! FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true); let state = AppState(configStore: AppConfigStore(directory: _d))
         await state.sendChatMessage("   \n  ")
         #expect(state.chatMessages.isEmpty)
     }
 
     @Test("sendChatMessage appends a user message and an assistant placeholder")
     func sendChatMessageAppendsUserAndAssistantMessages() async {
-        let state = AppState()
+        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString); try! FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true); let state = AppState(configStore: AppConfigStore(directory: _d))
         await state.sendChatMessage("hello")
         #expect(state.chatMessages.count >= 2)
         #expect(state.chatMessages[0].role == .user)
@@ -32,7 +32,7 @@ struct AppStateMiscTests {
 
     @Test("dismissConnectionErrorToast sets showConnectionErrorToast to false")
     func dismissConnectionErrorToastSetsToFalse() {
-        let state = AppState()
+        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString); try! FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true); let state = AppState(configStore: AppConfigStore(directory: _d))
         state.showConnectionErrorToast = true
         state.dismissConnectionErrorToast()
         #expect(state.showConnectionErrorToast == false)
@@ -40,7 +40,7 @@ struct AppStateMiscTests {
 
     @Test("clearUnreadChatCount resets unreadChatCount to zero")
     func clearUnreadChatCountResetsToZero() {
-        let state = AppState()
+        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString); try! FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true); let state = AppState(configStore: AppConfigStore(directory: _d))
         state.unreadChatCount = 5
         state.clearUnreadChatCount()
         #expect(state.unreadChatCount == 0)
@@ -48,7 +48,7 @@ struct AppStateMiscTests {
 
     @Test("gitSummary returns summary for known bead ID and nil for unknown")
     func gitSummaryForBeadID() {
-        let state = AppState()
+        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString); try! FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true); let state = AppState(configStore: AppConfigStore(directory: _d))
         let commit = GitCommitRecord(
             sha: "abc123def456",
             shortSHA: "abc123d",
@@ -67,7 +67,7 @@ struct AppStateMiscTests {
 
     @Test("updateOpenClaw writes config and sets statusMessage")
     func updateOpenClawWritesConfigAndStatus() {
-        let state = AppState()
+        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString); try! FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true); let state = AppState(configStore: AppConfigStore(directory: _d))
         state.updateOpenClaw(gatewayURL: "http://localhost:8080", token: "secret-token", source: "manual")
 
         #expect(state.appConfig.openClawGatewayURL == "http://localhost:8080")
@@ -78,7 +78,7 @@ struct AppStateMiscTests {
 
     @Test("updateOpenClaw with empty strings sets config fields to nil")
     func updateOpenClawEmptyStringSetsNil() {
-        let state = AppState()
+        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString); try! FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true); let state = AppState(configStore: AppConfigStore(directory: _d))
         state.appConfig.openClawGatewayURL = "http://old.com"
         state.appConfig.openClawToken = "old-token"
 

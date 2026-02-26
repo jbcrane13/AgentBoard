@@ -2,17 +2,26 @@ import Foundation
 
 struct AppConfigStore {
     private let fileManager = FileManager.default
+    private let configDir: URL
 
-    init() {}
+    /// Production initializer — uses ~/.agentboard/
+    init() {
+        self.configDir = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".agentboard", isDirectory: true)
+    }
 
-    // Kept for test/backward compatibility; token storage is no longer used.
-    init(tokenStorage _: any TokenStorage) {}
+    /// Test initializer — uses a custom directory so tests never touch real config.
+    init(directory: URL) {
+        self.configDir = directory
+    }
+
+    // Kept for backward compatibility; token storage is no longer used.
+    init(tokenStorage _: any TokenStorage) {
+        self.init()
+    }
 
     private var configURL: URL {
-        let home = fileManager.homeDirectoryForCurrentUser
-        return home
-            .appendingPathComponent(".agentboard", isDirectory: true)
-            .appendingPathComponent("config.json", isDirectory: false)
+        configDir.appendingPathComponent("config.json", isDirectory: false)
     }
 
     func loadOrCreate() throws -> AppConfig {
@@ -51,9 +60,8 @@ struct AppConfigStore {
     }
 
     func save(_ config: AppConfig) throws {
-        let dirURL = configURL.deletingLastPathComponent()
-        if !fileManager.fileExists(atPath: dirURL.path) {
-            try fileManager.createDirectory(at: dirURL, withIntermediateDirectories: true)
+        if !fileManager.fileExists(atPath: configDir.path) {
+            try fileManager.createDirectory(at: configDir, withIntermediateDirectories: true)
         }
 
         let encoder = JSONEncoder()

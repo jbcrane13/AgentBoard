@@ -8,7 +8,10 @@ final class AgentBoardSmokeTests: XCTestCase {
     }
 
     func testAppStateDefaultsToBoardTabAndSplitPanel() {
-        let state = AppState()
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("ABSmoke-\(UUID().uuidString)")
+        try! FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let state = AppState(configStore: AppConfigStore(directory: dir))
         XCTAssertEqual(state.selectedTab, .board)
         XCTAssertEqual(state.rightPanelMode, .split)
     }

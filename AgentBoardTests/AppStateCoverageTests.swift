@@ -7,7 +7,7 @@ import Testing
 struct AppStateCoverageTests {
     @Test("AppState defaults")
     func appStateDefaults() {
-        let state = AppState()
+        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString); try! FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true); let state = AppState(configStore: AppConfigStore(directory: _d))
 
         #expect(state.selectedTab == .board)
         #expect(state.rightPanelMode == .split)
@@ -22,7 +22,7 @@ struct AppStateCoverageTests {
 
     @Test("switchToTab updates selected tab and sidebar mapping")
     func switchToTabBehavior() {
-        let state = AppState()
+        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString); try! FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true); let state = AppState(configStore: AppConfigStore(directory: _d))
         state.activeSessionID = "ses-1"
 
         state.switchToTab(.epics)
@@ -42,7 +42,7 @@ struct AppStateCoverageTests {
 
     @Test("navigate updates sidebar selection and tab mapping")
     func navigateBehavior() {
-        let state = AppState()
+        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString); try! FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true); let state = AppState(configStore: AppConfigStore(directory: _d))
         state.selectedTab = .agents
         state.activeSessionID = "ses-1"
 
@@ -62,7 +62,7 @@ struct AppStateCoverageTests {
 
     @Test("selection state from beads and openIssueFromChat")
     func selectionStateBehavior() {
-        let state = AppState()
+        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString); try! FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true); let state = AppState(configStore: AppConfigStore(directory: _d))
         let beadA = makeBead(id: "AB-1")
         let beadB = makeBead(id: "AB-2")
         state.beads = [beadA, beadB]
@@ -83,7 +83,7 @@ struct AppStateCoverageTests {
 
     @Test("chat input focus request resets unread count and panel mode")
     func chatInputFocusRequest() {
-        let state = AppState()
+        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString); try! FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true); let state = AppState(configStore: AppConfigStore(directory: _d))
         state.rightPanelMode = .canvas
         state.unreadChatCount = 4
         let initialRequestID = state.chatInputFocusRequestID
@@ -97,7 +97,7 @@ struct AppStateCoverageTests {
 
     @Test("sheet request counters")
     func sheetRequestCounters() {
-        let state = AppState()
+        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString); try! FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true); let state = AppState(configStore: AppConfigStore(directory: _d))
         state.selectedTab = .history
 
         let initialCreateRequest = state.createBeadSheetRequestID
@@ -113,7 +113,7 @@ struct AppStateCoverageTests {
 
     @Test("canvas history navigation and zoom controls")
     func canvasHistoryAndZoom() throws {
-        let state = AppState()
+        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString); try! FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true); let state = AppState(configStore: AppConfigStore(directory: _d))
         let id1 = UUID()
         let id2 = UUID()
         let id3 = UUID()
@@ -160,7 +160,7 @@ struct AppStateCoverageTests {
 
     @Test("openMessageInCanvas creates canvas content and enables canvas mode")
     func openMessageInCanvas() throws {
-        let state = AppState()
+        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString); try! FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true); let state = AppState(configStore: AppConfigStore(directory: _d))
         let codeMessage = ChatMessage(
             role: .assistant,
             content: "Here is code:\n```swift\nprint(\"hello\")\n```"
@@ -194,7 +194,7 @@ struct AppStateCoverageTests {
 
     @Test("session selection and alert clearing")
     func sessionSelectionAndAlerts() {
-        let state = AppState()
+        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString); try! FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true); let state = AppState(configStore: AppConfigStore(directory: _d))
         state.sessionAlertSessionIDs = ["ses-1", "ses-2"]
         state.unreadSessionAlertsCount = 2
         let session = makeSession(id: "ses-1")
@@ -215,7 +215,7 @@ struct AppStateCoverageTests {
 
     @Test("epicBeads returns only epic-kind beads sorted by updatedAt descending")
     func epicBeadsFilteredAndSorted() {
-        let state = AppState()
+        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString); try! FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true); let state = AppState(configStore: AppConfigStore(directory: _d))
         let older = makeBead(id: "AB-epic1", kind: .epic, updatedAt: Date(timeIntervalSince1970: 1_700_000_000))
         let newer = makeBead(id: "AB-epic2", kind: .epic, updatedAt: Date(timeIntervalSince1970: 1_700_001_000))
         let task = makeBead(id: "AB-task1", kind: .task, updatedAt: Date(timeIntervalSince1970: 1_700_002_000))
@@ -229,14 +229,14 @@ struct AppStateCoverageTests {
 
     @Test("epicBeads is empty when no epic-kind beads exist")
     func epicBeadsEmptyWhenNoEpics() {
-        let state = AppState()
+        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString); try! FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true); let state = AppState(configStore: AppConfigStore(directory: _d))
         state.beads = [makeBead(id: "AB-1", kind: .task)]
         #expect(state.epicBeads.isEmpty)
     }
 
     @Test("activeSession returns session matching activeSessionID")
     func activeSessionReturnsMatchingSession() {
-        let state = AppState()
+        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString); try! FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true); let state = AppState(configStore: AppConfigStore(directory: _d))
         let session = makeSession(id: "ses-42")
         state.sessions = [session, makeSession(id: "ses-99")]
         state.activeSessionID = "ses-42"
@@ -245,7 +245,7 @@ struct AppStateCoverageTests {
 
     @Test("activeSession returns nil when activeSessionID is nil")
     func activeSessionNilWhenIDNil() {
-        let state = AppState()
+        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString); try! FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true); let state = AppState(configStore: AppConfigStore(directory: _d))
         state.sessions = [makeSession(id: "ses-1")]
         state.activeSessionID = nil
         #expect(state.activeSession == nil)
@@ -253,7 +253,7 @@ struct AppStateCoverageTests {
 
     @Test("activeSession returns nil when no session matches activeSessionID")
     func activeSessionNilWhenNoMatch() {
-        let state = AppState()
+        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString); try! FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true); let state = AppState(configStore: AppConfigStore(directory: _d))
         state.sessions = [makeSession(id: "ses-1")]
         state.activeSessionID = "ses-missing"
         #expect(state.activeSession == nil)
