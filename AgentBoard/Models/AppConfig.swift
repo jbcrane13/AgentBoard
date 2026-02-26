@@ -27,7 +27,7 @@ struct AppConfig: Codable, Sendable {
         selectedProjectPath: nil,
         openClawGatewayURL: nil,
         openClawToken: nil,
-        gatewayConfigSource: nil,
+        gatewayConfigSource: "auto",
         projectsDirectory: nil
     )
 }

@@ -30,7 +30,7 @@ struct AppConfigStore {
             selectedProjectPath: nil,
             openClawGatewayURL: nil,
             openClawToken: nil,
-            gatewayConfigSource: nil,
+            gatewayConfigSource: "auto",
             projectsDirectory: nil
         )
         config.selectedProjectPath = config.projects.first?.path
