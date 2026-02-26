@@ -132,6 +132,42 @@ struct CoordinationServiceTests {
         #expect(service.agentStatuses.count == 2)
     }
 
+    @Test("reload from empty JSONL file clears all state")
+    func reloadEmptyFileClears() throws {
+        let jsonl = """
+        {"op":"create","entity":{"id":"s1","type":"AgentStatus","properties":{"agent":"daneel","status":"active","current_task":"","updated":""}}}
+        """
+        let (path, dir) = try makeTempFile(content: jsonl)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let service = CoordinationService(filePath: path)
+        reloadService(service)
+        #expect(service.agentStatuses.count == 1)
+
+        // Overwrite with empty file
+        try "".write(toFile: path, atomically: true, encoding: .utf8)
+        reloadService(service)
+
+        #expect(service.agentStatuses.isEmpty)
+        #expect(service.handoffs.isEmpty)
+    }
+
+    @Test("numeric JSON property values are coerced to strings")
+    func numericPropertyValuesAreStringified() throws {
+        let jsonl = """
+        {"op":"create","entity":{"id":"s1","type":"AgentStatus","properties":{"agent":"daneel","status":"active","current_task":"Task 42","updated":1700000000}}}
+        """
+        let (path, dir) = try makeTempFile(content: jsonl)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let service = CoordinationService(filePath: path)
+        reloadService(service)
+
+        #expect(service.agentStatuses.count == 1)
+        // The numeric "updated" value should be coerced to a non-empty string
+        #expect(!service.agentStatuses[0].updated.isEmpty)
+    }
+
     // MARK: - Update Operations
 
     @Test("reload with create + update merges properties correctly")
@@ -202,12 +238,11 @@ struct CoordinationServiceTests {
         #expect(service.agentStatuses.isEmpty)
 
         service.startPolling()
+        defer { service.stopPolling() }
 
         // State populated immediately, not after timer fires
         #expect(service.agentStatuses.count == 1)
         #expect(service.agentStatuses[0].agent == "daneel")
-
-        service.stopPolling()
     }
 
     @Test("stopPolling is safe to call when not polling")

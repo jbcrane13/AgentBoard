@@ -151,6 +151,46 @@ struct WorkspaceNotesServiceTests {
         #expect(service.dailyNotes == "Day 2 notes")
     }
 
+    @Test("dailyNotes preserves unicode and emoji content")
+    func dailyNotesPreservesUnicode() throws {
+        let (root, cleanup) = try makeTempDir()
+        defer { cleanup() }
+
+        let memoryDir = (root as NSString).appendingPathComponent("memory")
+        try FileManager.default.createDirectory(atPath: memoryDir, withIntermediateDirectories: true)
+        let content = "# \u{1F4DD} Notes — 日本語テスト\nLine with emoji: \u{1F600}\nArabic: مرحبا"
+        try content.write(
+            toFile: (memoryDir as NSString).appendingPathComponent("2026-02-25.md"),
+            atomically: true, encoding: .utf8
+        )
+
+        let service = makeService(root: root)
+        service.goToDate(makeDate("2026-02-25"))
+
+        #expect(service.dailyNotes == content)
+    }
+
+    @Test("navigating from day with notes to day without notes clears dailyNotes")
+    func navigatingToEmptyDayClearsDailyNotes() throws {
+        let (root, cleanup) = try makeTempDir()
+        defer { cleanup() }
+
+        let memoryDir = (root as NSString).appendingPathComponent("memory")
+        try FileManager.default.createDirectory(atPath: memoryDir, withIntermediateDirectories: true)
+        try "Day 1 notes".write(
+            toFile: (memoryDir as NSString).appendingPathComponent("2026-02-24.md"),
+            atomically: true, encoding: .utf8
+        )
+        // No file for 2026-02-25
+
+        let service = makeService(root: root)
+        service.goToDate(makeDate("2026-02-24"))
+        #expect(service.dailyNotes == "Day 1 notes")
+
+        service.goToNextDay()
+        #expect(service.dailyNotes == "")
+    }
+
     // MARK: - Ontology Loading
 
     @Test("loadOntology parses create ops and filters by allowed types and date")
@@ -190,6 +230,8 @@ struct WorkspaceNotesServiceTests {
 
         #expect(service.ontologyEntries.count == 1)
         #expect(service.ontologyEntries[0].title == "Today")
+        // Also verify the excluded entry is not present
+        #expect(service.ontologyEntries.allSatisfy { $0.id != "d2" })
     }
 
     @Test("loadOntology handles malformed lines gracefully")

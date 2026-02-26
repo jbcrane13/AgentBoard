@@ -50,6 +50,7 @@ final class CoordinationService {
     }
 
     private func reload() {
+        guard FileManager.default.fileExists(atPath: filePath) else { return }
         let entities = JSONLEntityParser.parse(filePath: filePath)
 
         var statuses: [AgentStatusEntry] = []
