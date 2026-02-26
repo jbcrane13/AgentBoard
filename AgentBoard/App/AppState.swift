@@ -764,7 +764,7 @@ final class AppState {
         errorMessage = nil
 
         guard project.isBeadsInitialized else {
-            errorMessage = "Beads not initialized. Initialize beads first."
+            setError("Beads not initialized. Initialize beads first.")
             return
         }
 
@@ -811,7 +811,7 @@ final class AppState {
             // Regenerate issues.jsonl from bd list for consistency
             await refreshBeadsFromCLI(for: project)
         } catch {
-            errorMessage = "Failed to create bead: \(error.localizedDescription)"
+            setError("Failed to create bead: \(error.localizedDescription)")
         }
     }
 
@@ -825,7 +825,7 @@ final class AppState {
             try await fetchAndWriteIssuesJSONL(for: project)
             loadBeads(for: project)
         } catch {
-            errorMessage = "Failed to refresh beads: \(error.localizedDescription)"
+            setError("Failed to refresh beads: \(error.localizedDescription)")
         }
     }
 
@@ -935,7 +935,7 @@ final class AppState {
             statusMessage = "Deleted \(bead.id)."
             await refreshBeadsFromCLI(for: project)
         } catch {
-            errorMessage = "Failed to delete bead: \(error.localizedDescription)"
+            setError("Failed to delete bead: \(error.localizedDescription)")
         }
     }
 
@@ -1276,7 +1276,7 @@ final class AppState {
                     sentToCanvas: msg.sentToCanvas
                 )
             }
-            errorMessage = errorMsg
+            setError(errorMsg)
 
         case "aborted":
             isChatStreaming = false
@@ -1436,7 +1436,7 @@ final class AppState {
                     await MainActor.run {
                         beads = []
                         beadsFileMissing = true
-                        errorMessage = "Failed to load beads via CLI: \(error.localizedDescription)"
+                        setError("Failed to load beads via CLI: \(error.localizedDescription)")
                         refreshProjectCounts()
                         rebuildHistoryEvents()
                     }
@@ -1507,7 +1507,7 @@ final class AppState {
             },
             onError: { [weak self] message in
                 Task { @MainActor in
-                    self?.errorMessage = message
+                    self?.setError(message)
                 }
             }
         )
