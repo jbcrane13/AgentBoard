@@ -60,7 +60,7 @@ enum TerminalLauncher {
     }
 
     /// Generate AppleScript for iTerm2
-    private static func generateITerm2Script(command: String) -> String {
+    static func generateITerm2Script(command: String) -> String {
         let escapedCommand = command
             .replacingOccurrences(of: "\\", with: "\\\\")
             .replacingOccurrences(of: "\"", with: "\\\"")
@@ -77,7 +77,7 @@ enum TerminalLauncher {
     }
 
     /// Generate AppleScript for Terminal.app
-    private static func generateTerminalScript(command: String) -> String {
+    static func generateTerminalScript(command: String) -> String {
         let escapedCommand = command
             .replacingOccurrences(of: "\\", with: "\\\\")
             .replacingOccurrences(of: "\"", with: "\\\"")
@@ -91,7 +91,7 @@ enum TerminalLauncher {
     }
 
     /// Shell single-quote a string for safe use in commands
-    private static func shellSingleQuoted(_ value: String) -> String {
+    static func shellSingleQuoted(_ value: String) -> String {
         "'\(value.replacingOccurrences(of: "'", with: "'\\''"))'"
     }
 }

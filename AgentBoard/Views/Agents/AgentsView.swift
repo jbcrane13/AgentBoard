@@ -50,11 +50,7 @@ struct AgentsView: View {
                     Spacer()
                 }
                 .padding(.vertical, 20)
-                .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 10))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(AppTheme.subtleBorder, lineWidth: 1)
-                )
+                .cardStyle()
             } else {
                 HStack(spacing: 10) {
                     ForEach(statuses) { entry in
@@ -71,7 +67,7 @@ struct AgentsView: View {
     private func agentStatusCard(_ entry: AgentStatusEntry) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text(agentEmoji(entry.agent) + " " + entry.agent.capitalized)
+                Text(AgentDefinition.find(entry.agent).displayName)
                     .font(.system(size: 14, weight: .semibold))
                 Spacer()
                 agentStatusBadge(entry.status)
@@ -88,20 +84,7 @@ struct AgentsView: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 10))
-        .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(AppTheme.subtleBorder, lineWidth: 1)
-        )
-    }
-
-    private func agentEmoji(_ agent: String) -> String {
-        switch agent.lowercased() {
-        case "daneel": return "🤖"
-        case "quentin": return "🔬"
-        case "argus": return "⚙️"
-        default: return "🔹"
-        }
+        .cardStyle()
     }
 
     private func agentStatusBadge(_ status: String) -> some View {
@@ -143,11 +126,7 @@ struct AgentsView: View {
                     Spacer()
                 }
                 .padding(.vertical, 14)
-                .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 10))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(AppTheme.subtleBorder, lineWidth: 1)
-                )
+                .cardStyle()
             } else {
                 VStack(spacing: 6) {
                     ForEach(activeHandoffs) { handoff in
@@ -161,7 +140,7 @@ struct AgentsView: View {
     private func handoffRow(_ handoff: HandoffEntry) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
-                Text("\(agentEmoji(handoff.fromAgent)) → \(agentEmoji(handoff.toAgent))")
+                Text("\(AgentDefinition.find(handoff.fromAgent).emoji) → \(AgentDefinition.find(handoff.toAgent).emoji)")
                     .font(.system(size: 13))
 
                 Text(handoff.task)
@@ -186,11 +165,7 @@ struct AgentsView: View {
             }
         }
         .padding(10)
-        .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 8))
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(AppTheme.subtleBorder, lineWidth: 1)
-        )
+        .cardStyle(cornerRadius: 8)
         .contentShape(Rectangle())
         .onTapGesture {
             withAnimation(.easeInOut(duration: 0.2)) {
@@ -229,44 +204,22 @@ struct AgentsView: View {
     }
 
     private var rows: [AgentRow] {
-        let remoteByID = Dictionary(uniqueKeysWithValues: appState.remoteChatSessions.map { ($0.id, $0) })
-        var tableRows: [AgentRow] = appState.sessions.map { session in
-            let remote = remoteByID[session.id]
-            return AgentRow(
+        appState.sessions.map { session in
+            AgentRow(
                 id: session.id,
                 name: session.name,
                 agentType: session.agentType.rawValue,
-                model: session.model ?? remote?.model ?? "—",
-                project: session.projectPath?.lastPathComponent ?? remoteProjectName(remote?.projectPath),
-                bead: session.beadId ?? remote?.beadID ?? "—",
+                model: session.model ?? "—",
+                project: session.projectPath?.lastPathComponent ?? "—",
+                bead: session.beadId ?? "—",
                 status: session.status.rawValue,
                 elapsed: session.elapsed,
-                tokenUsage: remote?.totalTokens,
-                estimatedCostUSD: remote?.estimatedCostUSD,
+                tokenUsage: nil,
+                estimatedCostUSD: nil,
                 startedAt: session.startedAt
             )
         }
-
-        let localIDs = Set(appState.sessions.map(\.id))
-        for remote in appState.remoteChatSessions where !localIDs.contains(remote.id) {
-            tableRows.append(
-                AgentRow(
-                    id: remote.id,
-                    name: remote.name,
-                    agentType: "remote",
-                    model: remote.model ?? "—",
-                    project: remoteProjectName(remote.projectPath),
-                    bead: remote.beadID ?? "—",
-                    status: remote.status ?? "unknown",
-                    elapsed: elapsedFromRemote(remote),
-                    tokenUsage: remote.totalTokens,
-                    estimatedCostUSD: remote.estimatedCostUSD,
-                    startedAt: remote.startedAt
-                )
-            )
-        }
-
-        return tableRows.sorted { lhs, rhs in
+        .sorted { lhs, rhs in
             if statusRank(lhs.status) != statusRank(rhs.status) {
                 return statusRank(lhs.status) < statusRank(rhs.status)
             }
@@ -314,11 +267,7 @@ struct AgentsView: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
-        .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 8))
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(AppTheme.subtleBorder, lineWidth: 1)
-        )
+        .cardStyle(cornerRadius: 8)
     }
 
     private var agentTable: some View {
@@ -382,21 +331,7 @@ struct AgentsView: View {
             .width(min: 70, ideal: 90, max: 120)
         }
         .tableStyle(.inset(alternatesRowBackgrounds: true))
-        .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 10))
-        .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(AppTheme.subtleBorder, lineWidth: 1)
-        )
-    }
-
-    private func remoteProjectName(_ rawPath: String?) -> String {
-        guard let rawPath, !rawPath.isEmpty else { return "—" }
-        return URL(fileURLWithPath: rawPath).lastPathComponent
-    }
-
-    private func elapsedFromRemote(_ session: OpenClawRemoteSession) -> TimeInterval? {
-        guard let startedAt = session.startedAt else { return nil }
-        return Date().timeIntervalSince(startedAt)
+        .cardStyle()
     }
 
     private func elapsedLabel(_ elapsed: TimeInterval?) -> String {

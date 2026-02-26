@@ -48,7 +48,7 @@ struct AgentBoardApp: App {
 
             CommandGroup(after: .toolbar) {
                 Button("Refresh Beads") {
-                    appState.refreshBeads()
+                    Task { await appState.refreshBeads() }
                 }
                 .keyboardShortcut("r", modifiers: [.command])
             }

@@ -13,6 +13,7 @@ struct BoardView: View {
     @State private var editingContext: EditingContext?
     @State private var detailContext: EditingContext?
     @State private var handledCreateRequestID = 0
+    @State private var isRefreshing = false
 
     private struct Column: Identifiable {
         let id: String
@@ -141,12 +142,29 @@ struct BoardView: View {
             Spacer()
 
             Button {
+                Task {
+                    isRefreshing = true
+                    await appState.refreshBeads()
+                    isRefreshing = false
+                }
+            } label: {
+                Image(systemName: isRefreshing ? "arrow.trianglehead.clockwise" : "arrow.clockwise")
+                    .symbolEffect(.rotate, isActive: isRefreshing)
+            }
+            .help("Refresh beads")
+            .disabled(isRefreshing)
+
+            Button {
                 presentCreateSheet()
             } label: {
                 Label("Create Bead", systemImage: "plus")
             }
             .buttonStyle(.borderedProminent)
         }
+    }
+
+    private var beadLookup: [String: Bead] {
+        Dictionary(uniqueKeysWithValues: appState.beads.map { ($0.id, $0) })
     }
 
     private var boardColumns: some View {
@@ -159,7 +177,6 @@ struct BoardView: View {
 
     private func boardColumn(_ column: Column) -> some View {
         let columnBeads = filteredBeads.filter { $0.status == column.status }
-        let beadLookup = Dictionary(uniqueKeysWithValues: appState.beads.map { ($0.id, $0) })
 
         return VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
@@ -433,10 +450,9 @@ private struct BeadEditorForm: View {
                 }
 
                 Picker("Assignee", selection: $draft.assignee) {
-                    Text("Unassigned").tag("")
-                    Text("🤖 Daneel").tag("daneel")
-                    Text("🔬 Quentin").tag("quentin")
-                    Text("⚙️ Argus").tag("argus")
+                    ForEach(AgentDefinition.knownAgents) { agent in
+                        Text(agent.displayName).tag(agent.id)
+                    }
                 }
                 TextField("Labels (comma-separated)", text: $draft.labelsText)
 

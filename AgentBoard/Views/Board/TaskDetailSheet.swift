@@ -142,10 +142,9 @@ struct TaskDetailSheet: View {
                         .textCase(.uppercase)
 
                     Picker("", selection: $draft.assignee) {
-                        Text("Unassigned").tag("")
-                        Text("🤖 Daneel").tag("daneel")
-                        Text("🔬 Quentin").tag("quentin")
-                        Text("⚙️ Argus").tag("argus")
+                        ForEach(AgentDefinition.knownAgents) { agent in
+                            Text(agent.displayName).tag(agent.id)
+                        }
                     }
                     .labelsHidden()
                     .frame(width: 200)
@@ -361,8 +360,8 @@ struct TaskDetailSheet: View {
             .font(.system(size: 10, weight: .semibold))
             .padding(.horizontal, 7)
             .padding(.vertical, 2)
-            .background(kindColor(for: draft.kind).opacity(0.12), in: RoundedRectangle(cornerRadius: 4))
-            .foregroundStyle(kindColor(for: draft.kind))
+            .background(draft.kind.color.opacity(0.12), in: RoundedRectangle(cornerRadius: 4))
+            .foregroundStyle(draft.kind.color)
     }
 
     private var priorityBadge: some View {
@@ -378,26 +377,6 @@ struct TaskDetailSheet: View {
     private var dependencyText: String? {
         guard !bead.dependencies.isEmpty else { return nil }
         return "Depends on: \(bead.dependencies.joined(separator: ", "))"
-    }
-
-    private func kindColor(for kind: BeadKind) -> Color {
-        switch kind {
-        case .task: .blue
-        case .bug: .red
-        case .feature: .green
-        case .epic: .purple
-        case .chore: .gray
-        }
-    }
-
-    private func priorityColor(for priority: Int) -> Color {
-        switch priority {
-        case 0: .red
-        case 1: .orange
-        case 2: .yellow
-        case 3: .blue
-        default: .gray
-        }
     }
 
     private func statusLabel(_ status: BeadStatus) -> String {

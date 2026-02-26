@@ -28,7 +28,7 @@ struct TaskCardView: View {
                 Spacer()
 
                 if let assignee = bead.assignee, !assignee.isEmpty {
-                    Text(agentDisplayName(assignee))
+                    Text(AgentDefinition.find(assignee).displayName)
                         .font(.system(size: 10))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -55,48 +55,18 @@ struct TaskCardView: View {
             .font(.system(size: 10, weight: .semibold))
             .padding(.horizontal, 7)
             .padding(.vertical, 2)
-            .background(kindColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 4))
-            .foregroundStyle(kindColor)
-    }
-
-    private var kindColor: Color {
-        switch bead.kind {
-        case .task: .blue
-        case .bug: .red
-        case .feature: .green
-        case .epic: .purple
-        case .chore: .gray
-        }
+            .background(bead.kind.color.opacity(0.12), in: RoundedRectangle(cornerRadius: 4))
+            .foregroundStyle(bead.kind.color)
     }
 
     private var priorityBadge: some View {
-        let label = "P\(bead.priority)"
-        let color = priorityColor
-        return Text(label)
+        let color = priorityColor(for: bead.priority)
+        return Text("P\(bead.priority)")
             .font(.system(size: 9, weight: .bold))
             .padding(.horizontal, 5)
             .padding(.vertical, 1)
             .background(color.opacity(0.14), in: Capsule())
             .foregroundStyle(color)
-    }
-
-    private var priorityColor: Color {
-        switch bead.priority {
-        case 0: .red
-        case 1: .orange
-        case 2: .yellow
-        case 3: .blue
-        default: .gray
-        }
-    }
-
-    private func agentDisplayName(_ agentID: String) -> String {
-        switch agentID.lowercased() {
-        case "daneel": return "🤖 Daneel"
-        case "quentin": return "🔬 Quentin"
-        case "argus": return "⚙️ Argus"
-        default: return agentID
-        }
     }
 
     private func gitSummaryRow(_ summary: BeadGitSummary) -> some View {

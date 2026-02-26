@@ -136,28 +136,22 @@ struct ChatPanelView: View {
         }
     }
 
+    /// Returns the active connection error when not connected, or nil when healthy.
+    private var activeConnectionError: ConnectionError? {
+        guard appState.chatConnectionState != .connected else { return nil }
+        return appState.connectionErrorDetail
+    }
+
     private var connectionIndicatorColor: Color {
-        if let error = appState.connectionErrorDetail,
-           appState.chatConnectionState != .connected {
-            return error.indicatorColor
-        }
-        return appState.chatConnectionState.color
+        activeConnectionError?.indicatorColor ?? appState.chatConnectionState.color
     }
 
     private var connectionStatusLabel: String {
-        if let error = appState.connectionErrorDetail,
-           appState.chatConnectionState != .connected {
-            return error.briefLabel
-        }
-        return appState.chatConnectionState.label
+        activeConnectionError?.briefLabel ?? appState.chatConnectionState.label
     }
 
     private var connectionStatusTooltip: String {
-        if let error = appState.connectionErrorDetail,
-           appState.chatConnectionState != .connected {
-            return error.userMessage
-        }
-        return appState.chatConnectionState.label
+        activeConnectionError?.userMessage ?? appState.chatConnectionState.label
     }
 
     private var thinkingLevelLabel: String {
@@ -187,14 +181,7 @@ struct ChatPanelView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(spacing: 12) {
-                    ForEach(appState.chatMessages.filter { msg in
-                        // Hide empty/NO_REPLY assistant messages (streaming placeholder excluded)
-                        if msg.role == .assistant {
-                            let text = msg.content.trimmingCharacters(in: .whitespacesAndNewlines)
-                            if text.isEmpty || text == "NO_REPLY" { return false }
-                        }
-                        return true
-                    }) { message in
+                    ForEach(appState.chatMessages) { message in
                         ChatMessageBubble(
                             message: message,
                             agentName: appState.agentName,
@@ -256,7 +243,7 @@ struct ChatPanelView: View {
 
     private var contextBar: some View {
         HStack(spacing: 6) {
-            if let beadID = appState.selectedBeadContextID {
+            if let beadID = appState.selectedBeadID {
                 contextChip(label: beadID, color: .teal)
             }
             contextChip(
@@ -343,11 +330,7 @@ struct ChatPanelView: View {
             }
         }
         .padding(10)
-        .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 10))
-        .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(AppTheme.subtleBorder, lineWidth: 1)
-        )
+        .cardStyle()
         .shadow(color: .black.opacity(0.04), radius: 1.5, y: 1)
         .padding(.horizontal, 16)
         .padding(.vertical, 12)

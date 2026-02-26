@@ -1,25 +1,6 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-// MARK: - Agent Definition
-
-struct AgentDefinition: Identifiable, Hashable {
-    let id: String
-    let name: String
-    let emoji: String
-
-    static let knownAgents: [AgentDefinition] = [
-        .init(id: "", name: "Unassigned", emoji: "📋"),
-        .init(id: "daneel", name: "Daneel", emoji: "🤖"),
-        .init(id: "quentin", name: "Quentin", emoji: "🔬"),
-        .init(id: "argus", name: "Argus", emoji: "⚙️"),
-    ]
-
-    static func find(_ id: String) -> AgentDefinition {
-        knownAgents.first(where: { $0.id == id }) ?? .init(id: id, name: id, emoji: "🔹")
-    }
-}
-
 // MARK: - Agent Task Model
 
 struct AgentTask: Identifiable, Hashable {
@@ -525,23 +506,13 @@ private struct AgentTaskCard: View {
     }
 
     private var priorityBadge: some View {
-        let color = priorityColor
+        let color = priorityColor(for: task.priority)
         return Text("P\(task.priority)")
             .font(.system(size: 9, weight: .bold))
             .padding(.horizontal, 5)
             .padding(.vertical, 1)
             .background(color.opacity(0.14), in: Capsule())
             .foregroundStyle(color)
-    }
-
-    private var priorityColor: Color {
-        switch task.priority {
-        case 0: .red
-        case 1: .orange
-        case 2: .yellow
-        case 3: .blue
-        default: .gray
-        }
     }
 
     private var statusDot: some View {

@@ -229,27 +229,9 @@ actor GatewayClient {
         gatewayLog.notice("Disconnecting from gateway (user-initiated)")
         isConnected = false
         isReconnecting = false
-
-
-        receiveTask?.cancel()
-        receiveTask = nil
-        pingTask?.cancel()
-        pingTask = nil
-        tickWatchdogTask?.cancel()
-        tickWatchdogTask = nil
-        failConnectChallengeWaiter(error: GatewayClientError.notConnected)
-        bufferedConnectChallengeNonce = nil
-        cancelAllRequestTimeouts()
-        webSocketTask?.cancel(with: .normalClosure, reason: nil)
-        webSocketTask = nil
-
+        cleanupTransport(error: GatewayClientError.notConnected, closeCode: .normalClosure)
         // Only finish subscribers on explicit disconnect (user action)
         finishAllEventSubscribers()
-
-        for (_, continuation) in pendingRequests {
-            continuation.resume(throwing: GatewayClientError.notConnected)
-        }
-        pendingRequests.removeAll()
     }
 
     func request(
@@ -312,10 +294,6 @@ actor GatewayClient {
             continuation.yield(event)
         }
     }
-
-
-
-
 
     private func finishAllEventSubscribers() {
         for (_, continuation) in eventSubscribers {
@@ -533,23 +511,13 @@ actor GatewayClient {
 
 
 
-
-
-
-
-
-
     private func handleDisconnect() {
         let wasConnected = isConnected
         isConnected = false
 
         gatewayLog.warning("WebSocket disconnected (wasConnected=\(wasConnected))")
-        pingTask?.cancel()
-        pingTask = nil
-        tickWatchdogTask?.cancel()
-        tickWatchdogTask = nil
 
-        // Determine the disconnect error
+        // Determine the disconnect error from close reason if available
         let disconnectError: Error
         if let task = webSocketTask,
            task.closeCode == .policyViolation,
@@ -561,26 +529,8 @@ actor GatewayClient {
             disconnectError = GatewayClientError.notConnected
         }
 
-        failConnectChallengeWaiter(error: disconnectError)
-        bufferedConnectChallengeNonce = nil
-        cancelAllRequestTimeouts()
-
-        // Fail pending requests
-        for (_, continuation) in pendingRequests {
-            continuation.resume(throwing: disconnectError)
-        }
-        pendingRequests.removeAll()
-
-        // Don't finish event subscribers on transient disconnect!
-        // This allows the event stream to continue when we reconnect.
-        // The reconnection logic in AppState will:
-        // 1. Call connect() again
-        // 2. Request chat history to catch missed messages
-        // 3. Events will resume flowing to existing subscribers
-        //
-        // Only finish subscribers on explicit disconnect() call.
-
-        // Mark as reconnecting so UI can show status
+        cleanupTransport(error: disconnectError)
+        // Don't finish event subscribers on transient disconnect — streams survive reconnect.
         isReconnecting = true
     }
 
@@ -682,6 +632,15 @@ actor GatewayClient {
 
     private func cleanupAfterFailedConnect(error: Error) {
         gatewayLog.warning("Gateway connect failed: \(error.localizedDescription, privacy: .public)")
+        cleanupTransport(error: error, closeCode: .goingAway)
+        isConnected = false
+    }
+
+    /// Shared cleanup: cancel background tasks, fail pending requests, tear down socket.
+    private func cleanupTransport(
+        error: Error,
+        closeCode: URLSessionWebSocketTask.CloseCode? = nil
+    ) {
         receiveTask?.cancel()
         receiveTask = nil
         pingTask?.cancel()
@@ -697,9 +656,10 @@ actor GatewayClient {
         }
         pendingRequests.removeAll()
 
-        webSocketTask?.cancel(with: .goingAway, reason: nil)
+        if let closeCode {
+            webSocketTask?.cancel(with: closeCode, reason: nil)
+        }
         webSocketTask = nil
-        isConnected = false
     }
 
     private func startPingLoop() {
@@ -812,15 +772,19 @@ actor GatewayClient {
         )
     }
 
+    private static func normalizeTimestamp(_ ts: TimeInterval) -> Date {
+        Date(timeIntervalSince1970: ts > 1e12 ? ts / 1000 : ts)
+    }
+
     private static func parseTimestamp(_ value: Any?) -> Date? {
-        if let ms = value as? TimeInterval {
-            return Date(timeIntervalSince1970: ms > 1e12 ? ms / 1000 : ms)
+        if let ts = value as? TimeInterval {
+            return normalizeTimestamp(ts)
         }
         if let ms = value as? Int {
-            return Date(timeIntervalSince1970: TimeInterval(ms) > 1e12 ? TimeInterval(ms) / 1000 : TimeInterval(ms))
+            return normalizeTimestamp(TimeInterval(ms))
         }
         if let text = value as? String, let ts = TimeInterval(text) {
-            return Date(timeIntervalSince1970: ts > 1e12 ? ts / 1000 : ts)
+            return normalizeTimestamp(ts)
         }
         return nil
     }

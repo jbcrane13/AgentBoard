@@ -49,6 +49,20 @@ enum AppTheme {
         }
     }
 
+    /// ViewModifier for the standard card appearance (background + border).
+    struct CardStyle: ViewModifier {
+        var cornerRadius: CGFloat = 10
+
+        func body(content: Content) -> some View {
+            content
+                .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: cornerRadius))
+                .overlay(
+                    RoundedRectangle(cornerRadius: cornerRadius)
+                        .stroke(AppTheme.subtleBorder, lineWidth: 1)
+                )
+        }
+    }
+
     private static func dynamicColor(light: NSColor, dark: NSColor) -> Color {
         let nsColor = NSColor(
             name: nil,
@@ -58,5 +72,11 @@ enum AppTheme {
             }
         )
         return Color(nsColor: nsColor)
+    }
+}
+
+extension View {
+    func cardStyle(cornerRadius: CGFloat = 10) -> some View {
+        modifier(AppTheme.CardStyle(cornerRadius: cornerRadius))
     }
 }

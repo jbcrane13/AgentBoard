@@ -69,11 +69,11 @@ struct AppStateCoverageTests {
 
         state.selectedBeadID = "AB-2"
         #expect(state.selectedBead?.id == "AB-2")
-        #expect(state.selectedBeadContextID == "AB-2")
+        #expect(state.selectedBeadID == "AB-2")
 
         state.selectedBeadID = "MISSING"
         #expect(state.selectedBead == nil)
-        #expect(state.selectedBeadContextID == "MISSING")
+        #expect(state.selectedBeadID == "MISSING")
 
         state.openIssueFromChat(issueID: "AB-1")
         #expect(state.selectedBeadID == "AB-1")

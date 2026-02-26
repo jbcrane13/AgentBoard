@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 struct Bead: Identifiable, Hashable, Codable {
     let id: String
@@ -87,6 +88,28 @@ enum BeadKind: String, Codable, CaseIterable, Sendable {
         case .chore:
             return "chore"
         }
+    }
+}
+
+extension BeadKind {
+    var color: Color {
+        switch self {
+        case .task: .blue
+        case .bug: .red
+        case .feature: .green
+        case .epic: .purple
+        case .chore: .gray
+        }
+    }
+}
+
+func priorityColor(for priority: Int) -> Color {
+    switch priority {
+    case 0: .red
+    case 1: .orange
+    case 2: .yellow
+    case 3: .blue
+    default: .gray
     }
 }
 

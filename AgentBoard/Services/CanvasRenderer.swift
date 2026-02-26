@@ -12,7 +12,7 @@ final class CanvasRenderer {
         webView.loadHTMLString(emptyDocument, baseURL: nil)
     }
 
-    private func htmlDocument(for content: CanvasContent) -> String {
+    func htmlDocument(for content: CanvasContent) -> String {
         switch content {
         case .markdown(_, let title, let markdown):
             let renderedHTML = HTMLFormatter.format(markdown)
@@ -66,7 +66,7 @@ final class CanvasRenderer {
         }
     }
 
-    private func shell(title: String, body: String, includeMermaid: Bool) -> String {
+    func shell(title: String, body: String, includeMermaid: Bool) -> String {
         let mermaidScript: String
         if includeMermaid {
             mermaidScript = """
@@ -212,7 +212,7 @@ final class CanvasRenderer {
         """
     }
 
-    private func escapeHTML(_ value: String) -> String {
+    func escapeHTML(_ value: String) -> String {
         value
             .replacingOccurrences(of: "&", with: "&amp;")
             .replacingOccurrences(of: "<", with: "&lt;")

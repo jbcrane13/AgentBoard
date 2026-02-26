@@ -43,20 +43,6 @@ protocol OpenClawServicing: Actor {
     func agentIdentity(sessionKey: String?) async throws -> GatewayAgentIdentity
 }
 
-// Legacy type kept for AgentsView compatibility — will be replaced by GatewaySession
-struct OpenClawRemoteSession: Identifiable, Sendable {
-    let id: String
-    let name: String
-    let status: String?
-    let model: String?
-    let projectPath: String?
-    let beadID: String?
-    let totalTokens: Int?
-    let estimatedCostUSD: Double?
-    let startedAt: Date?
-    let updatedAt: Date?
-}
-
 enum OpenClawServiceError: LocalizedError {
     case invalidGatewayURL
     case notConnected

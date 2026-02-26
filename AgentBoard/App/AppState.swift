@@ -46,13 +46,12 @@ final class AppState {
     var selectedBeadID: String?
     var chatConnectionState: OpenClawConnectionState = .disconnected
     var isChatStreaming = false
-    var remoteChatSessions: [OpenClawRemoteSession] = []
     var currentSessionKey: String = "main"
     var gatewaySessions: [GatewaySession] = []
-    var chatThinkingLevel: String? = nil
-    var chatRunId: String? = nil
+    var chatThinkingLevel: String?
+    var chatRunId: String?
     var agentName: String = "Assistant"
-    var agentAvatar: String? = nil
+    var agentAvatar: String?
     var beadGitSummaries: [String: BeadGitSummary] = [:]
     var recentGitCommits: [GitCommitRecord] = []
     var currentGitBranch: String?
@@ -101,10 +100,6 @@ final class AppState {
     var selectedBead: Bead? {
         guard let selectedBeadID else { return nil }
         return beads.first(where: { $0.id == selectedBeadID })
-    }
-
-    var selectedBeadContextID: String? {
-        selectedBeadID ?? selectedBead?.id
     }
 
     var currentCanvasContent: CanvasContent? {
@@ -352,7 +347,7 @@ final class AppState {
         guard !trimmed.isEmpty else { return }
         clearUnreadChatCount()
 
-        let contextID = selectedBeadContextID
+        let contextID = selectedBeadID
         let userMessage = ChatMessage(role: .user, content: trimmed, beadContext: contextID)
         chatMessages.append(userMessage)
 
@@ -373,7 +368,6 @@ final class AppState {
             )
             await refreshGatewaySessions()
             // Response will stream via gateway events handled in the event listener.
-            // The event listener will call appendAssistantChunk and finalize the message.
         } catch {
             replaceAssistantMessage(
                 messageID: assistantID,
@@ -750,29 +744,34 @@ final class AppState {
         }
     }
 
-    func refreshBeads() {
+    func refreshBeads() async {
         guard let project = selectedProject else { return }
-        Task {
-            await refreshBeadsFromCLI(for: project)
-        }
+        await refreshBeadsFromCLI(for: project)
     }
 
     private func refreshBeadsFromCLI(for project: Project) async {
         do {
-            let result = try await runBD(arguments: ["bd", "list", "--all", "--json"], in: project)
-            let stdout = result.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
-            if let data = stdout.data(using: .utf8),
-               let array = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
-                let jsonl = array.compactMap { obj -> String? in
-                    guard let line = try? JSONSerialization.data(withJSONObject: obj),
-                          let str = String(data: line, encoding: .utf8) else { return nil }
-                    return str
-                }.joined(separator: "\n")
-                try jsonl.write(to: project.issuesFileURL, atomically: true, encoding: .utf8)
-            }
+            try await fetchAndWriteIssuesJSONL(for: project)
             loadBeads(for: project)
         } catch {
             errorMessage = "Failed to refresh beads: \(error.localizedDescription)"
+        }
+    }
+
+    /// Runs `bd list --all --json`, converts the JSON array to JSONL, and writes to issues.jsonl.
+    private func fetchAndWriteIssuesJSONL(for project: Project) async throws {
+        let result = try await runBD(arguments: ["bd", "list", "--all", "--json"], in: project)
+        let stdout = result.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let data = stdout.data(using: .utf8),
+           let array = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
+            let jsonl = array.compactMap { obj -> String? in
+                guard let line = try? JSONSerialization.data(withJSONObject: obj),
+                      let str = String(data: line, encoding: .utf8) else { return nil }
+                return str
+            }.joined(separator: "\n")
+            try jsonl.write(to: project.issuesFileURL, atomically: true, encoding: .utf8)
+        } else {
+            try stdout.write(to: project.issuesFileURL, atomically: true, encoding: .utf8)
         }
     }
 
@@ -800,9 +799,7 @@ final class AppState {
                 }
             }
 
-            if draft.kind == .epic {
-                arguments.append(contentsOf: ["--parent", ""])
-            } else if let epicId = draft.epicId, !epicId.isEmpty {
+            if let epicId = draft.epicId, !epicId.isEmpty, draft.kind != .epic {
                 arguments.append(contentsOf: ["--parent", epicId])
             } else {
                 arguments.append(contentsOf: ["--parent", ""])
@@ -1219,11 +1216,6 @@ final class AppState {
         }
     }
 
-    private func refreshRemoteSessions() async {
-        // Kept for backward compat — gateway sessions now served by refreshGatewaySessions()
-        rebuildHistoryEvents()
-    }
-
     private static func matchesCurrentSessionKey(incoming: String?, current: String) -> Bool {
         guard let incoming else { return false }
         let incomingNormalized = incoming.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -1243,10 +1235,6 @@ final class AppState {
         guard let raw else { return nil }
         let normalized = raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         switch normalized {
-        case "":
-            return nil
-        case "default":
-            return nil
         case "off", "minimal", "low", "medium", "high":
             return normalized
         default:
@@ -1303,10 +1291,12 @@ final class AppState {
             return
         }
 
-        loadBeads(for: selectedProject)
-        watch(project: selectedProject)
+        let project = selectedProject
+        loadBeads(for: project)
+        watch(project: project)
         Task { @MainActor in
-            await refreshGitContext(for: selectedProject)
+            await refreshBeadsFromCLI(for: project)
+            await refreshGitContext(for: project)
         }
     }
 
@@ -1322,21 +1312,7 @@ final class AppState {
         if !FileManager.default.fileExists(atPath: issuesURL.path), project.isBeadsInitialized {
             Task {
                 do {
-                    let result = try await runBD(arguments: ["bd", "list", "--all", "--json"], in: project)
-                    // bd list --json returns a JSON array; convert to JSONL for the parser
-                    let stdout = result.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if let data = stdout.data(using: .utf8),
-                       let array = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
-                        let jsonl = array.compactMap { obj -> String? in
-                            guard let line = try? JSONSerialization.data(withJSONObject: obj),
-                                  let str = String(data: line, encoding: .utf8) else { return nil }
-                            return str
-                        }.joined(separator: "\n")
-                        try jsonl.write(to: issuesURL, atomically: true, encoding: .utf8)
-                    } else {
-                        // Might already be JSONL or empty
-                        try stdout.write(to: issuesURL, atomically: true, encoding: .utf8)
-                    }
+                    try await fetchAndWriteIssuesJSONL(for: project)
                     await MainActor.run { self.loadBeads(for: project) }
                 } catch {
                     await MainActor.run {
@@ -1599,66 +1575,8 @@ final class AppState {
         historyEvents = events.sorted { lhs, rhs in lhs.occurredAt > rhs.occurredAt }
     }
 
-    private func deriveBeadPrefix(projectName: String) -> String {
-        if let existingID = beads.first?.id {
-            let parts = existingID.split(separator: "-", maxSplits: 1)
-            if parts.count == 2 {
-                return String(parts[0])
-            }
-        }
-        // Fallback: initials from project name words, or first 2 chars
-        let words = projectName.split(whereSeparator: { !$0.isLetter && !$0.isNumber })
-        if words.count >= 2 {
-            return words.prefix(3).map { String($0.prefix(1)).uppercased() }.joined()
-        }
-        return String(projectName.prefix(2)).uppercased()
-    }
-
-    private func generateBeadID(prefix: String, existingIDs: Set<String>) -> String {
-        let chars = Array("0123456789abcdefghijklmnopqrstuvwxyz")
-        for _ in 0..<100 {
-            let hash = String((0..<3).map { _ in chars.randomElement()! })
-            let candidate = "\(prefix)-\(hash)"
-            if !existingIDs.contains(candidate) {
-                return candidate
-            }
-        }
-        let fallback = String(Int(Date().timeIntervalSince1970) % 100000, radix: 36)
-        return "\(prefix)-\(fallback)"
-    }
-
     private func runBD(arguments: [String], in project: Project) async throws -> ShellCommandResult {
         try await ShellCommand.runAsync(arguments: arguments, workingDirectory: project.path)
-    }
-
-    private func finalizeAssistantMessage(
-        messageID: UUID,
-        streamedText: String,
-        fallbackContent: String
-    ) {
-        var finalContent = streamedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            ? fallbackContent
-            : streamedText
-        var sentToCanvas = false
-
-        if let (canvasContent, cleanedMessage) = parseCanvasDirective(from: finalContent) {
-            pushCanvasContent(canvasContent)
-            sentToCanvas = true
-            finalContent = cleanedMessage.isEmpty ? "Sent to canvas." : cleanedMessage
-            if rightPanelMode == .chat {
-                rightPanelMode = .split
-            }
-        }
-
-        replaceAssistantMessage(
-            messageID: messageID,
-            content: finalContent,
-            sentToCanvas: sentToCanvas
-        )
-
-        if selectedTab == .board, rightPanelMode == .canvas {
-            unreadChatCount += 1
-        }
     }
 
     private func parseCanvasDirective(from content: String) -> (CanvasContent, String)? {
@@ -1779,20 +1697,6 @@ final class AppState {
         return (language.trimmingCharacters(in: .whitespacesAndNewlines), code)
     }
 
-    private func appendAssistantChunk(_ chunk: String, messageID: UUID) {
-        guard let index = chatMessages.firstIndex(where: { $0.id == messageID }) else { return }
-        let message = chatMessages[index]
-        let updated = ChatMessage(
-            id: message.id,
-            role: message.role,
-            content: message.content + chunk,
-            timestamp: message.timestamp,
-            beadContext: message.beadContext,
-            sentToCanvas: message.sentToCanvas
-        )
-        chatMessages[index] = updated
-    }
-
     private func replaceAssistantMessage(messageID: UUID, content: String, sentToCanvas: Bool = false) {
         guard let index = chatMessages.firstIndex(where: { $0.id == messageID }) else { return }
         let message = chatMessages[index]
@@ -1820,7 +1724,4 @@ final class AppState {
         return nil
     }
 
-    private func shellSingleQuoted(_ value: String) -> String {
-        "'" + value.replacingOccurrences(of: "'", with: "'\"'\"'") + "'"
-    }
 }
