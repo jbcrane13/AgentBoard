@@ -34,3 +34,11 @@ Package.resolved
 # Beads issue tracker (local)
 .beads/
 beads/
+
+# Beads local state (do not commit)
+beads.db
+.beads/dolt/
+.beads/dolt/**
+.beads/interactions.jsonl
+.claude/
+.claude-code-supervisor.yml
