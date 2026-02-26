@@ -115,7 +115,22 @@ struct AppStateProjectTests {
     }
 
     @Test("selectProject clears activeSessionID regardless of previous value")
-    func selectProjectClearsActiveSession() {
+    func selectProjectClearsActiveSession() throws {
+        // Backup real config — this test mutates appConfig.projects which persists to disk
+        let configURL = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".agentboard/config.json")
+        let fm = FileManager.default
+        let backup: URL? = fm.fileExists(atPath: configURL.path) ? {
+            let b = configURL.deletingLastPathComponent()
+                .appendingPathComponent("config.json.bak-\(UUID().uuidString)")
+            try? fm.copyItem(at: configURL, to: b)
+            return b
+        }() : nil
+        defer {
+            if fm.fileExists(atPath: configURL.path) { try? fm.removeItem(at: configURL) }
+            if let backup { try? fm.moveItem(at: backup, to: configURL) }
+        }
+
         let state = AppState()
         let path = "/tmp/test-select-clear-session"
         state.appConfig.projects = [ConfiguredProject(path: path, icon: "📁")]
