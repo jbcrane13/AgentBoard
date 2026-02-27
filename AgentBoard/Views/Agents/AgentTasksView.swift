@@ -6,6 +6,7 @@ import UniformTypeIdentifiers
 struct AgentTask: Identifiable, Hashable {
     let id: String
     var title: String
+    var description: String
     var status: String
     var priority: Int
     var assignee: String
@@ -34,16 +35,54 @@ struct AgentTask: Identifiable, Hashable {
 @Observable
 @MainActor
 final class AgentTasksViewModel {
+    typealias CommandRunner = @Sendable ([String], URL) async throws -> ShellCommandResult
+
+    enum ParseError: LocalizedError {
+        case invalidUTF8
+        case invalidTopLevel
+
+        var errorDescription: String? {
+            switch self {
+            case .invalidUTF8:
+                return "Task payload is not valid UTF-8."
+            case .invalidTopLevel:
+                return "Task payload must be a JSON array."
+            }
+        }
+    }
+
     var tasks: [AgentTask] = []
     var isLoading = false
     var errorMessage: String?
 
     private var pollingTask: Task<Void, Never>?
-    private let workingDirectory = FileManager.default.homeDirectoryForCurrentUser
-        .appendingPathComponent(".openclaw/agent-tasks")
+    private let workingDirectory: URL
+    private let runCommand: CommandRunner
+    private let useFixtureData: Bool
+
+    init(
+        workingDirectory: URL = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".openclaw/agent-tasks"),
+        runCommand: @escaping CommandRunner = { arguments, workingDirectory in
+            try await ShellCommand.runAsync(
+                arguments: arguments,
+                workingDirectory: workingDirectory
+            )
+        },
+        useFixtureData: Bool = ProcessInfo.processInfo.arguments.contains("--uitesting-dashboard-fixtures")
+    ) {
+        self.workingDirectory = workingDirectory
+        self.runCommand = runCommand
+        self.useFixtureData = useFixtureData
+
+        if useFixtureData {
+            self.tasks = Self.fixtureTasks
+        }
+    }
 
     func startPolling() {
         stopPolling()
+        guard !useFixtureData else { return }
         loadTasks()
         pollingTask = Task { [weak self] in
             while !Task.isCancelled {
@@ -60,33 +99,63 @@ final class AgentTasksViewModel {
     }
 
     func loadTasks() {
-        Task {
-            do {
-                let result = try await ShellCommand.runAsync(
-                    arguments: ["bd", "list", "--json"],
-                    workingDirectory: workingDirectory
-                )
-                let parsed = parseTasksJSON(result.stdout)
-                self.tasks = parsed
-                self.errorMessage = nil
-            } catch {
-                self.errorMessage = "Failed to load tasks: \(error.localizedDescription)"
-            }
+        Task { await loadTasksNow() }
+    }
+
+    func loadTasksNow() async {
+        guard !useFixtureData else { return }
+
+        do {
+            let result = try await runCommand(["bd", "list", "--json"], workingDirectory)
+            let parsed = try parseTasksJSON(result.stdout)
+            self.tasks = parsed
+            self.errorMessage = nil
+        } catch let parseError as ParseError {
+            self.errorMessage = "Failed to parse tasks: \(parseError.localizedDescription)"
+        } catch {
+            self.errorMessage = "Failed to load tasks: \(error.localizedDescription)"
         }
     }
 
-    func createTask(title: String, assignee: String, priority: Int = 2) {
+    func createTask(title: String, description: String = "", assignee: String, priority: Int = 2) {
         Task {
+            if useFixtureData {
+                let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !trimmedTitle.isEmpty else {
+                    self.errorMessage = "Failed to create task: title is required."
+                    return
+                }
+                let id = "AB-fixture-\(tasks.count + 1)"
+                let now = Date()
+                tasks.insert(
+                    AgentTask(
+                        id: id,
+                        title: trimmedTitle,
+                        description: description,
+                        status: "open",
+                        priority: priority,
+                        assignee: assignee,
+                        issueType: "task",
+                        createdAt: now,
+                        updatedAt: now
+                    ),
+                    at: 0
+                )
+                errorMessage = nil
+                return
+            }
+
             do {
                 var args = ["bd", "create", title, "-p", "\(priority)", "--json"]
                 if !assignee.isEmpty {
                     args += ["-a", assignee]
                 }
-                _ = try await ShellCommand.runAsync(
-                    arguments: args,
-                    workingDirectory: workingDirectory
-                )
-                loadTasks()
+                let trimmedDescription = description.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !trimmedDescription.isEmpty {
+                    args += ["-d", trimmedDescription]
+                }
+                _ = try await runCommand(args, workingDirectory)
+                await loadTasksNow()
             } catch {
                 self.errorMessage = "Failed to create task: \(error.localizedDescription)"
             }
@@ -95,12 +164,17 @@ final class AgentTasksViewModel {
 
     func updateAssignee(taskID: String, assignee: String) {
         Task {
+            if useFixtureData {
+                guard let index = tasks.firstIndex(where: { $0.id == taskID }) else { return }
+                tasks[index].assignee = assignee
+                tasks[index].updatedAt = .now
+                errorMessage = nil
+                return
+            }
+
             do {
-                _ = try await ShellCommand.runAsync(
-                    arguments: ["bd", "update", taskID, "-a", assignee, "--json"],
-                    workingDirectory: workingDirectory
-                )
-                loadTasks()
+                _ = try await runCommand(["bd", "update", taskID, "-a", assignee, "--json"], workingDirectory)
+                await loadTasksNow()
             } catch {
                 self.errorMessage = "Failed to update assignee: \(error.localizedDescription)"
             }
@@ -109,12 +183,17 @@ final class AgentTasksViewModel {
 
     func updateStatus(taskID: String, status: String) {
         Task {
+            if useFixtureData {
+                guard let index = tasks.firstIndex(where: { $0.id == taskID }) else { return }
+                tasks[index].status = status
+                tasks[index].updatedAt = .now
+                errorMessage = nil
+                return
+            }
+
             do {
-                _ = try await ShellCommand.runAsync(
-                    arguments: ["bd", "update", taskID, "--status", status, "--json"],
-                    workingDirectory: workingDirectory
-                )
-                loadTasks()
+                _ = try await runCommand(["bd", "update", taskID, "--status", status, "--json"], workingDirectory)
+                await loadTasksNow()
             } catch {
                 self.errorMessage = "Failed to update status: \(error.localizedDescription)"
             }
@@ -123,12 +202,17 @@ final class AgentTasksViewModel {
 
     func closeTask(taskID: String) {
         Task {
+            if useFixtureData {
+                guard let index = tasks.firstIndex(where: { $0.id == taskID }) else { return }
+                tasks[index].status = "done"
+                tasks[index].updatedAt = .now
+                errorMessage = nil
+                return
+            }
+
             do {
-                _ = try await ShellCommand.runAsync(
-                    arguments: ["bd", "close", taskID, "--reason", "done", "--json"],
-                    workingDirectory: workingDirectory
-                )
-                loadTasks()
+                _ = try await runCommand(["bd", "close", taskID, "--reason", "done", "--json"], workingDirectory)
+                await loadTasksNow()
             } catch {
                 self.errorMessage = "Failed to close task: \(error.localizedDescription)"
             }
@@ -137,6 +221,17 @@ final class AgentTasksViewModel {
 
     func updateTask(taskID: String, title: String, description: String, priority: Int, assignee: String, status: String) {
         Task {
+            if useFixtureData {
+                guard let index = tasks.firstIndex(where: { $0.id == taskID }) else { return }
+                tasks[index].title = title
+                tasks[index].priority = priority
+                tasks[index].assignee = assignee
+                tasks[index].status = status
+                tasks[index].updatedAt = .now
+                errorMessage = nil
+                return
+            }
+
             do {
                 var args = ["bd", "update", taskID,
                             "--title", title,
@@ -146,21 +241,20 @@ final class AgentTasksViewModel {
                 if !description.isEmpty {
                     args += ["-d", description]
                 }
-                _ = try await ShellCommand.runAsync(
-                    arguments: args,
-                    workingDirectory: workingDirectory
-                )
-                loadTasks()
+                _ = try await runCommand(args, workingDirectory)
+                await loadTasksNow()
             } catch {
                 self.errorMessage = "Failed to update task: \(error.localizedDescription)"
             }
         }
     }
 
-    private func parseTasksJSON(_ json: String) -> [AgentTask] {
-        guard let data = json.data(using: .utf8),
-              let array = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
-            return []
+    private func parseTasksJSON(_ json: String) throws -> [AgentTask] {
+        guard let data = json.data(using: .utf8) else {
+            throw ParseError.invalidUTF8
+        }
+        guard let array = try JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
+            throw ParseError.invalidTopLevel
         }
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime]
@@ -176,9 +270,11 @@ final class AgentTasksViewModel {
             let createdAt = (dict["created_at"] as? String).flatMap { formatter.date(from: $0) } ?? .distantPast
             let updatedAt = (dict["updated_at"] as? String).flatMap { formatter.date(from: $0) } ?? createdAt
 
+            let description = dict["description"] as? String ?? ""
             return AgentTask(
                 id: id,
                 title: title,
+                description: description,
                 status: status,
                 priority: priority,
                 assignee: assignee,
@@ -188,6 +284,33 @@ final class AgentTasksViewModel {
             )
         }
     }
+
+    private static var fixtureTasks: [AgentTask] {
+        [
+            AgentTask(
+                id: "AB-fixture-1",
+                title: "Fixture Active Task",
+                description: "A fixture task for UI testing.",
+                status: "open",
+                priority: 1,
+                assignee: "daneel",
+                issueType: "task",
+                createdAt: .now.addingTimeInterval(-1_500),
+                updatedAt: .now.addingTimeInterval(-1_200)
+            ),
+            AgentTask(
+                id: "AB-fixture-2",
+                title: "Completed Fixture Task",
+                description: "",
+                status: "done",
+                priority: 2,
+                assignee: "quentin",
+                issueType: "task",
+                createdAt: .now.addingTimeInterval(-4_000),
+                updatedAt: .now.addingTimeInterval(-2_000)
+            ),
+        ]
+    }
 }
 
 // MARK: - Agent Tasks View
@@ -196,6 +319,7 @@ struct AgentTasksView: View {
     @State private var viewModel = AgentTasksViewModel()
     @State private var showCreateSheet = false
     @State private var createTitle = ""
+    @State private var createDescription = ""
     @State private var createAssignee = ""
     @State private var createPriority = 2
     @State private var detailTask: AgentTask?
@@ -238,12 +362,14 @@ struct AgentTasksView: View {
             Button {
                 createAssignee = ""
                 createTitle = ""
+                createDescription = ""
                 createPriority = 2
                 showCreateSheet = true
             } label: {
                 Label("New Task", systemImage: "plus")
             }
             .buttonStyle(.borderedProminent)
+            .accessibilityIdentifier("AgentTasksNewTaskButton")
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
@@ -275,6 +401,7 @@ struct AgentTasksView: View {
             onCreateTask: {
                 createAssignee = agent.id
                 createTitle = ""
+                createDescription = ""
                 createPriority = 2
                 showCreateSheet = true
             },
@@ -308,6 +435,17 @@ struct AgentTasksView: View {
 
             Form {
                 TextField("Title", text: $createTitle)
+                    .accessibilityIdentifier("AgentTaskCreateTitleField")
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Description")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                    TextEditor(text: $createDescription)
+                        .frame(minHeight: 80)
+                        .accessibilityIdentifier("AgentTaskCreateDescriptionField")
+                }
+                .padding(.vertical, 4)
 
                 Picker("Assignee", selection: $createAssignee) {
                     ForEach(AgentDefinition.knownAgents) { agent in
@@ -330,11 +468,12 @@ struct AgentTasksView: View {
                     showCreateSheet = false
                 }
                 Button("Create") {
-                    viewModel.createTask(title: createTitle, assignee: createAssignee, priority: createPriority)
+                    viewModel.createTask(title: createTitle, description: createDescription, assignee: createAssignee, priority: createPriority)
                     showCreateSheet = false
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(createTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .accessibilityIdentifier("AgentTaskCreateConfirmButton")
             }
             .padding(16)
             .overlay(alignment: .top) { Divider() }
@@ -424,6 +563,7 @@ private struct AgentColumnView: View {
                         }
                         .buttonStyle(.plain)
                         .padding(.top, 4)
+                        .accessibilityIdentifier("AgentTasksToggleCompleted-\(agent.id)")
 
                         if showCompleted {
                             ForEach(doneTasks) { task in
@@ -489,6 +629,14 @@ private struct AgentTaskCard: View {
                 .foregroundStyle(.primary)
                 .lineLimit(3)
                 .padding(.bottom, 2)
+                .accessibilityIdentifier("AgentTaskTitle-\(task.id)")
+
+            if !task.description.isEmpty {
+                Text(task.description)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
 
             HStack(spacing: 6) {
                 statusDot
@@ -546,6 +694,7 @@ private struct AgentTaskDetailSheet: View {
         self.viewModel = viewModel
         self.onDismiss = onDismiss
         self._editTitle = State(initialValue: task.title)
+        self._editDescription = State(initialValue: task.description)
         self._editPriority = State(initialValue: task.priority)
         self._editAssignee = State(initialValue: task.assignee)
         self._editStatus = State(initialValue: task.status)
@@ -573,6 +722,7 @@ private struct AgentTaskDetailSheet: View {
 
             Form {
                 TextField("Title", text: $editTitle)
+                    .accessibilityIdentifier("AgentTaskDetailTitleField")
 
                 Picker("Status", selection: $editStatus) {
                     Text("Open").tag("open")
@@ -634,6 +784,7 @@ private struct AgentTaskDetailSheet: View {
                 .buttonStyle(.borderedProminent)
                 .disabled(editTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 .keyboardShortcut(.return, modifiers: .command)
+                .accessibilityIdentifier("AgentTaskDetailSaveButton")
             }
             .padding(16)
         }
