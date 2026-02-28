@@ -26,7 +26,7 @@ struct BoardView: View {
         .init(id: "open", title: "Open", status: .open, color: .blue),
         .init(id: "in-progress", title: "In Progress", status: .inProgress, color: .orange),
         .init(id: "blocked", title: "Blocked", status: .blocked, color: .red),
-        .init(id: "done", title: "Done", status: .done, color: .green),
+        .init(id: "done", title: "Done", status: .done, color: .green)
     ]
 
     var body: some View {

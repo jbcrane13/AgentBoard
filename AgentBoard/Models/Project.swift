@@ -65,6 +65,6 @@ struct Project: Identifiable, Hashable {
             openCount: 1,
             inProgressCount: 0,
             totalCount: 8
-        ),
+        )
     ]
 }

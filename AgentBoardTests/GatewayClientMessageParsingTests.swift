@@ -98,7 +98,7 @@ struct GatewayClientMessageParsingTests {
     func chatMessageTextFromParts() {
         let parts: [[String: Any]] = [
             ["type": "text", "text": "Part one"],
-            ["type": "text", "text": "Part two"],
+            ["type": "text", "text": "Part two"]
         ]
         let payload: [String: Any] = ["message": ["content": parts] as [String: Any]]
         let event = GatewayEvent(event: "chat", payload: payload, seq: nil)
@@ -124,7 +124,7 @@ struct GatewayClientMessageParsingTests {
         let parts: [[String: Any]] = [
             ["type": "text", "text": "alpha"],
             ["type": "tool_use", "id": "ignored"],
-            ["type": "text", "text": "beta"],
+            ["type": "text", "text": "beta"]
         ]
         let result = GatewayClient.extractText(from: parts)
         #expect(result == "alpha\nbeta")
@@ -139,7 +139,7 @@ struct GatewayClientMessageParsingTests {
     @Test("extractText returns nil for array with no text-type parts")
     func extractTextNilForNonTextParts() {
         let parts: [[String: Any]] = [
-            ["type": "tool_use", "id": "tool-1"],
+            ["type": "tool_use", "id": "tool-1"]
         ]
         let result = GatewayClient.extractText(from: parts)
         #expect(result == nil)
@@ -159,7 +159,7 @@ struct GatewayClientMessageParsingTests {
         let payload: [String: Any] = [
             "sessions": [
                 ["key": "", "id": ""],         // empty key + empty id → skipped
-                ["key": "valid", "id": "v1"],  // valid
+                ["key": "valid", "id": "v1"]  // valid
             ] as [[String: Any]]
         ]
         let sessions = try GatewayClient.decodeSessionsPayload(payload)
@@ -171,7 +171,7 @@ struct GatewayClientMessageParsingTests {
     func decodeSessionsPayloadUsesIdFallback() throws {
         let payload: [String: Any] = [
             "sessions": [
-                ["id": "fallback-id"],  // no "key" field
+                ["id": "fallback-id"]  // no "key" field
             ] as [[String: Any]]
         ]
         let sessions = try GatewayClient.decodeSessionsPayload(payload)
@@ -203,7 +203,7 @@ struct GatewayClientMessageParsingTests {
                     "model": "gpt-5.3",
                     "status": "active",
                     "lastActiveAt": lastActive,
-                    "thinkingLevel": "high",
+                    "thinkingLevel": "high"
                 ] as [String: Any]
             ] as [[String: Any]]
         ]
@@ -249,7 +249,7 @@ struct GatewayClientMessageParsingTests {
         let identity = try GatewayClient.decodeAgentIdentityPayload([
             "agentId": "codex",
             "name": "AgentBoard Assistant",
-            "avatar": "robot",
+            "avatar": "robot"
         ])
         #expect(identity.agentId == "codex")
         #expect(identity.name == "AgentBoard Assistant")
@@ -264,7 +264,7 @@ struct GatewayClientMessageParsingTests {
         let msTimestamp: TimeInterval = 1_700_000_000_000
         let payload: [String: Any] = [
             "messages": [
-                ["role": "user", "content": "hi", "timestamp": msTimestamp],
+                ["role": "user", "content": "hi", "timestamp": msTimestamp]
             ] as [[String: Any]]
         ]
         let history = try GatewayClient.decodeChatHistoryPayload(payload)
@@ -279,7 +279,7 @@ struct GatewayClientMessageParsingTests {
         let secondsTimestamp: TimeInterval = 1_700_000_000
         let payload: [String: Any] = [
             "messages": [
-                ["role": "assistant", "content": "hello", "timestamp": secondsTimestamp],
+                ["role": "assistant", "content": "hello", "timestamp": secondsTimestamp]
             ] as [[String: Any]]
         ]
         let history = try GatewayClient.decodeChatHistoryPayload(payload)
@@ -293,7 +293,7 @@ struct GatewayClientMessageParsingTests {
     func decodeChatHistoryMissingTimestamp() throws {
         let payload: [String: Any] = [
             "messages": [
-                ["role": "user", "content": "no timestamp here"],
+                ["role": "user", "content": "no timestamp here"]
             ] as [[String: Any]]
         ]
         let history = try GatewayClient.decodeChatHistoryPayload(payload)

@@ -272,7 +272,7 @@ struct ModelCoverageTests {
             (.disconnected, "Disconnected"),
             (.connecting, "Connecting"),
             (.reconnecting, "Reconnecting"),
-            (.connected, "Connected"),
+            (.connected, "Connected")
         ]
 
         for (state, label) in cases {

@@ -67,5 +67,6 @@ struct ProjectListView: View {
             )
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("ProjectRow-\(project.name)")
     }
 }

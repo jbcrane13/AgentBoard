@@ -13,7 +13,7 @@ struct AgentDefinition: Identifiable, Hashable {
         .init(id: "", name: "Unassigned", emoji: "📋"),
         .init(id: "daneel", name: "Daneel", emoji: "🤖"),
         .init(id: "quentin", name: "Quentin", emoji: "🔬"),
-        .init(id: "argus", name: "Argus", emoji: "⚙️"),
+        .init(id: "argus", name: "Argus", emoji: "⚙️")
     ]
 
     static func find(_ id: String) -> AgentDefinition {

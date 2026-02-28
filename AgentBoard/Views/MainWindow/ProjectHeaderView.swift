@@ -54,6 +54,7 @@ struct ProjectHeaderView: View {
             Text("\(value)")
                 .font(.system(size: 20, weight: .bold))
                 .foregroundStyle(.primary)
+                .accessibilityIdentifier("ProjectHeaderStat-\(label.replacingOccurrences(of: " ", with: ""))")
             Text(label)
                 .font(.system(size: 9, weight: .semibold))
                 .textCase(.uppercase)

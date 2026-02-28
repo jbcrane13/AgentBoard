@@ -47,6 +47,7 @@ struct AgentsView: View {
                     Text("No agent status data")
                         .font(.system(size: 13))
                         .foregroundStyle(.secondary)
+                        .accessibilityIdentifier("AgentsEmptyStatus")
                     Spacer()
                 }
                 .padding(.vertical, 20)
@@ -123,6 +124,7 @@ struct AgentsView: View {
                     Text("No active handoffs")
                         .font(.system(size: 13))
                         .foregroundStyle(.secondary)
+                        .accessibilityIdentifier("AgentsEmptyHandoffs")
                     Spacer()
                 }
                 .padding(.vertical, 14)
@@ -162,11 +164,13 @@ struct AgentsView: View {
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
                     .padding(.top, 2)
+                    .accessibilityIdentifier("HandoffContext-\(handoff.id)")
             }
         }
         .padding(10)
         .cardStyle(cornerRadius: 8)
         .contentShape(Rectangle())
+        .accessibilityIdentifier("HandoffRow-\(handoff.id)")
         .onTapGesture {
             withAnimation(.easeInOut(duration: 0.2)) {
                 expandedHandoffID = expandedHandoffID == handoff.id ? nil : handoff.id
@@ -264,6 +268,7 @@ struct AgentsView: View {
             Text(value)
                 .font(.system(size: 13, weight: .bold, design: .monospaced))
                 .foregroundStyle(.primary)
+                .accessibilityIdentifier("AgentsStat-\(title.replacingOccurrences(of: " ", with: ""))")
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
@@ -275,6 +280,7 @@ struct AgentsView: View {
             TableColumn("Name") { row in
                 Text(row.name)
                     .lineLimit(1)
+                    .accessibilityIdentifier("AgentsSessionName-\(row.id)")
             }
             .width(min: 180, ideal: 220, max: 280)
 
