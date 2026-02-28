@@ -30,6 +30,16 @@ targets:
         NSHumanReadableCopyright: "Copyright © 2026 Blake Crane. All rights reserved."
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
+    preBuildScripts:
+      - script: |
+          if which swiftlint > /dev/null; then
+            swiftlint lint
+          else
+            echo "warning: SwiftLint not installed — run: brew install swiftlint"
+          fi
+        name: SwiftLint
+        inputFiles: []
+        outputFiles: []
     sources:
       - path: AgentBoard
         excludes:
@@ -92,7 +102,13 @@ schemes:
         AgentBoardTests: [test]
         AgentBoardUITests: [test]
     test:
-      gatherCoverageData: false
+      gatherCoverageData: true
+      coverageTargets:
+        - AgentBoard
       targets:
-        - AgentBoardTests
-        - AgentBoardUITests
+        - name: AgentBoardTests
+          parallelizable: true
+          randomExecutionOrder: true
+        - name: AgentBoardUITests
+          parallelizable: true
+          randomExecutionOrder: true

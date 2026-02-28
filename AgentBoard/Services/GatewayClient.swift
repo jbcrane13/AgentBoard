@@ -189,17 +189,17 @@ actor GatewayClient {
                     "version": "1.0",
                     "platform": "macOS",
                     "mode": clientMode,
-                    "displayName": "AgentBoard",
+                    "displayName": "AgentBoard"
                 ],
                 "device": [
                     "id": identity.deviceId,
                     "publicKey": identity.publicKeyBase64Url,
                     "signature": signature,
                     "signedAt": signedAtMs,
-                    "nonce": nonce,
+                    "nonce": nonce
                 ] as [String: Any],
                 "role": role,
-                "scopes": scopes,
+                "scopes": scopes
             ]
 
             if let token, !token.isEmpty {
@@ -250,7 +250,7 @@ actor GatewayClient {
             "type": "req",
             "id": requestId,
             "method": method,
-            "params": params,
+            "params": params
         ]
 
         let data = try JSONSerialization.data(withJSONObject: message)
@@ -313,7 +313,7 @@ actor GatewayClient {
             "sessionKey": sessionKey,
             "message": message,
             "deliver": false,
-            "idempotencyKey": idempotencyKey,
+            "idempotencyKey": idempotencyKey
         ]
         if let thinking {
             params["thinking"] = thinking
@@ -324,7 +324,7 @@ actor GatewayClient {
     func chatHistory(sessionKey: String, limit: Int = 200) async throws -> GatewayChatHistory {
         let payload = try await request("chat.history", params: [
             "sessionKey": sessionKey,
-            "limit": limit,
+            "limit": limit
         ])
         return try Self.decodeChatHistoryPayload(payload)
     }
@@ -340,7 +340,7 @@ actor GatewayClient {
     func listSessions(activeMinutes: Int? = nil, limit: Int? = nil) async throws -> [GatewaySession] {
         var params: [String: Any] = [
             "includeGlobal": true,
-            "includeUnknown": false,
+            "includeUnknown": false
         ]
         if let activeMinutes {
             params["activeMinutes"] = activeMinutes
@@ -510,11 +510,6 @@ actor GatewayClient {
         let gatewayEvent = GatewayEvent(event: event, payload: payload, seq: seq)
         broadcastEvent(gatewayEvent)
     }
-
-
-
-
-
 
     private func handleDisconnect() {
         let wasConnected = isConnected

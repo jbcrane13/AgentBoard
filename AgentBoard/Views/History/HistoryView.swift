@@ -44,6 +44,7 @@ struct HistoryView: View {
             }
             .pickerStyle(.menu)
             .frame(width: 170)
+            .accessibilityIdentifier("HistoryProjectPicker")
 
             Picker("Event", selection: $selectedEventType) {
                 ForEach(EventTypeFilter.allCases, id: \.self) { filter in
@@ -52,6 +53,7 @@ struct HistoryView: View {
             }
             .pickerStyle(.segmented)
             .frame(width: 320)
+            .accessibilityIdentifier("HistoryEventPicker")
 
             Picker("Range", selection: $selectedDateRange) {
                 ForEach(DateRangeFilter.allCases, id: \.self) { range in
@@ -60,6 +62,7 @@ struct HistoryView: View {
             }
             .pickerStyle(.menu)
             .frame(width: 140)
+            .accessibilityIdentifier("HistoryRangePicker")
 
             Spacer()
         }
@@ -90,6 +93,7 @@ struct HistoryView: View {
                     Text(event.title)
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(.primary)
+                        .accessibilityIdentifier("HistoryEventTitle-\(event.id.uuidString)")
                     Text(event.occurredAt, format: .dateTime.month().day().hour().minute())
                         .font(.system(size: 11, design: .monospaced))
                         .foregroundStyle(.secondary)

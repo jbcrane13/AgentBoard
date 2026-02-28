@@ -83,7 +83,7 @@ actor OpenClawService {
 
         guard let url = URL(string: normalized),
               let scheme = url.scheme?.lowercased(),
-              (scheme == "http" || scheme == "https" || scheme == "ws" || scheme == "wss"),
+              scheme == "http" || scheme == "https" || scheme == "ws" || scheme == "wss",
               url.host != nil else {
             throw OpenClawServiceError.invalidGatewayURL
         }

@@ -89,6 +89,8 @@ final class AppState {
     private var sessionMonitorTask: Task<Void, Never>?
     private var sessionStatusByID: [String: SessionStatus] = [:]
     private var sessionMonitorTick = 0
+    private let gatewaySessionRefreshErrorPrefix = "Gateway session refresh failed:"
+    private let isUITesting = ProcessInfo.processInfo.arguments.contains("--uitesting")
 
     var selectedProject: Project? {
         guard let selectedProjectID else { return nil }
@@ -142,6 +144,12 @@ final class AppState {
             startBeadsPollingLoop()
             coordinationService.startPolling()
             notesService.goToToday()
+        }
+
+        // UI tests should always start from a fully visible dashboard layout.
+        if isUITesting {
+            sidebarVisible = true
+            boardVisible = true
         }
     }
 
@@ -314,6 +322,7 @@ final class AppState {
     }
 
     func persistLayoutState() {
+        guard !isUITesting else { return }
         UserDefaults.standard.set(!sidebarVisible, forKey: "AB_sidebarCollapsed")
         UserDefaults.standard.set(!boardVisible, forKey: "AB_boardCollapsed")
     }
@@ -777,7 +786,7 @@ final class AppState {
             "bd", "create",
             draft.title.trimmingCharacters(in: .whitespacesAndNewlines),
             "--type", draft.kind.beadsValue,
-            "--priority", "\(draft.priority)",
+            "--priority", "\(draft.priority)"
         ]
 
         let desc = draft.description.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -859,7 +868,7 @@ final class AppState {
                 "--type", draft.kind.beadsValue,
                 "--status", draft.status.beadsValue,
                 "--priority", "\(draft.priority)",
-                "--description", draft.description,
+                "--description", draft.description
             ]
 
             if !draft.assignee.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -982,7 +991,7 @@ final class AppState {
                 "--title", title,
                 "--type", "epic",
                 "--priority", "2",
-                "--silent",
+                "--silent"
             ]
             if !description.isEmpty {
                 createArgs.append(contentsOf: ["--description", description])
@@ -1127,7 +1136,7 @@ final class AppState {
                     self.connectionErrorDetail = nil
                     self.showConnectionErrorToast = false
                     attempt = 0
-                    
+
                     // Reset to main session on fresh connect
                     self.currentSessionKey = "main"
                     self.chatMessages = []
@@ -1142,7 +1151,7 @@ final class AppState {
                     // GatewayClient.disconnect/handleDisconnect finish the
                     // continuation, so this returns promptly on any drop.
                     await self.consumeGatewayEvents()
-                    
+
                     // After event stream ends (disconnect), mark as disconnected
                     self.chatConnectionState = .disconnected
 
@@ -1302,15 +1311,202 @@ final class AppState {
         }
     }
 
-    private func refreshGatewaySessions() async {
+    func refreshGatewaySessions() async {
         do {
             gatewaySessions = try await openClawService.listSessions(
                 activeMinutes: 120,
                 limit: 50
             )
+            if errorMessage?.hasPrefix(gatewaySessionRefreshErrorPrefix) == true {
+                setError(nil)
+            }
         } catch {
-            // Silent failure — session list is supplementary
+            setError("\(gatewaySessionRefreshErrorPrefix) \(error.localizedDescription)")
         }
+    }
+
+    /// Seeds deterministic dashboard fixtures for UI tests.
+    func applyDashboardUITestFixtures(empty: Bool = false) {
+        let alpha = Project(
+            id: UUID(uuidString: "11111111-1111-1111-1111-111111111111") ?? UUID(),
+            name: "Dashboard Alpha",
+            path: URL(fileURLWithPath: "/tmp/dashboard-alpha"),
+            beadsPath: URL(fileURLWithPath: "/tmp/dashboard-alpha/.beads"),
+            icon: "📊",
+            isActive: true,
+            openCount: 11,
+            inProgressCount: 7,
+            totalCount: 30
+        )
+        let beta = Project(
+            id: UUID(uuidString: "22222222-2222-2222-2222-222222222222") ?? UUID(),
+            name: "Dashboard Beta",
+            path: URL(fileURLWithPath: "/tmp/dashboard-beta"),
+            beadsPath: URL(fileURLWithPath: "/tmp/dashboard-beta/.beads"),
+            icon: "📈",
+            isActive: false,
+            openCount: 2,
+            inProgressCount: 1,
+            totalCount: 4
+        )
+
+        projects = [alpha, beta]
+        selectedProjectID = alpha.id
+        selectedTab = .board
+        sidebarNavSelection = .board
+        rightPanelMode = .canvas
+        chatConnectionState = .connected
+        unreadChatCount = 41
+        statusMessage = nil
+        errorMessage = nil
+        activeSessionID = nil
+        selectedBeadID = nil
+
+        beads = [
+            Bead(
+                id: "AB-100",
+                title: "Alpha open issue",
+                body: nil,
+                status: .open,
+                kind: .task,
+                priority: 2,
+                epicId: nil,
+                labels: [],
+                assignee: "codex",
+                createdAt: .now.addingTimeInterval(-40_000),
+                updatedAt: .now.addingTimeInterval(-2_000),
+                dependencies: [],
+                gitBranch: nil,
+                lastCommit: nil
+            ),
+            Bead(
+                id: "AB-101",
+                title: "Alpha in-progress issue",
+                body: nil,
+                status: .inProgress,
+                kind: .feature,
+                priority: 1,
+                epicId: nil,
+                labels: [],
+                assignee: "claude-code",
+                createdAt: .now.addingTimeInterval(-30_000),
+                updatedAt: .now.addingTimeInterval(-1_800),
+                dependencies: [],
+                gitBranch: nil,
+                lastCommit: nil
+            )
+        ]
+
+        if empty {
+            sessions = []
+            coordinationService.agentStatuses = []
+            coordinationService.handoffs = []
+        } else {
+            sessions = [
+                CodingSession(
+                    id: "ab-alpha-run",
+                    name: "ab-alpha-run",
+                    agentType: .codex,
+                    projectPath: alpha.path,
+                    beadId: "AB-100",
+                    status: .running,
+                    startedAt: .now.addingTimeInterval(-1_200),
+                    elapsed: 1_200,
+                    model: "gpt-5.3-codex",
+                    processID: 1001,
+                    cpuPercent: 3.4
+                ),
+                CodingSession(
+                    id: "ab-alpha-idle",
+                    name: "ab-alpha-idle",
+                    agentType: .claudeCode,
+                    projectPath: alpha.path,
+                    beadId: "AB-101",
+                    status: .idle,
+                    startedAt: .now.addingTimeInterval(-2_400),
+                    elapsed: 2_400,
+                    model: "claude-sonnet-4-5",
+                    processID: 1002,
+                    cpuPercent: 0.0
+                ),
+                CodingSession(
+                    id: "ab-beta-stopped",
+                    name: "ab-beta-stopped",
+                    agentType: .openCode,
+                    projectPath: beta.path,
+                    beadId: nil,
+                    status: .stopped,
+                    startedAt: .now.addingTimeInterval(-90_000),
+                    elapsed: 3_000,
+                    model: "open-code",
+                    processID: 1003,
+                    cpuPercent: 0.0
+                )
+            ]
+
+            coordinationService.agentStatuses = [
+                AgentStatusEntry(
+                    id: "agent-claude",
+                    agent: "claude-code",
+                    status: "working",
+                    currentTask: "Fix dashboard tests",
+                    updated: "2026-02-27"
+                ),
+                AgentStatusEntry(
+                    id: "agent-codex",
+                    agent: "codex",
+                    status: "idle",
+                    currentTask: "",
+                    updated: "2026-02-27"
+                )
+            ]
+            coordinationService.handoffs = [
+                HandoffEntry(
+                    id: "handoff-1",
+                    fromAgent: "claude-code",
+                    toAgent: "codex",
+                    task: "Review parser output",
+                    context: "Expand this row to verify handoff context visibility.",
+                    status: "pending",
+                    beadId: "AB-100",
+                    date: "2026-02-27"
+                )
+            ]
+        }
+
+        historyEvents = [
+            HistoryEvent(
+                occurredAt: .now.addingTimeInterval(-3_600),
+                type: .beadCreated,
+                title: "Alpha Bead Created",
+                details: "Created AB-100",
+                projectName: alpha.name,
+                beadID: "AB-100"
+            ),
+            HistoryEvent(
+                occurredAt: .now.addingTimeInterval(-172_800),
+                type: .commit,
+                title: "Beta Commit Event",
+                details: "Fixes AB-200",
+                projectName: beta.name,
+                beadID: "AB-200",
+                commitSHA: "deadbeef"
+            ),
+            HistoryEvent(
+                occurredAt: .now.addingTimeInterval(-864_000),
+                type: .sessionStarted,
+                title: "Alpha Session Event",
+                details: "Session started",
+                projectName: alpha.name
+            ),
+            HistoryEvent(
+                occurredAt: .now.addingTimeInterval(-3_600_000),
+                type: .sessionCompleted,
+                title: "Beta Old Session Event",
+                details: "Outside 30 day filter",
+                projectName: beta.name
+            )
+        ]
     }
 
     private static func matchesCurrentSessionKey(incoming: String?, current: String) -> Bool {
@@ -1321,8 +1517,7 @@ final class AppState {
             return true
         }
         if (incomingNormalized == "agent:main:main" && currentNormalized == "main") ||
-            (incomingNormalized == "main" && currentNormalized == "agent:main:main")
-        {
+            (incomingNormalized == "main" && currentNormalized == "agent:main:main") {
             return true
         }
         return false
@@ -1427,7 +1622,7 @@ final class AppState {
         // For dolt backend projects, always refresh from CLI on initial load or if file is missing
         // This ensures we never show stale data from a previous session
         let shouldRefreshFromCLI = project.isBeadsInitialized && (isInitialLoad || !FileManager.default.fileExists(atPath: issuesURL.path))
-        
+
         if shouldRefreshFromCLI {
             isInitialLoad = false
             Task {
@@ -1886,7 +2081,7 @@ final class AppState {
             "invalid display identifier",
             "CALocalDisplayUpdateBlock"
         ]
-        
+
         return toolPatterns.contains { pattern in
             text.contains(pattern)
         }

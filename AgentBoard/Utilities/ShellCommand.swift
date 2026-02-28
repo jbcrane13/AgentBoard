@@ -44,7 +44,7 @@ enum ShellCommand {
             "/opt/homebrew/bin",
             "/opt/homebrew/sbin",
             "/usr/local/bin",
-            "\(home)/.local/bin",
+            "\(home)/.local/bin"
         ]
         env["PATH"] = (extraPaths + [basePath]).joined(separator: ":")
         process.environment = env

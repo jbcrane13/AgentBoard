@@ -67,6 +67,6 @@ extension CodingSession {
             agentType: .codex, projectPath: nil, beadId: nil,
             status: .stopped, startedAt: .now.addingTimeInterval(-7200),
             elapsed: 1800, model: "gpt-5.3-codex", processID: nil, cpuPercent: 0
-        ),
+        )
     ]
 }

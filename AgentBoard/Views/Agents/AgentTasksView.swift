@@ -308,7 +308,7 @@ final class AgentTasksViewModel {
                 issueType: "task",
                 createdAt: .now.addingTimeInterval(-4_000),
                 updatedAt: .now.addingTimeInterval(-2_000)
-            ),
+            )
         ]
     }
 }

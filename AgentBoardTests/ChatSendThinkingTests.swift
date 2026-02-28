@@ -85,7 +85,7 @@ struct ChatSendAndThinkingLevelTests {
     func sendChatMessageAppendsUserMessage() async {
         let state = makeState()
         await state.sendChatMessage("Hello, agent!")
-        
+
         #expect(state.chatMessages.count >= 1)
         #expect(state.chatMessages.first?.role == .user)
         #expect(state.chatMessages.first?.content == "Hello, agent!")
@@ -95,7 +95,7 @@ struct ChatSendAndThinkingLevelTests {
     func sendChatMessageCreatesAssistantPlaceholder() async {
         let state = makeState()
         await state.sendChatMessage("Test message")
-        
+
         let assistantMessages = state.chatMessages.filter { $0.role == .assistant }
         #expect(assistantMessages.count >= 1)
         #expect(assistantMessages.first?.content.isEmpty == true)
@@ -105,9 +105,9 @@ struct ChatSendAndThinkingLevelTests {
     func sendChatMessageClearsUnreadCount() async {
         let state = makeState()
         state.unreadChatCount = 5
-        
+
         await state.sendChatMessage("Hello")
-        
+
         #expect(state.unreadChatCount == 0)
     }
 
@@ -115,7 +115,7 @@ struct ChatSendAndThinkingLevelTests {
     func sendChatMessageSetsStreaming() async {
         let state = makeState()
         await state.sendChatMessage("Streaming test")
-        
+
         #expect(state.isChatStreaming == true)
     }
 
@@ -123,9 +123,9 @@ struct ChatSendAndThinkingLevelTests {
     func sendChatMessageWithBeadContext() async {
         let state = makeState()
         state.selectedBeadID = "AB-123"
-        
+
         await state.sendChatMessage("Work on this bead")
-        
+
         let userMessage = state.chatMessages.first { $0.role == .user }
         #expect(userMessage?.beadContext == "AB-123")
     }
@@ -156,9 +156,9 @@ struct ChatSendAndThinkingLevelTests {
     @Test("setThinkingLevel updates chatThinkingLevel in memory")
     func setThinkingLevelUpdatesMemory() async {
         let state = makeState()
-        
+
         await state.setThinkingLevel("high")
-        
+
         #expect(state.chatThinkingLevel == "high")
         #expect(state.statusMessage == "Thinking set to high.")
     }
@@ -167,9 +167,9 @@ struct ChatSendAndThinkingLevelTests {
     func setThinkingLevelResetsToDefault() async {
         let state = makeState()
         state.chatThinkingLevel = "medium"
-        
+
         await state.setThinkingLevel(nil)
-        
+
         #expect(state.chatThinkingLevel == nil)
         #expect(state.statusMessage == "Thinking set to default.")
     }
@@ -187,9 +187,9 @@ struct ChatSendAndThinkingLevelTests {
         let state = makeState()
         await state.sendChatMessage("First message")
         #expect(state.chatMessages.count >= 1)
-        
+
         await state.switchSession(to: "new-session")
-        
+
         #expect(state.chatMessages.isEmpty)
     }
 
@@ -197,9 +197,9 @@ struct ChatSendAndThinkingLevelTests {
     func switchSessionUpdatesKey() async {
         let state = makeState()
         #expect(state.currentSessionKey == "main")
-        
+
         await state.switchSession(to: "custom-session")
-        
+
         #expect(state.currentSessionKey == "custom-session")
     }
 
@@ -208,9 +208,9 @@ struct ChatSendAndThinkingLevelTests {
         let state = makeState()
         await state.sendChatMessage("Streaming message")
         #expect(state.isChatStreaming == true)
-        
+
         await state.switchSession(to: "another-session")
-        
+
         #expect(state.isChatStreaming == false)
     }
 
@@ -233,9 +233,9 @@ struct ChatSendAndThinkingLevelTests {
     func switchSessionClearsRunId() async {
         let state = makeState()
         state.chatRunId = "run-123"
-        
+
         await state.switchSession(to: "new-session")
-        
+
         #expect(state.chatRunId == nil)
     }
 
@@ -245,7 +245,7 @@ struct ChatSendAndThinkingLevelTests {
     func abortChatDoesNotCrash() async {
         let state = makeState()
         await state.sendChatMessage("Message to abort")
-        
+
         await state.abortChat()
     }
 
@@ -255,9 +255,9 @@ struct ChatSendAndThinkingLevelTests {
     func stateQueryHelpersChatQueries() async {
         let state = makeState()
         await state.sendChatMessage("Test message")
-        
+
         let helpers = StateQueryHelpers(appState: state)
-        
+
         #expect(helpers.countChatMessages() >= 1)
         #expect(helpers.countMessages(role: .user) == 1)
         #expect(helpers.lastUserMessage()?.content == "Test message")
@@ -267,7 +267,7 @@ struct ChatSendAndThinkingLevelTests {
     func stateQueryHelpersStreamingState() async {
         let state = makeState()
         await state.sendChatMessage("Streaming test")
-        
+
         let helpers = StateQueryHelpers(appState: state)
         #expect(helpers.isStreaming() == true)
     }
@@ -276,7 +276,7 @@ struct ChatSendAndThinkingLevelTests {
     func stateQueryHelpersThinkingLevel() async {
         let state = makeState()
         await state.setThinkingLevel("medium")
-        
+
         let helpers = StateQueryHelpers(appState: state)
         #expect(helpers.thinkingLevel() == "medium")
     }
@@ -285,7 +285,7 @@ struct ChatSendAndThinkingLevelTests {
     func stateQueryHelpersSessionKey() async {
         let state = makeState()
         await state.switchSession(to: "test-session")
-        
+
         let helpers = StateQueryHelpers(appState: state)
         #expect(helpers.currentSessionKey() == "test-session")
     }
