@@ -167,7 +167,8 @@ final class AppState {
     private func clearErrorIfProjectChanged() {
         if let currentProjectID = selectedProjectID,
            let errorProject = errorProjectID,
-           currentProjectID != errorProject {
+           currentProjectID != errorProject
+        {
             errorMessage = nil
         }
     }
@@ -393,7 +394,8 @@ final class AppState {
         rebuildProjects()
 
         if let selectedPath = appConfig.selectedProjectPath,
-           let selected = projects.first(where: { $0.path.path == selectedPath }) {
+           let selected = projects.first(where: { $0.path.path == selectedPath })
+        {
             selectedProjectID = selected.id
         } else {
             selectedProjectID = projects.first?.id
@@ -786,7 +788,7 @@ final class AppState {
             "bd", "create",
             draft.title.trimmingCharacters(in: .whitespacesAndNewlines),
             "--type", draft.kind.beadsValue,
-            "--priority", "\(draft.priority)"
+            "--priority", "\(draft.priority)",
         ]
 
         let desc = draft.description.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -815,7 +817,7 @@ final class AppState {
             // Extract bead ID from output (typically first word)
             let newID = output.components(separatedBy: .whitespaces).first ?? "bead"
             // bd create doesn't support --status, so set it via update if non-default
-            if desiredStatus != "backlog" && desiredStatus != "open" {
+            if desiredStatus != "backlog", desiredStatus != "open" {
                 _ = try? await runBD(arguments: ["bd", "update", newID, "--status", desiredStatus], in: project)
             }
             statusMessage = "Created \(newID)."
@@ -845,7 +847,8 @@ final class AppState {
         let result = try await runBD(arguments: ["bd", "list", "--all", "--json"], in: project)
         let stdout = result.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
         if let data = stdout.data(using: .utf8),
-           let array = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
+           let array = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]]
+        {
             let jsonl = array.compactMap { obj -> String? in
                 guard let line = try? JSONSerialization.data(withJSONObject: obj),
                       let str = String(data: line, encoding: .utf8) else { return nil }
@@ -862,14 +865,37 @@ final class AppState {
         errorMessage = nil
 
         do {
+            // If status is changing to done/closed, use `bd close` (proper close with timestamp)
+            // then update remaining fields separately
+            let isClosing = draft.status == .done && bead.status != .done
+            let isReopening = draft.status != .done && bead.status == .done
+
+            if isClosing {
+                _ = try await runBD(
+                    arguments: ["bd", "close", bead.id, "--reason", "Closed from AgentBoard"],
+                    in: project
+                )
+            }
+
+            // Build update arguments for non-status fields (or include status if not closing)
             var arguments = [
                 "bd", "update", bead.id,
                 "--title", draft.title,
                 "--type", draft.kind.beadsValue,
-                "--status", draft.status.beadsValue,
                 "--priority", "\(draft.priority)",
-                "--description", draft.description
             ]
+
+            // Only pass --status when not using bd close (which already sets it)
+            if !isClosing {
+                arguments.append(contentsOf: ["--status", draft.status.beadsValue])
+            }
+
+            // Pass description via --body-file using stdin to avoid argument parsing issues
+            // with multiline or special-character descriptions
+            let desc = draft.description.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !desc.isEmpty {
+                arguments.append(contentsOf: ["--description", desc])
+            }
 
             if !draft.assignee.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 arguments.append(contentsOf: ["--assignee", draft.assignee])
@@ -888,7 +914,7 @@ final class AppState {
             }
 
             _ = try await runBD(arguments: arguments, in: project)
-            statusMessage = "Updated \(bead.id)."
+            statusMessage = isClosing ? "Closed \(bead.id)." : (isReopening ? "Reopened \(bead.id)." : "Updated \(bead.id).")
             await refreshBeadsFromCLI(for: project)
         } catch {
             setError(error.localizedDescription)
@@ -991,7 +1017,7 @@ final class AppState {
                 "--title", title,
                 "--type", "epic",
                 "--priority", "2",
-                "--silent"
+                "--silent",
             ]
             if !description.isEmpty {
                 createArgs.append(contentsOf: ["--description", description])
@@ -1043,7 +1069,8 @@ final class AppState {
         rebuildProjects()
 
         if let selectedPath = appConfig.selectedProjectPath,
-           let selected = projects.first(where: { $0.path.path == selectedPath }) {
+           let selected = projects.first(where: { $0.path.path == selectedPath })
+        {
             selectedProjectID = selected.id
         } else {
             selectedProjectID = projects.first?.id
@@ -1087,7 +1114,8 @@ final class AppState {
             unreadSessionAlertsCount = sessionAlertSessionIDs.count
             sessions = updatedSessions
             if let activeSessionID,
-               !sessions.contains(where: { $0.id == activeSessionID }) {
+               !sessions.contains(where: { $0.id == activeSessionID })
+            {
                 self.activeSessionID = nil
             }
 
@@ -1217,7 +1245,7 @@ final class AppState {
             if let text = event.chatMessageText {
                 // Suppress tool/subagent output unless explicitly enabled
                 let showToolOutput = appConfig.showToolOutputInChat ?? false
-                if isToolOutput(text) && !showToolOutput {
+                if isToolOutput(text), !showToolOutput {
                     // Skip tool output - don't add to chat
                     // But still track that we're in a run
                     chatRunId = event.chatRunId
@@ -1373,8 +1401,8 @@ final class AppState {
                 epicId: nil,
                 labels: [],
                 assignee: "codex",
-                createdAt: .now.addingTimeInterval(-40_000),
-                updatedAt: .now.addingTimeInterval(-2_000),
+                createdAt: .now.addingTimeInterval(-40000),
+                updatedAt: .now.addingTimeInterval(-2000),
                 dependencies: [],
                 gitBranch: nil,
                 lastCommit: nil
@@ -1389,12 +1417,12 @@ final class AppState {
                 epicId: nil,
                 labels: [],
                 assignee: "claude-code",
-                createdAt: .now.addingTimeInterval(-30_000),
-                updatedAt: .now.addingTimeInterval(-1_800),
+                createdAt: .now.addingTimeInterval(-30000),
+                updatedAt: .now.addingTimeInterval(-1800),
                 dependencies: [],
                 gitBranch: nil,
                 lastCommit: nil
-            )
+            ),
         ]
 
         if empty {
@@ -1410,8 +1438,8 @@ final class AppState {
                     projectPath: alpha.path,
                     beadId: "AB-100",
                     status: .running,
-                    startedAt: .now.addingTimeInterval(-1_200),
-                    elapsed: 1_200,
+                    startedAt: .now.addingTimeInterval(-1200),
+                    elapsed: 1200,
                     model: "gpt-5.3-codex",
                     processID: 1001,
                     cpuPercent: 3.4
@@ -1423,8 +1451,8 @@ final class AppState {
                     projectPath: alpha.path,
                     beadId: "AB-101",
                     status: .idle,
-                    startedAt: .now.addingTimeInterval(-2_400),
-                    elapsed: 2_400,
+                    startedAt: .now.addingTimeInterval(-2400),
+                    elapsed: 2400,
                     model: "claude-sonnet-4-5",
                     processID: 1002,
                     cpuPercent: 0.0
@@ -1436,12 +1464,12 @@ final class AppState {
                     projectPath: beta.path,
                     beadId: nil,
                     status: .stopped,
-                    startedAt: .now.addingTimeInterval(-90_000),
-                    elapsed: 3_000,
+                    startedAt: .now.addingTimeInterval(-90000),
+                    elapsed: 3000,
                     model: "open-code",
                     processID: 1003,
                     cpuPercent: 0.0
-                )
+                ),
             ]
 
             coordinationService.agentStatuses = [
@@ -1458,7 +1486,7 @@ final class AppState {
                     status: "idle",
                     currentTask: "",
                     updated: "2026-02-27"
-                )
+                ),
             ]
             coordinationService.handoffs = [
                 HandoffEntry(
@@ -1470,13 +1498,13 @@ final class AppState {
                     status: "pending",
                     beadId: "AB-100",
                     date: "2026-02-27"
-                )
+                ),
             ]
         }
 
         historyEvents = [
             HistoryEvent(
-                occurredAt: .now.addingTimeInterval(-3_600),
+                occurredAt: .now.addingTimeInterval(-3600),
                 type: .beadCreated,
                 title: "Alpha Bead Created",
                 details: "Created AB-100",
@@ -1505,7 +1533,7 @@ final class AppState {
                 title: "Beta Old Session Event",
                 details: "Outside 30 day filter",
                 projectName: beta.name
-            )
+            ),
         ]
     }
 
@@ -1517,7 +1545,8 @@ final class AppState {
             return true
         }
         if (incomingNormalized == "agent:main:main" && currentNormalized == "main") ||
-            (incomingNormalized == "main" && currentNormalized == "agent:main:main") {
+            (incomingNormalized == "main" && currentNormalized == "agent:main:main")
+        {
             return true
         }
         return false
@@ -1592,7 +1621,7 @@ final class AppState {
         }
     }
 
-        private var autoRefreshTask: Task<Void, Never>?
+    private var autoRefreshTask: Task<Void, Never>?
 
     func startAutoRefresh(intervalSeconds: Int = 60) {
         stopAutoRefresh()
@@ -1903,10 +1932,11 @@ final class AppState {
             return nil
         }
 
-        let nsRange = NSRange(content.startIndex..<content.endIndex, in: content)
+        let nsRange = NSRange(content.startIndex ..< content.endIndex, in: content)
         guard let match = regex.firstMatch(in: content, options: [], range: nsRange),
               let typeRange = Range(match.range(at: 1), in: content),
-              let bodyRange = Range(match.range(at: 2), in: content) else {
+              let bodyRange = Range(match.range(at: 2), in: content)
+        else {
             return nil
         }
 
@@ -2079,7 +2109,7 @@ final class AppState {
             "ViewBridge",
             "NSViewBridgeError",
             "invalid display identifier",
-            "CALocalDisplayUpdateBlock"
+            "CALocalDisplayUpdateBlock",
         ]
 
         return toolPatterns.contains { pattern in
