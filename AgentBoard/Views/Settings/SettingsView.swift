@@ -422,7 +422,7 @@ struct SettingsView: View {
     private func isValidGatewayURL(_ urlString: String) -> Bool {
         guard let url = URL(string: urlString),
               let scheme = url.scheme,
-              (scheme == "http" || scheme == "https"),
+              scheme == "http" || scheme == "https",
               url.host != nil else {
             return false
         }
@@ -446,7 +446,7 @@ struct SettingsView: View {
         connectionTestResult = nil
     }
 
-    private func testConnection() {
+    func testConnection() {
         isTesting = true
         connectionTestResult = nil
 

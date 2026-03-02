@@ -149,6 +149,6 @@ extension Bead {
              body: nil, status: .done, kind: .bug, priority: 0, epicId: nil, labels: [],
              assignee: nil, createdAt: .now.addingTimeInterval(-345600),
              updatedAt: .now.addingTimeInterval(-259200), dependencies: [],
-             gitBranch: nil, lastCommit: "d4e8b21"),
+             gitBranch: nil, lastCommit: "d4e8b21")
     ]
 }

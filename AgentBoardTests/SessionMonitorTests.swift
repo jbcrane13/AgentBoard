@@ -4,9 +4,9 @@ import Testing
 
 @Suite("SessionMonitor Tests")
 struct SessionMonitorTests {
-    
+
     // MARK: - Slug Generation Tests
-    
+
     @Test("slug generation creates valid tmux session name component")
     func slugGenerationCreatesValidComponent() {
         func slug(from rawValue: String) -> String {
@@ -18,7 +18,7 @@ struct SessionMonitorTests {
             )
             return replaced.trimmingCharacters(in: CharacterSet(charactersIn: "-"))
         }
-        
+
         #expect(slug(from: "My Project") == "my-project")
         #expect(slug(from: "Project-Name") == "project-name")
         #expect(slug(from: "AB-123") == "ab-123")
@@ -26,9 +26,9 @@ struct SessionMonitorTests {
         #expect(slug(from: "---Leading-Trailing---") == "leading-trailing")
         #expect(slug(from: "") == "")
     }
-    
+
     // MARK: - Status Resolution Tests
-    
+
     @Test("resolveStatus returns correct status for agent process states")
     func resolveStatusCorrectForAgentStates() {
         func resolveStatus(hasAgentProcess: Bool, isAttached: Bool, cpuPercent: Double) -> SessionStatus {
@@ -37,7 +37,7 @@ struct SessionMonitorTests {
             }
             return cpuPercent > 0.1 ? .running : .idle
         }
-        
+
         #expect(resolveStatus(hasAgentProcess: false, isAttached: false, cpuPercent: 0) == .stopped)
         #expect(resolveStatus(hasAgentProcess: false, isAttached: true, cpuPercent: 0) == .idle)
         #expect(resolveStatus(hasAgentProcess: true, isAttached: false, cpuPercent: 50) == .running)
@@ -58,9 +58,9 @@ struct SessionMonitorTests {
         #expect(resolveStatus(hasAgentProcess: true, isAttached: true, cpuPercent: 0.1) == .idle)
         #expect(resolveStatus(hasAgentProcess: true, isAttached: true, cpuPercent: 0.1001) == .running)
     }
-    
+
     // MARK: - Agent Type Detection Tests
-    
+
     @Test("agentType detection identifies claude, codex, and opencode")
     func agentTypeDetectionWorks() {
         func agentType(for command: String) -> AgentType? {
@@ -70,7 +70,7 @@ struct SessionMonitorTests {
             if lowercased.contains("opencode") { return .openCode }
             return nil
         }
-        
+
         #expect(agentType(for: "claude") == .claudeCode)
         #expect(agentType(for: "/usr/local/bin/claude") == .claudeCode)
         #expect(agentType(for: "CLAUDE --model opus") == .claudeCode)
@@ -79,9 +79,9 @@ struct SessionMonitorTests {
         #expect(agentType(for: "vim") == nil)
         #expect(agentType(for: "bash") == nil)
     }
-    
+
     // MARK: - Model Parsing Tests
-    
+
     @Test("parseModel extracts model from command arguments")
     func parseModelFromCommand() {
         func parseModel(from command: String) -> String? {
@@ -99,16 +99,16 @@ struct SessionMonitorTests {
             }
             return nil
         }
-        
+
         #expect(parseModel(from: "claude --model opus") == "opus")
         #expect(parseModel(from: "claude -m claude-3-opus") == "claude-3-opus")
         #expect(parseModel(from: "claude --model=opus-4") == "opus-4")
         #expect(parseModel(from: "claude") == nil)
         #expect(parseModel(from: "claude --other-flag") == nil)
     }
-    
+
     // MARK: - Command for Agent Type Tests
-    
+
     @Test("command for agentType returns correct launch command")
     func commandForAgentType() {
         func command(for agentType: AgentType) -> String {
@@ -118,22 +118,22 @@ struct SessionMonitorTests {
             case .openCode: return "opencode"
             }
         }
-        
+
         #expect(command(for: .claudeCode) == "claude")
         #expect(command(for: .codex) == "codex")
         #expect(command(for: .openCode) == "opencode")
     }
-    
+
     // MARK: - Error Tests
-    
+
     @Test("SessionMonitorError provides correct error descriptions")
     func sessionMonitorErrorDescriptions() {
         #expect(SessionMonitorError.invalidSessionName.errorDescription == "Unable to create a valid tmux session name.")
         #expect(SessionMonitorError.launchFailed("test error").errorDescription == "test error")
     }
-    
+
     // MARK: - Is Missing Tmux Server Tests
-    
+
     @Test("isMissingTmuxServer detects tmux server errors")
     func isMissingTmuxServerDetection() {
         #expect(SessionMonitor.isMissingTmuxServerMessage("no server running on /tmp/socket"))

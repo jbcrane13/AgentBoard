@@ -10,7 +10,7 @@ actor GitService {
                 "--all",
                 "-n", String(max(limit, 1)),
                 "--date=unix",
-                "--pretty=format:\(format)",
+                "--pretty=format:\(format)"
             ],
             workingDirectory: projectPath
         )
@@ -36,7 +36,7 @@ actor GitService {
                 "--stat",
                 "--date=iso",
                 "--pretty=format:%h %s%nAuthor: %an%nDate: %ad%n",
-                commitSHA,
+                commitSHA
             ],
             workingDirectory: projectPath
         )

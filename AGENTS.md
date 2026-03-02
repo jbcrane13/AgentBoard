@@ -2,6 +2,19 @@
 
 This project uses **bd** (beads) for issue tracking. Run `bd onboard` to get started.
 
+## Agent Readiness
+
+**Read `docs/agent-readiness/README.md` before starting any work session.**
+
+It contains the current agent readiness score, all conventions established by past sessions, key file locations, and quality gate commands. The README is the single source of truth for what tooling is configured and what rules are in effect.
+
+Quick orientation:
+- **Score as of 2026-02-28:** Level 2 → targeting Level 3
+- **Lint:** `swiftlint lint --strict` (install: `brew install swiftlint`)
+- **Test:** `xcodebuild test -scheme AgentBoard -destination 'platform=macOS' -skip-testing:AgentBoardUITests CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO`
+- **Regenerate xcodeproj after `project.yml` edits:** `xcodegen generate`
+- **CI:** `.github/workflows/ci.yml` — SwiftLint → Build → Test → Coverage ≥ 30%
+
 ## Quick Reference
 
 ```bash

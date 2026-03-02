@@ -74,7 +74,7 @@ struct AppStateProjectTests {
         let pathB = "/tmp/test-project-b"
         state.appConfig.projects = [
             ConfiguredProject(path: pathA, icon: "📁"),
-            ConfiguredProject(path: pathB, icon: "📁"),
+            ConfiguredProject(path: pathB, icon: "📁")
         ]
 
         let projectA = makeProject(path: pathA)
@@ -94,7 +94,7 @@ struct AppStateProjectTests {
         let pathB = "/tmp/test-project-fallback-b"
         state.appConfig.projects = [
             ConfiguredProject(path: pathA, icon: "📁"),
-            ConfiguredProject(path: pathB, icon: "📁"),
+            ConfiguredProject(path: pathB, icon: "📁")
         ]
         state.appConfig.selectedProjectPath = pathA
 
@@ -116,7 +116,7 @@ struct AppStateProjectTests {
         let pathB = "/tmp/test-select-b"
         state.appConfig.projects = [
             ConfiguredProject(path: pathA, icon: "📁"),
-            ConfiguredProject(path: pathB, icon: "📁"),
+            ConfiguredProject(path: pathB, icon: "📁")
         ]
 
         let projectA = makeProject(path: pathA)
@@ -163,7 +163,7 @@ struct AppStateProjectTests {
         let state = AppState(configStore: store)
         state.appConfig.projects = [
             ConfiguredProject(path: "/tmp/existing-1", icon: "📁"),
-            ConfiguredProject(path: "/tmp/existing-2", icon: "📁"),
+            ConfiguredProject(path: "/tmp/existing-2", icon: "📁")
         ]
         state.appConfig.projectsDirectory = "/tmp/nonexistent-\(UUID().uuidString)"
 

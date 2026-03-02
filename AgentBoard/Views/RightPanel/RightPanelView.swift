@@ -42,6 +42,7 @@ struct RightPanelView: View {
                 }
                 .buttonStyle(.plain)
                 .help(appState.boardVisible ? "Collapse panels" : "Expand panels")
+                .accessibilityIdentifier("RightPanelCollapseButton")
 
                 Image(systemName: "sparkle")
                     .font(.system(size: 13, weight: .semibold))
@@ -66,6 +67,7 @@ struct RightPanelView: View {
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
                         .background(Color.red, in: Capsule())
+                        .accessibilityIdentifier("UnreadChatBadge")
                 }
 
                 Spacer()

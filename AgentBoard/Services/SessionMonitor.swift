@@ -110,7 +110,7 @@ actor SessionMonitor {
             "capture-pane",
             "-t", session,
             "-p",
-            "-S", "-\(lineCount)",
+            "-S", "-\(lineCount)"
         ])
         return result.stdout
     }
@@ -119,7 +119,7 @@ actor SessionMonitor {
         _ = try await runTmux(arguments: [
             "send-keys",
             "-t", session,
-            "C-m",
+            "C-m"
         ])
     }
 
@@ -168,7 +168,7 @@ actor SessionMonitor {
                 "-d",
                 "-s", sessionName,
                 "-c", projectPath.path,
-                launchCommand,
+                launchCommand
             ])
         } catch let error as ShellCommandError {
             let errorMsg: String
@@ -206,7 +206,7 @@ actor SessionMonitor {
                 "send-keys",
                 "-t", sessionName,
                 seedPrompt,
-                "C-m",
+                "C-m"
             ])
         }
 
@@ -225,7 +225,7 @@ actor SessionMonitor {
         do {
             result = try await runTmux(arguments: [
                 "list-sessions",
-                "-F", "#{session_name}\t#{session_created}\t#{session_attached}",
+                "-F", "#{session_name}\t#{session_created}\t#{session_attached}"
             ])
         } catch {
             if Self.isMissingTmuxServer(error: error) {
@@ -253,7 +253,7 @@ actor SessionMonitor {
             result = try await runTmux(arguments: [
                 "list-panes",
                 "-a",
-                "-F", "#{session_name}\t#{pane_pid}\t#{pane_current_path}\t#{pane_current_command}",
+                "-F", "#{session_name}\t#{pane_pid}\t#{pane_current_path}\t#{pane_current_command}"
             ])
         } catch {
             if Self.isMissingTmuxServer(error: error) {
@@ -281,7 +281,7 @@ actor SessionMonitor {
         let result = try await ShellCommand.runAsync(arguments: [
             "ps",
             "-axo",
-            "pid=,ppid=,pcpu=,command=",
+            "pid=,ppid=,pcpu=,command="
         ])
 
         return result.stdout
@@ -331,7 +331,7 @@ actor SessionMonitor {
             "-a",
             "-p", String(pid),
             "-d", "cwd",
-            "-Fn",
+            "-Fn"
         ])
 
         let path = result.stdout
@@ -375,7 +375,7 @@ actor SessionMonitor {
     private func command(for agentType: AgentType) -> String {
         switch agentType {
         case .claudeCode:
-            return "claude"
+            return "claude --dangerously-skip-permissions"
         case .codex:
             return "codex"
         case .openCode:
@@ -406,7 +406,7 @@ actor SessionMonitor {
     private func runTmux(arguments: [String]) async throws -> ShellCommandResult {
         try await ShellCommand.runAsync(arguments: [
             "tmux",
-            "-S", tmuxSocketPath,
+            "-S", tmuxSocketPath
         ] + arguments)
     }
 

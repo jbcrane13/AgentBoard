@@ -35,7 +35,7 @@ struct ViewsNavView: View {
             NavItem(icon: "target", label: "Epics", nav: .epics),
             NavItem(icon: "list.bullet.clipboard.fill", label: "Agent Tasks", nav: .agentTasks),
             NavItem(icon: "clock", label: "History", nav: .history),
-            NavItem(icon: "gear", label: "Settings", nav: .settings),
+            NavItem(icon: "gear", label: "Settings", nav: .settings)
         ]
     }
 

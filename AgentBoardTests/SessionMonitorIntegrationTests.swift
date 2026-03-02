@@ -34,7 +34,7 @@ struct SessionMonitorIntegrationTests {
         let monitor = SessionMonitor(tmuxSocketPath: defaultSocketPath)
         let sessions: [CodingSession] = try await monitor.listSessions()
         // Array may be empty when no openclaw tmux server is running; that's fine.
-        #expect(sessions.count >= 0)
+        #expect(sessions.isEmpty)
     }
 
     @Test("listSessions returns empty array gracefully when no tmux server exists at socket path", .tags(.integration))

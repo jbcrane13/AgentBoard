@@ -8,7 +8,7 @@ struct GitServiceParserTests {
     func parseCommitRecordsParsesAndSorts() async {
         let output = [
             "1111111111111111111111111111111111111111\u{1f}1111111\u{1f}1766000000\u{1f}AB-48z implement tests AB-48z\u{1f}(HEAD -> main, origin/main)\u{1e}",
-            "2222222222222222222222222222222222222222\u{1f}2222222\u{1f}1765000000\u{1f}General maintenance\u{1f}\u{1e}",
+            "2222222222222222222222222222222222222222\u{1f}2222222\u{1f}1765000000\u{1f}General maintenance\u{1f}\u{1e}"
         ].joined()
 
         let service = GitService()

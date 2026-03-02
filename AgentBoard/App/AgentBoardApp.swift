@@ -2,7 +2,17 @@ import SwiftUI
 
 @main
 struct AgentBoardApp: App {
-    @State private var appState = AppState()
+    @State private var appState = AgentBoardApp.makeInitialState()
+
+    private static func makeInitialState() -> AppState {
+        let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("--uitesting-dashboard-fixtures") {
+            let state = AppState(bootstrapOnInit: false, startBackgroundLoops: false)
+            state.applyDashboardUITestFixtures(empty: arguments.contains("--uitesting-dashboard-empty"))
+            return state
+        }
+        return AppState()
+    }
 
     var body: some Scene {
         WindowGroup("AgentBoard", content: {

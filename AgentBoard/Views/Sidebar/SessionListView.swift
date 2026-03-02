@@ -99,6 +99,7 @@ struct SessionListView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("SessionRow")
     }
 
     private func statusColor(_ status: SessionStatus) -> Color {

@@ -82,6 +82,6 @@ extension ChatMessage {
             role: .assistant,
             content: "2 of 3 passing. testNetworkStatusBanner is failing — the accessibility identifier on the status banner doesn't match. I'll fix it and re-run.",
             timestamp: .now.addingTimeInterval(-120)
-        ),
+        )
     ]
 }
