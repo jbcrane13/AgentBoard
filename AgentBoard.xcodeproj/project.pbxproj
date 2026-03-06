@@ -65,6 +65,7 @@
 		96F0D21DD1BB83329EA88E4F /* AgentBoardSmokeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70E2D666A3AF7864C433CF6A /* AgentBoardSmokeTests.swift */; };
 		A2D1228877B4E53820615DC5 /* RightPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FC28C0601EBA88EF87AEEE1 /* RightPanelView.swift */; };
 		A5479332D790E80DAFD73A7D /* CoordinationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47F056764E661E242F136D71 /* CoordinationService.swift */; };
+		A62A93615E1F38C872103478 /* InteractiveTerminalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F967F4A6D16D4740644A35C /* InteractiveTerminalView.swift */; };
 		A77B85B2B7F7262AAB24DE0A /* tasks_valid.json in Resources */ = {isa = PBXBuildFile; fileRef = 304789D04D45F6411C1EE51C /* tasks_valid.json */; };
 		AF67BA2744B6567E9F2E75A5 /* DeviceIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24FC294C78AFD11FC7F83C0C /* DeviceIdentity.swift */; };
 		AFB23CE97AF9A6B629F7283A /* TerminalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F55CA40CC1DC1496BDC3B1C5 /* TerminalView.swift */; };
@@ -174,6 +175,7 @@
 		66270992D27B8F640D0F7452 /* NewSessionOutcomeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewSessionOutcomeTests.swift; sourceTree = "<group>"; };
 		69E3ABD1638C318E1A2F1F19 /* OpenClawServiceContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenClawServiceContractTests.swift; sourceTree = "<group>"; };
 		6CECBA4E697CE435C748A132 /* AppStateMiscTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStateMiscTests.swift; sourceTree = "<group>"; };
+		6F967F4A6D16D4740644A35C /* InteractiveTerminalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InteractiveTerminalView.swift; sourceTree = "<group>"; };
 		70E2D666A3AF7864C433CF6A /* AgentBoardSmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentBoardSmokeTests.swift; sourceTree = "<group>"; };
 		71C742AEB1E871C95986B439 /* GatewayClientContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GatewayClientContractTests.swift; sourceTree = "<group>"; };
 		72FBE50FAAA5B79FB22D609C /* BeadDraft.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BeadDraft.swift; sourceTree = "<group>"; };
@@ -337,6 +339,7 @@
 		5219F9B5D0DC4A418E15E930 /* Terminal */ = {
 			isa = PBXGroup;
 			children = (
+				6F967F4A6D16D4740644A35C /* InteractiveTerminalView.swift */,
 				F55CA40CC1DC1496BDC3B1C5 /* TerminalView.swift */,
 			);
 			path = Terminal;
@@ -744,6 +747,7 @@
 				4E59C7C591C48925D86509F9 /* GitService.swift in Sources */,
 				CC2D85FA86988622C2409CC2 /* HistoryEvent.swift in Sources */,
 				754156BFA48C97B46AC5F1D6 /* HistoryView.swift in Sources */,
+				A62A93615E1F38C872103478 /* InteractiveTerminalView.swift in Sources */,
 				E0190481D241D8E8BB13F012 /* JSONLEntityParser.swift in Sources */,
 				7B0EF9976BDD4197E73B81A4 /* JSONLParser.swift in Sources */,
 				D8E15309117BB782C08A6C76 /* KeychainService.swift in Sources */,
@@ -881,6 +885,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION = YES;
 				CODE_SIGN_ENTITLEMENTS = AgentBoard/AgentBoard.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -1042,6 +1047,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION = YES;
 				CODE_SIGN_ENTITLEMENTS = AgentBoard/AgentBoard.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;

@@ -10,6 +10,7 @@ struct AgentTasksViewModelTests {
         let priorTask = AgentTask(
             id: "AB-prior",
             title: "Existing task",
+            description: "",
             status: "open",
             priority: 2,
             assignee: "codex",
@@ -53,6 +54,7 @@ struct AgentTasksViewModelTests {
             AgentTask(
                 id: "AB-prior",
                 title: "Old task",
+                description: "",
                 status: "open",
                 priority: 2,
                 assignee: "codex",
@@ -109,6 +111,7 @@ struct AgentTasksViewModelTests {
         let priorTask = AgentTask(
             id: "AB-prior",
             title: "Existing task",
+            description: "",
             status: "open",
             priority: 2,
             assignee: "codex",

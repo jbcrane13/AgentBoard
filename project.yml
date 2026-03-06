@@ -56,6 +56,7 @@ targets:
         SWIFT_STRICT_CONCURRENCY: complete
         SWIFT_VERSION: "6.0"
         CODE_SIGN_ENTITLEMENTS: AgentBoard/AgentBoard.entitlements
+        CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION: YES
         DEVELOPMENT_ASSET_PATHS: "\"AgentBoard/Resources/Preview Content\""
         ENABLE_PREVIEWS: YES
         COMBINE_HIDPI_IMAGES: YES
