@@ -59,7 +59,10 @@ struct SessionListView: View {
     }
 
     private func sessionRow(_ session: CodingSession) -> some View {
-        Button {
+        let isInteractive = session.status == .running || session.status == .idle
+
+        return Button {
+            guard isInteractive else { return }
             appState.openSessionInTerminal(session)
         } label: {
             HStack(spacing: 8) {
@@ -70,22 +73,48 @@ struct SessionListView: View {
                             ? statusColor(session.status).opacity(0.5)
                             : .clear, radius: 3)
 
-                Text(session.name)
-                    .font(.system(size: 12))
-                    .foregroundStyle(AppTheme.sidebarPrimaryText)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(session.name)
+                        .font(.system(size: 12))
+                        .foregroundStyle(isInteractive
+                                         ? AppTheme.sidebarPrimaryText
+                                         : AppTheme.sidebarMutedText)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+
+                    HStack(spacing: 5) {
+                        if let beadId = session.beadId {
+                            Text(beadId)
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle(Color.accentColor)
+                                .padding(.horizontal, 4)
+                                .padding(.vertical, 1)
+                                .background(
+                                    Color.accentColor.opacity(0.15),
+                                    in: RoundedRectangle(cornerRadius: 3)
+                                )
+                        }
+                        if let model = session.model, !model.isEmpty {
+                            Text(model)
+                                .font(.system(size: 10))
+                                .foregroundStyle(AppTheme.sidebarMutedText)
+                                .lineLimit(1)
+                        }
+                    }
+                }
 
                 Spacer()
 
-                Text(statusLabel(session))
-                    .font(.system(size: 10, weight: .medium, design: .monospaced))
-                    .foregroundStyle(AppTheme.sidebarMutedText)
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(statusLabel(session))
+                        .font(.system(size: 10, weight: .medium, design: .monospaced))
+                        .foregroundStyle(AppTheme.sidebarMutedText)
 
-                if appState.sessionAlertSessionIDs.contains(session.id) {
-                    Circle()
-                        .fill(Color(red: 1.0, green: 0.231, blue: 0.188))
-                        .frame(width: 6, height: 6)
+                    if appState.sessionAlertSessionIDs.contains(session.id) {
+                        Circle()
+                            .fill(Color(red: 1.0, green: 0.231, blue: 0.188))
+                            .frame(width: 6, height: 6)
+                    }
                 }
             }
             .padding(.horizontal, 8)
@@ -97,8 +126,10 @@ struct SessionListView: View {
                           : Color.clear)
             )
             .contentShape(Rectangle())
+            .opacity(isInteractive ? 1.0 : 0.45)
         }
         .buttonStyle(.plain)
+        .disabled(!isInteractive)
         .accessibilityIdentifier("SessionRow")
     }
 
