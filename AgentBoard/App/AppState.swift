@@ -671,14 +671,6 @@ final class AppState {
         sidebarNavSelection = .board
     }
 
-    func captureTerminalOutput(for sessionID: String, lines: Int = 500) async -> String {
-        do {
-            return try await sessionMonitor.capturePane(session: sessionID, lines: lines)
-        } catch {
-            return "Unable to capture terminal output for \(sessionID).\n\n\(error.localizedDescription)"
-        }
-    }
-
     func nudgeSession(sessionID: String) async {
         do {
             try await sessionMonitor.sendNudge(session: sessionID)
@@ -897,8 +889,9 @@ final class AppState {
                 arguments.append(contentsOf: ["--description", desc])
             }
 
-            if !draft.assignee.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                arguments.append(contentsOf: ["--assignee", draft.assignee])
+            let assignee = draft.assignee.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !assignee.isEmpty {
+                arguments.append(contentsOf: ["--assignee", assignee])
             }
 
             if !draft.labels.isEmpty {
@@ -914,7 +907,13 @@ final class AppState {
             }
 
             _ = try await runBD(arguments: arguments, in: project)
-            statusMessage = isClosing ? "Closed \(bead.id)." : (isReopening ? "Reopened \(bead.id)." : "Updated \(bead.id).")
+            if isClosing {
+                statusMessage = "Closed \(bead.id)."
+            } else if isReopening {
+                statusMessage = "Reopened \(bead.id)."
+            } else {
+                statusMessage = "Updated \(bead.id)."
+            }
             await refreshBeadsFromCLI(for: project)
         } catch {
             setError(error.localizedDescription)
