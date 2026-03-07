@@ -1,0 +1,190 @@
+<h2>Terminal Pane Header</h2>
+<p class="subtitle">When a session takes over the center pane, what should the toolbar look like?</p>
+
+<style>
+  body-override { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif; }
+  .pane-demo {
+    background: #1e1e26;
+    border-radius: 10px;
+    overflow: hidden;
+    width: 580px;
+    margin: 0 auto;
+    margin-bottom: 20px;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .terminal-body {
+    background: #0d0d12;
+    height: 160px;
+    padding: 14px 16px;
+    font-family: "SF Mono", "Menlo", monospace;
+    font-size: 11px;
+    color: #c7c7c7;
+    line-height: 1.6;
+    position: relative;
+  }
+  .terminal-body .prompt { color: #30d158; }
+  .terminal-body .output { color: #8e8e93; }
+  .terminal-body .cursor {
+    display: inline-block; width: 8px; height: 13px;
+    background: #c7c7c7; vertical-align: text-bottom;
+    animation: blink 1s step-end infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* A: Slim single-line */
+  .toolbar-a {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 14px; background: #252530;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    height: 40px;
+  }
+  .back-btn-a {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 11px; font-weight: 600; color: #636366;
+    background: rgba(255,255,255,0.06); border-radius: 5px;
+    padding: 3px 8px; cursor: pointer;
+  }
+  .back-btn-a:hover { color: #aeaeb2; background: rgba(255,255,255,0.1); }
+  .back-chevron { font-size: 12px; color: #636366; }
+  .session-name-a { font-size: 13px; font-weight: 600; color: #e5e5ea; flex: 1; }
+  .pill {
+    font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 10px;
+    letter-spacing: 0.4px; text-transform: uppercase;
+  }
+  .pill.running { background: rgba(48,209,88,0.18); color: #30d158; }
+  .pill.idle    { background: rgba(255,214,10,0.18); color: #ffd60a; }
+  .bead-tag { font-size: 10px; font-weight: 600; color: #0a84ff; background: rgba(10,132,255,0.12); padding: 2px 7px; border-radius: 5px; }
+  .elapsed-a { font-size: 11px; color: #48484a; font-variant-numeric: tabular-nums; }
+  .divider-v { width: 1px; height: 14px; background: rgba(255,255,255,0.1); }
+  .nudge-btn { font-size: 11px; color: #636366; background: rgba(255,255,255,0.06); border-radius: 5px; padding: 3px 8px; cursor: pointer; }
+  .nudge-btn:hover { color: #aeaeb2; }
+
+  /* B: Two-row */
+  .toolbar-b {
+    background: #252530; border-bottom: 1px solid rgba(255,255,255,0.07);
+    padding: 10px 14px 8px;
+  }
+  .toolbar-b-top { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .toolbar-b-bot { display: flex; align-items: center; gap: 8px; }
+  .back-btn-b {
+    font-size: 11px; font-weight: 600; color: #636366;
+    display: flex; align-items: center; gap: 4px; cursor: pointer;
+  }
+  .session-name-b { font-size: 14px; font-weight: 700; color: #f2f2f7; flex: 1; }
+  .meta-item { font-size: 10px; color: #48484a; display: flex; align-items: center; gap: 4px; }
+  .meta-dot { width: 5px; height: 5px; border-radius: 50%; background: #30d158; }
+  .model-label { font-size: 10px; color: #48484a; }
+
+  /* C: Breadcrumb strip */
+  .toolbar-c {
+    display: flex; align-items: center; gap: 0;
+    background: #252530; border-bottom: 1px solid rgba(255,255,255,0.07);
+    height: 36px; padding: 0 14px;
+  }
+  .crumb { font-size: 12px; color: #48484a; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  .crumb.active { color: #e5e5ea; font-weight: 600; }
+  .crumb:hover { color: #aeaeb2; }
+  .crumb-sep { color: #3a3a44; margin: 0 2px; font-size: 14px; }
+  .toolbar-c-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .icon-btn { width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border-radius: 5px; color: #636366; cursor: pointer; font-size: 12px; }
+  .icon-btn:hover { background: rgba(255,255,255,0.08); color: #aeaeb2; }
+</style>
+
+<!-- Option A: Slim single-line -->
+<div class="section">
+  <h3 style="color:#8e8e93; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.6px; margin-bottom:10px;">A — Slim single-line toolbar</h3>
+  <div class="pane-demo">
+    <div class="toolbar-a">
+      <div class="back-btn-a">← Board</div>
+      <div class="divider-v"></div>
+      <div class="session-name-a">Refactor auth module</div>
+      <span class="pill running">running</span>
+      <span class="bead-tag">AB-142</span>
+      <span class="elapsed-a">24:12</span>
+      <div class="divider-v"></div>
+      <div class="nudge-btn">Nudge ↵</div>
+    </div>
+    <div class="terminal-body">
+      <div><span class="prompt">✓</span> <span>Running tests...</span></div>
+      <div class="output">  ● Auth › should validate token expiry</div>
+      <div class="output">  ● Auth › should refresh on 401</div>
+      <div><span class="prompt">❯</span> <span>claude: Running 3 more tools</span> <span class="cursor"></span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Option B: Two-row -->
+<div class="section">
+  <h3 style="color:#8e8e93; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.6px; margin-bottom:10px;">B — Two-row: title + metadata</h3>
+  <div class="pane-demo">
+    <div class="toolbar-b">
+      <div class="toolbar-b-top">
+        <div class="back-btn-b">← Board</div>
+        <div class="session-name-b">Refactor auth module</div>
+        <span class="pill running">running</span>
+      </div>
+      <div class="toolbar-b-bot">
+        <div class="meta-item"><div class="meta-dot"></div> 24:12</div>
+        <span class="bead-tag">AB-142</span>
+        <span class="model-label">claude-sonnet-4-6</span>
+        <div style="flex:1"></div>
+        <div class="nudge-btn">Nudge ↵</div>
+      </div>
+    </div>
+    <div class="terminal-body">
+      <div><span class="prompt">✓</span> <span>Running tests...</span></div>
+      <div class="output">  ● Auth › should validate token expiry</div>
+      <div class="output">  ● Auth › should refresh on 401</div>
+      <div><span class="prompt">❯</span> <span>claude: Running 3 more tools</span> <span class="cursor"></span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Option C: Breadcrumb -->
+<div class="section">
+  <h3 style="color:#8e8e93; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.6px; margin-bottom:10px;">C — Breadcrumb strip</h3>
+  <div class="pane-demo">
+    <div class="toolbar-c">
+      <div class="crumb" style="color:#636366">Board</div>
+      <span class="crumb-sep">›</span>
+      <div class="crumb active">Refactor auth module</div>
+      <span class="bead-tag" style="margin-left:8px">AB-142</span>
+      <span class="pill running" style="margin-left:6px">running</span>
+      <div class="toolbar-c-right">
+        <span class="elapsed-a">24:12</span>
+        <div class="icon-btn" title="Nudge">↵</div>
+        <div class="icon-btn" title="Refresh">↻</div>
+      </div>
+    </div>
+    <div class="terminal-body">
+      <div><span class="prompt">✓</span> <span>Running tests...</span></div>
+      <div class="output">  ● Auth › should validate token expiry</div>
+      <div class="output">  ● Auth › should refresh on 401</div>
+      <div><span class="prompt">❯</span> <span>claude: Running 3 more tools</span> <span class="cursor"></span></div>
+    </div>
+  </div>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Slim single-line</h3>
+      <p>All controls in one compact row. Maximizes terminal space. Matches current TerminalView style.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Two-row header</h3>
+      <p>Task name gets full width on top row. Metadata (bead, model, elapsed) on second row. More breathing room.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Breadcrumb strip</h3>
+      <p>Most compact. Board › Session name with all actions pushed to the right. Feels like a file path.</p>
+    </div>
+  </div>
+</div>

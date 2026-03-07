@@ -37,14 +37,12 @@ final class HistoryDashboardOutcomeTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Beta Old Session Event"].waitForExistence(timeout: timeout))
     }
 
-    @MainActor
     private func clickButton(_ title: String) {
         let button = app.buttons[title].firstMatch
         XCTAssertTrue(button.waitForExistence(timeout: timeout), "Expected button \(title)")
         button.click()
     }
 
-    @MainActor
     private func openMenu(currentLabel: String) {
         let menuButton = app.popUpButtons[currentLabel].firstMatch
         if menuButton.waitForExistence(timeout: 2) {
@@ -57,14 +55,12 @@ final class HistoryDashboardOutcomeTests: XCTestCase {
         fallback.click()
     }
 
-    @MainActor
     private func clickMenuItem(_ title: String) {
         let menuItem = app.menuItems[title].firstMatch
         XCTAssertTrue(menuItem.waitForExistence(timeout: timeout), "Expected menu item \(title)")
         menuItem.click()
     }
 
-    @MainActor
     private func clickEventFilter(_ label: String) {
         let segmented = app.segmentedControls.allElementsBoundByIndex.first(where: { $0.buttons.count >= 4 })
             ?? app.segmentedControls.firstMatch
