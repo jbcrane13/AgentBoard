@@ -1,0 +1,242 @@
+<h2>Session Widget Layout</h2>
+<p class="subtitle">How should coding sessions appear in the sidebar? All three anchor into the center pane on click.</p>
+
+<style>
+  .sidebar-demo {
+    background: #1c1c24;
+    border-radius: 10px;
+    padding: 10px 8px;
+    width: 200px;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  }
+  .sidebar-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: #666;
+    padding: 4px 8px 8px;
+  }
+
+  /* Option A — Enriched rows */
+  .row-a {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-bottom: 2px;
+  }
+  .row-a:hover { background: rgba(255,255,255,0.07); }
+  .row-a.active { background: rgba(255,255,255,0.12); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .dot.running { background: #30d158; box-shadow: 0 0 5px rgba(48,209,88,0.6); }
+  .dot.idle    { background: #ffd60a; }
+  .dot.stopped { background: #636366; }
+  .row-a-info { flex: 1; min-width: 0; }
+  .row-a-name { font-size: 12px; color: #e5e5ea; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row-a-meta { font-size: 10px; color: #636366; display: flex; gap: 6px; margin-top: 1px; }
+  .bead-chip { background: rgba(10,132,255,0.2); color: #0a84ff; font-size: 9px; font-weight: 600; padding: 1px 5px; border-radius: 4px; letter-spacing: 0.3px; }
+  .row-a-elapsed { font-size: 10px; color: #636366; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+
+  /* Option B — Cards */
+  .card-b {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    padding: 9px 10px;
+    margin-bottom: 5px;
+    cursor: pointer;
+  }
+  .card-b:hover { background: rgba(255,255,255,0.08); }
+  .card-b.active { border-color: rgba(10,132,255,0.4); background: rgba(10,132,255,0.07); }
+  .card-b-header { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
+  .status-pill {
+    font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 10px;
+    letter-spacing: 0.3px; text-transform: uppercase; flex-shrink: 0;
+  }
+  .status-pill.running { background: rgba(48,209,88,0.2); color: #30d158; }
+  .status-pill.idle    { background: rgba(255,214,10,0.2); color: #ffd60a; }
+  .status-pill.stopped { background: rgba(99,99,102,0.2); color: #8e8e93; }
+  .card-b-name { font-size: 12px; font-weight: 600; color: #e5e5ea; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
+  .card-b-footer { display: flex; align-items: center; gap: 6px; }
+  .card-b-bead { background: rgba(10,132,255,0.15); color: #0a84ff; font-size: 9px; font-weight: 600; padding: 1px 5px; border-radius: 4px; }
+  .card-b-model { font-size: 10px; color: #48484a; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card-b-time { font-size: 10px; color: #48484a; font-variant-numeric: tabular-nums; }
+
+  /* Option C — Minimal with accent bar */
+  .row-c {
+    display: flex; align-items: stretch; border-radius: 6px; overflow: hidden;
+    margin-bottom: 3px; cursor: pointer; height: 38px;
+  }
+  .row-c:hover .row-c-inner { background: rgba(255,255,255,0.07); }
+  .row-c.active .row-c-inner { background: rgba(255,255,255,0.1); }
+  .row-c-bar { width: 3px; flex-shrink: 0; }
+  .row-c-bar.running { background: #30d158; }
+  .row-c-bar.idle    { background: #ffd60a; }
+  .row-c-bar.stopped { background: #636366; }
+  .row-c-inner { flex: 1; display: flex; align-items: center; justify-content: space-between; padding: 0 8px 0 9px; }
+  .row-c-name { font-size: 12px; color: #e5e5ea; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
+  .row-c-right { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; flex-shrink: 0; }
+  .row-c-bead { font-size: 9px; color: #0a84ff; font-weight: 600; }
+  .row-c-time { font-size: 9px; color: #48484a; font-variant-numeric: tabular-nums; }
+
+  .demo-wrapper { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; justify-content: center; margin-top: 8px; }
+  .demo-col { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .demo-label { font-size: 11px; font-weight: 600; color: #8e8e93; }
+</style>
+
+<div class="demo-wrapper">
+
+  <!-- Option A -->
+  <div class="demo-col">
+    <div class="demo-label">A — Enriched rows</div>
+    <div class="sidebar-demo">
+      <div class="sidebar-label">Sessions</div>
+
+      <div class="row-a active">
+        <div class="dot running"></div>
+        <div class="row-a-info">
+          <div class="row-a-name">Refactor auth module</div>
+          <div class="row-a-meta">
+            <span class="bead-chip">AB-142</span>
+            <span>claude-sonnet</span>
+          </div>
+        </div>
+        <div class="row-a-elapsed">24m</div>
+      </div>
+
+      <div class="row-a">
+        <div class="dot idle"></div>
+        <div class="row-a-info">
+          <div class="row-a-name">Add test coverage</div>
+          <div class="row-a-meta">
+            <span class="bead-chip">AB-139</span>
+            <span>codex</span>
+          </div>
+        </div>
+        <div class="row-a-elapsed">idle</div>
+      </div>
+
+      <div class="row-a">
+        <div class="dot stopped"></div>
+        <div class="row-a-info">
+          <div class="row-a-name">Fix CI pipeline</div>
+          <div class="row-a-meta">
+            <span>—</span>
+          </div>
+        </div>
+        <div class="row-a-elapsed">done</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Option B -->
+  <div class="demo-col">
+    <div class="demo-label">B — Cards</div>
+    <div class="sidebar-demo">
+      <div class="sidebar-label">Sessions</div>
+
+      <div class="card-b active">
+        <div class="card-b-header">
+          <span class="status-pill running">running</span>
+          <div class="card-b-name">Refactor auth module</div>
+        </div>
+        <div class="card-b-footer">
+          <span class="card-b-bead">AB-142</span>
+          <span class="card-b-model">claude-sonnet</span>
+          <span class="card-b-time">24m</span>
+        </div>
+      </div>
+
+      <div class="card-b">
+        <div class="card-b-header">
+          <span class="status-pill idle">idle</span>
+          <div class="card-b-name">Add test coverage</div>
+        </div>
+        <div class="card-b-footer">
+          <span class="card-b-bead">AB-139</span>
+          <span class="card-b-model">codex</span>
+          <span class="card-b-time">idle</span>
+        </div>
+      </div>
+
+      <div class="card-b">
+        <div class="card-b-header">
+          <span class="status-pill stopped">done</span>
+          <div class="card-b-name">Fix CI pipeline</div>
+        </div>
+        <div class="card-b-footer">
+          <span class="card-b-model" style="color:#48484a">no bead</span>
+          <span class="card-b-time">done</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Option C -->
+  <div class="demo-col">
+    <div class="demo-label">C — Accent bar</div>
+    <div class="sidebar-demo">
+      <div class="sidebar-label">Sessions</div>
+
+      <div class="row-c active">
+        <div class="row-c-bar running"></div>
+        <div class="row-c-inner">
+          <div class="row-c-name">Refactor auth module</div>
+          <div class="row-c-right">
+            <span class="row-c-bead">AB-142</span>
+            <span class="row-c-time">24m</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="row-c">
+        <div class="row-c-bar idle"></div>
+        <div class="row-c-inner">
+          <div class="row-c-name">Add test coverage</div>
+          <div class="row-c-right">
+            <span class="row-c-bead">AB-139</span>
+            <span class="row-c-time">idle</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="row-c">
+        <div class="row-c-bar stopped"></div>
+        <div class="row-c-inner">
+          <div class="row-c-name">Fix CI pipeline</div>
+          <div class="row-c-right">
+            <span class="row-c-time">done</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="options" style="margin-top: 24px;">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Enriched rows</h3>
+      <p>Same row height as today but adds bead chip + model label. Compact, fits more sessions.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Cards</h3>
+      <p>Taller card with status pill, bead ID, model, and elapsed. Most information density per session.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Accent bar</h3>
+      <p>Color bar on left edge signals status at a glance. Clean and minimal, bead + time on the right.</p>
+    </div>
+  </div>
+</div>
