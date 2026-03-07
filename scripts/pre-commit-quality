@@ -1,0 +1,43 @@
+#!/usr/bin/env sh
+# AgentBoard quality pre-commit hook
+# Runs SwiftLint and SwiftFormat checks on staged Swift files.
+
+set -e
+
+# Only run if there are staged Swift files
+STAGED_SWIFT=$(git diff --cached --name-only --diff-filter=ACM | grep '\.swift$' || true)
+if [ -z "$STAGED_SWIFT" ]; then
+    exit 0
+fi
+
+echo "Running quality checks on staged Swift files..."
+
+# SwiftLint — enforce code style rules
+if command -v swiftlint >/dev/null 2>&1; then
+    echo "  Running SwiftLint..."
+    swiftlint lint --config .swiftlint.yml --strict AgentBoard AgentBoardTests 2>&1 || {
+        echo ""
+        echo "❌ SwiftLint found errors. Fix them or run:"
+        echo "  swiftlint lint --fix --config .swiftlint.yml"
+        exit 1
+    }
+else
+    echo "WARNING: swiftlint not found (brew install swiftlint)"
+fi
+
+# SwiftFormat — verify formatting (only if config exists)
+if [ -f ".swiftformat" ]; then
+    if command -v swiftformat >/dev/null 2>&1; then
+        echo "  Running SwiftFormat (lint mode)..."
+        swiftformat --lint --config .swiftformat AgentBoard AgentBoardTests 2>&1 || {
+            echo ""
+            echo "❌ SwiftFormat found formatting issues. Auto-fix with:"
+            echo "  swiftformat --config .swiftformat AgentBoard AgentBoardTests"
+            exit 1
+        }
+    else
+        echo "WARNING: swiftformat not found (brew install swiftformat)"
+    fi
+fi
+
+echo "✓ Quality checks passed."

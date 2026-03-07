@@ -1,0 +1,43 @@
+# SwiftFormat configuration for AgentBoard
+# Install: brew install swiftformat
+# Run: swiftformat --config .swiftformat AgentBoard AgentBoardTests
+
+# Indentation
+indent: 2
+tab-width: 2
+indentcase: false
+ifdef: indent
+indentstrings: false
+
+# Spacing
+semicolons: never
+commas: always
+colon: after
+trailingcomma: always
+nospace: ["!", "?", ":"]
+spacearoundoperators: true
+
+# Braces
+allman: false
+lineaftermarks: true
+closingbrace: balance
+
+# Organization
+sortedimports: true
+imports: align
+stripunusedargs: closure-only
+
+# Length
+maxwidth: 120
+wraparguments: before-first
+wrapcollections: before-first
+wrapparameters: before-first
+
+# Comments
+comments: preserve
+header: strip
+
+# Exclusions (generated files, third-party)
+exclude:
+  - "**/Generated"
+  - "**/.build"
