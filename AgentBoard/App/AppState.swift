@@ -35,7 +35,7 @@ final class AppState {
     var activeSessionID: String?
 
     var selectedTab: CenterTab = .board
-    var rightPanelMode: RightPanelMode = .split
+    var rightPanelMode: RightPanelMode = .chat
     var sidebarNavSelection: SidebarNavItem? = .board
 
     var appConfig: AppConfig = .empty
@@ -71,8 +71,12 @@ final class AppState {
     var chatInputFocusRequestID: Int = 0
     var connectionErrorDetail: ConnectionError?
     var showConnectionErrorToast = false
-    var sidebarVisible: Bool = !UserDefaults.standard.bool(forKey: "AB_sidebarCollapsed")
-    var boardVisible: Bool = !UserDefaults.standard.bool(forKey: "AB_boardCollapsed")
+    var sidebarVisible: Bool = UserDefaults.standard.object(forKey: "AB_sidebarCollapsed") != nil
+        ? !UserDefaults.standard.bool(forKey: "AB_sidebarCollapsed")
+        : false
+    var boardVisible: Bool = UserDefaults.standard.object(forKey: "AB_boardCollapsed") != nil
+        ? !UserDefaults.standard.bool(forKey: "AB_boardCollapsed")
+        : false
 
     let coordinationService = CoordinationService()
     let notesService = WorkspaceNotesService()
@@ -167,8 +171,7 @@ final class AppState {
     private func clearErrorIfProjectChanged() {
         if let currentProjectID = selectedProjectID,
            let errorProject = errorProjectID,
-           currentProjectID != errorProject
-        {
+           currentProjectID != errorProject {
             errorMessage = nil
         }
     }
@@ -394,8 +397,7 @@ final class AppState {
         rebuildProjects()
 
         if let selectedPath = appConfig.selectedProjectPath,
-           let selected = projects.first(where: { $0.path.path == selectedPath })
-        {
+           let selected = projects.first(where: { $0.path.path == selectedPath }) {
             selectedProjectID = selected.id
         } else {
             selectedProjectID = projects.first?.id
@@ -780,7 +782,7 @@ final class AppState {
             "bd", "create",
             draft.title.trimmingCharacters(in: .whitespacesAndNewlines),
             "--type", draft.kind.beadsValue,
-            "--priority", "\(draft.priority)",
+            "--priority", "\(draft.priority)"
         ]
 
         let desc = draft.description.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -803,11 +805,28 @@ final class AppState {
             arguments.append(contentsOf: ["--parent", epicId])
         }
 
+        arguments.append("--json")
+
         do {
             let result = try await runBD(arguments: arguments, in: project)
             let output = result.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
-            // Extract bead ID from output (typically first word)
-            let newID = output.components(separatedBy: .whitespaces).first ?? "bead"
+            // Parse JSON to extract bead ID reliably
+            let newID: String
+            if let data = output.data(using: .utf8),
+               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let id = json["id"] as? String {
+                newID = id
+            } else {
+                // Fallback: look for pattern like "AB-xxx" in output
+                let pattern = #"[A-Za-z]+-[A-Za-z0-9]+"#
+                if let regex = try? NSRegularExpression(pattern: pattern),
+                   let match = regex.firstMatch(in: output, range: NSRange(output.startIndex..., in: output)),
+                   let range = Range(match.range, in: output) {
+                    newID = String(output[range])
+                } else {
+                    newID = "bead"
+                }
+            }
             // bd create doesn't support --status, so set it via update if non-default
             if desiredStatus != "backlog", desiredStatus != "open" {
                 _ = try? await runBD(arguments: ["bd", "update", newID, "--status", desiredStatus], in: project)
@@ -834,13 +853,12 @@ final class AppState {
         }
     }
 
-    /// Runs `bd list --all --json`, converts the JSON array to JSONL, and writes to issues.jsonl.
+    /// Runs `bd list --all --flat --json`, converts the JSON array to JSONL, and writes to issues.jsonl.
     private func fetchAndWriteIssuesJSONL(for project: Project) async throws {
-        let result = try await runBD(arguments: ["bd", "list", "--all", "--json"], in: project)
+        let result = try await runBD(arguments: ["bd", "list", "--all", "--flat", "--json"], in: project)
         let stdout = result.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
         if let data = stdout.data(using: .utf8),
-           let array = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]]
-        {
+           let array = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
             let jsonl = array.compactMap { obj -> String? in
                 guard let line = try? JSONSerialization.data(withJSONObject: obj),
                       let str = String(data: line, encoding: .utf8) else { return nil }
@@ -874,7 +892,7 @@ final class AppState {
                 "bd", "update", bead.id,
                 "--title", draft.title,
                 "--type", draft.kind.beadsValue,
-                "--priority", "\(draft.priority)",
+                "--priority", "\(draft.priority)"
             ]
 
             // Only pass --status when not using bd close (which already sets it)
@@ -1017,6 +1035,7 @@ final class AppState {
                 "--type", "epic",
                 "--priority", "2",
                 "--silent",
+                "--json"
             ]
             if !description.isEmpty {
                 createArgs.append(contentsOf: ["--description", description])
@@ -1068,8 +1087,7 @@ final class AppState {
         rebuildProjects()
 
         if let selectedPath = appConfig.selectedProjectPath,
-           let selected = projects.first(where: { $0.path.path == selectedPath })
-        {
+           let selected = projects.first(where: { $0.path.path == selectedPath }) {
             selectedProjectID = selected.id
         } else {
             selectedProjectID = projects.first?.id
@@ -1113,8 +1131,7 @@ final class AppState {
             unreadSessionAlertsCount = sessionAlertSessionIDs.count
             sessions = updatedSessions
             if let activeSessionID,
-               !sessions.contains(where: { $0.id == activeSessionID })
-            {
+               !sessions.contains(where: { $0.id == activeSessionID }) {
                 self.activeSessionID = nil
             }
 
@@ -1421,7 +1438,7 @@ final class AppState {
                 dependencies: [],
                 gitBranch: nil,
                 lastCommit: nil
-            ),
+            )
         ]
 
         if empty {
@@ -1468,7 +1485,7 @@ final class AppState {
                     model: "open-code",
                     processID: 1003,
                     cpuPercent: 0.0
-                ),
+                )
             ]
 
             coordinationService.agentStatuses = [
@@ -1485,7 +1502,7 @@ final class AppState {
                     status: "idle",
                     currentTask: "",
                     updated: "2026-02-27"
-                ),
+                )
             ]
             coordinationService.handoffs = [
                 HandoffEntry(
@@ -1497,7 +1514,7 @@ final class AppState {
                     status: "pending",
                     beadId: "AB-100",
                     date: "2026-02-27"
-                ),
+                )
             ]
         }
 
@@ -1532,7 +1549,7 @@ final class AppState {
                 title: "Beta Old Session Event",
                 details: "Outside 30 day filter",
                 projectName: beta.name
-            ),
+            )
         ]
     }
 
@@ -1544,8 +1561,7 @@ final class AppState {
             return true
         }
         if (incomingNormalized == "agent:main:main" && currentNormalized == "main") ||
-            (incomingNormalized == "main" && currentNormalized == "agent:main:main")
-        {
+            (incomingNormalized == "main" && currentNormalized == "agent:main:main") {
             return true
         }
         return false
@@ -2056,13 +2072,21 @@ final class AppState {
     }
 
     private func parseCreatedIssueID(from result: ShellCommandResult) -> String? {
-        let stdoutLines = result.stdout
-            .split(whereSeparator: \.isNewline)
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
+        let output = result.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        if let candidate = stdoutLines.last {
-            return candidate.split(separator: " ").last.map(String.init)
+        // Try JSON parsing first (bd create --json)
+        if let data = output.data(using: .utf8),
+           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let id = json["id"] as? String {
+            return id
+        }
+
+        // Fallback: look for bead ID pattern (e.g. AB-xyz, NM-abc) in output
+        let pattern = #"[A-Za-z]+-[A-Za-z0-9]{2,}"#
+        if let regex = try? NSRegularExpression(pattern: pattern),
+           let match = regex.firstMatch(in: output, range: NSRange(output.startIndex..., in: output)),
+           let range = Range(match.range, in: output) {
+            return String(output[range])
         }
 
         return nil
@@ -2108,7 +2132,7 @@ final class AppState {
             "ViewBridge",
             "NSViewBridgeError",
             "invalid display identifier",
-            "CALocalDisplayUpdateBlock",
+            "CALocalDisplayUpdateBlock"
         ]
 
         return toolPatterns.contains { pattern in

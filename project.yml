@@ -64,8 +64,12 @@ targets:
         Debug:
           SWIFT_OPTIMIZATION_LEVEL: "-Onone"
           SWIFT_ACTIVE_COMPILATION_CONDITIONS: "DEBUG $(inherited)"
+          CODE_SIGN_IDENTITY: "Apple Development"
+          DEVELOPMENT_TEAM: "32XZRDTGK3"
         Release:
           SWIFT_COMPILATION_MODE: wholemodule
+          CODE_SIGN_IDENTITY: "Apple Development"
+          DEVELOPMENT_TEAM: "32XZRDTGK3"
     dependencies:
       - package: SwiftTerm
       - package: swift-markdown

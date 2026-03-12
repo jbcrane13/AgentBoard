@@ -1,248 +1,200 @@
+<div align="center">
+
 # AgentBoard
 
-A native macOS command center for AI-assisted software development.
+**The command center for AI-assisted development.**
 
-[![macOS](https://img.shields.io/badge/macOS-15%2B-blue)]()
-[![Swift](https://img.shields.io/badge/Swift-6.0-orange)]()
-[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
+A native macOS app that unifies issue tracking, agent chat, and coding session monitoring into a single, purpose-built interface.
+
+[![macOS](https://img.shields.io/badge/macOS-15%2B-007AFF?style=flat-square&logo=apple)](https://www.apple.com/macos/)
+[![Swift](https://img.shields.io/badge/Swift-6.0-F05138?style=flat-square&logo=swift)](https://swift.org)
+[![License](https://img.shields.io/badge/License-MIT-4A4A4A?style=flat-square)](LICENSE)
+[![XcodeGen](https://img.shields.io/badge/XcodeGen-ready-00B4D8?style=flat-square)](https://github.com/yonaskolb/XcodeGen)
+
+[Features](#features) • [Quick Start](#quick-start) • [Architecture](#architecture) • [Configuration](#configuration) • [Contributing](#contributing)
+
+</div>
 
 ---
 
-## Screenshots
+## The Problem
 
-> Screenshots coming soon. To see AgentBoard in action, build from source and connect to an OpenClaw gateway.
+Modern AI-assisted development involves three simultaneous activities:
 
-<!--
-![Board View](docs/screenshots/board.png)
-![Chat + Canvas Split](docs/screenshots/split.png)
-![Terminal View](docs/screenshots/terminal.png)
-![Dark Mode](docs/screenshots/dark-mode.png)
--->
+| Activity | Current Tools | Pain Point |
+|----------|---------------|------------|
+| **Track work** | Terminal + `bd` CLI | Scattered across windows |
+| **Talk to agents** | Telegram/Discord/web | Switching contexts constantly |
+| **Review output** | Browser + Terminal | No unified view of agent work |
 
-## What is AgentBoard?
+**AgentBoard unifies all three.**
 
-Modern AI-assisted dev workflows involve three simultaneous activities: **tracking work**, **communicating with agents**, and **reviewing agent output**. Today these are spread across Terminal, browser, and various CLIs. AgentBoard unifies them into a single, purpose-built macOS interface.
+---
 
 ## Features
 
-### Kanban Board
+### 🎯 Kanban Board
 
-View and manage issues powered by [Beads](https://github.com/nicobailon/beads), a git-backed issue tracker. Four columns — Open, In Progress, Blocked, Done — with drag-and-drop to move cards between statuses. Filter by kind (task, bug, feature, epic, chore), assignee, or epic. Create and edit issues with full metadata: title, description, kind, priority (P0–P4), assignee, labels, and epic linking. Right-click cards to edit, delete, assign to an agent, or view in terminal. Live filesystem watching via `BeadsWatcher` keeps the board in sync when agents commit changes externally.
+Issue tracking powered by [Beads](https://github.com/nicobailon/beads) — a git-backed issue tracker.
 
-### Epics
+- **Four columns:** Open, In Progress, Blocked, Done
+- **Drag-and-drop** to move cards between statuses
+- **Rich metadata:** title, description, kind (task/bug/feature/epic/chore), priority (P0–P4), assignee, labels, epic linking
+- **Live sync:** filesystem watcher keeps the board in sync when agents commit changes externally
+- **Context menu:** edit, delete, assign to agent, view in terminal
 
-Dedicated epics view with progress bars showing child issue completion (e.g. "3/5"). Expandable disclosure groups list all child issues with status. Create new epics and link existing issues as children.
+### 📊 Epics View
 
-### Agent Chat
+Track progress across related issues.
 
-Full-featured chat connected to the [OpenClaw](https://github.com/nicobailon/openclaw) gateway via WebSocket JSON-RPC. Session picker dropdown to switch between gateway sessions. Streaming responses with animated typing indicator, abort button (red stop) during generation, and markdown rendering with syntax-highlighted fenced code blocks. Bead reference detection in assistant output links to board issues. Context bar shows selected bead and gateway session count. Right-click code blocks to open them in the canvas. Emoji picker for quick reactions.
+- Progress bars showing child issue completion (e.g., "3/5")
+- Expandable disclosure groups listing all child issues
+- Create new epics and link existing issues
 
-### Coding Session Monitor
+### 💬 Agent Chat
 
-Live sidebar showing running coding agent sessions (Claude Code, Codex CLI, OpenCode). Status indicators (running, idle, stopped, error) with elapsed time. Click any session to view its terminal output in a read-only capture view with auto-refresh every 2 seconds. Nudge button sends Enter into the tmux session. Launch new sessions from the UI with project, agent type, linked bead ID, and optional seed prompt. Sessions run in tmux for persistence.
+Full-featured chat connected to [OpenClaw](https://github.com/nicobailon/openclaw) gateway.
 
-### Agents Dashboard
+- **Session picker:** switch between gateway sessions
+- **Streaming responses** with typing indicator and abort button
+- **Markdown rendering** with syntax-highlighted code blocks
+- **Bead linking:** assistant messages auto-detect bead references
+- **Thinking levels:** control reasoning depth (low/medium/high)
 
-Table view of all local and remote agent sessions with columns for name, agent type, model, project, linked bead, status, elapsed time, token usage, and estimated cost. Aggregate stats at the top: sessions today, total tokens, estimated cost.
+### 🖥️ Coding Session Monitor
 
-### Canvas
+Track running coding agent sessions in real time.
 
-Rich content panel rendered in WKWebView. Supports markdown, HTML, images, code diffs, Mermaid diagrams, and terminal output. Agents push content via canvas directives in chat (`<!-- canvas:markdown -->...<!-- /canvas -->`). Users can drag-and-drop files, open via file picker, or paste images from clipboard. Toolbar includes history navigation (back/forward), zoom controls with percentage display, export, and clear. Content type label updates dynamically (Markdown, HTML, Image, Diff, Mermaid, Terminal).
+- **Status indicators:** running (green), idle (yellow), stopped (gray), error (red)
+- **Session details:** agent type, model, project, linked bead, elapsed time
+- **Terminal view:** read-only capture with auto-refresh
+- **Nudge button:** send Enter to stuck sessions
+- **Launch from UI:** configure project, agent, bead ID, and seed prompt
 
-### Split Mode
+### 🤖 Agents Dashboard
 
-Right panel supports three modes via a segmented picker: Chat only, Canvas only, or Split. Split mode defaults to 60% canvas / 40% chat with a draggable divider. Collapse either panel by dragging to the edge. Double-click the divider to reset to the default ratio.
+Aggregate view of all agent sessions.
 
-### History
+- **Columns:** name, agent type, model, project, bead, status, elapsed, tokens, cost
+- **Stats:** sessions today, total tokens, estimated cost
 
-Reverse-chronological event timeline with filters for project, event type (bead events, session events, commits), and date range (24h, 7d, 30d, all time). Events include bead creation/status changes, session starts/completions, and git commits.
+### 🖼️ Canvas
 
-### Git Integration
+Rich content panel for agent output.
 
-Task cards show latest commit SHA, branch name, and commit count badge for in-progress issues. Click a SHA to view the commit diff in the canvas. Bead IDs in commit messages are automatically linked.
+- **Formats:** Markdown, HTML, images, code diffs, Mermaid diagrams, terminal output
+- **Toolbar:** back/forward history, zoom controls, export
+- **Drag-and-drop:** paste images or open files directly
 
-### Dark Mode
+### 🔀 Split Mode
 
-Full dark mode support with adaptive theming via `AppTheme`. Sidebar stays dark in both light and dark themes. Cards, panels, and borders adapt automatically.
+Right panel supports three modes:
 
-### Keyboard Shortcuts
+| Mode | Layout |
+|------|--------|
+| **Chat** | Full-height chat |
+| **Canvas** | Full-height canvas |
+| **Split** (default) | 60% canvas / 40% chat, resizable divider |
+
+### 📜 History
+
+Reverse-chronological event timeline.
+
+- **Filters:** project, event type (bead events, session events, commits), date range
+- **Events:** bead creation/status changes, session starts/completions, git commits
+
+### 🔗 Git Integration
+
+- Task cards show commit SHA, branch name, and commit count
+- Click a SHA to view the diff in canvas
+- Bead IDs in commit messages auto-linked
+
+### ⌨️ Keyboard Shortcuts
 
 | Shortcut | Action |
 |----------|--------|
 | `Cmd+N` | New bead |
 | `Cmd+Shift+N` | New coding session |
-| `Cmd+1`–`Cmd+4` | Tab navigation (Board, Epics, Agents, History) |
+| `Cmd+1`–`Cmd+4` | Tab navigation |
 | `Cmd+[` / `Cmd+]` | Canvas history back/forward |
 | `Cmd+L` | Focus chat input |
-| `Esc` | Back to board from terminal view |
+| `Esc` | Back to board from terminal |
 | `Enter` | Send chat message |
-| `Shift+Enter` | Newline in chat input |
+| `Shift+Enter` | Newline in chat |
 
-### Notifications
+### 🌙 Dark Mode
 
-Unread chat message badge in the right panel header. Session update badges for stopped/error transitions in the sidebar session list.
+Full dark mode support with adaptive theming. Sidebar stays dark in both modes.
 
-## Requirements
+---
+
+## Quick Start
+
+### Prerequisites
 
 - macOS 15 (Sequoia) or later
 - Xcode 16.2+ with Swift 6.0
-- [XcodeGen](https://github.com/yonaskolb/XcodeGen) (if regenerating the project file)
-- An [OpenClaw](https://github.com/nicobailon/openclaw) gateway running (default: `ws://127.0.0.1:18789`)
-- [Beads](https://github.com/nicobailon/beads) initialized in your project directories (for the Kanban board)
-- tmux installed (for coding session management)
+- [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`)
+- [Beads](https://github.com/nicobailon/beads) (`brew install beads`)
+- An [OpenClaw](https://github.com/nicobailon/openclaw) gateway running
+- tmux (for coding session management)
 
-## Installation
-
-### From Source (Xcode)
+### Build & Run
 
 ```bash
+# Clone
 git clone https://github.com/nicobailon/AgentBoard.git
 cd AgentBoard
-open AgentBoard.xcodeproj
-```
 
-Build and run from Xcode (`Cmd+R`).
-
-If you need to regenerate the Xcode project after editing `project.yml`:
-
-```bash
-brew install xcodegen  # if not already installed
+# Generate Xcode project (if needed)
 xcodegen generate
-```
 
-### From Source (Command Line)
+# Open in Xcode
+open AgentBoard.xcodeproj
 
-```bash
-git clone https://github.com/nicobailon/AgentBoard.git
-cd AgentBoard
+# Or build from CLI
 xcodebuild -project AgentBoard.xcodeproj \
   -scheme AgentBoard \
   -destination 'platform=macOS' \
   build
 ```
 
-The built app will be in `DerivedData/`. To build a release archive:
+### First Launch
 
-```bash
-xcodebuild -project AgentBoard.xcodeproj \
-  -scheme AgentBoard \
-  -configuration Release \
-  archive
-```
+1. AgentBoard auto-discovers projects in `~/Projects` with `.beads/` directories
+2. Configure your OpenClaw gateway in **Settings** (default: `ws://127.0.0.1:18789`)
+3. Auth tokens are stored securely in macOS Keychain
 
-### Running Tests
-
-```bash
-xcodebuild -project AgentBoard.xcodeproj \
-  -scheme AgentBoard \
-  -destination 'platform=macOS' \
-  test
-```
-
-This runs both the unit tests (`AgentBoardTests`) and UI tests (`AgentBoardUITests`).
-
-## Configuration
-
-### Gateway Connection
-
-AgentBoard connects to the OpenClaw gateway for chat and session management. By default it connects to `ws://127.0.0.1:18789`.
-
-**Automatic discovery:** On launch, AgentBoard reads gateway configuration from `~/.openclaw/openclaw.json`:
-
-```json
-{
-  "gateway": {
-    "url": "ws://127.0.0.1:18789",
-    "auth": {
-      "token": "your-gateway-token"
-    }
-  }
-}
-```
-
-**Manual configuration:** Switch to Manual mode in Settings and enter the gateway URL and auth token directly. Auth tokens are stored securely in the macOS Keychain.
-
-### Remote Gateway Setup
-
-AgentBoard supports connecting to an OpenClaw gateway running on a different machine. There are several ways to reach a remote gateway:
-
-**LAN / Direct IP**
-
-If the gateway machine is on the same network, use its LAN IP:
-
-1. On the gateway machine, start OpenClaw with `gateway.bind` set to `"0.0.0.0"` (or the machine's LAN IP) in `~/.openclaw/openclaw.json`
-2. In AgentBoard, open Settings, switch to Manual, and enter `http://<gateway-ip>:18789`
-3. Click "Scan Network" to auto-discover gateways advertising via Bonjour/mDNS
-
-**Tailscale / VPN**
-
-With [Tailscale](https://tailscale.com) or another VPN, use the gateway machine's VPN IP:
-
-```
-http://100.x.y.z:18789
-```
-
-No port forwarding or firewall changes needed.
-
-**SSH Tunnel**
-
-Forward the gateway port over SSH for encrypted access without exposing ports:
-
-```bash
-ssh -L 18789:localhost:18789 user@gateway-host
-```
-
-Then connect to `http://127.0.0.1:18789` in AgentBoard as if the gateway were local.
-
-**Device Pairing**
-
-Each device must be approved by the gateway on first connection:
-
-1. Connect to the gateway — AgentBoard will show a pairing guide if approval is needed
-2. On the gateway machine, run the approval command shown in the guide (e.g. `openclaw devices approve <device-id>`)
-3. Click "Retry Connection" in AgentBoard
-
-Device identity is stored in `~/.agentboard/device-identity.json` (Ed25519 keypair generated on first launch).
-
-**Token Security**
-
-Gateway auth tokens are stored in the macOS Keychain, not in plain-text config files. When you save a token in Settings, it is written to Keychain and stripped from `~/.agentboard/config.json`. Existing plain-text tokens are automatically migrated to Keychain on first launch.
-
-### Projects
-
-AgentBoard auto-discovers projects by scanning a configured directory for folders containing a `.beads/` subfolder. The default scan directory is `~/Projects`. You can change it in the Settings view, or add individual project folders manually.
-
-You can also provide a config file at `~/.agentboard/config.json`:
-
-```json
-{
-  "projects": [
-    {
-      "name": "MyProject",
-      "path": "~/Projects/MyProject",
-      "icon": "🚀"
-    }
-  ]
-}
-```
-
-### tmux Socket
-
-Coding session monitoring uses the OpenClaw tmux socket at `/tmp/openclaw-tmux-sockets/openclaw.sock`. This is configurable in the app settings.
+---
 
 ## Architecture
 
-AgentBoard is a SwiftUI application with a three-panel layout:
-
 ```
-┌───────────┬──────────────────────┬────────────────┐
-│  Sidebar   │   Center Panel       │  Right Panel   │
-│  (220pt)   │   (flexible)         │  (resizable)   │
-│            │                      │                │
-│  Projects  │  Board / Epics /     │  Chat          │
-│  Sessions  │  Agents / History /  │  Canvas        │
-│  Views     │  Terminal / Settings │  Split         │
-└───────────┴──────────────────────┴────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                        AgentBoard.app                           │
+│                    (SwiftUI, macOS 15+)                         │
+├─────────────┬──────────────────────┬────────────────────────────┤
+│  Sidebar    │   Center Panel       │   Right Panel              │
+│  (220pt)    │   (flexible)         │   (resizable)              │
+│             │                      │                            │
+│ • Projects  │ • Board (Kanban)     │ • Chat Mode                │
+│ • Sessions  │ • Epics View         │ • Canvas Mode              │
+│ • Views     │ • Agents View         │ • Split Mode               │
+│ • Actions   │ • Terminal View      │                            │
+│             │ • History View       │                            │
+└──────┬──────┴──────────┬───────────┴──────────┬─────────────────┘
+       │                 │                      │
+       ▼                 ▼                      ▼
+┌──────────────┐ ┌───────────────┐ ┌────────────────────────────┐
+│ SessionMonitor│ │ BeadsWatcher  │ │ OpenClawService            │
+│ (tmux/ps)    │ │ (FSEvents)    │ │ (WebSocket JSON-RPC)       │
+└──────────────┘ └───────────────┘ └────────────────────────────┘
+                         │                      │
+                         ▼                      ▼
+                  ┌──────────────┐    ┌─────────────────────┐
+                  │ .beads/ dirs │    │ OpenClaw Gateway     │
+                  │ (filesystem) │    │ ws://127.0.0.1:18789 │
+                  └──────────────┘    └─────────────────────┘
 ```
 
 ### Project Structure
@@ -250,42 +202,30 @@ AgentBoard is a SwiftUI application with a three-panel layout:
 ```
 AgentBoard/
 ├── App/
-│   └── AppState.swift           # Central @Observable state
+│   └── AppState.swift           # @Observable central state
 ├── Models/
-│   ├── AppConfig.swift           # Persisted app configuration
-│   ├── Bead.swift                # Issue model (task, bug, feature, epic, chore)
-│   ├── BeadDraft.swift           # Mutable draft for create/edit forms
-│   ├── CanvasContent.swift       # Canvas render types (markdown, HTML, diff, diagram, image, terminal)
-│   ├── ChatMessage.swift         # Chat message model with role, content, metadata
-│   ├── CodingSession.swift       # tmux session model with agent type and status
-│   ├── GitCommitRecord.swift     # Commit SHA, branch, message, bead linkage
-│   ├── HistoryEvent.swift        # Timeline event model
-│   ├── OpenClawConnectionState.swift  # Connection state enum
-│   └── Project.swift             # Project model with path, icon, issue counts
+│   ├── AppConfig.swift           # Persisted configuration
+│   ├── Bead.swift                # Issue model (task, bug, feature, epic)
+│   ├── CanvasContent.swift       # Canvas render types
+│   ├── ChatMessage.swift         # Chat message with streaming support
+│   ├── CodingSession.swift       # tmux session model
+│   └── Project.swift             # Project with bead counts
 ├── Services/
-│   ├── AppConfigStore.swift      # Config persistence and OpenClaw discovery
-│   ├── BeadsWatcher.swift        # DispatchSource file watcher for issues.jsonl
+│   ├── AppConfigStore.swift      # Config persistence
+│   ├── BeadsWatcher.swift        # DispatchSource file watcher
 │   ├── CanvasRenderer.swift      # WKWebView content rendering
-│   ├── DeviceIdentity.swift      # Ed25519 device keypair for gateway pairing
-│   ├── GatewayClient.swift       # WebSocket JSON-RPC client (connect, chat, sessions, events)
-│   ├── GatewayDiscovery.swift    # Bonjour/mDNS gateway scanner
-│   ├── GitService.swift          # Commit discovery and diff retrieval
-│   ├── JSONLParser.swift         # JSONL file parser for beads
-│   ├── KeychainService.swift     # Secure token storage
-│   ├── OpenClawService.swift     # Thin actor wrapper around GatewayClient
-│   └── SessionMonitor.swift      # tmux + process polling for agent sessions
+│   ├── DeviceIdentity.swift      # Ed25519 device keypair
+│   ├── GatewayClient.swift       # WebSocket JSON-RPC client
+│   ├── GitService.swift          # Commit discovery and diffs
+│   └── SessionMonitor.swift      # tmux + process polling
 ├── Views/
-│   ├── Board/                    # Kanban board, task cards, detail sheet, editor forms
-│   ├── Canvas/                   # WKWebView canvas with toolbar and drag-drop
-│   ├── Chat/                     # Chat panel with streaming, markdown bubbles, emoji picker
-│   ├── Epics/                    # Epic cards with progress bars and child issues
-│   ├── History/                  # Filterable event timeline
-│   ├── Agents/                   # Agent session table with stats
-│   ├── MainWindow/               # ContentView (layout), ProjectHeaderView
-│   ├── RightPanel/               # Right panel mode switcher, split panel divider
-│   ├── Settings/                 # Gateway config, project management, pairing guide
-│   ├── Sidebar/                  # Project list, session list, views nav, new session sheet
-│   └── Terminal/                 # Read-only terminal capture view
+│   ├── Board/                    # Kanban board and cards
+│   ├── Canvas/                   # WKWebView canvas
+│   ├── Chat/                    # Chat panel with streaming
+│   ├── Epics/                   # Epic progress view
+│   ├── History/                 # Event timeline
+│   ├── Sidebar/                 # Project and session list
+│   └── Terminal/                # SwiftTerm wrapper
 └── Resources/
     └── Assets.xcassets
 ```
@@ -294,15 +234,13 @@ AgentBoard/
 
 | Service | Role |
 |---------|------|
-| `GatewayClient` | WebSocket JSON-RPC client for the OpenClaw gateway (chat, sessions, events) |
-| `OpenClawService` | Thin actor wrapper around `GatewayClient` |
-| `BeadsWatcher` | `DispatchSource` file watcher for `.beads/issues.jsonl` changes |
-| `SessionMonitor` | tmux session + process tree polling for coding agent discovery |
-| `CanvasRenderer` | WKWebView content rendering (markdown, HTML, diffs, Mermaid diagrams) |
-| `GitService` | Commit discovery, bead-ID linkage, and diff retrieval |
-| `GatewayDiscovery` | Bonjour/mDNS network scanner for remote gateways |
+| `GatewayClient` | WebSocket JSON-RPC client for OpenClaw gateway |
+| `OpenClawService` | Actor wrapper around `GatewayClient` |
+| `BeadsWatcher` | `DispatchSource` file watcher for `.beads/issues.jsonl` |
+| `SessionMonitor` | tmux session + process tree polling |
+| `CanvasRenderer` | WKWebView rendering (markdown, HTML, diffs, Mermaid) |
+| `GitService` | Commit discovery, bead-ID linkage, diff retrieval |
 | `KeychainService` | Secure token storage in macOS Keychain |
-| `DeviceIdentity` | Ed25519 keypair generation and persistence for device pairing |
 
 ### Dependencies
 
@@ -311,23 +249,154 @@ AgentBoard/
 | [SwiftTerm](https://github.com/migueldeicaza/SwiftTerm) | Terminal emulation |
 | [swift-markdown](https://github.com/apple/swift-markdown) | Markdown parsing |
 
-Both are managed via Swift Package Manager. No external databases — beads files on the filesystem are the source of truth.
+Both managed via Swift Package Manager. No local database — beads files are the source of truth.
+
+---
+
+## Configuration
+
+### Gateway Connection
+
+AgentBoard connects to an OpenClaw gateway for chat and session management.
+
+**Auto-discovery:** On launch, reads from `~/.openclaw/openclaw.json`:
+
+```json
+{
+  "gateway": {
+    "url": "ws://127.0.0.1:18789",
+    "auth": { "token": "your-gateway-token" }
+  }
+}
+```
+
+**Manual configuration:** Switch to Manual mode in Settings and enter URL + token directly. Tokens are stored in macOS Keychain.
+
+### Remote Gateway Setup
+
+| Method | Configuration |
+|--------|---------------|
+| **LAN/Direct IP** | Set `gateway.bind: "0.0.0.0"` on gateway, connect to `http://<ip>:18789` |
+| **Tailscale/VPN** | Use gateway's VPN IP: `http://100.x.y.z:18789` |
+| **SSH Tunnel** | `ssh -L 18789:localhost:18789 user@host`, then connect locally |
+
+### Projects
+
+Projects are auto-discovered by scanning `~/Projects` for folders with `.beads/` subdirectories. Configure manually in Settings or via `~/.agentboard/config.json`:
+
+```json
+{
+  "projects": [
+    { "name": "NetMonitor-iOS", "path": "~/Projects/NetMonitor-iOS", "icon": "📡" },
+    { "name": "AgentBoard", "path": "~/Projects/AgentBoard", "icon": "🎛️" }
+  ]
+}
+```
+
+### Device Pairing
+
+Each device must be approved on first connection:
+
+1. AgentBoard shows a pairing guide if approval is needed
+2. Run `openclaw devices approve <device-id>` on the gateway machine
+3. Click "Retry Connection" in AgentBoard
+
+Device identity (Ed25519 keypair) is stored in `~/.agentboard/device-identity.json`.
+
+---
+
+## Development
+
+### Running Tests
+
+```bash
+# Unit + UI tests
+xcodebuild -project AgentBoard.xcodeproj \
+  -scheme AgentBoard \
+  -destination 'platform=macOS' \
+  test
+
+# Run specific test file
+swift test --filter BoardViewTests
+```
+
+### Code Quality
+
+```bash
+# SwiftLint runs automatically as a build phase
+# Manual run:
+swiftlint lint
+
+# SwiftFormat
+swiftformat --lint .
+```
+
+### Project Generation
+
+After editing `project.yml`:
+
+```bash
+xcodegen generate
+```
+
+**Never edit `project.pbxproj` directly** — it's regenerated from `project.yml`.
+
+---
 
 ## Contributing
 
-Contributions are welcome. To get started:
+Contributions welcome! Here's how to get started:
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/my-change`)
-3. Read `DESIGN.md` for architecture context and `docs/ADR.md` for decision records
-4. Build and test before committing:
+1. **Fork** the repository
+2. **Create a feature branch:** `git checkout -b feature/my-change`
+3. **Read the docs:**
+   - [`DESIGN.md`](DESIGN.md) — Architecture and decisions
+   - [`docs/ADR.md`](docs/ADR.md) — Architecture Decision Records
+4. **Build and test before committing:**
    ```bash
-   xcodebuild -project AgentBoard.xcodeproj -scheme AgentBoard -destination 'platform=macOS' build
-   xcodebuild -project AgentBoard.xcodeproj -scheme AgentBoard -destination 'platform=macOS' test
+   xcodebuild -project AgentBoard.xcodeproj -scheme AgentBoard build test
    ```
-5. Use [conventional commits](https://www.conventionalcommits.org/) for commit messages (e.g. `feat:`, `fix:`, `docs:`)
-6. Open a pull request against `main`
+5. **Use conventional commits:** `feat:`, `fix:`, `docs:`, `refactor:`, `test:`
+6. **Open a pull request** against `main`
+
+### Code Style
+
+- Swift 6 strict concurrency (`SWIFT_STRICT_CONCURRENCY: complete`)
+- SwiftUI with `@Observable` (not `@ObservableObject`)
+- Actor-based services for thread safety
+- No force unwraps (`!`) — use `guard`, `if let`, or `??`
+
+---
+
+## Roadmap
+
+- [ ] **Direct Launch:** Launch coding agents from AgentBoard with bead context
+- [ ] **Multi-window:** Detach terminal/canvas into separate windows
+- [ ] **Cloud Sync:** Sync settings across devices via iCloud
+- [ ] **Team Collaboration:** Multi-user support with presence
+- [ ] **iOS Companion:** Read-only board on the go
+
+---
 
 ## License
 
 MIT License. See [LICENSE](LICENSE) for details.
+
+---
+
+## Acknowledgments
+
+- [Beads](https://github.com/nicobailon/beads) — Git-backed issue tracking
+- [OpenClaw](https://github.com/nicobailon/openclaw) — Agent gateway
+- [SwiftTerm](https://github.com/migueldeicaza/SwiftTerm) — Terminal emulation
+- [swift-markdown](https://github.com/apple/swift-markdown) — Markdown parsing
+
+---
+
+<div align="center">
+
+**[Report a Bug](https://github.com/nicobailon/AgentBoard/issues/new?labels=bug)** • 
+**[Request a Feature](https://github.com/nicobailon/AgentBoard/issues/new?labels=enhancement)** • 
+**[Ask a Question](https://github.com/nicobailon/AgentBoard/discussions)**
+
+</div>
