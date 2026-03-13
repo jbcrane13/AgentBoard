@@ -33,6 +33,8 @@ final class AppState {
     var sessions: [CodingSession] = []
     var chatMessages: [ChatMessage] = []
     var activeSessionID: String?
+    /// Tracks when activeSessionID was last set so auto-clear has a grace period.
+    private var activeSessionIDSetAt: Date?
 
     var selectedTab: CenterTab = .board
     var rightPanelMode: RightPanelMode = .chat
@@ -95,6 +97,7 @@ final class AppState {
     private var sessionMonitorTick = 0
     private let gatewaySessionRefreshErrorPrefix = "Gateway session refresh failed:"
     private let isUITesting = ProcessInfo.processInfo.arguments.contains("--uitesting")
+    private let commandRunner: @Sendable ([String], URL?) async throws -> ShellCommandResult
 
     var selectedProject: Project? {
         guard let selectedProjectID else { return nil }
@@ -133,10 +136,14 @@ final class AppState {
         openClawService: any OpenClawServicing = OpenClawService(),
         configStore: AppConfigStore = AppConfigStore(),
         bootstrapOnInit: Bool = true,
-        startBackgroundLoops: Bool = true
+        startBackgroundLoops: Bool = true,
+        commandRunner: (@Sendable ([String], URL?) async throws -> ShellCommandResult)? = nil
     ) {
         self.configStore = configStore
         self.openClawService = openClawService
+        self.commandRunner = commandRunner ?? { args, dir in
+            try await ShellCommand.runAsync(arguments: args, workingDirectory: dir)
+        }
 
         if bootstrapOnInit {
             bootstrap()
@@ -664,6 +671,7 @@ final class AppState {
 
     func openSessionInTerminal(_ session: CodingSession) {
         activeSessionID = session.id
+        activeSessionIDSetAt = Date()
         clearSessionAlert(for: session.id)
     }
 
@@ -729,6 +737,7 @@ final class AppState {
             statusMessage = "Launched session \(sessionID)."
             await refreshSessionsFromMonitor()
             activeSessionID = sessionID
+            activeSessionIDSetAt = Date()
 
             return true
         } catch {
@@ -1001,6 +1010,7 @@ final class AppState {
 
             statusMessage = "Assigned \(bead.id) to agent — session \(sessionID) launched."
             activeSessionID = sessionID
+            activeSessionIDSetAt = Date()
             await refreshSessionsFromMonitor()
             await refreshBeadsFromCLI(for: project)
         } catch {
@@ -1114,9 +1124,17 @@ final class AppState {
 
             unreadSessionAlertsCount = sessionAlertSessionIDs.count
             sessions = updatedSessions
+            // Only auto-clear activeSessionID if the session truly disappeared AND
+            // there's no grace period active (e.g. just launched, tmux session not yet
+            // visible in all tmux queries).
             if let activeSessionID,
                !sessions.contains(where: { $0.id == activeSessionID }) {
-                self.activeSessionID = nil
+                let gracePeriod: TimeInterval = 15
+                let withinGrace = activeSessionIDSetAt.map { Date().timeIntervalSince($0) < gracePeriod } ?? false
+                if !withinGrace {
+                    self.activeSessionID = nil
+                    self.activeSessionIDSetAt = nil
+                }
             }
 
             sessionMonitorTick += 1
@@ -1132,7 +1150,13 @@ final class AppState {
             if !SessionMonitor.isMissingTmuxServer(error: error) {
                 setError(error.localizedDescription)
             }
-            activeSessionID = nil
+            // Don't clear activeSessionID on a transient monitoring error — the user
+            // should stay in their active terminal view and not be silently booted.
+            // Only clear if we're certain tmux server is gone (no socket/server).
+            if SessionMonitor.isMissingTmuxServer(error: error) {
+                activeSessionID = nil
+                activeSessionIDSetAt = nil
+            }
             sessionStatusByID = [:]
             sessionAlertSessionIDs = []
             unreadSessionAlertsCount = 0
@@ -1919,7 +1943,7 @@ final class AppState {
     }
 
     private func runBD(arguments: [String], in project: Project) async throws -> ShellCommandResult {
-        try await ShellCommand.runAsync(arguments: arguments, workingDirectory: project.path)
+        try await commandRunner(arguments, project.path)
     }
 
     private func parseCanvasDirective(from content: String) -> (CanvasContent, String)? {
