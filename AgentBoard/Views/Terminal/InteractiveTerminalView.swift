@@ -9,15 +9,16 @@ struct InteractiveTerminalView: NSViewRepresentable {
     let sessionID: String
 
     func makeNSView(context: Context) -> LocalProcessTerminalView {
-        let tv = LocalProcessTerminalView(frame: .zero)
-        tv.configureNativeColors()
-        tv.startProcess(
+        let terminalView = LocalProcessTerminalView(frame: .zero)
+        terminalView.configureNativeColors()
+        let socketPath = "/tmp/openclaw-tmux-sockets/openclaw.sock"
+        terminalView.startProcess(
             executable: "/usr/bin/env",
-            args: ["tmux", "attach-session", "-t", sessionID],
+            args: ["tmux", "-S", socketPath, "attach-session", "-t", sessionID],
             environment: nil,
             execName: nil
         )
-        return tv
+        return terminalView
     }
 
     func updateNSView(_ nsView: LocalProcessTerminalView, context: Context) {
