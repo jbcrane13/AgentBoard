@@ -65,6 +65,7 @@ struct CanvasPanelView: View {
             }
             .buttonStyle(.plain)
             .disabled(!appState.canGoCanvasBack)
+            .accessibilityIdentifier("canvas_button_back")
 
             Button {
                 appState.goCanvasForward()
@@ -73,6 +74,7 @@ struct CanvasPanelView: View {
             }
             .buttonStyle(.plain)
             .disabled(!appState.canGoCanvasForward)
+            .accessibilityIdentifier("canvas_button_forward")
 
             Divider()
                 .frame(height: 14)
@@ -83,6 +85,7 @@ struct CanvasPanelView: View {
                 Image(systemName: "minus.magnifyingglass")
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("canvas_button_zoom_out")
 
             Button {
                 appState.resetCanvasZoom()
@@ -92,6 +95,7 @@ struct CanvasPanelView: View {
                     .frame(minWidth: 40)
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("canvas_button_zoom_reset")
 
             Button {
                 appState.adjustCanvasZoom(by: 0.1)
@@ -99,6 +103,7 @@ struct CanvasPanelView: View {
                 Image(systemName: "plus.magnifyingglass")
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("canvas_button_zoom_in")
 
             Divider()
                 .frame(height: 14)
@@ -107,23 +112,27 @@ struct CanvasPanelView: View {
                 showingFileImporter = true
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("canvas_button_open")
 
             Button("Paste Image") {
                 pasteImageFromClipboard()
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("canvas_button_paste_image")
 
             Button("Export") {
                 exportCanvasContent()
             }
             .buttonStyle(.plain)
             .disabled(appState.currentCanvasContent == nil)
+            .accessibilityIdentifier("canvas_button_export")
 
             Button("Clear") {
                 appState.clearCanvasHistory()
             }
             .buttonStyle(.plain)
             .disabled(appState.currentCanvasContent == nil)
+            .accessibilityIdentifier("canvas_button_clear")
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)

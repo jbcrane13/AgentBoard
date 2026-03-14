@@ -45,6 +45,7 @@ struct PairingGuideView: View {
                     }
                     .buttonStyle(.borderless)
                     .help("Copy command")
+                    .accessibilityIdentifier("pairing_button_copy")
                 }
                 .padding(.leading, 24)
 
@@ -67,6 +68,7 @@ struct PairingGuideView: View {
                 Label("Retry Connection", systemImage: "arrow.clockwise")
             }
             .controlSize(.small)
+            .accessibilityIdentifier("pairing_button_retry")
         }
         .padding(14)
         .background(Color.red.opacity(0.05), in: RoundedRectangle(cornerRadius: 10))

@@ -2,6 +2,18 @@ import Foundation
 import Testing
 @testable import AgentBoard
 
+/// Thread-safe mutable container for test assertions.
+private final class LockIsolated<Value>: @unchecked Sendable {
+    private var _value: Value
+    private let lock = NSLock()
+    init(_ value: Value) { _value = value }
+    func withLock<T>(_ body: (inout Value) -> T) -> T {
+        lock.lock()
+        defer { lock.unlock() }
+        return body(&_value)
+    }
+}
+
 @Suite("AppState Misc")
 @MainActor
 struct AppStateMiscTests {
@@ -74,6 +86,63 @@ struct AppStateMiscTests {
         #expect(state.appConfig.openClawToken == "secret-token")
         #expect(state.appConfig.gatewayConfigSource == "manual")
         #expect(state.statusMessage == "Saved OpenClaw settings.")
+    }
+
+    @Test("updateBead to done calls bd close and does not pass --status")
+    func updateBeadToDonesCallsBdClose() async {
+        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try! FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true)
+
+        // Capture all commands issued by updateBead
+        let capturedCommands = LockIsolated<[[String]]>([])
+        let state = AppState(
+            configStore: AppConfigStore(directory: _d),
+            bootstrapOnInit: false,
+            startBackgroundLoops: false,
+            commandRunner: { args, _ in
+                capturedCommands.withLock { $0.append(args) }
+                return ShellCommandResult(exitCode: 0, stdout: "[]", stderr: "")
+            }
+        )
+
+        // Set up a project and select it
+        let projectDir = _d.appendingPathComponent("proj")
+        try! FileManager.default.createDirectory(at: projectDir, withIntermediateDirectories: true)
+        let beadsDir = projectDir.appendingPathComponent(".beads")
+        try! FileManager.default.createDirectory(at: beadsDir, withIntermediateDirectories: true)
+        let project = Project(
+            id: UUID(), name: "Test", path: projectDir, beadsPath: beadsDir,
+            icon: "T", isActive: true, openCount: 1, inProgressCount: 0, totalCount: 1
+        )
+        state.projects = [project]
+        state.selectedProjectID = project.id
+
+        // Create a bead with status open
+        let bead = Bead(
+            id: "AB-test1", title: "Test bead", body: nil, status: .open,
+            kind: .task, priority: 2, epicId: nil, labels: [], assignee: nil,
+            createdAt: Date(), updatedAt: Date(), dependencies: [],
+            gitBranch: nil, lastCommit: nil
+        )
+
+        // Draft with status changed to done
+        var draft = BeadDraft.from(bead)
+        draft.status = .done
+
+        await state.updateBead(bead, with: draft)
+
+        let commands = capturedCommands.withLock { $0 }
+
+        // (1) bd close <id> must have been called
+        let closeCommand = commands.first { $0.starts(with: ["bd", "close"]) }
+        #expect(closeCommand != nil, "Expected 'bd close' to be called")
+        #expect(closeCommand?.contains("AB-test1") == true)
+
+        // (2) The bd update call must NOT contain --status (since bd close handles it)
+        let updateCommand = commands.first { $0.starts(with: ["bd", "update"]) }
+        #expect(updateCommand != nil, "Expected 'bd update' to be called for other fields")
+        #expect(updateCommand?.contains("--status") == false,
+                "bd update must NOT pass --status when closing via bd close")
     }
 
     @Test("updateOpenClaw with empty strings sets config fields to nil")

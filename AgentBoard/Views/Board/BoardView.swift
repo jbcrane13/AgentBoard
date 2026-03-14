@@ -121,6 +121,7 @@ struct BoardView: View {
                     Text(kind.label).tag(kind)
                 }
             }
+            .accessibilityIdentifier("board_picker_kind")
             .frame(width: 140)
 
             Picker("Assignee", selection: $selectedAssignee) {
@@ -129,6 +130,7 @@ struct BoardView: View {
                     Text(assignee).tag(assignee)
                 }
             }
+            .accessibilityIdentifier("board_picker_assignee")
             .frame(width: 180)
 
             Picker("Epic", selection: $selectedEpicID) {
@@ -137,6 +139,7 @@ struct BoardView: View {
                     Text(epic.id).tag(epic.id)
                 }
             }
+            .accessibilityIdentifier("board_picker_epic")
             .frame(width: 170)
 
             Spacer()
@@ -151,6 +154,7 @@ struct BoardView: View {
                 Image(systemName: isRefreshing ? "arrow.trianglehead.clockwise" : "arrow.clockwise")
                     .symbolEffect(.rotate, isActive: isRefreshing)
             }
+            .accessibilityIdentifier("board_button_refresh")
             .help("Refresh beads")
             .disabled(isRefreshing)
 
@@ -159,6 +163,7 @@ struct BoardView: View {
             } label: {
                 Label("Create Bead", systemImage: "plus")
             }
+            .accessibilityIdentifier("board_add_task_button")
             .buttonStyle(.borderedProminent)
         }
     }
@@ -217,24 +222,28 @@ struct BoardView: View {
                                     Button("Edit") {
                                         editingContext = EditingContext(bead: bead)
                                     }
+                                    .accessibilityIdentifier("board_context_button_edit_\(bead.id)")
 
                                     Button("Delete") {
                                         Task {
                                             await appState.closeBead(bead)
                                         }
                                     }
+                                    .accessibilityIdentifier("board_context_button_delete_\(bead.id)")
 
                                     Button("Assign to Agent") {
                                         Task {
                                             await appState.assignBeadToAgent(bead)
                                         }
                                     }
+                                    .accessibilityIdentifier("board_context_button_assign_\(bead.id)")
 
                                     Button("View in Terminal") {
                                         Task {
                                             await appState.openBeadInTerminal(bead)
                                         }
                                     }
+                                    .accessibilityIdentifier("board_context_button_terminal_\(bead.id)")
                                 }
                         }
                     }
@@ -289,6 +298,7 @@ struct BoardView: View {
                     await appState.initializeBeadsForSelectedProject()
                 }
             }
+            .accessibilityIdentifier("board_button_initialize_beads")
             .buttonStyle(.borderedProminent)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -428,18 +438,21 @@ private struct BeadEditorForm: View {
 
             Form {
                 TextField("Title", text: $draft.title)
+                    .accessibilityIdentifier("board_title_field")
 
                 Picker("Kind", selection: $draft.kind) {
                     ForEach(BeadKind.allCases, id: \.self) { kind in
                         Text(kind.rawValue.capitalized).tag(kind)
                     }
                 }
+                .accessibilityIdentifier("board_picker_bead_kind")
 
                 Picker("Status", selection: $draft.status) {
                     ForEach(BeadStatus.allCases, id: \.self) { status in
                         Text(status.rawValue).tag(status)
                     }
                 }
+                .accessibilityIdentifier("board_picker_bead_status")
 
                 Picker("Priority", selection: $draft.priority) {
                     Text("P0 - Critical").tag(0)
@@ -448,13 +461,16 @@ private struct BeadEditorForm: View {
                     Text("P3 - Low").tag(3)
                     Text("P4 - Backlog").tag(4)
                 }
+                .accessibilityIdentifier("board_picker_bead_priority")
 
                 Picker("Assignee", selection: $draft.assignee) {
                     ForEach(AgentDefinition.knownAgents) { agent in
                         Text(agent.displayName).tag(agent.id)
                     }
                 }
+                .accessibilityIdentifier("board_picker_bead_assignee")
                 TextField("Labels (comma-separated)", text: $draft.labelsText)
+                    .accessibilityIdentifier("board_labels_field")
 
                 if draft.kind != .epic {
                     Picker("Epic", selection: Binding(
@@ -469,6 +485,7 @@ private struct BeadEditorForm: View {
                                 .tag(epic.id)
                         }
                     }
+                    .accessibilityIdentifier("board_picker_bead_epic")
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
@@ -476,6 +493,7 @@ private struct BeadEditorForm: View {
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(.secondary)
                     TextEditor(text: $draft.description)
+                        .accessibilityIdentifier("board_description_field")
                         .frame(minHeight: 140)
                 }
                 .padding(.vertical, 4)
@@ -484,7 +502,9 @@ private struct BeadEditorForm: View {
             HStack(spacing: 8) {
                 Spacer()
                 Button("Cancel", action: onCancel)
+                    .accessibilityIdentifier("board_button_cancel")
                 Button("Save", action: onSave)
+                    .accessibilityIdentifier("board_button_save")
                     .buttonStyle(.borderedProminent)
                     .disabled(draft.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }

@@ -56,6 +56,7 @@ struct NewSessionSheet: View {
 
                         TextField("e.g. AB-38b", text: $beadID)
                             .textFieldStyle(.roundedBorder)
+                            .accessibilityIdentifier("new_session_bead_id_field")
                     }
 
                     // Prompt

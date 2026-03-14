@@ -78,6 +78,7 @@ struct TaskDetailSheet: View {
             TextField("Issue title", text: $draft.title)
                 .textFieldStyle(.roundedBorder)
                 .font(.system(size: 14))
+                .accessibilityIdentifier("task_detail_title_field")
         }
     }
 
@@ -187,6 +188,7 @@ struct TaskDetailSheet: View {
             TextField("Comma-separated labels", text: $draft.labelsText)
                 .textFieldStyle(.roundedBorder)
                 .font(.system(size: 13))
+                .accessibilityIdentifier("task_detail_labels_field")
         }
     }
 
@@ -259,6 +261,7 @@ struct TaskDetailSheet: View {
                         TextField("Close reason (optional)", text: $closeReason)
                             .textFieldStyle(.roundedBorder)
                             .font(.system(size: 13))
+                            .accessibilityIdentifier("task_detail_close_reason_field")
 
                         Button("Close") {
                             showCloseConfirm = true

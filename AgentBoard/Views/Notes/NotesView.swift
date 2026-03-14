@@ -45,6 +45,7 @@ struct NotesView: View {
                     .font(.system(size: 13, weight: .semibold))
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("notes_button_previous_day")
 
             Text(formattedDate)
                 .font(.system(size: 15, weight: .semibold))
@@ -56,6 +57,7 @@ struct NotesView: View {
                     .font(.system(size: 13, weight: .semibold))
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("notes_button_next_day")
             .opacity(isToday ? 0.4 : 1.0)
             .disabled(isToday)
 

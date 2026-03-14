@@ -21,6 +21,7 @@ struct EpicsView: View {
                     Label("Create Epic", systemImage: "plus")
                 }
                 .buttonStyle(.borderedProminent)
+                .accessibilityIdentifier("epics_add_button")
             }
             .padding(.horizontal, 20)
             .padding(.top, 16)
@@ -171,6 +172,7 @@ struct EpicsView: View {
                             .foregroundStyle(.secondary)
                         TextField("Epic title", text: $epicTitle)
                             .textFieldStyle(.roundedBorder)
+                            .accessibilityIdentifier("epic_title_field")
                     }
 
                     // Description

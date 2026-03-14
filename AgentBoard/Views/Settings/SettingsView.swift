@@ -118,6 +118,7 @@ struct SettingsView: View {
 
                         TextField("Gateway URL (e.g. http://192.168.1.100:18789)", text: $gatewayURL)
                             .textFieldStyle(.roundedBorder)
+                            .accessibilityIdentifier("settings_textfield_gateway_url")
 
                         if !gatewayURL.isEmpty, !isValidGatewayURL(gatewayURL) {
                             Label("URL should start with http:// or https:// and include a port", systemImage: "exclamationmark.triangle")

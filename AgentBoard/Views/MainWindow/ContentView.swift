@@ -184,6 +184,7 @@ struct ContentView: View {
                 }
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("content_button_tab_\(tab.rawValue.lowercased())")
     }
 
     @ViewBuilder
