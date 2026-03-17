@@ -1,8 +1,9 @@
-import Foundation
-import Testing
 @testable import AgentBoard
 
-@Suite("AppConfigStore Tests")
+// swiftlint:disable file_length
+import Foundation
+import Testing
+
 struct AppConfigStoreTests {
     private let store = AppConfigStore(tokenStorage: InMemoryTokenStorage())
 
@@ -187,15 +188,13 @@ struct AppConfigStoreTests {
 
 /// These tests exercise loadOrCreate, save, and hydrate behaviour using
 /// isolated temp directories — never touches ~/.agentboard/config.json.
-@Suite("AppConfigStore Lifecycle Tests")
 struct AppConfigStoreLifecycleTests {
-
-    private let fm = FileManager.default
+    private let fileManager = FileManager.default
 
     /// Creates an isolated AppConfigStore backed by a temp directory.
     private func makeTempStore() throws -> (store: AppConfigStore, dir: URL, configURL: URL) {
-        let dir = fm.temporaryDirectory.appendingPathComponent("ABLifecycle-\(UUID().uuidString)")
-        try fm.createDirectory(at: dir, withIntermediateDirectories: true)
+        let dir = fileManager.temporaryDirectory.appendingPathComponent("ABLifecycle-\(UUID().uuidString)")
+        try fileManager.createDirectory(at: dir, withIntermediateDirectories: true)
         let store = AppConfigStore(directory: dir)
         let configURL = dir.appendingPathComponent("config.json")
         return (store, dir, configURL)
@@ -206,15 +205,15 @@ struct AppConfigStoreLifecycleTests {
     @Test("loadOrCreate creates default config when file is missing")
     func loadOrCreateCreatesDefaultConfigWhenFileMissing() throws {
         let (store, dir, configURL) = try makeTempStore()
-        defer { try? fm.removeItem(at: dir) }
+        defer { try? fileManager.removeItem(at: dir) }
 
         let config = try store.loadOrCreate()
 
         // loadOrCreate must not throw and must return a valid AppConfig.
-        #expect(config.projects != nil)   // projects array exists (may be empty)
+        #expect(config.projects != nil) // projects array exists (may be empty)
 
         // The file must now exist on disk.
-        #expect(fm.fileExists(atPath: configURL.path))
+        #expect(fileManager.fileExists(atPath: configURL.path))
     }
 
     // MARK: 2 — loadOrCreate reads an existing config from disk
@@ -222,7 +221,7 @@ struct AppConfigStoreLifecycleTests {
     @Test("loadOrCreate reads existing config from disk")
     func loadOrCreateLoadsExistingConfigFromDisk() throws {
         let (store, dir, configURL) = try makeTempStore()
-        defer { try? fm.removeItem(at: dir) }
+        defer { try? fileManager.removeItem(at: dir) }
 
         // Write a known config to disk (include a project so auto-discover doesn't override).
         let written = AppConfig(
@@ -231,7 +230,9 @@ struct AppConfigStoreLifecycleTests {
             openClawGatewayURL: "http://127.0.0.1:19999",
             openClawToken: "stored-token",
             gatewayConfigSource: "manual",
-            projectsDirectory: nil
+            projectsDirectory: nil,
+            showToolOutputInChat: nil,
+            githubToken: nil
         )
         try store.save(written)
 
@@ -249,7 +250,7 @@ struct AppConfigStoreLifecycleTests {
     @Test("loadOrCreate round-trip preserves custom values after save")
     func loadOrCreateRoundTrip() throws {
         let (store, dir, configURL) = try makeTempStore()
-        defer { try? fm.removeItem(at: dir) }
+        defer { try? fileManager.removeItem(at: dir) }
 
         let original = AppConfig(
             projects: [ConfiguredProject(path: "/tmp/proj-abc", icon: "🚀")],
@@ -257,7 +258,9 @@ struct AppConfigStoreLifecycleTests {
             openClawGatewayURL: "http://10.0.0.1:8080",
             openClawToken: "round-trip-token",
             gatewayConfigSource: "manual",
-            projectsDirectory: "/tmp/my-projects"
+            projectsDirectory: "/tmp/my-projects",
+            showToolOutputInChat: nil,
+            githubToken: nil
         )
         try store.save(original)
 
@@ -279,7 +282,7 @@ struct AppConfigStoreLifecycleTests {
     @Test("save writes valid JSON file to disk")
     func saveWritesJSONToDisk() throws {
         let (store, dir, configURL) = try makeTempStore()
-        defer { try? fm.removeItem(at: dir) }
+        defer { try? fileManager.removeItem(at: dir) }
 
         let config = AppConfig(
             projects: [],
@@ -287,12 +290,14 @@ struct AppConfigStoreLifecycleTests {
             openClawGatewayURL: "http://localhost:18789",
             openClawToken: "tok",
             gatewayConfigSource: "manual",
-            projectsDirectory: nil
+            projectsDirectory: nil,
+            showToolOutputInChat: nil,
+            githubToken: nil
         )
         try store.save(config)
 
         // File must exist.
-        #expect(fm.fileExists(atPath: configURL.path))
+        #expect(fileManager.fileExists(atPath: configURL.path))
 
         // Content must be valid JSON.
         let data = try Data(contentsOf: configURL)
@@ -305,24 +310,24 @@ struct AppConfigStoreLifecycleTests {
     @Test("hydrateOpenClaw fills missing gateway URL in auto mode")
     func hydrateOpenClawFillsMissingGatewayURL() throws {
         let (store, dir, configURL) = try makeTempStore()
-        defer { try? fm.removeItem(at: dir) }
+        defer { try? fileManager.removeItem(at: dir) }
 
         // Back up ~/.openclaw/openclaw.json if it exists.
-        let openClawDir = fm.homeDirectoryForCurrentUser
+        let openClawDir = fileManager.homeDirectoryForCurrentUser
             .appendingPathComponent(".openclaw", isDirectory: true)
         let openClawConfigURL = openClawDir.appendingPathComponent("openclaw.json")
         let openClawBackup: URL?
-        if fm.fileExists(atPath: openClawConfigURL.path) {
+        if fileManager.fileExists(atPath: openClawConfigURL.path) {
             let bak = openClawDir.appendingPathComponent("openclaw.json.bak-\(UUID().uuidString)")
-            try fm.copyItem(at: openClawConfigURL, to: bak)
+            try fileManager.copyItem(at: openClawConfigURL, to: bak)
             openClawBackup = bak
         } else {
             openClawBackup = nil
         }
         defer {
-            try? fm.removeItem(at: openClawConfigURL)
+            try? fileManager.removeItem(at: openClawConfigURL)
             if let bak = openClawBackup {
-                try? fm.moveItem(at: bak, to: openClawConfigURL)
+                try? fileManager.moveItem(at: bak, to: openClawConfigURL)
             }
         }
 
@@ -337,7 +342,7 @@ struct AppConfigStoreLifecycleTests {
             }
         }
         """
-        try fm.createDirectory(at: openClawDir, withIntermediateDirectories: true)
+        try fileManager.createDirectory(at: openClawDir, withIntermediateDirectories: true)
         try openClawJSON.write(to: openClawConfigURL, atomically: true, encoding: .utf8)
 
         // Write a config with no gateway URL and auto mode so hydration runs.
@@ -347,7 +352,9 @@ struct AppConfigStoreLifecycleTests {
             openClawGatewayURL: nil,
             openClawToken: nil,
             gatewayConfigSource: "auto",
-            projectsDirectory: nil
+            projectsDirectory: nil,
+            showToolOutputInChat: nil,
+            githubToken: nil
         )
         try store.save(base)
 
@@ -362,24 +369,24 @@ struct AppConfigStoreLifecycleTests {
     @Test("hydrateOpenClaw does not overwrite manually-set gateway URL")
     func hydrateOpenClawDoesNotOverwriteManualGatewayURL() throws {
         let (store, dir, configURL) = try makeTempStore()
-        defer { try? fm.removeItem(at: dir) }
+        defer { try? fileManager.removeItem(at: dir) }
 
         // Back up ~/.openclaw/openclaw.json if it exists.
-        let openClawDir = fm.homeDirectoryForCurrentUser
+        let openClawDir = fileManager.homeDirectoryForCurrentUser
             .appendingPathComponent(".openclaw", isDirectory: true)
         let openClawConfigURL = openClawDir.appendingPathComponent("openclaw.json")
         let openClawBackup: URL?
-        if fm.fileExists(atPath: openClawConfigURL.path) {
+        if fileManager.fileExists(atPath: openClawConfigURL.path) {
             let bak = openClawDir.appendingPathComponent("openclaw.json.bak-\(UUID().uuidString)")
-            try fm.copyItem(at: openClawConfigURL, to: bak)
+            try fileManager.copyItem(at: openClawConfigURL, to: bak)
             openClawBackup = bak
         } else {
             openClawBackup = nil
         }
         defer {
-            try? fm.removeItem(at: openClawConfigURL)
+            try? fileManager.removeItem(at: openClawConfigURL)
             if let bak = openClawBackup {
-                try? fm.moveItem(at: bak, to: openClawConfigURL)
+                try? fileManager.moveItem(at: bak, to: openClawConfigURL)
             }
         }
 
@@ -387,7 +394,7 @@ struct AppConfigStoreLifecycleTests {
         let openClawJSON = """
         { "gateway": { "port": 39999, "bind": "loopback", "auth": { "token": "disc-token" } } }
         """
-        try fm.createDirectory(at: openClawDir, withIntermediateDirectories: true)
+        try fileManager.createDirectory(at: openClawDir, withIntermediateDirectories: true)
         try openClawJSON.write(to: openClawConfigURL, atomically: true, encoding: .utf8)
 
         let manualURL = "http://10.0.0.5:55555"
@@ -396,8 +403,10 @@ struct AppConfigStoreLifecycleTests {
             selectedProjectPath: nil,
             openClawGatewayURL: manualURL,
             openClawToken: "my-token",
-            gatewayConfigSource: "manual",   // <- this flag blocks hydration
-            projectsDirectory: nil
+            gatewayConfigSource: "manual", // <- this flag blocks hydration
+            projectsDirectory: nil,
+            showToolOutputInChat: nil,
+            githubToken: nil
         )
         try store.save(manual)
 
@@ -412,30 +421,30 @@ struct AppConfigStoreLifecycleTests {
     @Test("hydrateOpenClaw fills missing token in auto mode")
     func hydrateOpenClawFillsMissingToken() throws {
         let (store, dir, configURL) = try makeTempStore()
-        defer { try? fm.removeItem(at: dir) }
+        defer { try? fileManager.removeItem(at: dir) }
 
-        let openClawDir = fm.homeDirectoryForCurrentUser
+        let openClawDir = fileManager.homeDirectoryForCurrentUser
             .appendingPathComponent(".openclaw", isDirectory: true)
         let openClawConfigURL = openClawDir.appendingPathComponent("openclaw.json")
         let openClawBackup: URL?
-        if fm.fileExists(atPath: openClawConfigURL.path) {
+        if fileManager.fileExists(atPath: openClawConfigURL.path) {
             let bak = openClawDir.appendingPathComponent("openclaw.json.bak-\(UUID().uuidString)")
-            try fm.copyItem(at: openClawConfigURL, to: bak)
+            try fileManager.copyItem(at: openClawConfigURL, to: bak)
             openClawBackup = bak
         } else {
             openClawBackup = nil
         }
         defer {
-            try? fm.removeItem(at: openClawConfigURL)
+            try? fileManager.removeItem(at: openClawConfigURL)
             if let bak = openClawBackup {
-                try? fm.moveItem(at: bak, to: openClawConfigURL)
+                try? fileManager.moveItem(at: bak, to: openClawConfigURL)
             }
         }
 
         let openClawJSON = """
         { "gateway": { "port": 18789, "bind": "loopback", "auth": { "token": "filled-token-xyz" } } }
         """
-        try fm.createDirectory(at: openClawDir, withIntermediateDirectories: true)
+        try fileManager.createDirectory(at: openClawDir, withIntermediateDirectories: true)
         try openClawJSON.write(to: openClawConfigURL, atomically: true, encoding: .utf8)
 
         // Config has no token, auto mode.
@@ -445,7 +454,9 @@ struct AppConfigStoreLifecycleTests {
             openClawGatewayURL: nil,
             openClawToken: nil,
             gatewayConfigSource: "auto",
-            projectsDirectory: nil
+            projectsDirectory: nil,
+            showToolOutputInChat: nil,
+            githubToken: nil
         )
         try store.save(base)
 
@@ -459,30 +470,30 @@ struct AppConfigStoreLifecycleTests {
     @Test("hydrateOpenClaw ignores discovery when both URL and token are manually set")
     func hydrateOpenClawIgnoresDiscoveryWhenBothFieldsSet() throws {
         let (store, dir, configURL) = try makeTempStore()
-        defer { try? fm.removeItem(at: dir) }
+        defer { try? fileManager.removeItem(at: dir) }
 
-        let openClawDir = fm.homeDirectoryForCurrentUser
+        let openClawDir = fileManager.homeDirectoryForCurrentUser
             .appendingPathComponent(".openclaw", isDirectory: true)
         let openClawConfigURL = openClawDir.appendingPathComponent("openclaw.json")
         let openClawBackup: URL?
-        if fm.fileExists(atPath: openClawConfigURL.path) {
+        if fileManager.fileExists(atPath: openClawConfigURL.path) {
             let bak = openClawDir.appendingPathComponent("openclaw.json.bak-\(UUID().uuidString)")
-            try fm.copyItem(at: openClawConfigURL, to: bak)
+            try fileManager.copyItem(at: openClawConfigURL, to: bak)
             openClawBackup = bak
         } else {
             openClawBackup = nil
         }
         defer {
-            try? fm.removeItem(at: openClawConfigURL)
+            try? fileManager.removeItem(at: openClawConfigURL)
             if let bak = openClawBackup {
-                try? fm.moveItem(at: bak, to: openClawConfigURL)
+                try? fileManager.moveItem(at: bak, to: openClawConfigURL)
             }
         }
 
         let openClawJSON = """
         { "gateway": { "port": 49999, "bind": "loopback", "auth": { "token": "should-not-appear" } } }
         """
-        try fm.createDirectory(at: openClawDir, withIntermediateDirectories: true)
+        try fileManager.createDirectory(at: openClawDir, withIntermediateDirectories: true)
         try openClawJSON.write(to: openClawConfigURL, atomically: true, encoding: .utf8)
 
         let manualURL = "http://custom-host:7777"
@@ -493,7 +504,9 @@ struct AppConfigStoreLifecycleTests {
             openClawGatewayURL: manualURL,
             openClawToken: manualToken,
             gatewayConfigSource: "manual",
-            projectsDirectory: nil
+            projectsDirectory: nil,
+            showToolOutputInChat: nil,
+            githubToken: nil
         )
         try store.save(manual)
 
@@ -507,28 +520,28 @@ struct AppConfigStoreLifecycleTests {
 
     @Test("discoverOpenClawConfig returns nil for malformed JSON")
     func discoverOpenClawConfigReturnsNilForMalformedJSON() throws {
-        let openClawDir = fm.homeDirectoryForCurrentUser
+        let openClawDir = fileManager.homeDirectoryForCurrentUser
             .appendingPathComponent(".openclaw", isDirectory: true)
         let openClawConfigURL = openClawDir.appendingPathComponent("openclaw.json")
 
         // Back up any real file.
         let backup: URL?
-        if fm.fileExists(atPath: openClawConfigURL.path) {
+        if fileManager.fileExists(atPath: openClawConfigURL.path) {
             let bak = openClawDir.appendingPathComponent("openclaw.json.bak-\(UUID().uuidString)")
-            try fm.copyItem(at: openClawConfigURL, to: bak)
+            try fileManager.copyItem(at: openClawConfigURL, to: bak)
             backup = bak
         } else {
             backup = nil
         }
         defer {
-            try? fm.removeItem(at: openClawConfigURL)
+            try? fileManager.removeItem(at: openClawConfigURL)
             if let bak = backup {
-                try? fm.moveItem(at: bak, to: openClawConfigURL)
+                try? fileManager.moveItem(at: bak, to: openClawConfigURL)
             }
         }
 
         // Write deliberately malformed JSON.
-        try fm.createDirectory(at: openClawDir, withIntermediateDirectories: true)
+        try fileManager.createDirectory(at: openClawDir, withIntermediateDirectories: true)
         try "{ not valid json !! }}}".write(to: openClawConfigURL, atomically: true, encoding: .utf8)
 
         // discoverOpenClawConfig must return nil (not crash) for malformed input.
@@ -540,27 +553,75 @@ struct AppConfigStoreLifecycleTests {
         #expect(result == nil)
     }
 
+    @Test("ConfiguredProject githubOwner/githubRepo round-trips through JSON")
+    func configuredProjectGitHubFieldsRoundTrip() throws {
+        let (store, dir, _) = try makeTempStore()
+        defer { try? fileManager.removeItem(at: dir) }
+
+        var project = ConfiguredProject(path: "/tmp/gh-proj", icon: "📁")
+        project.githubOwner = "acme"
+        project.githubRepo = "widget"
+
+        let config = AppConfig(
+            projects: [project],
+            selectedProjectPath: "/tmp/gh-proj",
+            openClawGatewayURL: nil,
+            openClawToken: nil,
+            gatewayConfigSource: "manual",
+            projectsDirectory: nil,
+            showToolOutputInChat: nil,
+            githubToken: nil
+        )
+        try store.save(config)
+
+        let loaded = try AppConfigStore(directory: dir).loadOrCreate()
+        let loadedProject = try #require(loaded.projects.first)
+        #expect(loadedProject.githubOwner == "acme")
+        #expect(loadedProject.githubRepo == "widget")
+    }
+
+    @Test("AppConfig githubToken round-trips through JSON")
+    func appConfigGitHubTokenRoundTrip() throws {
+        let (store, dir, _) = try makeTempStore()
+        defer { try? fileManager.removeItem(at: dir) }
+
+        let config = AppConfig(
+            projects: [],
+            selectedProjectPath: nil,
+            openClawGatewayURL: nil,
+            openClawToken: nil,
+            gatewayConfigSource: "manual",
+            projectsDirectory: nil,
+            showToolOutputInChat: nil,
+            githubToken: "ghp_test_token_xyz"
+        )
+        try store.save(config)
+
+        let loaded = try AppConfigStore(directory: dir).loadOrCreate()
+        #expect(loaded.githubToken == "ghp_test_token_xyz")
+    }
+
     // MARK: 10 — discoverOpenClawConfig returns nil for missing file
 
     @Test("discoverOpenClawConfig returns nil when openclaw.json is absent")
     func discoverOpenClawConfigReturnsNilForMissingFile() throws {
-        let openClawDir = fm.homeDirectoryForCurrentUser
+        let openClawDir = fileManager.homeDirectoryForCurrentUser
             .appendingPathComponent(".openclaw", isDirectory: true)
         let openClawConfigURL = openClawDir.appendingPathComponent("openclaw.json")
 
         // Back up any real file and remove it so the file is absent.
         let backup: URL?
-        if fm.fileExists(atPath: openClawConfigURL.path) {
+        if fileManager.fileExists(atPath: openClawConfigURL.path) {
             let bak = openClawDir.appendingPathComponent("openclaw.json.bak-\(UUID().uuidString)")
-            try fm.copyItem(at: openClawConfigURL, to: bak)
+            try fileManager.copyItem(at: openClawConfigURL, to: bak)
             backup = bak
-            try fm.removeItem(at: openClawConfigURL)
+            try fileManager.removeItem(at: openClawConfigURL)
         } else {
             backup = nil
         }
         defer {
             if let bak = backup {
-                try? fm.moveItem(at: bak, to: openClawConfigURL)
+                try? fileManager.moveItem(at: bak, to: openClawConfigURL)
             }
         }
 

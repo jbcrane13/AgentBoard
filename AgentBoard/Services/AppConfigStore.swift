@@ -6,16 +6,16 @@ struct AppConfigStore {
 
     /// Production initializer — uses ~/.agentboard/
     init() {
-        self.configDir = FileManager.default.homeDirectoryForCurrentUser
+        configDir = FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent(".agentboard", isDirectory: true)
     }
 
     /// Test initializer — uses a custom directory so tests never touch real config.
     init(directory: URL) {
-        self.configDir = directory
+        configDir = directory
     }
 
-    // Kept for backward compatibility; token storage is no longer used.
+    /// Kept for backward compatibility; token storage is no longer used.
     init(tokenStorage _: any TokenStorage) {
         self.init()
     }
@@ -50,7 +50,9 @@ struct AppConfigStore {
             openClawGatewayURL: nil,
             openClawToken: nil,
             gatewayConfigSource: "auto",
-            projectsDirectory: nil
+            projectsDirectory: nil,
+            showToolOutputInChat: nil,
+            githubToken: nil
         )
         config.selectedProjectPath = config.projects.first?.path
         config = hydrateOpenClawIfNeeded(config)
@@ -71,7 +73,10 @@ struct AppConfigStore {
     }
 
     func discoverProjects(in directory: URL? = nil) -> [ConfiguredProject] {
-        let projectsRoot = directory ?? fileManager.homeDirectoryForCurrentUser.appendingPathComponent("Projects", isDirectory: true)
+        let projectsRoot = directory ?? fileManager.homeDirectoryForCurrentUser.appendingPathComponent(
+            "Projects",
+            isDirectory: true
+        )
         guard let projectURLs = try? fileManager.contentsOfDirectory(
             at: projectsRoot,
             includingPropertiesForKeys: [.isDirectoryKey],
@@ -123,7 +128,8 @@ struct AppConfigStore {
             .appendingPathComponent("openclaw.json", isDirectory: false)
 
         guard let data = try? Data(contentsOf: url),
-              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else {
             return nil
         }
 

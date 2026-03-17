@@ -1,9 +1,8 @@
+@testable import AgentBoard
 import Foundation
 import SwiftUI
 import Testing
-@testable import AgentBoard
 
-@Suite("Model Coverage")
 struct ModelCoverageTests {
     @Test("ChatMessage init and computed properties")
     func chatMessageInitAndComputedProperties() {
@@ -164,7 +163,9 @@ struct ModelCoverageTests {
             openClawGatewayURL: "http://127.0.0.1:18789",
             openClawToken: "token",
             gatewayConfigSource: "auto",
-            projectsDirectory: "/tmp"
+            projectsDirectory: "/tmp",
+            showToolOutputInChat: nil,
+            githubToken: nil
         )
 
         let data = try JSONEncoder().encode(codableConfig)

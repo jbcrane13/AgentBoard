@@ -3,41 +3,29 @@
 # Run: swiftformat --config .swiftformat AgentBoard AgentBoardTests
 
 # Indentation
-indent: 2
-tab-width: 2
-indentcase: false
-ifdef: indent
-indentstrings: false
+--indent 4
+--tabwidth 4
+--indent-case false
+--ifdef indent
+--indent-strings false
 
 # Spacing
-semicolons: never
-commas: always
-colon: after
-trailingcomma: always
-nospace: ["!", "?", ":"]
-spacearoundoperators: true
-
+--semicolons never
+--commas always
 # Braces
-allman: false
-lineaftermarks: true
-closingbrace: balance
-
-# Organization
-sortedimports: true
-imports: align
-stripunusedargs: closure-only
+--allman false
 
 # Length
-maxwidth: 120
-wraparguments: before-first
-wrapcollections: before-first
-wrapparameters: before-first
+--maxwidth 120
+--wraparguments before-first
+--wrapcollections before-first
+--wrapparameters before-first
 
 # Comments
-comments: preserve
-header: strip
+--header strip
+
+# Rules to disable
+--disable redundantSendable,trailingCommas
 
 # Exclusions (generated files, third-party)
-exclude:
-  - "**/Generated"
-  - "**/.build"
+--exclude **/Generated,**/.build
