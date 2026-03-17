@@ -25,7 +25,8 @@
 --header strip
 
 # Rules to disable
---disable redundantSendable,trailingCommas
+# wrapMultilineStatementBraces conflicts with SwiftLint opening_brace rule
+--disable redundantSendable,trailingCommas,wrapMultilineStatementBraces
 
 # Exclusions (generated files, third-party)
 --exclude **/Generated,**/.build

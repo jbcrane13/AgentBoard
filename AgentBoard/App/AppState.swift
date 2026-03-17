@@ -1,3 +1,4 @@
+// swiftlint:disable file_length
 import Foundation
 import SwiftUI
 
@@ -26,6 +27,7 @@ enum RightPanelMode: String, CaseIterable, Sendable {
 
 @Observable
 @MainActor
+// swiftlint:disable:next type_body_length
 final class AppState {
     var projects: [Project] = []
     var selectedProjectID: UUID?
@@ -42,6 +44,8 @@ final class AppState {
 
     var appConfig: AppConfig = .empty
     var beadsFileMissing = false
+    var lastGitHubSyncDate: Date?
+    var githubIssueCount: Int = 0
     var isLoadingBeads = false
     var statusMessage: String?
     var errorMessage: String?
@@ -89,6 +93,8 @@ final class AppState {
     private let openClawService: any OpenClawServicing
     private let sessionMonitor = SessionMonitor()
     private let gitService = GitService()
+    private let gitHubService = GitHubIssuesService()
+    private var githubPollingTask: Task<Void, Never>?
     private var watchedFilePath: String?
     private var chatReconnectTask: Task<Void, Never>?
     private var gatewaySessionRefreshTask: Task<Void, Never>?
@@ -130,6 +136,17 @@ final class AppState {
     var activeSession: CodingSession? {
         guard let activeSessionID else { return nil }
         return sessions.first(where: { $0.id == activeSessionID })
+    }
+
+    /// Returns (owner, repo, token) if the selected project has GitHub configured.
+    private var githubConfig: (owner: String, repo: String, token: String)? {
+        guard let project = selectedProject,
+              let configured = appConfig.projects.first(where: { $0.path == project.path.path }),
+              let owner = configured.githubOwner, !owner.isEmpty,
+              let repo = configured.githubRepo, !repo.isEmpty,
+              let token = appConfig.githubToken, !token.isEmpty
+        else { return nil }
+        return (owner, repo, token)
     }
 
     init(
@@ -833,8 +850,12 @@ final class AppState {
     }
 
     func refreshBeads() async {
-        guard let project = selectedProject else { return }
-        await refreshBeadsFromCLI(for: project)
+        if let (owner, repo, token) = githubConfig {
+            await loadBeadsFromGitHub(owner: owner, repo: repo, token: token)
+        } else {
+            guard let project = selectedProject else { return }
+            await refreshBeadsFromCLI(for: project)
+        }
     }
 
     private func refreshBeadsFromCLI(for project: Project) async {
@@ -843,6 +864,27 @@ final class AppState {
             loadBeads(for: project)
         } catch {
             setError("Failed to refresh beads: \(error.localizedDescription)")
+        }
+    }
+
+    private func loadBeadsFromGitHub(owner: String, repo: String, token: String) async {
+        guard !isLoadingBeads else { return }
+        isLoadingBeads = true
+        defer { isLoadingBeads = false }
+
+        do {
+            let fetched = try await gitHubService.fetchIssues(owner: owner, repo: repo, token: token)
+            beads = fetched
+            beadsFileMissing = false
+            githubIssueCount = fetched.count
+            lastGitHubSyncDate = Date()
+            selectedBeadID = selectedBeadID.flatMap { existingID in
+                beads.contains(where: { $0.id == existingID }) ? existingID : nil
+            }
+            refreshProjectCounts()
+            rebuildHistoryEvents()
+        } catch {
+            setError("GitHub sync failed: \(error.localizedDescription)")
         }
     }
 
@@ -1037,7 +1079,11 @@ final class AppState {
 
             let result = try await runBD(arguments: createArgs, in: project)
             guard let epicID = parseCreatedIssueID(from: result) else {
-                throw NSError(domain: "AgentBoard", code: 1, userInfo: [NSLocalizedDescriptionKey: "Unable to determine created epic ID."])
+                throw NSError(
+                    domain: "AgentBoard",
+                    code: 1,
+                    userInfo: [NSLocalizedDescriptionKey: "Unable to determine created epic ID."]
+                )
             }
 
             for childIssueID in childIssueIDs {
@@ -1133,7 +1179,7 @@ final class AppState {
                 let withinGrace = activeSessionIDSetAt.map { Date().timeIntervalSince($0) < gracePeriod } ?? false
                 if !withinGrace {
                     self.activeSessionID = nil
-                    self.activeSessionIDSetAt = nil
+                    activeSessionIDSetAt = nil
                 }
             }
 
@@ -1377,6 +1423,7 @@ final class AppState {
         }
     }
 
+    // swiftlint:disable function_body_length
     /// Seeds deterministic dashboard fixtures for UI tests.
     func applyDashboardUITestFixtures(empty: Bool = false) {
         let alpha = Project(
@@ -1561,6 +1608,8 @@ final class AppState {
         ]
     }
 
+    // swiftlint:enable function_body_length
+
     private static func matchesCurrentSessionKey(incoming: String?, current: String) -> Bool {
         guard let incoming else { return false }
         let incomingNormalized = incoming.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -1632,15 +1681,33 @@ final class AppState {
             historyEvents = []
             watcher.stop()
             watchedFilePath = nil
+            stopGitHubPolling()
             return
         }
 
         let project = selectedProject
-        loadBeads(for: project)
-        watch(project: project)
-        Task { @MainActor in
-            await refreshBeadsFromCLI(for: project)
-            await refreshGitContext(for: project)
+
+        if let (owner, repo, token) = githubConfig {
+            // GitHub backend: fetch live, then start 60s polling
+            stopGitHubPolling()
+            Task { @MainActor in
+                await loadBeadsFromGitHub(owner: owner, repo: repo, token: token)
+                await refreshGitContext(for: project)
+            }
+            startGitHubPolling()
+        } else {
+            // JSONL/CLI backend (existing path)
+            stopGitHubPolling()
+            loadBeads(for: project)
+            watch(project: project)
+            Task { @MainActor in
+                await refreshBeadsFromCLI(for: project)
+                await refreshGitContext(for: project)
+            }
+            // Attempt to auto-detect GH config from bd — will re-trigger reload if found
+            Task { @MainActor in
+                await autoDetectGitHubConfig(for: project)
+            }
         }
     }
 
@@ -1662,6 +1729,23 @@ final class AppState {
         autoRefreshTask = nil
     }
 
+    private func startGitHubPolling() {
+        stopGitHubPolling()
+        githubPollingTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(60))
+                guard let self, !Task.isCancelled else { break }
+                guard let (owner, repo, token) = await self.githubConfig else { break }
+                await self.loadBeadsFromGitHub(owner: owner, repo: repo, token: token)
+            }
+        }
+    }
+
+    private func stopGitHubPolling() {
+        githubPollingTask?.cancel()
+        githubPollingTask = nil
+    }
+
     private var isInitialLoad = true
     private var lastLoadedProjectID: UUID?
 
@@ -1675,7 +1759,9 @@ final class AppState {
         // For dolt backend projects, refresh from CLI on initial load, project switch, or missing file.
         // This ensures issues.jsonl never shows stale data after CLI creates/updates beads externally.
         let isProjectSwitch = lastLoadedProjectID != project.id
-        let shouldRefreshFromCLI = project.isBeadsInitialized && (isInitialLoad || isProjectSwitch || !FileManager.default.fileExists(atPath: issuesURL.path))
+        let shouldRefreshFromCLI = project
+            .isBeadsInitialized &&
+            (isInitialLoad || isProjectSwitch || !FileManager.default.fileExists(atPath: issuesURL.path))
 
         if shouldRefreshFromCLI {
             isInitialLoad = false
@@ -1945,6 +2031,52 @@ final class AppState {
         historyEvents = events.sorted { lhs, rhs in lhs.occurredAt > rhs.occurredAt }
     }
 
+    func updateGitHubConfig(owner: String?, repo: String?, token: String?) {
+        guard let project = selectedProject else { return }
+
+        if let index = appConfig.projects.firstIndex(where: { $0.path == project.path.path }) {
+            let trimmedOwner = owner?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let trimmedRepo = repo?.trimmingCharacters(in: .whitespacesAndNewlines)
+            appConfig.projects[index].githubOwner = trimmedOwner?.isEmpty == true ? nil : trimmedOwner
+            appConfig.projects[index].githubRepo = trimmedRepo?.isEmpty == true ? nil : trimmedRepo
+        }
+
+        let trimmedToken = token?.trimmingCharacters(in: .whitespacesAndNewlines)
+        appConfig.githubToken = trimmedToken?.isEmpty == true ? nil : trimmedToken
+
+        persistConfig()
+        statusMessage = "GitHub config saved."
+        reloadSelectedProjectAndWatch()
+    }
+
+    /// Reads github.owner and github.repo from bd config if not already set for this project.
+    /// Only auto-detects once — if owner or repo is already set, this is a no-op.
+    private func autoDetectGitHubConfig(for project: Project) async {
+        guard let index = appConfig.projects.firstIndex(where: { $0.path == project.path.path }) else { return }
+        let configured = appConfig.projects[index]
+
+        // Skip if already configured
+        guard configured.githubOwner == nil || configured.githubRepo == nil else { return }
+        guard project.isBeadsInitialized else { return }
+
+        let ownerResult = try? await runBD(arguments: ["bd", "config", "get", "github.owner"], in: project)
+        let repoResult = try? await runBD(arguments: ["bd", "config", "get", "github.repo"], in: project)
+
+        let owner = ownerResult?.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
+        let repo = repoResult?.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard let owner, !owner.isEmpty, let repo, !repo.isEmpty else { return }
+
+        appConfig.projects[index].githubOwner = owner
+        appConfig.projects[index].githubRepo = repo
+        persistConfig()
+        statusMessage = "Detected GitHub config: \(owner)/\(repo)"
+
+        if appConfig.githubToken != nil {
+            reloadSelectedProjectAndWatch()
+        }
+    }
+
     private func runBD(arguments: [String], in project: Project) async throws -> ShellCommandResult {
         try await commandRunner(arguments, project.path)
     }
@@ -2151,3 +2283,5 @@ final class AppState {
         }
     }
 }
+
+// swiftlint:enable file_length
