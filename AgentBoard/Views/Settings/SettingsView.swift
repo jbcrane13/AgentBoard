@@ -1,6 +1,7 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
+// swiftlint:disable:next type_body_length
 struct SettingsView: View {
     @Environment(AppState.self) private var appState
 
@@ -13,6 +14,9 @@ struct SettingsView: View {
     @State private var isTesting = false
     @State private var showRemoteGuide = false
     @State private var showToolOutput = false
+    @State private var githubToken = ""
+    @State private var githubOwner = ""
+    @State private var githubRepo = ""
     @StateObject private var discovery = GatewayDiscovery()
 
     private enum ConnectionTestResult {
@@ -121,9 +125,12 @@ struct SettingsView: View {
                             .accessibilityIdentifier("settings_textfield_gateway_url")
 
                         if !gatewayURL.isEmpty, !isValidGatewayURL(gatewayURL) {
-                            Label("URL should start with http:// or https:// and include a port", systemImage: "exclamationmark.triangle")
-                                .font(.system(size: 11))
-                                .foregroundStyle(.orange)
+                            Label(
+                                "URL should start with http:// or https:// and include a port",
+                                systemImage: "exclamationmark.triangle"
+                            )
+                            .font(.system(size: 11))
+                            .foregroundStyle(.orange)
                         }
 
                         HStack(spacing: 8) {
@@ -210,7 +217,7 @@ struct SettingsView: View {
                             Label("Connected successfully!", systemImage: "checkmark.circle.fill")
                                 .font(.system(size: 12))
                                 .foregroundStyle(.green)
-                        case .failure(let message):
+                        case let .failure(message):
                             Label(message, systemImage: "xmark.circle.fill")
                                 .font(.system(size: 12))
                                 .foregroundStyle(.red)
@@ -250,6 +257,80 @@ struct SettingsView: View {
                         appState.updateShowToolOutput(newValue)
                     }
                     .help("When enabled, detailed tool and subagent output will appear in chat messages")
+
+                sectionTitle("GitHub Issues")
+
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(
+                        "Connect a GitHub repository to load issues live from GitHub instead of the local .beads/issues.jsonl file."
+                    )
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("GitHub Token")
+                            .font(.system(size: 12, weight: .medium))
+                        SecureField("ghp_…", text: $githubToken)
+                            .textFieldStyle(.roundedBorder)
+                            .accessibilityIdentifier("settings_textfield_github_token")
+                    }
+
+                    if appState.selectedProject != nil {
+                        Divider()
+
+                        Text("Project: \(appState.selectedProject?.name ?? "")")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(.secondary)
+
+                        HStack(spacing: 8) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Owner")
+                                    .font(.system(size: 11, weight: .medium))
+                                TextField("github-user-or-org", text: $githubOwner)
+                                    .textFieldStyle(.roundedBorder)
+                                    .accessibilityIdentifier("settings_textfield_github_owner")
+                            }
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Repository")
+                                    .font(.system(size: 11, weight: .medium))
+                                TextField("repo-name", text: $githubRepo)
+                                    .textFieldStyle(.roundedBorder)
+                                    .accessibilityIdentifier("settings_textfield_github_repo")
+                            }
+                        }
+
+                        HStack(spacing: 8) {
+                            if let syncDate = appState.lastGitHubSyncDate {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Last synced: \(syncDate.formatted(.relative(presentation: .named)))")
+                                        .font(.system(size: 11))
+                                        .foregroundStyle(.secondary)
+                                    Text("\(appState.githubIssueCount) issues")
+                                        .font(.system(size: 11))
+                                        .foregroundStyle(.secondary)
+                                }
+                            } else {
+                                Text("Not yet synced")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Spacer()
+
+                            Button("Sync Now") {
+                                Task { await appState.refreshBeads() }
+                            }
+                            .disabled(appState.isLoadingBeads)
+                            .accessibilityIdentifier("settings_button_github_sync")
+                        }
+                    }
+
+                    Button("Save GitHub Settings") {
+                        saveGitHubSettings()
+                    }
+                    .accessibilityIdentifier("settings_button_github_save")
+                }
             }
             .padding(20)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -259,13 +340,18 @@ struct SettingsView: View {
             token = appState.appConfig.openClawToken ?? ""
             isManualConfig = appState.appConfig.isGatewayManual
             showToolOutput = appState.appConfig.showToolOutputInChat ?? false
+            githubToken = appState.appConfig.githubToken ?? ""
+            refreshGitHubFields()
+        }
+        .onChange(of: appState.selectedProjectID) { _, _ in
+            refreshGitHubFields()
         }
         .fileImporter(
             isPresented: $showingProjectImporter,
             allowedContentTypes: [.folder],
             allowsMultipleSelection: false
         ) { result in
-            if case .success(let urls) = result, let url = urls.first {
+            if case let .success(urls) = result, let url = urls.first {
                 appState.addProject(at: url)
             }
         }
@@ -274,7 +360,7 @@ struct SettingsView: View {
             allowedContentTypes: [.folder],
             allowsMultipleSelection: false
         ) { result in
-            if case .success(let urls) = result, let url = urls.first {
+            if case let .success(urls) = result, let url = urls.first {
                 appState.updateProjectsDirectory(url.path)
             }
         }
@@ -331,7 +417,7 @@ struct SettingsView: View {
                 remoteGuideItem(
                     icon: "network",
                     title: "LAN Connection",
-                    text: "If the gateway is on your local network, switch to Manual and enter its LAN IP (e.g. http://192.168.1.100:18789). Click \"Scan Network\" to auto-discover gateways."
+                    text: "If the gateway is on your local network, switch to Manual and enter its LAN IP (e.g. http://192.168.1.100:18789). Click \"Scan Network\" to auto-discover gateways." // swiftlint:disable:this line_length
                 )
 
                 remoteGuideItem(
@@ -435,6 +521,25 @@ struct SettingsView: View {
         if let discovered = store.discoverOpenClawConfig() {
             gatewayURL = discovered.gatewayURL ?? ""
             token = discovered.token ?? ""
+        }
+    }
+
+    private func saveGitHubSettings() {
+        appState.updateGitHubConfig(
+            owner: githubOwner.isEmpty ? nil : githubOwner,
+            repo: githubRepo.isEmpty ? nil : githubRepo,
+            token: githubToken.isEmpty ? nil : githubToken
+        )
+    }
+
+    private func refreshGitHubFields() {
+        if let project = appState.selectedProject,
+           let configured = appState.appConfig.projects.first(where: { $0.path == project.path.path }) {
+            githubOwner = configured.githubOwner ?? ""
+            githubRepo = configured.githubRepo ?? ""
+        } else {
+            githubOwner = ""
+            githubRepo = ""
         }
     }
 
