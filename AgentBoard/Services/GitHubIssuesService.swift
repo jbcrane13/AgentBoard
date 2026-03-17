@@ -3,10 +3,10 @@ import Foundation
 // MARK: - Error Types
 
 enum GitHubError: LocalizedError, Sendable {
-    case unauthorized // 401
-    case notFound // 404
-    case rateLimited // 403
-    case serverError(Int) // 5xx
+    case unauthorized
+    case notFound
+    case rateLimited
+    case serverError(Int)
     case invalidResponse
     case missingConfig
 
@@ -28,7 +28,7 @@ private struct GitHubIssue: Decodable, Sendable {
     let number: Int
     let title: String
     let body: String?
-    let state: String // "open" | "closed"
+    let state: String
     let labels: [GitHubLabel]
     let createdAt: String
     let updatedAt: String
@@ -42,39 +42,6 @@ private struct GitHubIssue: Decodable, Sendable {
 
 private struct GitHubLabel: Decodable, Sendable {
     let name: String
-}
-
-// MARK: - Request Types
-
-/// Identifies a GitHub repository + auth token.
-struct GitHubRepoContext: Sendable {
-    let owner: String
-    let repo: String
-    let token: String
-}
-
-/// Fields for creating a new issue.
-struct GitHubIssueParams: Sendable {
-    let title: String
-    let body: String?
-    let labels: [String]
-    init(title: String, body: String? = nil, labels: [String] = []) {
-        self.title = title
-        self.body = body
-        self.labels = labels
-    }
-}
-
-/// Fields for updating an existing issue (all optional).
-struct GitHubIssueUpdate: Sendable {
-    let title: String?
-    let body: String?
-    let state: String?
-    init(title: String? = nil, body: String? = nil, state: String? = nil) {
-        self.title = title
-        self.body = body
-        self.state = state
-    }
 }
 
 // MARK: - GitHubIssuesService
@@ -91,15 +58,14 @@ actor GitHubIssuesService {
 
     // MARK: - Fetch All Issues
 
-    /// Fetches all open and closed issues with pagination.
-    func fetchIssues(context: GitHubRepoContext) async throws -> [Bead] {
+    func fetchIssues(owner: String, repo: String, token: String) async throws -> [Bead] {
         var allIssues: [GitHubIssue] = []
         var page = 1
 
         while true {
             let url = try buildURL(
-                owner: context.owner,
-                repo: context.repo,
+                owner: owner,
+                repo: repo,
                 endpoint: "issues",
                 queryItems: [
                     URLQueryItem(name: "state", value: "all"),
@@ -107,7 +73,7 @@ actor GitHubIssuesService {
                     URLQueryItem(name: "page", value: "\(page)")
                 ]
             )
-            let (data, response) = try await session.data(for: authorizedRequest(url: url, token: context.token))
+            let (data, response) = try await session.data(for: authorizedRequest(url: url, token: token))
             try validateResponse(response, data: data)
 
             let issues = try JSONDecoder().decode([GitHubIssue].self, from: data)
@@ -123,15 +89,19 @@ actor GitHubIssuesService {
 
     // MARK: - Create Issue
 
-    func createIssue(context: GitHubRepoContext, params: GitHubIssueParams) async throws -> Bead {
-        let url = try buildURL(owner: context.owner, repo: context.repo, endpoint: "issues")
-        var request = authorizedRequest(url: url, token: context.token)
+    // swiftlint:disable:next function_parameter_count
+    func createIssue(
+        owner: String, repo: String, token: String,
+        title: String, body: String?, labels: [String]
+    ) async throws -> Bead {
+        let url = try buildURL(owner: owner, repo: repo, endpoint: "issues")
+        var request = authorizedRequest(url: url, token: token)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        var payload: [String: Any] = ["title": params.title]
-        if let body = params.body { payload["body"] = body }
-        if !params.labels.isEmpty { payload["labels"] = params.labels }
+        var payload: [String: Any] = ["title": title]
+        if let body { payload["body"] = body }
+        if !labels.isEmpty { payload["labels"] = labels }
         request.httpBody = try JSONSerialization.data(withJSONObject: payload)
 
         let (data, response) = try await session.data(for: request)
@@ -141,16 +111,20 @@ actor GitHubIssuesService {
 
     // MARK: - Update Issue
 
-    func updateIssue(context: GitHubRepoContext, number: Int, update: GitHubIssueUpdate) async throws -> Bead {
-        let url = try buildURL(owner: context.owner, repo: context.repo, endpoint: "issues/\(number)")
-        var request = authorizedRequest(url: url, token: context.token)
+    // swiftlint:disable:next function_parameter_count
+    func updateIssue(
+        owner: String, repo: String, token: String,
+        number: Int, title: String?, body: String?, state: String?
+    ) async throws -> Bead {
+        let url = try buildURL(owner: owner, repo: repo, endpoint: "issues/\(number)")
+        var request = authorizedRequest(url: url, token: token)
         request.httpMethod = "PATCH"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         var payload: [String: Any] = [:]
-        if let title = update.title { payload["title"] = title }
-        if let body = update.body { payload["body"] = body }
-        if let state = update.state { payload["state"] = state }
+        if let title { payload["title"] = title }
+        if let body { payload["body"] = body }
+        if let state { payload["state"] = state }
         request.httpBody = try JSONSerialization.data(withJSONObject: payload)
 
         let (data, response) = try await session.data(for: request)
@@ -160,16 +134,22 @@ actor GitHubIssuesService {
 
     // MARK: - Close Issue
 
-    func closeIssue(context: GitHubRepoContext, number: Int) async throws {
-        _ = try await updateIssue(context: context, number: number, update: GitHubIssueUpdate(state: "closed"))
+    func closeIssue(owner: String, repo: String, token: String, number: Int) async throws {
+        _ = try await updateIssue(
+            owner: owner,
+            repo: repo,
+            token: token,
+            number: number,
+            title: nil,
+            body: nil,
+            state: "closed"
+        )
     }
 
     // MARK: - Helpers
 
     private func buildURL(
-        owner: String,
-        repo: String,
-        endpoint: String,
+        owner: String, repo: String, endpoint: String,
         queryItems: [URLQueryItem] = []
     ) throws -> URL {
         var components = URLComponents(string: "\(baseURL)/repos/\(owner)/\(repo)/\(endpoint)")!
