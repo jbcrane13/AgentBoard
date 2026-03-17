@@ -1663,6 +1663,7 @@ final class AppState {
     }
 
     private var isInitialLoad = true
+    private var lastLoadedProjectID: UUID?
 
     private func loadBeads(for project: Project) {
         guard !isLoadingBeads else { return }
@@ -1671,12 +1672,14 @@ final class AppState {
 
         let issuesURL = project.issuesFileURL
 
-        // For dolt backend projects, always refresh from CLI on initial load or if file is missing
-        // This ensures we never show stale data from a previous session
-        let shouldRefreshFromCLI = project.isBeadsInitialized && (isInitialLoad || !FileManager.default.fileExists(atPath: issuesURL.path))
+        // For dolt backend projects, refresh from CLI on initial load, project switch, or missing file.
+        // This ensures issues.jsonl never shows stale data after CLI creates/updates beads externally.
+        let isProjectSwitch = lastLoadedProjectID != project.id
+        let shouldRefreshFromCLI = project.isBeadsInitialized && (isInitialLoad || isProjectSwitch || !FileManager.default.fileExists(atPath: issuesURL.path))
 
         if shouldRefreshFromCLI {
             isInitialLoad = false
+            lastLoadedProjectID = project.id
             Task {
                 do {
                     try await fetchAndWriteIssuesJSONL(for: project)
