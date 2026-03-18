@@ -45,3 +45,4 @@ beads.db
 
 # Claude Code
 .claude/
+*/.beads
