@@ -24,6 +24,7 @@ struct AgentsView: View {
             VStack(alignment: .leading, spacing: 16) {
                 statsRow
                 agentStatusSection
+                GitHubWorkloadSection()
                 handoffsSection
                 sessionTableSection
             }
@@ -31,6 +32,7 @@ struct AgentsView: View {
             .padding(.vertical, 12)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .accessibilityIdentifier("screen_agents")
     }
 
     // MARK: - Agent Status Cards
@@ -142,8 +144,10 @@ struct AgentsView: View {
     private func handoffRow(_ handoff: HandoffEntry) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
-                Text("\(AgentDefinition.find(handoff.fromAgent).emoji) → \(AgentDefinition.find(handoff.toAgent).emoji)")
-                    .font(.system(size: 13))
+                Text(
+                    "\(AgentDefinition.find(handoff.fromAgent).emoji) → \(AgentDefinition.find(handoff.toAgent).emoji)"
+                )
+                .font(.system(size: 13))
 
                 Text(handoff.task)
                     .font(.system(size: 12))

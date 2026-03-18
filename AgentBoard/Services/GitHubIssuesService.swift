@@ -49,9 +49,27 @@ private struct GitHubLabel: Decodable, Sendable {
 struct GitHubMilestone: Decodable, Sendable, Identifiable {
     let number: Int
     let title: String
+    let openIssues: Int
+    let closedIssues: Int
+    let dueOn: String?
 
     var id: Int {
         number
+    }
+
+    var totalIssues: Int {
+        openIssues + closedIssues
+    }
+
+    var progress: Double {
+        totalIssues > 0 ? Double(closedIssues) / Double(totalIssues) : 0
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case number, title
+        case openIssues = "open_issues"
+        case closedIssues = "closed_issues"
+        case dueOn = "due_on"
     }
 }
 
@@ -177,7 +195,13 @@ actor GitHubIssuesService {
     // MARK: - Fetch Milestones
 
     func fetchMilestones(owner: String, repo: String, token: String) async throws -> [GitHubMilestone] {
-        let url = try buildURL(owner: owner, repo: repo, endpoint: "milestones")
+        let url = try buildURL(
+            owner: owner, repo: repo, endpoint: "milestones",
+            queryItems: [
+                URLQueryItem(name: "state", value: "open"),
+                URLQueryItem(name: "per_page", value: "100")
+            ]
+        )
         let (data, response) = try await session.data(for: authorizedRequest(url: url, token: token))
         try validateResponse(response, data: data)
         return try JSONDecoder().decode([GitHubMilestone].self, from: data)
