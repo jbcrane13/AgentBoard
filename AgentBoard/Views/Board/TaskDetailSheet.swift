@@ -14,7 +14,7 @@ struct TaskDetailSheet: View {
     init(bead: Bead, onDismiss: @escaping () -> Void) {
         self.bead = bead
         self.onDismiss = onDismiss
-        self._draft = State(initialValue: BeadDraft.from(bead))
+        _draft = State(initialValue: BeadDraft.from(bead))
     }
 
     var body: some View {
@@ -179,15 +179,18 @@ struct TaskDetailSheet: View {
     // MARK: - Labels
 
     private var labelsSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             Text("Labels")
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(.secondary)
                 .textCase(.uppercase)
 
-            TextField("Comma-separated labels", text: $draft.labelsText)
+            GitHubLabelPicker(labelsText: $draft.labelsText)
+
+            TextField("Custom labels (comma-separated)", text: $draft.labelsText)
                 .textFieldStyle(.roundedBorder)
-                .font(.system(size: 13))
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
                 .accessibilityIdentifier("task_detail_labels_field")
         }
     }

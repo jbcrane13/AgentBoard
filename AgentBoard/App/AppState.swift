@@ -4,6 +4,8 @@ import SwiftUI
 
 enum CenterTab: String, CaseIterable, Sendable {
     case board = "Board"
+    case allProjects = "All Projects"
+    case ready = "Ready"
     case epics = "Epics"
     case agents = "Agents"
     case agentTasks = "Agent Tasks"
@@ -47,6 +49,7 @@ final class AppState {
     var lastGitHubSyncDate: Date?
     var githubIssueCount: Int = 0
     var isLoadingBeads = false
+    var allProjectIssues: [CrossRepoIssue] = []
     var statusMessage: String?
     var errorMessage: String?
     private var errorDismissTask: Task<Void, Never>?
@@ -95,6 +98,7 @@ final class AppState {
     private let gitService = GitService()
     private let gitHubService = GitHubIssuesService()
     private var githubPollingTask: Task<Void, Never>?
+    private var allProjectsPollingTask: Task<Void, Never>?
     private var watchedFilePath: String?
     private var chatReconnectTask: Task<Void, Never>?
     private var gatewaySessionRefreshTask: Task<Void, Never>?
@@ -113,6 +117,17 @@ final class AppState {
     var epicBeads: [Bead] {
         beads.filter { $0.kind == .epic }
             .sorted { lhs, rhs in lhs.updatedAt > rhs.updatedAt }
+    }
+
+    var readyIssues: [CrossRepoIssue] {
+        allProjectIssues
+            .filter { $0.isReady }
+            .sorted { lhs, rhs in
+                if lhs.bead.priority != rhs.bead.priority {
+                    return lhs.bead.priority < rhs.bead.priority
+                }
+                return lhs.projectName < rhs.projectName
+            }
     }
 
     var selectedBead: Bead? {
@@ -139,6 +154,10 @@ final class AppState {
     }
 
     /// Returns (owner, repo, token) if the selected project has GitHub configured.
+    var isGitHubConfigured: Bool {
+        githubConfig != nil
+    }
+
     private var githubConfig: (owner: String, repo: String, token: String)? {
         guard let project = selectedProject,
               let configured = appConfig.projects.first(where: { $0.path == project.path.path }),
@@ -170,6 +189,7 @@ final class AppState {
             startSessionMonitorLoop()
             startGatewaySessionRefreshLoop()
             startBeadsPollingLoop()
+            startAllProjectsPolling()
             coordinationService.startPolling()
             notesService.goToToday()
         }
@@ -280,9 +300,7 @@ final class AppState {
             sidebarNavSelection = .agentTasks
         case .history:
             sidebarNavSelection = .history
-        case .agents:
-            break
-        case .notes:
+        case .agents, .notes, .allProjects, .ready:
             break
         }
     }
@@ -777,8 +795,15 @@ final class AppState {
     }
 
     func createBead(from draft: BeadDraft) async {
-        guard let project = selectedProject else { return }
         errorMessage = nil
+
+        // Route to GitHub API when configured
+        if let (owner, repo, token) = githubConfig {
+            await createGitHubIssue(from: draft, owner: owner, repo: repo, token: token)
+            return
+        }
+
+        guard let project = selectedProject else { return }
 
         guard project.isBeadsInitialized else {
             setError("Beads not initialized. Initialize beads first.")
@@ -905,9 +930,68 @@ final class AppState {
         }
     }
 
+    // MARK: - GitHub Issue CRUD
+
+    private func createGitHubIssue(from draft: BeadDraft, owner: String, repo: String, token: String) async {
+        do {
+            let bead = try await gitHubService.createIssue(
+                owner: owner, repo: repo, token: token,
+                title: draft.title.trimmingCharacters(in: .whitespacesAndNewlines),
+                body: { let desc = draft.description.trimmingCharacters(in: .whitespacesAndNewlines)
+                    return desc.isEmpty ? nil : desc
+                }(),
+                labels: draft.labels
+            )
+            statusMessage = "Created \(bead.id) on GitHub."
+            await loadBeadsFromGitHub(owner: owner, repo: repo, token: token)
+        } catch {
+            setError("Failed to create GitHub issue: \(error.localizedDescription)")
+        }
+    }
+
+    // swiftlint:disable:next function_parameter_count
+    private func updateGitHubIssue(
+        _ bead: Bead, with draft: BeadDraft, number: Int,
+        owner: String, repo: String, token: String
+    ) async {
+        let isClosing = draft.status == .done && bead.status != .done
+        let isReopening = draft.status != .done && bead.status == .done
+        let newState: String? = isClosing ? "closed" : isReopening ? "open" : nil
+
+        do {
+            _ = try await gitHubService.updateIssue(
+                owner: owner, repo: repo, token: token, number: number,
+                title: draft.title.trimmingCharacters(in: .whitespacesAndNewlines),
+                body: { let desc = draft.description.trimmingCharacters(in: .whitespacesAndNewlines)
+                    return desc.isEmpty ? nil : desc
+                }(),
+                labels: draft.labels.isEmpty ? nil : draft.labels,
+                state: newState
+            )
+            if isClosing {
+                statusMessage = "Closed \(bead.id) on GitHub."
+            } else if isReopening {
+                statusMessage = "Reopened \(bead.id) on GitHub."
+            } else {
+                statusMessage = "Updated \(bead.id) on GitHub."
+            }
+            await loadBeadsFromGitHub(owner: owner, repo: repo, token: token)
+        } catch {
+            setError("Failed to update GitHub issue: \(error.localizedDescription)")
+        }
+    }
+
     func updateBead(_ bead: Bead, with draft: BeadDraft) async {
-        guard let project = selectedProject else { return }
         errorMessage = nil
+
+        // Route GH issues to GitHub API
+        if let number = GitHubIssuesService.issueNumber(from: bead.id),
+           let (owner, repo, token) = githubConfig {
+            await updateGitHubIssue(bead, with: draft, number: number, owner: owner, repo: repo, token: token)
+            return
+        }
+
+        guard let project = selectedProject else { return }
 
         do {
             // If status is changing to done/closed, use `bd close` (proper close with timestamp)
@@ -995,8 +1079,26 @@ final class AppState {
     }
 
     func closeBeadWithReason(_ bead: Bead, reason: String) async {
-        guard let project = selectedProject else { return }
         errorMessage = nil
+
+        // Route GH issues to GitHub API
+        if let number = GitHubIssuesService.issueNumber(from: bead.id),
+           let (owner, repo, token) = githubConfig {
+            do {
+                let comment = reason.trimmingCharacters(in: .whitespacesAndNewlines)
+                try await gitHubService.closeIssue(
+                    owner: owner, repo: repo, token: token, number: number,
+                    comment: comment.isEmpty ? nil : comment
+                )
+                statusMessage = "Closed \(bead.id) on GitHub."
+                await loadBeadsFromGitHub(owner: owner, repo: repo, token: token)
+            } catch {
+                setError("Failed to close GitHub issue: \(error.localizedDescription)")
+            }
+            return
+        }
+
+        guard let project = selectedProject else { return }
 
         do {
             let reasonText = reason.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1013,6 +1115,12 @@ final class AppState {
     }
 
     func deleteBead(_ bead: Bead) async {
+        // GitHub issues cannot be deleted — close them instead
+        if GitHubIssuesService.issueNumber(from: bead.id) != nil, githubConfig != nil {
+            await closeBeadWithReason(bead, reason: "Closed from AgentBoard")
+            return
+        }
+
         guard let project = selectedProject else { return }
         errorMessage = nil
 
@@ -1744,6 +1852,59 @@ final class AppState {
     private func stopGitHubPolling() {
         githubPollingTask?.cancel()
         githubPollingTask = nil
+    }
+
+    // MARK: - Cross-Repo All-Projects Polling
+
+    private func loadAllProjectIssues() async {
+        guard let token = appConfig.githubToken, !token.isEmpty else { return }
+        let configuredProjects = appConfig.projects.filter {
+            $0.githubOwner != nil && !($0.githubOwner ?? "").isEmpty &&
+                $0.githubRepo != nil && !($0.githubRepo ?? "").isEmpty
+        }
+        guard !configuredProjects.isEmpty else { return }
+
+        let service = gitHubService
+        var results: [CrossRepoIssue] = []
+
+        await withTaskGroup(of: [CrossRepoIssue].self) { group in
+            for project in configuredProjects {
+                guard let owner = project.githubOwner, !owner.isEmpty,
+                      let repo = project.githubRepo, !repo.isEmpty else { continue }
+                let projectName = URL(fileURLWithPath: project.path).lastPathComponent
+                group.addTask {
+                    do {
+                        let beads = try await service.fetchIssues(owner: owner, repo: repo, token: token)
+                        return beads.map {
+                            CrossRepoIssue(bead: $0, projectName: projectName, owner: owner, repo: repo)
+                        }
+                    } catch {
+                        return []
+                    }
+                }
+            }
+            for await projectIssues in group {
+                results.append(contentsOf: projectIssues)
+            }
+        }
+
+        allProjectIssues = results
+    }
+
+    private func startAllProjectsPolling() {
+        stopAllProjectsPolling()
+        allProjectsPollingTask = Task { [weak self] in
+            while !Task.isCancelled {
+                guard let self, !Task.isCancelled else { break }
+                await self.loadAllProjectIssues()
+                try? await Task.sleep(for: .seconds(60))
+            }
+        }
+    }
+
+    private func stopAllProjectsPolling() {
+        allProjectsPollingTask?.cancel()
+        allProjectsPollingTask = nil
     }
 
     private var isInitialLoad = true

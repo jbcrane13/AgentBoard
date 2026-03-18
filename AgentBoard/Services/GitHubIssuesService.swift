@@ -44,6 +44,17 @@ private struct GitHubLabel: Decodable, Sendable {
     let name: String
 }
 
+// MARK: - GitHub Milestone (public, used by UI)
+
+struct GitHubMilestone: Decodable, Sendable, Identifiable {
+    let number: Int
+    let title: String
+
+    var id: Int {
+        number
+    }
+}
+
 // MARK: - GitHubIssuesService
 
 /// Fetches and mutates GitHub Issues for a project, mapping them to the Bead model.
@@ -114,7 +125,7 @@ actor GitHubIssuesService {
     // swiftlint:disable:next function_parameter_count
     func updateIssue(
         owner: String, repo: String, token: String,
-        number: Int, title: String?, body: String?, state: String?
+        number: Int, title: String?, body: String?, labels: [String]?, state: String?
     ) async throws -> Bead {
         let url = try buildURL(owner: owner, repo: repo, endpoint: "issues/\(number)")
         var request = authorizedRequest(url: url, token: token)
@@ -124,6 +135,7 @@ actor GitHubIssuesService {
         var payload: [String: Any] = [:]
         if let title { payload["title"] = title }
         if let body { payload["body"] = body }
+        if let labels { payload["labels"] = labels }
         if let state { payload["state"] = state }
         request.httpBody = try JSONSerialization.data(withJSONObject: payload)
 
@@ -134,7 +146,10 @@ actor GitHubIssuesService {
 
     // MARK: - Close Issue
 
-    func closeIssue(owner: String, repo: String, token: String, number: Int) async throws {
+    func closeIssue(owner: String, repo: String, token: String, number: Int, comment: String? = nil) async throws {
+        if let comment, !comment.isEmpty {
+            try await addComment(owner: owner, repo: repo, token: token, number: number, body: comment)
+        }
         _ = try await updateIssue(
             owner: owner,
             repo: repo,
@@ -142,8 +157,30 @@ actor GitHubIssuesService {
             number: number,
             title: nil,
             body: nil,
+            labels: nil,
             state: "closed"
         )
+    }
+
+    // MARK: - Add Comment
+
+    private func addComment(owner: String, repo: String, token: String, number: Int, body: String) async throws {
+        let url = try buildURL(owner: owner, repo: repo, endpoint: "issues/\(number)/comments")
+        var request = authorizedRequest(url: url, token: token)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["body": body])
+        let (data, response) = try await session.data(for: request)
+        try validateResponse(response, data: data)
+    }
+
+    // MARK: - Fetch Milestones
+
+    func fetchMilestones(owner: String, repo: String, token: String) async throws -> [GitHubMilestone] {
+        let url = try buildURL(owner: owner, repo: repo, endpoint: "milestones")
+        let (data, response) = try await session.data(for: authorizedRequest(url: url, token: token))
+        try validateResponse(response, data: data)
+        return try JSONDecoder().decode([GitHubMilestone].self, from: data)
     }
 
     // MARK: - Helpers

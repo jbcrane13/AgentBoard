@@ -171,8 +171,8 @@ struct ContentView: View {
             Text(tab.rawValue)
                 .font(.system(size: 13, weight: appState.selectedTab == tab ? .semibold : .medium))
                 .foregroundStyle(appState.selectedTab == tab
-                                 ? Color.primary
-                                 : .secondary)
+                    ? Color.primary
+                    : .secondary)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
                 .overlay(alignment: .bottom) {
@@ -192,6 +192,10 @@ struct ContentView: View {
         switch appState.selectedTab {
         case .board:
             BoardView()
+        case .allProjects:
+            AllProjectsBoardView()
+        case .ready:
+            AllProjectsBoardView()
         case .epics:
             EpicsView()
         case .agents:

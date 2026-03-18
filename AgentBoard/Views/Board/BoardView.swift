@@ -161,7 +161,7 @@ struct BoardView: View {
             Button {
                 presentCreateSheet()
             } label: {
-                Label("Create Bead", systemImage: "plus")
+                Label(appState.isGitHubConfigured ? "New Issue" : "Create Bead", systemImage: "plus")
             }
             .accessibilityIdentifier("board_add_task_button")
             .buttonStyle(.borderedProminent)
@@ -210,41 +210,7 @@ struct BoardView: View {
                             .padding(.vertical, 24)
                     } else {
                         ForEach(columnBeads) { bead in
-                            TaskCardView(bead: bead)
-                                .onDrag {
-                                    NSItemProvider(object: bead.id as NSString)
-                                }
-                                .onTapGesture {
-                                    appState.selectedBeadID = bead.id
-                                    detailContext = EditingContext(bead: bead)
-                                }
-                                .contextMenu {
-                                    Button("Edit") {
-                                        editingContext = EditingContext(bead: bead)
-                                    }
-                                    .accessibilityIdentifier("board_context_button_edit_\(bead.id)")
-
-                                    Button("Delete") {
-                                        Task {
-                                            await appState.closeBead(bead)
-                                        }
-                                    }
-                                    .accessibilityIdentifier("board_context_button_delete_\(bead.id)")
-
-                                    Button("Assign to Agent") {
-                                        Task {
-                                            await appState.assignBeadToAgent(bead)
-                                        }
-                                    }
-                                    .accessibilityIdentifier("board_context_button_assign_\(bead.id)")
-
-                                    Button("View in Terminal") {
-                                        Task {
-                                            await appState.openBeadInTerminal(bead)
-                                        }
-                                    }
-                                    .accessibilityIdentifier("board_context_button_terminal_\(bead.id)")
-                                }
+                            beadCard(bead)
                         }
                     }
                 }
@@ -264,6 +230,37 @@ struct BoardView: View {
             )
         }
         .frame(maxWidth: .infinity)
+    }
+
+    private func beadCard(_ bead: Bead) -> some View {
+        TaskCardView(bead: bead)
+            .onDrag { NSItemProvider(object: bead.id as NSString) }
+            .onTapGesture {
+                appState.selectedBeadID = bead.id
+                detailContext = EditingContext(bead: bead)
+            }
+            .contextMenu {
+                Button("Edit") { editingContext = EditingContext(bead: bead) }
+                    .accessibilityIdentifier("board_context_button_edit_\(bead.id)")
+                if bead.status != .done {
+                    Button("Close Issue") {
+                        Task { await appState.closeBead(bead) }
+                    }
+                    .accessibilityIdentifier("board_context_button_close_\(bead.id)")
+                }
+                Button("Delete", role: .destructive) {
+                    Task { await appState.deleteBead(bead) }
+                }
+                .accessibilityIdentifier("board_context_button_delete_\(bead.id)")
+                Button("Assign to Agent") {
+                    Task { await appState.assignBeadToAgent(bead) }
+                }
+                .accessibilityIdentifier("board_context_button_assign_\(bead.id)")
+                Button("View in Terminal") {
+                    Task { await appState.openBeadInTerminal(bead) }
+                }
+                .accessibilityIdentifier("board_context_button_terminal_\(bead.id)")
+            }
     }
 
     private var filteredBeads: [Bead] {
@@ -469,15 +466,27 @@ private struct BeadEditorForm: View {
                     }
                 }
                 .accessibilityIdentifier("board_picker_bead_assignee")
-                TextField("Labels (comma-separated)", text: $draft.labelsText)
-                    .accessibilityIdentifier("board_labels_field")
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Labels")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                    GitHubLabelPicker(labelsText: $draft.labelsText)
+                    TextField("Custom labels (comma-separated)", text: $draft.labelsText)
+                        .font(.system(size: 12))
+                        .accessibilityIdentifier("board_labels_field")
+                }
+                .padding(.vertical, 4)
 
                 if draft.kind != .epic {
-                    Picker("Epic", selection: Binding(
-                        get: { draft.epicId ?? FilterOption.all },
-                        set: { value in
-                            draft.epicId = value == FilterOption.all ? nil : value
-                        })
+                    Picker(
+                        "Epic",
+                        selection: Binding(
+                            get: { draft.epicId ?? FilterOption.all },
+                            set: { value in
+                                draft.epicId = value == FilterOption.all ? nil : value
+                            }
+                        )
                     ) {
                         Text(FilterOption.all).tag(FilterOption.all)
                         ForEach(availableEpics, id: \.id) { epic in
