@@ -9,6 +9,7 @@ enum CenterTab: String, CaseIterable, Sendable {
     case epics = "Epics"
     case agents = "Agents"
     case agentTasks = "Agent Tasks"
+    case milestones = "Milestones"
     case notes = "Notes"
     case history = "History"
 }
@@ -50,6 +51,8 @@ final class AppState {
     var githubIssueCount: Int = 0
     var isLoadingBeads = false
     var allProjectIssues: [CrossRepoIssue] = []
+    var isLoadingAllProjects = false
+    var allProjectLoadErrors: [String] = []
     var statusMessage: String?
     var errorMessage: String?
     private var errorDismissTask: Task<Void, Never>?
@@ -300,7 +303,7 @@ final class AppState {
             sidebarNavSelection = .agentTasks
         case .history:
             sidebarNavSelection = .history
-        case .agents, .notes, .allProjects, .ready:
+        case .agents, .notes, .allProjects, .ready, .milestones:
             break
         }
     }
@@ -1856,6 +1859,10 @@ final class AppState {
 
     // MARK: - Cross-Repo All-Projects Polling
 
+    func refreshAllProjectIssues() async {
+        await loadAllProjectIssues()
+    }
+
     private func loadAllProjectIssues() async {
         guard let token = appConfig.githubToken, !token.isEmpty else { return }
         let configuredProjects = appConfig.projects.filter {
@@ -1864,10 +1871,12 @@ final class AppState {
         }
         guard !configuredProjects.isEmpty else { return }
 
+        isLoadingAllProjects = true
         let service = gitHubService
         var results: [CrossRepoIssue] = []
+        var errors: [String] = []
 
-        await withTaskGroup(of: [CrossRepoIssue].self) { group in
+        await withTaskGroup(of: (issues: [CrossRepoIssue], errorProject: String?).self) { group in
             for project in configuredProjects {
                 guard let owner = project.githubOwner, !owner.isEmpty,
                       let repo = project.githubRepo, !repo.isEmpty else { continue }
@@ -1875,20 +1884,51 @@ final class AppState {
                 group.addTask {
                     do {
                         let beads = try await service.fetchIssues(owner: owner, repo: repo, token: token)
-                        return beads.map {
+                        let issues = beads.map {
                             CrossRepoIssue(bead: $0, projectName: projectName, owner: owner, repo: repo)
                         }
+                        return (issues, nil)
                     } catch {
-                        return []
+                        return ([], projectName)
                     }
                 }
             }
-            for await projectIssues in group {
-                results.append(contentsOf: projectIssues)
+            for await result in group {
+                results.append(contentsOf: result.issues)
+                if let failed = result.errorProject {
+                    errors.append(failed)
+                }
             }
         }
 
         allProjectIssues = results
+        allProjectLoadErrors = errors
+        isLoadingAllProjects = false
+    }
+
+    func claimIssue(_ issue: CrossRepoIssue) async {
+        guard let token = appConfig.githubToken, !token.isEmpty,
+              let number = GitHubIssuesService.issueNumber(from: issue.bead.id) else { return }
+        var newLabels = issue.bead.labels.filter {
+            !$0.lowercased().hasPrefix("status:") && !$0.lowercased().hasPrefix("agent:")
+        }
+        newLabels.append("status:in-progress")
+        newLabels.append("agent:daneel")
+        do {
+            let updated = try await gitHubService.updateIssue(
+                owner: issue.owner, repo: issue.repo, token: token,
+                number: number, title: nil, body: nil, labels: newLabels, state: nil
+            )
+            let updatedIssue = CrossRepoIssue(
+                bead: updated, projectName: issue.projectName,
+                owner: issue.owner, repo: issue.repo
+            )
+            if let idx = allProjectIssues.firstIndex(where: { $0.id == issue.id }) {
+                allProjectIssues[idx] = updatedIssue
+            }
+        } catch {
+            setError("Failed to claim issue: \(error.localizedDescription)")
+        }
     }
 
     private func startAllProjectsPolling() {

@@ -195,13 +195,15 @@ struct ContentView: View {
         case .allProjects:
             AllProjectsBoardView()
         case .ready:
-            AllProjectsBoardView()
+            ReadyQueueView()
         case .epics:
             EpicsView()
         case .agents:
             AgentsView()
         case .agentTasks:
             AgentTasksView()
+        case .milestones:
+            MilestonesView()
         case .notes:
             NotesView()
         case .history:
