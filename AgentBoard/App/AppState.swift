@@ -156,6 +156,19 @@ final class AppState {
         return sessions.first(where: { $0.id == activeSessionID })
     }
 
+    /// Returns the first running or idle session linked to the given bead ID.
+    func activeSessionForBead(_ beadId: String) -> CodingSession? {
+        sessions.first(where: {
+            $0.beadId == beadId && ($0.status == .running || $0.status == .idle)
+        })
+    }
+
+    /// Jumps to the board tab and highlights the given bead.
+    func jumpToBoardHighlighting(beadId: String) {
+        selectedBeadID = beadId
+        backToBoardFromTerminal()
+    }
+
     /// Returns (owner, repo, token) if the selected project has GitHub configured.
     var isGitHubConfigured: Bool {
         githubConfig != nil
@@ -2012,6 +2025,7 @@ final class AppState {
         Task { @MainActor in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(10))
+                guard !isGitHubConfigured else { continue }
                 guard let project = selectedProject else { continue }
                 loadBeads(for: project)
             }

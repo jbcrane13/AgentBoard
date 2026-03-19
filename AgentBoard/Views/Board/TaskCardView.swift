@@ -43,9 +43,18 @@ struct TaskCardView: View {
                 gitSummaryRow(gitSummary)
                     .padding(.top, 4)
             }
+
+            if let session = appState.activeSessionForBead(bead.id) {
+                agentRunningRow(session)
+                    .padding(.top, 4)
+            }
         }
         .padding(12)
         .background(AppTheme.cardBackground, in: RoundedRectangle(cornerRadius: 8))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.accentColor, lineWidth: appState.selectedBeadID == bead.id ? 2 : 0)
+        )
         .shadow(color: .black.opacity(0.06), radius: 1.5, y: 1)
         .opacity(bead.status == .done ? 0.7 : 1.0)
         .accessibilityIdentifier("BeadCard")
@@ -69,6 +78,30 @@ struct TaskCardView: View {
             .padding(.vertical, 1)
             .background(color.opacity(0.14), in: Capsule())
             .foregroundStyle(color)
+    }
+
+    private func agentRunningRow(_ session: CodingSession) -> some View {
+        Button {
+            appState.openSessionInTerminal(session)
+        } label: {
+            HStack(spacing: 5) {
+                Circle()
+                    .fill(Color.green)
+                    .frame(width: 6, height: 6)
+                    .shadow(color: Color.green.opacity(0.5), radius: 3)
+                Text("agent running")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(Color.green)
+                Spacer()
+                Text(session.name)
+                    .font(.system(size: 9))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("card_agent_running_\(bead.id)")
     }
 
     private func gitSummaryRow(_ summary: BeadGitSummary) -> some View {

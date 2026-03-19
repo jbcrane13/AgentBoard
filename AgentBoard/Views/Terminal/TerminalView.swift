@@ -43,11 +43,7 @@ struct TerminalView: View {
             }
 
             if let beadID = session.beadId {
-                Text(beadID)
-                    .font(.system(size: 11, weight: .medium))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Color.accentColor.opacity(0.1), in: RoundedRectangle(cornerRadius: 5))
+                linkedBeadChip(beadID: beadID)
             }
 
             Text(elapsedLabel)
@@ -65,6 +61,37 @@ struct TerminalView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
+    }
+
+    // MARK: - Linked Bead
+
+    private func linkedBeadChip(beadID: String) -> some View {
+        let bead = appState.beads.first(where: { $0.id == beadID })
+        return Button {
+            appState.jumpToBoardHighlighting(beadId: beadID)
+        } label: {
+            HStack(spacing: 4) {
+                Text(beadID)
+                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                if let title = bead?.title {
+                    Text("·")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                    Text(title)
+                        .font(.system(size: 11))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .frame(maxWidth: 200)
+                }
+            }
+            .foregroundStyle(Color.accentColor)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(Color.accentColor.opacity(0.1), in: RoundedRectangle(cornerRadius: 5))
+        }
+        .buttonStyle(.plain)
+        .help(bead.map { "Jump to \($0.id): \($0.title)" } ?? "Jump to board")
+        .accessibilityIdentifier("terminal_button_linked_bead_\(beadID)")
     }
 
     // MARK: - Helpers

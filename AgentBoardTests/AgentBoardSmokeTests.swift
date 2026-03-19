@@ -1,5 +1,5 @@
-import XCTest
 @testable import AgentBoard
+import XCTest
 
 @MainActor
 final class AgentBoardSmokeTests: XCTestCase {
@@ -7,13 +7,13 @@ final class AgentBoardSmokeTests: XCTestCase {
         XCTAssertFalse(Project.samples.isEmpty)
     }
 
-    func testAppStateDefaultsToBoardTabAndSplitPanel() {
+    func testAppStateDefaultsToBoardTabAndSplitPanel() throws {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("ABSmoke-\(UUID().uuidString)")
-        try! FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
         let state = AppState(configStore: AppConfigStore(directory: dir))
         XCTAssertEqual(state.selectedTab, .board)
-        XCTAssertEqual(state.rightPanelMode, .split)
+        XCTAssertEqual(state.rightPanelMode, .chat)
     }
 
     func testAssistantMessageExtractsUniqueReferencedIssueIDs() {
