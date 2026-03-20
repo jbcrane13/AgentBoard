@@ -913,8 +913,15 @@ final class AppState {
         isLoadingBeads = true
         defer { isLoadingBeads = false }
 
+        // Snapshot the project we're fetching for — discard result if selection changed mid-flight.
+        let fetchedForProjectID = selectedProjectID
+
         do {
             let fetched = try await gitHubService.fetchIssues(owner: owner, repo: repo, token: token)
+
+            // Guard: drop stale results if the user switched projects while we were fetching.
+            guard selectedProjectID == fetchedForProjectID else { return }
+
             beads = fetched
             beadsFileMissing = false
             githubIssueCount = fetched.count

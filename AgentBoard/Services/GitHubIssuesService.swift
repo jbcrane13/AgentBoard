@@ -97,7 +97,8 @@ actor GitHubIssuesService {
                 repo: repo,
                 endpoint: "issues",
                 queryItems: [
-                    URLQueryItem(name: "state", value: "all"),
+                    // Fetch open issues only — closed issues are done and don't belong on the active board.
+                    URLQueryItem(name: "state", value: "open"),
                     URLQueryItem(name: "per_page", value: "100"),
                     URLQueryItem(name: "page", value: "\(page)")
                 ]
@@ -245,6 +246,20 @@ actor GitHubIssuesService {
 
     // MARK: - GH Issue → Bead Mapping
 
+    /// Derive a BeadStatus from GitHub's state string and label list.
+    /// Labels `status:in-progress` / `status:blocked` take precedence over the default open state.
+    private func resolveStatus(githubState: String, labels: [String]) -> BeadStatus {
+        if githubState == "closed" { return .done }
+        for label in labels {
+            switch label.lowercased() {
+            case "status:in-progress", "status:in_progress": return .inProgress
+            case "status:blocked": return .blocked
+            default: continue
+            }
+        }
+        return .open
+    }
+
     private func mapToBead(_ issue: GitHubIssue) -> Bead {
         let labelNames = issue.labels.map(\.name)
 
@@ -273,7 +288,7 @@ actor GitHubIssuesService {
             return 2
         }()
 
-        let status: BeadStatus = issue.state == "closed" ? .done : .open
+        let status: BeadStatus = resolveStatus(githubState: issue.state, labels: labelNames)
 
         let withFractional = ISO8601DateFormatter()
         withFractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
