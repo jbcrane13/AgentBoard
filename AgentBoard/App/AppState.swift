@@ -1819,8 +1819,10 @@ final class AppState {
         let project = selectedProject
 
         if let (owner, repo, token) = githubConfig {
-            // GitHub backend: fetch live, then start 60s polling
+            // GitHub backend: fetch live, then start 60s polling.
+            // Stop autoRefresh — githubPolling is the sole refresh driver for GH-backed projects.
             stopGitHubPolling()
+            stopAutoRefresh()
             Task { @MainActor in
                 await loadBeadsFromGitHub(owner: owner, repo: repo, token: token)
                 await refreshGitContext(for: project)
@@ -2077,16 +2079,24 @@ final class AppState {
         let selectedID = selectedProjectID
         projects = projects.map { project in
             var updatedProject = project
-            let issuesURL = project.issuesFileURL
 
-            if let parsed = try? parser.parseBeads(from: issuesURL) {
-                updatedProject.totalCount = parsed.count
-                updatedProject.openCount = parsed.filter { $0.status == .open }.count
-                updatedProject.inProgressCount = parsed.filter { $0.status == .inProgress }.count
+            if project.id == selectedID, githubConfig != nil {
+                // GitHub-backed selected project: use the live in-memory beads array.
+                updatedProject.totalCount = beads.count
+                updatedProject.openCount = beads.filter { $0.status == .open }.count
+                updatedProject.inProgressCount = beads.filter { $0.status == .inProgress }.count
             } else {
-                updatedProject.totalCount = 0
-                updatedProject.openCount = 0
-                updatedProject.inProgressCount = 0
+                // JSONL-backed project: read from disk as before.
+                let issuesURL = project.issuesFileURL
+                if let parsed = try? parser.parseBeads(from: issuesURL) {
+                    updatedProject.totalCount = parsed.count
+                    updatedProject.openCount = parsed.filter { $0.status == .open }.count
+                    updatedProject.inProgressCount = parsed.filter { $0.status == .inProgress }.count
+                } else {
+                    updatedProject.totalCount = 0
+                    updatedProject.openCount = 0
+                    updatedProject.inProgressCount = 0
+                }
             }
 
             updatedProject.isActive = project.id == selectedID
