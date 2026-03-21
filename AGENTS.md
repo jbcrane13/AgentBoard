@@ -1,6 +1,6 @@
 # Agent Instructions
 
-This project uses **bd** (beads) for issue tracking. Run `bd onboard` to get started.
+This project uses **GitHub Issues** (`gh` CLI) for issue tracking. Repo: `jbcrane13/AgentBoard`.
 
 ## Agent Readiness
 
@@ -18,11 +18,9 @@ Quick orientation:
 ## Quick Reference
 
 ```bash
-bd ready              # Find available work
-bd show <id>          # View issue details
-bd update <id> --status in_progress  # Claim work
-bd close <id>         # Complete work
-bd sync               # Sync with git
+gh issue list --repo jbcrane13/AgentBoard --label "status:ready" --state open --json number,title,labels
+gh issue edit <number> --repo jbcrane13/AgentBoard --add-label "status:in-progress" --remove-label "status:ready"
+gh issue close <number> --repo jbcrane13/AgentBoard --comment "Done: <summary>"
 ```
 
 ## Landing the Plane (Session Completion)
@@ -37,7 +35,6 @@ bd sync               # Sync with git
 4. **PUSH TO REMOTE** - This is MANDATORY:
    ```bash
    git pull --rebase
-   bd sync
    git push
    git status  # MUST show "up to date with origin"
    ```
