@@ -14,6 +14,7 @@ struct BoardView: View {
     @State private var detailContext: EditingContext?
     @State private var handledCreateRequestID = 0
     @State private var isRefreshing = false
+    @AppStorage("boardHideBacklog") private var hideBacklog = true
 
     private struct Column: Identifiable {
         let id: String
@@ -147,6 +148,19 @@ struct BoardView: View {
             Spacer()
 
             Button {
+                hideBacklog.toggle()
+            } label: {
+                Label(
+                    hideBacklog ? "Showing Active" : "Showing All",
+                    systemImage: hideBacklog ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle"
+                )
+                .font(.system(size: 12))
+            }
+            .buttonStyle(.bordered)
+            .accessibilityIdentifier("board_button_backlog_filter")
+            .help(hideBacklog ? "Show all issues including backlog" : "Hide backlog issues")
+
+            Button {
                 Task<Void, Never> {
                     isRefreshing = true
                     await appState.refreshBeads()
@@ -265,12 +279,26 @@ struct BoardView: View {
             }
     }
 
+    private static let activeStatusLabels: Set<String> = [
+        "status:ready", "status:in-progress", "status:blocked", "status:review"
+    ]
+
     private var filteredBeads: [Bead] {
         appState.beads.filter { bead in
             let kindMatches = selectedKind == .all || bead.kind == selectedKind.beadKind
             let assigneeMatches = selectedAssignee == FilterOption.all || bead.assignee == selectedAssignee
             let epicMatches = selectedEpicID == FilterOption.all || bead.epicId == selectedEpicID
-            return kindMatches && assigneeMatches && epicMatches
+
+            let backlogMatches: Bool
+            if hideBacklog, bead.status != .done {
+                let lowered = Set(bead.labels.map { $0.lowercased() })
+                backlogMatches = !lowered.isDisjoint(with: Self.activeStatusLabels)
+                    || bead.labels.isEmpty // show issues with no labels (not yet triaged)
+            } else {
+                backlogMatches = true
+            }
+
+            return kindMatches && assigneeMatches && epicMatches && backlogMatches
         }
         .sorted { lhs, rhs in lhs.updatedAt > rhs.updatedAt }
     }

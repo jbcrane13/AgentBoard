@@ -108,8 +108,7 @@ actor GitHubIssuesService {
                 repo: repo,
                 endpoint: "issues",
                 queryItems: [
-                    // Fetch open issues only — closed issues are done and don't belong on the active board.
-                    URLQueryItem(name: "state", value: "open"),
+                    URLQueryItem(name: "state", value: "all"),
                     URLQueryItem(name: "per_page", value: "100"),
                     URLQueryItem(name: "page", value: "\(page)")
                 ]
