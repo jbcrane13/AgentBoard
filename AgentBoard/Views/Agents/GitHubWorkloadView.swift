@@ -71,12 +71,19 @@ struct GitHubWorkloadSection: View {
 
 // MARK: - Agent Workload Card
 
+private struct WorkloadDetailContext: Identifiable {
+    let id = UUID()
+    let bead: Bead
+}
+
 private struct AgentWorkloadCard: View {
+    @Environment(AppState.self) private var appState
     let displayName: String
     let agentID: String
     let issues: [CrossRepoIssue]
 
     @State private var isExpanded = true
+    @State private var detailContext: WorkloadDetailContext?
 
     private var isOverloaded: Bool {
         issues.count > 5
@@ -92,6 +99,11 @@ private struct AgentWorkloadCard: View {
         }
         .cardStyle()
         .accessibilityIdentifier("workload_card_\(agentID.isEmpty ? "unassigned" : agentID)")
+        .sheet(item: $detailContext) { context in
+            TaskDetailSheet(bead: context.bead) {
+                detailContext = nil
+            }
+        }
     }
 
     private var headerRow: some View {
@@ -148,6 +160,12 @@ private struct AgentWorkloadCard: View {
                 let visible = Array(issues.prefix(20))
                 ForEach(Array(visible.enumerated()), id: \.element.id) { index, issue in
                     WorkloadIssueRow(issue: issue)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            appState.selectedBeadID = issue.bead.id
+                            detailContext = WorkloadDetailContext(bead: issue.bead)
+                        }
+                        .accessibilityIdentifier("workload_row_\(issue.id)")
                     if index < visible.count - 1 {
                         Divider().padding(.horizontal, 12)
                     }

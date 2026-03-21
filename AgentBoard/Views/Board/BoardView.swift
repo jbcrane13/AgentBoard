@@ -68,6 +68,7 @@ struct BoardView: View {
                 title: "Create Bead",
                 draft: $createDraft,
                 availableEpics: appState.epicBeads,
+                availableMilestones: appState.cachedMilestones,
                 onCancel: {
                     showingCreateSheet = false
                     createDraft = BeadDraft()
@@ -88,6 +89,7 @@ struct BoardView: View {
                 title: "Edit \(context.bead.id)",
                 draft: $editDraft,
                 availableEpics: appState.epicBeads,
+                availableMilestones: appState.cachedMilestones,
                 onCancel: {
                     editingContext = nil
                     editDraft = BeadDraft()
@@ -418,6 +420,7 @@ private struct BeadEditorForm: View {
     let title: String
     @Binding var draft: BeadDraft
     let availableEpics: [Bead]
+    let availableMilestones: [GitHubMilestone]
     let onCancel: () -> Void
     let onSave: () -> Void
 
@@ -495,6 +498,22 @@ private struct BeadEditorForm: View {
                         }
                     }
                     .accessibilityIdentifier("board_picker_bead_epic")
+                }
+
+                if !availableMilestones.isEmpty {
+                    Picker(
+                        "Milestone",
+                        selection: Binding(
+                            get: { draft.milestoneNumber ?? 0 },
+                            set: { draft.milestoneNumber = $0 == 0 ? nil : $0 }
+                        )
+                    ) {
+                        Text("None").tag(0)
+                        ForEach(availableMilestones) { milestone in
+                            Text(milestone.title).tag(milestone.number)
+                        }
+                    }
+                    .accessibilityIdentifier("board_picker_bead_milestone")
                 }
 
                 VStack(alignment: .leading, spacing: 8) {

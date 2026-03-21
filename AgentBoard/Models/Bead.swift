@@ -11,11 +11,38 @@ struct Bead: Identifiable, Hashable, Codable {
     let epicId: String?
     let labels: [String]
     let assignee: String?
+    var milestoneNumber: Int?
+    var milestoneTitle: String?
     let createdAt: Date
     let updatedAt: Date
     let dependencies: [String]
     let gitBranch: String?
     let lastCommit: String?
+
+    init(
+        id: String, title: String, body: String?, status: BeadStatus, kind: BeadKind,
+        priority: Int, epicId: String?, labels: [String], assignee: String?,
+        milestoneNumber: Int? = nil, milestoneTitle: String? = nil,
+        createdAt: Date, updatedAt: Date, dependencies: [String],
+        gitBranch: String?, lastCommit: String?
+    ) {
+        self.id = id
+        self.title = title
+        self.body = body
+        self.status = status
+        self.kind = kind
+        self.priority = priority
+        self.epicId = epicId
+        self.labels = labels
+        self.assignee = assignee
+        self.milestoneNumber = milestoneNumber
+        self.milestoneTitle = milestoneTitle
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.dependencies = dependencies
+        self.gitBranch = gitBranch
+        self.lastCommit = lastCommit
+    }
 }
 
 enum BeadStatus: String, Codable, CaseIterable, Sendable {
@@ -115,40 +142,117 @@ func priorityColor(for priority: Int) -> Color {
 
 extension Bead {
     static let samples: [Bead] = [
-        Bead(id: "NM-098", title: "Create ConnectionBudget actor for global NWConnection cap",
-             body: nil, status: .open, kind: .task, priority: 2, epicId: nil, labels: [],
-             assignee: nil, createdAt: .now.addingTimeInterval(-3600),
-             updatedAt: .now.addingTimeInterval(-3600), dependencies: [],
-             gitBranch: nil, lastCommit: nil),
-        Bead(id: "NM-095", title: "Add Wi-Fi signal strength overlay to map view",
-             body: nil, status: .open, kind: .feature, priority: 3, epicId: nil, labels: [],
-             assignee: nil, createdAt: .now.addingTimeInterval(-86400),
-             updatedAt: .now.addingTimeInterval(-86400), dependencies: [],
-             gitBranch: nil, lastCommit: nil),
-        Bead(id: "NM-093", title: "Accessibility audit — VoiceOver labels for scan results",
-             body: nil, status: .open, kind: .task, priority: 2, epicId: nil, labels: [],
-             assignee: nil, createdAt: .now.addingTimeInterval(-172800),
-             updatedAt: .now.addingTimeInterval(-172800), dependencies: [],
-             gitBranch: nil, lastCommit: nil),
-        Bead(id: "NM-096", title: "Implement NWPathMonitor integration for real-time status",
-             body: nil, status: .inProgress, kind: .task, priority: 1, epicId: nil, labels: [],
-             assignee: "claude-code", createdAt: .now.addingTimeInterval(-7200),
-             updatedAt: .now.addingTimeInterval(-1800), dependencies: [],
-             gitBranch: "feat/nwpath-monitor", lastCommit: "a3f2c1d"),
-        Bead(id: "NM-094", title: "XCUITest suite for network scan flow",
-             body: nil, status: .inProgress, kind: .task, priority: 2, epicId: nil, labels: [],
-             assignee: "claude-code", createdAt: .now.addingTimeInterval(-43200),
-             updatedAt: .now.addingTimeInterval(-3600), dependencies: [],
-             gitBranch: "test/scan-ui-tests", lastCommit: "b7e4a09"),
-        Bead(id: "NM-092", title: "SwiftData model for scan history persistence",
-             body: nil, status: .done, kind: .task, priority: 2, epicId: nil, labels: [],
-             assignee: nil, createdAt: .now.addingTimeInterval(-259200),
-             updatedAt: .now.addingTimeInterval(-172800), dependencies: [],
-             gitBranch: nil, lastCommit: "c1d9f32"),
-        Bead(id: "NM-091", title: "Fix crash on background NWConnection timeout",
-             body: nil, status: .done, kind: .bug, priority: 0, epicId: nil, labels: [],
-             assignee: nil, createdAt: .now.addingTimeInterval(-345600),
-             updatedAt: .now.addingTimeInterval(-259200), dependencies: [],
-             gitBranch: nil, lastCommit: "d4e8b21")
+        Bead(
+            id: "NM-098",
+            title: "Create ConnectionBudget actor for global NWConnection cap",
+            body: nil,
+            status: .open,
+            kind: .task,
+            priority: 2,
+            epicId: nil,
+            labels: [],
+            assignee: nil,
+            createdAt: .now.addingTimeInterval(-3600),
+            updatedAt: .now.addingTimeInterval(-3600),
+            dependencies: [],
+            gitBranch: nil,
+            lastCommit: nil
+        ),
+        Bead(
+            id: "NM-095",
+            title: "Add Wi-Fi signal strength overlay to map view",
+            body: nil,
+            status: .open,
+            kind: .feature,
+            priority: 3,
+            epicId: nil,
+            labels: [],
+            assignee: nil,
+            createdAt: .now.addingTimeInterval(-86400),
+            updatedAt: .now.addingTimeInterval(-86400),
+            dependencies: [],
+            gitBranch: nil,
+            lastCommit: nil
+        ),
+        Bead(
+            id: "NM-093",
+            title: "Accessibility audit — VoiceOver labels for scan results",
+            body: nil,
+            status: .open,
+            kind: .task,
+            priority: 2,
+            epicId: nil,
+            labels: [],
+            assignee: nil,
+            createdAt: .now.addingTimeInterval(-172_800),
+            updatedAt: .now.addingTimeInterval(-172_800),
+            dependencies: [],
+            gitBranch: nil,
+            lastCommit: nil
+        ),
+        Bead(
+            id: "NM-096",
+            title: "Implement NWPathMonitor integration for real-time status",
+            body: nil,
+            status: .inProgress,
+            kind: .task,
+            priority: 1,
+            epicId: nil,
+            labels: [],
+            assignee: "claude-code",
+            createdAt: .now.addingTimeInterval(-7200),
+            updatedAt: .now.addingTimeInterval(-1800),
+            dependencies: [],
+            gitBranch: "feat/nwpath-monitor",
+            lastCommit: "a3f2c1d"
+        ),
+        Bead(
+            id: "NM-094",
+            title: "XCUITest suite for network scan flow",
+            body: nil,
+            status: .inProgress,
+            kind: .task,
+            priority: 2,
+            epicId: nil,
+            labels: [],
+            assignee: "claude-code",
+            createdAt: .now.addingTimeInterval(-43200),
+            updatedAt: .now.addingTimeInterval(-3600),
+            dependencies: [],
+            gitBranch: "test/scan-ui-tests",
+            lastCommit: "b7e4a09"
+        ),
+        Bead(
+            id: "NM-092",
+            title: "SwiftData model for scan history persistence",
+            body: nil,
+            status: .done,
+            kind: .task,
+            priority: 2,
+            epicId: nil,
+            labels: [],
+            assignee: nil,
+            createdAt: .now.addingTimeInterval(-259_200),
+            updatedAt: .now.addingTimeInterval(-172_800),
+            dependencies: [],
+            gitBranch: nil,
+            lastCommit: "c1d9f32"
+        ),
+        Bead(
+            id: "NM-091",
+            title: "Fix crash on background NWConnection timeout",
+            body: nil,
+            status: .done,
+            kind: .bug,
+            priority: 0,
+            epicId: nil,
+            labels: [],
+            assignee: nil,
+            createdAt: .now.addingTimeInterval(-345_600),
+            updatedAt: .now.addingTimeInterval(-259_200),
+            dependencies: [],
+            gitBranch: nil,
+            lastCommit: "d4e8b21"
+        )
     ]
 }

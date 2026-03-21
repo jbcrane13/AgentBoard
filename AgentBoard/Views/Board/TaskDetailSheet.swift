@@ -100,6 +100,7 @@ struct TaskDetailSheet: View {
                     }
                     .labelsHidden()
                     .frame(width: 140)
+                    .accessibilityIdentifier("task_detail_picker_status")
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
@@ -117,6 +118,7 @@ struct TaskDetailSheet: View {
                     }
                     .labelsHidden()
                     .frame(width: 140)
+                    .accessibilityIdentifier("task_detail_picker_priority")
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
@@ -132,6 +134,7 @@ struct TaskDetailSheet: View {
                     }
                     .labelsHidden()
                     .frame(width: 120)
+                    .accessibilityIdentifier("task_detail_picker_type")
                 }
             }
 
@@ -149,6 +152,7 @@ struct TaskDetailSheet: View {
                     }
                     .labelsHidden()
                     .frame(width: 200)
+                    .accessibilityIdentifier("task_detail_picker_assignee")
                 }
 
                 if draft.kind != .epic {
@@ -170,6 +174,29 @@ struct TaskDetailSheet: View {
                         }
                         .labelsHidden()
                         .frame(minWidth: 200)
+                        .accessibilityIdentifier("task_detail_picker_epic")
+                    }
+                }
+
+                if !appState.cachedMilestones.isEmpty {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Milestone")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                            .textCase(.uppercase)
+
+                        Picker("", selection: Binding(
+                            get: { draft.milestoneNumber ?? 0 },
+                            set: { draft.milestoneNumber = $0 == 0 ? nil : $0 }
+                        )) {
+                            Text("None").tag(0)
+                            ForEach(appState.cachedMilestones) { milestone in
+                                Text(milestone.title).tag(milestone.number)
+                            }
+                        }
+                        .labelsHidden()
+                        .frame(minWidth: 180)
+                        .accessibilityIdentifier("task_detail_picker_milestone")
                     }
                 }
             }
@@ -271,6 +298,7 @@ struct TaskDetailSheet: View {
                         }
                         .buttonStyle(.bordered)
                         .tint(.red)
+                        .accessibilityIdentifier("task_detail_button_close_issue")
                     }
                 }
             } else {
@@ -290,6 +318,7 @@ struct TaskDetailSheet: View {
                 }
                 .buttonStyle(.bordered)
                 .tint(.red)
+                .accessibilityIdentifier("task_detail_button_delete")
             }
         }
         .padding(12)
@@ -342,6 +371,7 @@ struct TaskDetailSheet: View {
                 onDismiss()
             }
             .keyboardShortcut(.escape, modifiers: [])
+            .accessibilityIdentifier("task_detail_button_cancel")
 
             Button("Save") {
                 isSaving = true
@@ -355,6 +385,7 @@ struct TaskDetailSheet: View {
             .buttonStyle(.borderedProminent)
             .disabled(draft.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSaving)
             .keyboardShortcut(.return, modifiers: .command)
+            .accessibilityIdentifier("task_detail_button_save")
         }
         .padding(16)
     }

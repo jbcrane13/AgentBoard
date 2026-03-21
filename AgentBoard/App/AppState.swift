@@ -53,6 +53,7 @@ final class AppState {
     var allProjectIssues: [CrossRepoIssue] = []
     var isLoadingAllProjects = false
     var allProjectLoadErrors: [String] = []
+    var cachedMilestones: [GitHubMilestone] = []
     var statusMessage: String?
     var errorMessage: String?
     private var errorDismissTask: Task<Void, Never>?
@@ -931,6 +932,11 @@ final class AppState {
             }
             refreshProjectCounts()
             rebuildHistoryEvents()
+
+            // Also refresh milestones alongside issues
+            cachedMilestones = (try? await gitHubService.fetchMilestones(
+                owner: owner, repo: repo, token: token
+            )) ?? cachedMilestones
         } catch {
             setError("GitHub sync failed: \(error.localizedDescription)")
         }
@@ -953,6 +959,15 @@ final class AppState {
         }
     }
 
+    func loadMilestones() async {
+        guard let (owner, repo, token) = githubConfig else { return }
+        do {
+            cachedMilestones = try await gitHubService.fetchMilestones(owner: owner, repo: repo, token: token)
+        } catch {
+            // Non-fatal — milestones are optional UI data
+        }
+    }
+
     // MARK: - GitHub Issue CRUD
 
     private func createGitHubIssue(from draft: BeadDraft, owner: String, repo: String, token: String) async {
@@ -963,7 +978,9 @@ final class AppState {
                 body: { let desc = draft.description.trimmingCharacters(in: .whitespacesAndNewlines)
                     return desc.isEmpty ? nil : desc
                 }(),
-                labels: draft.labels
+                labels: draft.labels,
+                assignees: AgentDefinition.githubAssignees(for: draft.assignee),
+                milestone: draft.milestoneNumber
             )
             statusMessage = "Created \(bead.id) on GitHub."
             await loadBeadsFromGitHub(owner: owner, repo: repo, token: token)
@@ -989,7 +1006,9 @@ final class AppState {
                     return desc.isEmpty ? nil : desc
                 }(),
                 labels: draft.labels.isEmpty ? nil : draft.labels,
-                state: newState
+                state: newState,
+                assignees: AgentDefinition.githubAssignees(for: draft.assignee),
+                milestone: draft.milestoneNumber
             )
             if isClosing {
                 statusMessage = "Closed \(bead.id) on GitHub."

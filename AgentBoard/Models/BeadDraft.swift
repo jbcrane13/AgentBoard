@@ -9,6 +9,7 @@ struct BeadDraft: Sendable {
     var assignee: String = ""
     var labelsText: String = ""
     var epicId: String?
+    var milestoneNumber: Int?
 
     var labels: [String] {
         labelsText
@@ -26,7 +27,8 @@ struct BeadDraft: Sendable {
             priority: bead.priority,
             assignee: bead.assignee ?? "",
             labelsText: bead.labels.joined(separator: ", "),
-            epicId: bead.epicId
+            epicId: bead.epicId,
+            milestoneNumber: bead.milestoneNumber
         )
     }
 }

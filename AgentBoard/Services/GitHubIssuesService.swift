@@ -30,14 +30,25 @@ private struct GitHubIssue: Decodable, Sendable {
     let body: String?
     let state: String
     let labels: [GitHubLabel]
+    let assignees: [GitHubUser]
+    let milestone: GitHubMilestoneRef?
     let createdAt: String
     let updatedAt: String
 
     enum CodingKeys: String, CodingKey {
-        case number, title, body, state, labels
+        case number, title, body, state, labels, assignees, milestone
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }
+}
+
+private struct GitHubUser: Decodable, Sendable {
+    let login: String
+}
+
+private struct GitHubMilestoneRef: Decodable, Sendable {
+    let number: Int
+    let title: String
 }
 
 private struct GitHubLabel: Decodable, Sendable {
@@ -122,7 +133,8 @@ actor GitHubIssuesService {
     // swiftlint:disable:next function_parameter_count
     func createIssue(
         owner: String, repo: String, token: String,
-        title: String, body: String?, labels: [String]
+        title: String, body: String?, labels: [String],
+        assignees: [String]? = nil, milestone: Int? = nil
     ) async throws -> Bead {
         let url = try buildURL(owner: owner, repo: repo, endpoint: "issues")
         var request = authorizedRequest(url: url, token: token)
@@ -132,6 +144,8 @@ actor GitHubIssuesService {
         var payload: [String: Any] = ["title": title]
         if let body { payload["body"] = body }
         if !labels.isEmpty { payload["labels"] = labels }
+        if let assignees, !assignees.isEmpty { payload["assignees"] = assignees }
+        if let milestone { payload["milestone"] = milestone }
         request.httpBody = try JSONSerialization.data(withJSONObject: payload)
 
         let (data, response) = try await session.data(for: request)
@@ -144,7 +158,8 @@ actor GitHubIssuesService {
     // swiftlint:disable:next function_parameter_count
     func updateIssue(
         owner: String, repo: String, token: String,
-        number: Int, title: String?, body: String?, labels: [String]?, state: String?
+        number: Int, title: String?, body: String?, labels: [String]?, state: String?,
+        assignees: [String]? = nil, milestone: Int? = nil
     ) async throws -> Bead {
         let url = try buildURL(owner: owner, repo: repo, endpoint: "issues/\(number)")
         var request = authorizedRequest(url: url, token: token)
@@ -156,6 +171,8 @@ actor GitHubIssuesService {
         if let body { payload["body"] = body }
         if let labels { payload["labels"] = labels }
         if let state { payload["state"] = state }
+        if let assignees { payload["assignees"] = assignees }
+        if let milestone { payload["milestone"] = milestone }
         request.httpBody = try JSONSerialization.data(withJSONObject: payload)
 
         let (data, response) = try await session.data(for: request)
@@ -299,6 +316,8 @@ actor GitHubIssuesService {
             withFractional.date(from: raw) ?? withoutFractional.date(from: raw) ?? .distantPast
         }
 
+        let assignee = issue.assignees.first?.login
+
         return Bead(
             id: "GH-\(issue.number)",
             title: issue.title,
@@ -308,7 +327,9 @@ actor GitHubIssuesService {
             priority: priority,
             epicId: nil,
             labels: labelNames,
-            assignee: nil,
+            assignee: assignee,
+            milestoneNumber: issue.milestone?.number,
+            milestoneTitle: issue.milestone?.title,
             createdAt: parseDate(issue.createdAt),
             updatedAt: parseDate(issue.updatedAt),
             dependencies: [],
