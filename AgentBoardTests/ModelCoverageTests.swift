@@ -281,4 +281,109 @@ struct ModelCoverageTests {
             _ = state.color
         }
     }
+
+    // MARK: - Milestone model fields (AB-86l)
+
+    @Test("Bead init defaults milestoneNumber and milestoneTitle to nil")
+    func beadInitDefaultsMilestoneToNil() {
+        let bead = Bead(
+            id: "AB-100",
+            title: "No milestone",
+            body: nil,
+            status: .open,
+            kind: .task,
+            priority: 2,
+            epicId: nil,
+            labels: [],
+            assignee: nil,
+            createdAt: .distantPast,
+            updatedAt: .distantPast,
+            dependencies: [],
+            gitBranch: nil,
+            lastCommit: nil
+        )
+
+        #expect(bead.milestoneNumber == nil)
+        #expect(bead.milestoneTitle == nil)
+    }
+
+    @Test("Bead with explicit milestone values")
+    func beadWithExplicitMilestoneValues() {
+        let bead = Bead(
+            id: "AB-101",
+            title: "With milestone",
+            body: nil,
+            status: .inProgress,
+            kind: .feature,
+            priority: 1,
+            epicId: nil,
+            labels: [],
+            assignee: nil,
+            milestoneNumber: 3,
+            milestoneTitle: "Sprint 1",
+            createdAt: .distantPast,
+            updatedAt: .distantPast,
+            dependencies: [],
+            gitBranch: nil,
+            lastCommit: nil
+        )
+
+        #expect(bead.milestoneNumber == 3)
+        #expect(bead.milestoneTitle == "Sprint 1")
+    }
+
+    @Test("BeadDraft.from preserves milestoneNumber")
+    func beadDraftFromPreservesMilestoneNumber() {
+        let bead = Bead(
+            id: "AB-102",
+            title: "Milestone bead",
+            body: "Body text",
+            status: .open,
+            kind: .bug,
+            priority: 1,
+            epicId: nil,
+            labels: ["ios"],
+            assignee: "blake",
+            milestoneNumber: 7,
+            milestoneTitle: "v4.0",
+            createdAt: .distantPast,
+            updatedAt: .distantPast,
+            dependencies: [],
+            gitBranch: nil,
+            lastCommit: nil
+        )
+
+        let draft = BeadDraft.from(bead)
+        #expect(draft.milestoneNumber == 7)
+    }
+
+    @Test("CrossRepoIssue.assignedAgent returns bead.assignee fallback")
+    func crossRepoIssueAssignedAgentFallback() {
+        let bead = Bead(
+            id: "GH-55",
+            title: "Agent fallback test",
+            body: nil,
+            status: .open,
+            kind: .task,
+            priority: 2,
+            epicId: nil,
+            labels: ["enhancement"],
+            assignee: "jbcrane13",
+            createdAt: .distantPast,
+            updatedAt: .distantPast,
+            dependencies: [],
+            gitBranch: nil,
+            lastCommit: nil
+        )
+
+        let issue = CrossRepoIssue(
+            bead: bead,
+            projectName: "TestProject",
+            owner: "acme",
+            repo: "widget"
+        )
+
+        // No "agent:" label present, so assignedAgent should fall back to bead.assignee
+        #expect(issue.assignedAgent == "jbcrane13")
+    }
 }

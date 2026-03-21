@@ -1,33 +1,9 @@
+@testable import AgentBoard
 import Foundation
 import Testing
-@testable import AgentBoard
 
-final class MockURLProtocol: URLProtocol {
-    nonisolated(unsafe) static var requestHandler: ((URLRequest) throws -> (HTTPURLResponse, Data))?
+// MockURLProtocol is now in TestHelpers/MockURLProtocol.swift
 
-    override class func canInit(with request: URLRequest) -> Bool { true }
-    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
-
-    override func startLoading() {
-        guard let handler = MockURLProtocol.requestHandler else {
-            client?.urlProtocolDidFinishLoading(self)
-            return
-        }
-
-        do {
-            let (response, data) = try handler(request)
-            client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-            client?.urlProtocol(self, didLoad: data)
-            client?.urlProtocolDidFinishLoading(self)
-        } catch {
-            client?.urlProtocol(self, didFailWithError: error)
-        }
-    }
-
-    override func stopLoading() {}
-}
-
-@Suite("GatewayClient Contract Tests")
 struct GatewayClientContractTests {
     @Test("chat.history payload fixture decodes through real GatewayClient decoder")
     func chatHistoryFixtureDecodes() throws {
@@ -94,7 +70,7 @@ struct GatewayClientContractTests {
         config.protocolClasses = [MockURLProtocol.self]
         let session = URLSession(configuration: config)
 
-        let request = URLRequest(url: URL(string: "https://agentboard.test/contracts/chat-history")!)
+        let request = try URLRequest(url: #require(URL(string: "https://agentboard.test/contracts/chat-history")))
         let (data, response) = try await session.data(for: request)
 
         let http = try #require(response as? HTTPURLResponse)

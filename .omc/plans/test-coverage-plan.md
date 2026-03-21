@@ -1,121 +1,111 @@
 # AgentBoard Test Coverage Plan
 
 ## Project: AgentBoard
-## Date: 2026-03-06 (updated from 2026-02-26)
-## Focus: Current gaps after comprehensive 4-agent audit
+## Date: 2026-03-20 (updated from 2026-03-06)
+## Focus: Coverage for GitHub Issues #12, #13, #14 and board fixes
 
 ---
 
-## Status: Prior Plan Items (2026-02-26) — ALL COMPLETED
+## Status: Prior Plan Items — ALL COMPLETED
 
-The February plan covered AppConfigStore, CanvasRenderer, JSONLEntityParser, TerminalLauncher, SessionMonitor.
-All those test files now exist in AgentBoardTests/. Build was broken by a @MainActor issue in HistoryDashboardOutcomeTests — **fixed 2026-03-06**.
+The February/March plan covered AppConfigStore, CanvasRenderer, JSONLEntityParser, TerminalLauncher, SessionMonitor, HistoryDashboardOutcomeTests @MainActor fix.
 
 ---
 
-## Current Baseline (2026-03-06 Audit)
+## Current Baseline (2026-03-20 Audit)
 
 | Metric | Value |
 |--------|-------|
-| Unit test files | 30 |
-| Unit test methods | ~289 |
+| Unit test files | 32 |
+| Unit test methods | ~365 |
 | UI test files | 8 |
-| UI test methods | ~46 |
-| Functional tests | 89% |
-| Shallow tests | 7% (24 tests in AgentBoardUITests.swift) |
-| Mock-only tests | 4% |
-| Pre-existing flaky tests | 2 (AppConfigStoreLifecycleTests — shared ~/.openclaw/openclaw.json race) |
-| Disabled UI test suites | 2 (BeadOutcomeTests, NewSessionOutcomeTests) |
+| UI test methods | ~43 |
+| **Blocker** | GitHubIssuesServiceTests.swift has 3 compile errors blocking test target |
+
+### Compile Errors (AB-9f3)
+1. `MockURLProtocol` redeclared in `GatewayClientContractTests.swift` and `GitHubIssuesServiceTests.swift`
+2. `updateIssue` call missing `labels:` param (signature changed)
+3. JSON fixtures missing `assignees` and `milestone` fields (added today in #12/#13)
 
 ---
 
-## Fixed Issues
+## Coverage Areas
 
-- [x] **2026-03-06:** `HistoryDashboardOutcomeTests.swift` — added `@MainActor` to class declaration (was blocking all test runs)
+### Area 1: Fix Test Compile Errors (P0 — bug)
+- **Problem**: Test target won't compile. Blocks ALL unit test runs.
+- **Fix**:
+  - Extract shared `MockURLProtocol` to `TestHelpers/MockURLProtocol.swift`
+  - Remove inline MockURLProtocol from both test files
+  - Update all JSON fixtures to include `"assignees":[],"milestone":null`
+  - Fix `updateIssue` call to include `labels:` param
+- **Files**: `GitHubIssuesServiceTests.swift`, `GatewayClientContractTests.swift`, new `TestHelpers/MockURLProtocol.swift`
+- **Test count**: 0 new (fixes 11 existing tests)
 
----
+### Area 2: Assignee Mapping Tests (P1 — #12)
+- **Tests**:
+  1. `githubAssignees("daneel")` returns `["jbcrane13"]`
+  2. `githubAssignees("")` returns nil
+  3. `githubAssignees("unknown")` returns nil
+  4. `githubAssignees("quentin")` returns nil (no GitHub username mapped)
+  5. `createIssue` includes assignees in POST payload when provided
+  6. `updateIssue` includes assignees in PATCH payload when provided
+  7. `mapToBead` extracts assignee from `assignees[0].login`
+- **Files**: new `AgentDefinitionTests.swift`, modify `GitHubIssuesServiceTests.swift`
+- **Test count**: 7
 
-## Current Gap Analysis
+### Area 3: Milestone Integration Tests (P1 — #13)
+- **Tests**:
+  1. `BeadDraft.from` preserves `milestoneNumber`
+  2. `BeadDraft` default `milestoneNumber` is nil
+  3. `createIssue` includes milestone in POST payload
+  4. `updateIssue` includes milestone in PATCH payload
+  5. `fetchMilestones` parses response correctly
+  6. `mapToBead` extracts `milestoneNumber` and `milestoneTitle`
+  7. Bead Codable round-trip with milestone fields
+- **Files**: modify `GitHubIssuesServiceTests.swift`, modify `ModelCoverageTests.swift`
+- **Test count**: 7
 
-### P0 — Silent Failures in Production Code
+### Area 4: Backlog Filter Logic Tests (P1 — Fix 2)
+- **Tests**:
+  1. Filter hides open issues with no active status labels
+  2. Filter shows issues with `status:ready` label
+  3. Filter shows issues with `status:in-progress` label
+  4. Filter shows issues with `status:blocked` label
+  5. Filter shows issues with `status:review` label
+  6. Filter passes through Done issues regardless
+  7. Filter shows untriaged issues (empty labels)
+  8. Filter disabled shows all issues
+- **Files**: new `BacklogFilterTests.swift`
+- **Test count**: 8
 
-| # | File | Issue |
-|---|------|-------|
-| 1 | `GatewayClient.swift` | `receiveLoop()` swallows all errors — malformed frames never surface to UI |
-| 2 | `AppState.swift` | Non-retryable chat connection errors don't show toast on non-chat views |
-| 3 | `AppState.swift` | Session monitor errors silently clear session list — user sees empty sidebar, no reason |
-| 4 | `AppState.swift` | `loadChatHistory()` swallows errors even when connected |
-| 5 | `AppState.swift` | `loadAgentIdentity()` failure is completely silent — no log, no UI |
-| 6 | `GatewayClient.swift` | Request timeout uses `try?` — timeout may silently not trigger |
-| 7 | `AppState.swift` | Bead JSON serialization fallback silently corrupts `issues.jsonl` |
-| 8 | `KeychainService.swift` | `deleteToken()` ignores `SecItemDelete` status — token may persist after logout |
-| 9 | `AppState.swift` | `bd update` status call is fire-and-forget with `try?` |
+### Area 5: fetchIssues State=All Contract Test (P2 — Fix 1)
+- **Tests**:
+  1. `fetchIssues` URL contains `state=all`
+  2. Both open and closed issues returned in results
+- **Files**: modify `GitHubIssuesServiceTests.swift`
+- **Test count**: 2
 
-### P1 — Test Coverage Gaps
+### Area 6: Bead Model New Fields (P2 — #12/#13)
+- **Tests**:
+  1. Bead init defaults milestoneNumber/milestoneTitle to nil
+  2. Bead with explicit milestone values
+  3. CrossRepoIssue.assignedAgent fallback to bead.assignee
+- **Files**: modify `ModelCoverageTests.swift`
+- **Test count**: 3
 
-**Untested async loops:**
-- `AppState.startChatConnectionLoop()` — retry backoff, non-retryable error handling
-- `AppState.startSessionMonitorLoop()` — periodic polling, git refresh on tick 10
-- `AppState.startGatewaySessionRefreshLoop()` — 15s interval, error state clearing
+## Execution Strategy
+- **Worker 1**: Areas 1 + 2 (fix compile errors first, then assignee tests)
+- **Worker 2**: Areas 3 + 5 (milestone tests + fetchIssues contract)
+- **Worker 3**: Areas 4 + 6 (backlog filter + model tests)
+- Dependency: Area 1 must complete first (unblocks test target)
 
-**Shallow UI tests (24 tests — existence only, no outcome verification):**
-All 24 tests in `AgentBoardUITests.swift` use `XCTAssertTrue(element.exists)` instead of verifying state changes.
+## Total new tests: ~27
 
-**Mock-only tests (no real gateway):**
-- `ChatSendThinkingTests` — uses HappyPathOpenClawService mock
-- `KeychainServiceTests` — uses InMemoryTokenStorage mock (not real Keychain)
-
-### P2 — Known Open Beads
-
-| Bead | Description |
-|------|-------------|
-| AB-36j | `updateBead` bd-close path not covered |
-| AB-0mn | Duplicate of AB-36j |
-
----
-
-## Execution Plan (Current Sprint)
-
-### Phase A: Fix Test Infrastructure (Do First)
-- [x] Fix `HistoryDashboardOutcomeTests.swift` @MainActor build error
-- [ ] Fix `AppConfigStoreLifecycleTests` flaky tests — serialize tests that share `~/.openclaw/openclaw.json`
-
-### Phase B: P0 Bug Documentation Tests
-1. `AppStateMiscTests.swift` — add `updateBead` bd-close test (closes AB-36j, AB-0mn)
-2. `AppStateOpenClawErrorTests.swift` — add `loadChatHistory` connected-but-failed test
-3. `KeychainServiceTests.swift` — add real Keychain delete/round-trip tests
-
-### Phase C: AppState Async Loop Tests (New file)
-- `AppStateConnectionLoopTests.swift` — retry backoff, non-retryable exit, error toast
-- `AppStateSessionMonitorLoopTests.swift` — polling behavior, git refresh tick
-
-### Phase D: Upgrade Shallow UI Tests
-Convert `AgentBoardUITests.swift` tests to verify actual state changes post-action.
-
----
-
-## Quality Gates
-
-```bash
-# Build (must be clean):
-xcodebuild build -scheme AgentBoard -destination 'platform=macOS' \
-  CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
-
-# Unit tests (must pass):
-xcodebuild test -scheme AgentBoard -destination 'platform=macOS' \
-  -only-testing:AgentBoardTests \
-  CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
-
-# Lint:
-swiftlint lint --strict
-```
-
----
-
-## Technical Constraints
-
-- Swift 6 + `SWIFT_STRICT_CONCURRENCY = complete` — new tests must handle `@MainActor`, `Sendable`, actor isolation
-- New unit tests: Swift Testing (`@Test`, `#expect`, `@Suite`)
-- UI tests: XCTest (`XCTestCase`) — Swift Testing cannot drive `XCUIApplication`
-- `project.yml` is source of truth — run `xcodegen generate` after adding test files
-- All tests must pass with `CODE_SIGN_IDENTITY=""` (headless CI)
+## Verification Criteria
+- [ ] Test target compiles (no errors)
+- [ ] All new + existing tests pass
+- [ ] MockURLProtocol deduplicated
+- [ ] JSON fixtures updated for new fields
+- [ ] Every feature from #12, #13, #14 has unit tests
+- [ ] Backlog filter logic verified
+- [ ] Changes committed and pushed

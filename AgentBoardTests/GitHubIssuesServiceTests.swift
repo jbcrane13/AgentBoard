@@ -2,60 +2,7 @@
 import Foundation
 import Testing
 
-// MARK: - URLProtocol Mock
-
-// @unchecked Sendable is intentional: requestHandler is set from the same thread that
-// drives each test, and Swift Testing runs @Test functions serially by default.
-// This follows the same pattern as JSONPayload/GatewayEvent in GatewayClient.swift.
-
-final class MockURLProtocol: URLProtocol, @unchecked Sendable {
-    nonisolated(unsafe) static var requestHandler: ((URLRequest) throws -> (HTTPURLResponse, Data))?
-
-    override static func canInit(with _: URLRequest) -> Bool {
-        true
-    }
-
-    override static func canonicalRequest(for request: URLRequest) -> URLRequest {
-        request
-    }
-
-    override func startLoading() {
-        guard let handler = MockURLProtocol.requestHandler else {
-            client?.urlProtocol(
-                self,
-                didFailWithError:
-                NSError(
-                    domain: "MockURLProtocol",
-                    code: 0,
-                    userInfo: [NSLocalizedDescriptionKey: "No handler set"]
-                )
-            )
-            return
-        }
-        do {
-            let (response, data) = try handler(request)
-            client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-            client?.urlProtocol(self, didLoad: data)
-            client?.urlProtocolDidFinishLoading(self)
-        } catch {
-            client?.urlProtocol(self, didFailWithError: error)
-        }
-    }
-
-    override func stopLoading() {}
-}
-
-// MARK: - Helpers
-
-private func makeMockSession() -> URLSession {
-    let config = URLSessionConfiguration.ephemeral
-    config.protocolClasses = [MockURLProtocol.self]
-    return URLSession(configuration: config)
-}
-
-private func mockResponse(statusCode: Int, url: URL) -> HTTPURLResponse {
-    HTTPURLResponse(url: url, statusCode: statusCode, httpVersion: nil, headerFields: nil)!
-}
+// MockURLProtocol, makeMockSession(), and mockResponse() are in TestHelpers/MockURLProtocol.swift
 
 private let sampleOpenIssueJSON = """
 [
@@ -65,6 +12,8 @@ private let sampleOpenIssueJSON = """
     "body": "The widget is broken.",
     "state": "open",
     "labels": [{"name": "bug"}, {"name": "priority:high"}],
+    "assignees": [{"login": "jbcrane13"}],
+    "milestone": {"number": 1, "title": "v2.1"},
     "created_at": "2026-01-01T10:00:00Z",
     "updated_at": "2026-01-02T12:00:00Z"
   }
@@ -79,6 +28,8 @@ private let sampleClosedIssueJSON = """
     "body": null,
     "state": "closed",
     "labels": [{"name": "feature"}],
+    "assignees": [],
+    "milestone": null,
     "created_at": "2025-12-01T00:00:00Z",
     "updated_at": "2025-12-15T00:00:00Z"
   }
@@ -93,7 +44,7 @@ private func singleIssueJSON(
 ) -> String {
     """
     [{"number":\(number),"title":"\(title)","body":null,"state":"\(state)",
-      "labels":[{"name":"\(labelName)"}],
+      "labels":[{"name":"\(labelName)"}],"assignees":[],"milestone":null,
       "created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}]
     """
 }
@@ -197,7 +148,7 @@ struct GitHubIssuesServiceTests {
             let items = (start ..< (start + count)).map { n in
                 """
                 {"number":\(n),"title":"Issue \(n)","body":null,"state":"open",
-                 "labels":[],"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}
+                 "labels":[],"assignees":[],"milestone":null,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}
                 """
             }.joined(separator: ",")
             return "[\(items)]"
@@ -276,7 +227,7 @@ struct GitHubIssuesServiceTests {
 
         let createdIssueJSON = """
         {"number":77,"title":"New issue","body":"Description here","state":"open",
-         "labels":[{"name":"feature"}],
+         "labels":[{"name":"feature"}],"assignees":[],"milestone":null,
          "created_at":"2026-03-01T00:00:00Z","updated_at":"2026-03-01T00:00:00Z"}
         """
 
@@ -310,7 +261,7 @@ struct GitHubIssuesServiceTests {
 
         let updatedIssueJSON = """
         {"number":42,"title":"Updated title","body":"Updated body","state":"closed",
-         "labels":[{"name":"bug"}],
+         "labels":[{"name":"bug"}],"assignees":[],"milestone":null,
          "created_at":"2026-01-01T00:00:00Z","updated_at":"2026-03-17T00:00:00Z"}
         """
 
@@ -325,7 +276,8 @@ struct GitHubIssuesServiceTests {
 
         let bead = try await service.updateIssue(
             owner: "o", repo: "r", token: "t",
-            number: 42, title: "Updated title", body: "Updated body", state: "closed"
+            number: 42, title: "Updated title", body: "Updated body",
+            labels: ["bug"], state: "closed"
         )
 
         #expect(capturedMethod == "PATCH")
@@ -345,3 +297,6 @@ struct GitHubIssuesServiceTests {
         #expect(GitHubIssuesService.issueNumber(from: "") == nil)
     }
 }
+
+// Extended tests (assignees, milestones, state filtering) are in
+// GitHubIssuesServiceExtendedTests.swift to stay within lint limits.
