@@ -61,10 +61,12 @@ enum ShellCommand {
             throw ShellCommandError.executableNotFound
         }
 
-        process.waitUntilExit()
-
+        // Read pipe data BEFORE waitUntilExit to avoid deadlock when output
+        // exceeds the ~64KB pipe buffer (e.g. `ps -axo` with many processes).
         let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
         let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+
+        process.waitUntilExit()
 
         let stdout = String(data: stdoutData, encoding: .utf8) ?? ""
         let stderr = String(data: stderrData, encoding: .utf8) ?? ""
