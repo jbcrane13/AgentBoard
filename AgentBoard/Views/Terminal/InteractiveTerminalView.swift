@@ -18,6 +18,7 @@ struct InteractiveTerminalView: NSViewRepresentable {
         let extraPaths = ["/opt/homebrew/bin", "/opt/homebrew/sbin"]
         let currentPath = env["PATH"] ?? "/usr/bin:/bin"
         env["PATH"] = (extraPaths + [currentPath]).joined(separator: ":")
+        env["TERM"] = "xterm-256color"
 
         terminalView.startProcess(
             executable: "/usr/bin/env",
