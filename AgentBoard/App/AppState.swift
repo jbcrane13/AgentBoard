@@ -1342,6 +1342,7 @@ final class AppState {
 
             rebuildHistoryEvents()
         } catch {
+            NSLog("[SessionMonitor] ERROR: %@", error.localizedDescription)
             sessions = []
             if !SessionMonitor.isMissingTmuxServer(error: error) {
                 setError(error.localizedDescription)

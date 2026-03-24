@@ -248,12 +248,17 @@ actor SessionMonitor {
         return cpuPercent > 0.1 ? .running : .idle
     }
 
+    /// Delimiter used in tmux format strings. Using `|||` instead of `\t` because
+    /// the tab escape is unreliable when passed through Process arguments on macOS.
+    private static let tmuxDelimiter = "|||"
+
     private func listSessionRows() async throws -> [SessionRow] {
+        let delim = Self.tmuxDelimiter
         let result: ShellCommandResult
         do {
             result = try await runTmux(arguments: [
                 "list-sessions",
-                "-F", "#{session_name}\t#{session_created}\t#{session_attached}"
+                "-F", "#{session_name}\(delim)#{session_created}\(delim)#{session_attached}"
             ])
         } catch {
             if Self.isMissingTmuxServer(error: error) {
@@ -265,9 +270,9 @@ actor SessionMonitor {
         return result.stdout
             .split(whereSeparator: \.isNewline)
             .compactMap { line -> SessionRow? in
-                let columns = line.split(separator: "\t", omittingEmptySubsequences: false)
+                let columns = String(line).components(separatedBy: delim)
                 guard columns.count >= 3 else { return nil }
-                let name = String(columns[0])
+                let name = columns[0]
                 guard !name.isEmpty else { return nil }
                 let createdEpoch = TimeInterval(columns[1]) ?? Date().timeIntervalSince1970
                 let isAttached = Int(columns[2]) ?? 0 > 0
@@ -276,12 +281,13 @@ actor SessionMonitor {
     }
 
     private func listPaneRows() async throws -> [PaneRow] {
+        let delim = Self.tmuxDelimiter
         let result: ShellCommandResult
         do {
             result = try await runTmux(arguments: [
                 "list-panes",
                 "-a",
-                "-F", "#{session_name}\t#{pane_pid}\t#{pane_current_path}\t#{pane_current_command}"
+                "-F", "#{session_name}\(delim)#{pane_pid}\(delim)#{pane_current_path}\(delim)#{pane_current_command}"
             ])
         } catch {
             if Self.isMissingTmuxServer(error: error) {
@@ -293,7 +299,7 @@ actor SessionMonitor {
         return result.stdout
             .split(whereSeparator: \.isNewline)
             .compactMap { line -> PaneRow? in
-                let columns = line.split(separator: "\t", omittingEmptySubsequences: false)
+                let columns = String(line).components(separatedBy: delim)
                 guard columns.count >= 4 else { return nil }
                 guard let panePID = Int(columns[1]) else { return nil }
                 return PaneRow(
