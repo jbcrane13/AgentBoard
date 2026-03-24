@@ -1,5 +1,5 @@
-import SwiftUI
 import SwiftTerm
+import SwiftUI
 
 /// Embeds a SwiftTerm LocalProcessTerminalView that attaches to an existing
 /// tmux session by running `tmux attach-session -t <sessionID>`.
@@ -8,20 +8,27 @@ import SwiftTerm
 struct InteractiveTerminalView: NSViewRepresentable {
     let sessionID: String
 
-    func makeNSView(context: Context) -> LocalProcessTerminalView {
+    func makeNSView(context _: Context) -> LocalProcessTerminalView {
         let terminalView = LocalProcessTerminalView(frame: .zero)
         terminalView.configureNativeColors()
         let socketPath = "/tmp/openclaw-tmux-sockets/openclaw.sock"
+
+        // Build environment with Homebrew paths so tmux (and agent CLIs) are found.
+        var env = ProcessInfo.processInfo.environment
+        let extraPaths = ["/opt/homebrew/bin", "/opt/homebrew/sbin"]
+        let currentPath = env["PATH"] ?? "/usr/bin:/bin"
+        env["PATH"] = (extraPaths + [currentPath]).joined(separator: ":")
+
         terminalView.startProcess(
             executable: "/usr/bin/env",
             args: ["tmux", "-S", socketPath, "attach-session", "-t", sessionID],
-            environment: nil,
+            environment: env.map { "\($0.key)=\($0.value)" },
             execName: nil
         )
         return terminalView
     }
 
-    func updateNSView(_ nsView: LocalProcessTerminalView, context: Context) {
+    func updateNSView(_: LocalProcessTerminalView, context _: Context) {
         // SwiftTerm propagates NSView bounds changes to the PTY automatically.
     }
 }
