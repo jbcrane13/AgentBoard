@@ -199,7 +199,7 @@ actor GitHubIssuesService {
 
     // MARK: - Add Comment
 
-    private func addComment(owner: String, repo: String, token: String, number: Int, body: String) async throws {
+    func addComment(owner: String, repo: String, token: String, number: Int, body: String) async throws {
         let url = try buildURL(owner: owner, repo: repo, endpoint: "issues/\(number)/comments")
         var request = authorizedRequest(url: url, token: token)
         request.httpMethod = "POST"
@@ -207,6 +207,68 @@ actor GitHubIssuesService {
         request.httpBody = try JSONSerialization.data(withJSONObject: ["body": body])
         let (data, response) = try await session.data(for: request)
         try validateResponse(response, data: data)
+    }
+
+    // MARK: - Attachments
+
+    /// Uploads a file to the repo and adds a comment linking it on the issue.
+    /// Files are stored at `.github/agentboard-attachments/<issue>/<filename>`.
+    /// Returns the raw download URL of the uploaded file.
+    struct AttachmentRequest {
+        let owner: String
+        let repo: String
+        let token: String
+        let issueNumber: Int
+        let fileName: String
+        let fileData: Data
+    }
+
+    @discardableResult
+    func uploadAttachment(_ request: AttachmentRequest) async throws -> String {
+        let owner = request.owner
+        let repo = request.repo
+        let token = request.token
+        let issueNumber = request.issueNumber
+        let fileName = request.fileName
+        let fileData = request.fileData
+        let safeName = fileName.replacingOccurrences(of: " ", with: "-")
+        let path = ".github/agentboard-attachments/\(issueNumber)/\(safeName)"
+
+        // PUT /repos/{owner}/{repo}/contents/{path}
+        let url = try buildURL(owner: owner, repo: repo, endpoint: "contents/\(path)")
+        var request = authorizedRequest(url: url, token: token)
+        request.httpMethod = "PUT"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let base64Content = fileData.base64EncodedString()
+        let payload: [String: Any] = [
+            "message": "attach \(safeName) to issue #\(issueNumber)",
+            "content": base64Content
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+
+        let (data, response) = try await session.data(for: request)
+        try validateResponse(response, data: data)
+
+        // Parse the download_url from the response
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let content = json["content"] as? [String: Any],
+              let downloadURL = content["download_url"] as? String else {
+            throw GitHubError.invalidResponse
+        }
+
+        // Add a comment on the issue with the attachment
+        let isImage = ["png", "jpg", "jpeg", "gif", "webp", "svg"]
+            .contains(where: { safeName.lowercased().hasSuffix($0) })
+        let commentBody = isImage
+            ? "![attachment: \(safeName)](\(downloadURL))"
+            : "[\(safeName)](\(downloadURL))"
+        try await addComment(
+            owner: owner, repo: repo, token: token,
+            number: issueNumber, body: commentBody
+        )
+
+        return downloadURL
     }
 
     // MARK: - Fetch Milestones

@@ -1156,6 +1156,33 @@ final class AppState {
         }
     }
 
+    func attachFileToIssue(_ bead: Bead, fileURL: URL) async -> String? {
+        guard let number = GitHubIssuesService.issueNumber(from: bead.id),
+              let (owner, repo, token) = githubConfig else {
+            setError("Cannot attach files to non-GitHub issues.")
+            return nil
+        }
+        do {
+            let data = try Data(contentsOf: fileURL)
+            let fileName = fileURL.lastPathComponent
+            let downloadURL = try await gitHubService.uploadAttachment(
+                .init(
+                    owner: owner,
+                    repo: repo,
+                    token: token,
+                    issueNumber: number,
+                    fileName: fileName,
+                    fileData: data
+                )
+            )
+            statusMessage = "Attached \(fileName) to #\(number)."
+            return downloadURL
+        } catch {
+            setError("Failed to attach file: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
     func deleteBead(_ bead: Bead) async {
         // GitHub issues cannot be deleted — close them instead
         if GitHubIssuesService.issueNumber(from: bead.id) != nil, githubConfig != nil {

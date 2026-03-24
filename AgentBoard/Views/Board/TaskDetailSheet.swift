@@ -10,6 +10,9 @@ struct TaskDetailSheet: View {
     @State private var showCloseConfirm = false
     @State private var showDeleteConfirm = false
     @State private var isSaving = false
+    @State private var isAttaching = false
+    @State private var showFilePicker = false
+    @State private var attachedURLs: [String] = []
 
     init(bead: Bead, onDismiss: @escaping () -> Void) {
         self.bead = bead
@@ -28,6 +31,7 @@ struct TaskDetailSheet: View {
                     metadataSection
                     labelsSection
                     descriptionSection
+                    attachmentsSection
                     datesSection
                     closeSection
                 }
@@ -37,7 +41,14 @@ struct TaskDetailSheet: View {
             Divider()
             sheetFooter
         }
-        .frame(minWidth: 560, idealWidth: 620, minHeight: 580, idealHeight: 680)
+        .frame(
+            minWidth: 560,
+            idealWidth: 620,
+            maxWidth: 720,
+            minHeight: 400,
+            idealHeight: 600,
+            maxHeight: 680
+        )
     }
 
     // MARK: - Header
@@ -242,9 +253,127 @@ struct TaskDetailSheet: View {
         }
     }
 
-    // MARK: - Dates (read-only)
+    // MARK: - Attachments
 
-    private var datesSection: some View {
+    private var attachmentsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Attachments")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
+
+            if !attachedURLs.isEmpty {
+                ForEach(attachedURLs, id: \.self) { urlString in
+                    HStack(spacing: 6) {
+                        Image(systemName: "paperclip")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.secondary)
+                        Text(URL(string: urlString)?.lastPathComponent ?? urlString)
+                            .font(.system(size: 12))
+                            .foregroundStyle(.blue)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+                }
+            }
+
+            HStack(spacing: 8) {
+                Button {
+                    showFilePicker = true
+                } label: {
+                    Label(
+                        isAttaching ? "Uploading..." : "Attach File",
+                        systemImage: "paperclip"
+                    )
+                    .font(.system(size: 12))
+                }
+                .buttonStyle(.bordered)
+                .disabled(isAttaching || !appState.isGitHubConfigured)
+                .accessibilityIdentifier("task_detail_button_attach")
+
+                Button {
+                    attachFromClipboard()
+                } label: {
+                    Label("Paste Screenshot", systemImage: "doc.on.clipboard")
+                        .font(.system(size: 12))
+                }
+                .buttonStyle(.bordered)
+                .disabled(isAttaching || !appState.isGitHubConfigured)
+                .accessibilityIdentifier("task_detail_button_paste_screenshot")
+            }
+
+            if !appState.isGitHubConfigured {
+                Text("GitHub must be configured to attach files.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .fileImporter(
+            isPresented: $showFilePicker,
+            allowedContentTypes: [.item],
+            allowsMultipleSelection: false
+        ) { result in
+            guard case let .success(urls) = result, let url = urls.first else { return }
+            attachFile(url)
+        }
+    }
+
+    private func attachFile(_ fileURL: URL) {
+        guard !isAttaching else { return }
+        isAttaching = true
+        let beadToAttach = bead
+        Task<Void, Never> { @MainActor in
+            if let downloadURL = await appState.attachFileToIssue(beadToAttach, fileURL: fileURL) {
+                attachedURLs.append(downloadURL)
+            }
+            isAttaching = false
+        }
+    }
+
+    private func attachFromClipboard() {
+        guard let pasteboard = NSPasteboard.general.pasteboardItems?.first else { return }
+
+        // Check for image data on the clipboard
+        let imageTypes: [NSPasteboard.PasteboardType] = [.png, .tiff]
+        for imageType in imageTypes {
+            if let data = pasteboard.data(forType: imageType) {
+                let tempURL = FileManager.default.temporaryDirectory
+                    .appendingPathComponent("clipboard-\(Int(Date().timeIntervalSince1970)).png")
+                do {
+                    // Convert TIFF to PNG if needed
+                    let pngData: Data
+                    if imageType == .tiff, let image = NSImage(data: data),
+                       let tiffRep = image.tiffRepresentation,
+                       let bitmapRep = NSBitmapImageRep(data: tiffRep),
+                       let converted = bitmapRep.representation(using: .png, properties: [:]) {
+                        pngData = converted
+                    } else {
+                        pngData = data
+                    }
+                    try pngData.write(to: tempURL)
+                    attachFile(tempURL)
+                } catch {
+                    appState.setError("Failed to read clipboard: \(error.localizedDescription)")
+                }
+                return
+            }
+        }
+
+        // Check for file URLs on the clipboard
+        if let urlString = pasteboard.string(forType: .fileURL),
+           let url = URL(string: urlString) {
+            attachFile(url)
+            return
+        }
+
+        appState.setError("No image or file found on clipboard.")
+    }
+}
+
+// MARK: - Dates, Close, Footer sections (outside struct body for lint compliance)
+
+extension TaskDetailSheet {
+    var datesSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Timestamps")
                 .font(.system(size: 11, weight: .semibold))
@@ -277,7 +406,7 @@ struct TaskDetailSheet: View {
 
     // MARK: - Actions Section
 
-    private var closeSection: some View {
+    var closeSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Close
             if bead.status != .done {
@@ -356,7 +485,7 @@ struct TaskDetailSheet: View {
 
     // MARK: - Footer
 
-    private var sheetFooter: some View {
+    var sheetFooter: some View {
         HStack(spacing: 8) {
             if let deps = dependencyText {
                 Text(deps)
@@ -392,7 +521,7 @@ struct TaskDetailSheet: View {
 
     // MARK: - Helpers
 
-    private var kindBadge: some View {
+    var kindBadge: some View {
         Text(draft.kind.rawValue.capitalized)
             .font(.system(size: 10, weight: .semibold))
             .padding(.horizontal, 7)
@@ -401,7 +530,7 @@ struct TaskDetailSheet: View {
             .foregroundStyle(draft.kind.color)
     }
 
-    private var priorityBadge: some View {
+    var priorityBadge: some View {
         let color = priorityColor(for: draft.priority)
         return Text("P\(draft.priority)")
             .font(.system(size: 10, weight: .bold))
@@ -411,12 +540,12 @@ struct TaskDetailSheet: View {
             .foregroundStyle(color)
     }
 
-    private var dependencyText: String? {
+    var dependencyText: String? {
         guard !bead.dependencies.isEmpty else { return nil }
         return "Depends on: \(bead.dependencies.joined(separator: ", "))"
     }
 
-    private func statusLabel(_ status: BeadStatus) -> String {
+    func statusLabel(_ status: BeadStatus) -> String {
         switch status {
         case .open: "Open"
         case .inProgress: "In Progress"
