@@ -1303,15 +1303,6 @@ final class AppState {
     private func refreshSessionsFromMonitor() async {
         do {
             let updatedSessions = try await sessionMonitor.listSessions()
-            if updatedSessions.isEmpty {
-                NSLog("[SessionMonitor] listSessions returned 0 sessions")
-            } else {
-                NSLog(
-                    "[SessionMonitor] Found %d sessions: %@",
-                    updatedSessions.count,
-                    updatedSessions.map(\.id).joined(separator: ", ")
-                )
-            }
             let previousStatusByID = sessionStatusByID
             sessionStatusByID = Dictionary(uniqueKeysWithValues: updatedSessions.map { ($0.id, $0.status) })
 
@@ -1351,7 +1342,6 @@ final class AppState {
 
             rebuildHistoryEvents()
         } catch {
-            NSLog("[SessionMonitor] ERROR in refreshSessionsFromMonitor: %@", error.localizedDescription)
             sessions = []
             if !SessionMonitor.isMissingTmuxServer(error: error) {
                 setError(error.localizedDescription)
