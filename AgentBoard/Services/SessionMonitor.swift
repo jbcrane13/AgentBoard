@@ -8,7 +8,7 @@ enum SessionMonitorError: LocalizedError {
         switch self {
         case .invalidSessionName:
             return "Unable to create a valid tmux session name."
-        case .launchFailed(let message):
+        case let .launchFailed(message):
             return message
         }
     }
@@ -85,11 +85,12 @@ actor SessionMonitor {
                 name: sessionRow.name,
                 agentType: detectedAgentType,
                 projectPath: projectPath,
-                beadId: extractBeadID(from: sessionRow.name),
+                beadId: Self.extractBeadID(from: sessionRow.name),
+                linkedIssueNumber: Self.extractIssueNumber(from: sessionRow.name),
                 status: status,
                 startedAt: createdDate,
                 elapsed: elapsed,
-                model: selectedProcess.flatMap { parseModel(from: $0.command) },
+                model: selectedProcess.flatMap { Self.parseModel(from: $0.command) },
                 processID: pane?.panePID,
                 cpuPercent: cpuPercent
             )
@@ -126,7 +127,7 @@ actor SessionMonitor {
     func launchSession(
         projectPath: URL,
         agentType: AgentType,
-        beadID: String?,
+        issueNumber: Int?,
         prompt: String?
     ) async throws -> String {
         let socketDir = URL(fileURLWithPath: tmuxSocketPath).deletingLastPathComponent()
@@ -137,18 +138,25 @@ actor SessionMonitor {
                 attributes: nil
             )
         } catch {
-            throw SessionMonitorError.launchFailed("Failed to create tmux socket directory: \(error.localizedDescription)")
+            throw SessionMonitorError
+                .launchFailed("Failed to create tmux socket directory: \(error.localizedDescription)")
         }
 
         let projectSlug = Self.slug(from: projectPath.lastPathComponent)
-        let contextSlug = Self.slug(from: beadID ?? String(Int(Date().timeIntervalSince1970)))
+        let contextSlug: String
+        if let issueNumber {
+            contextSlug = "gh\(issueNumber)"
+        } else {
+            contextSlug = String(Int(Date().timeIntervalSince1970))
+        }
         var sessionName = "ab-\(projectSlug)-\(contextSlug)"
         if sessionName == "ab--" {
             throw SessionMonitorError.invalidSessionName
         }
 
         var isDirectory: ObjCBool = false
-        guard FileManager.default.fileExists(atPath: projectPath.path, isDirectory: &isDirectory), isDirectory.boolValue else {
+        guard FileManager.default.fileExists(atPath: projectPath.path, isDirectory: &isDirectory),
+              isDirectory.boolValue else {
             throw SessionMonitorError.launchFailed("Project path does not exist: \(projectPath.path)")
         }
 
@@ -157,29 +165,30 @@ actor SessionMonitor {
         // Only run collision checks when the socket already exists.
         if FileManager.default.fileExists(atPath: tmuxSocketPath),
            try await sessionExists(sessionName) {
-            sessionName += "-\(Int(Date().timeIntervalSince1970) % 10_000)"
+            sessionName += "-\(Int(Date().timeIntervalSince1970) % 10000)"
         }
 
-        let launchCommand = command(for: agentType)
+        let agentCommand = commandParts(for: agentType)
 
+        // Create the tmux session with the default shell (no command argument).
+        // This lets the user's shell profile source normally, ensuring PATH includes
+        // agent CLIs like ~/.claude/bin/claude. We then send the agent command via
+        // send-keys so it runs inside the fully-configured shell.
         do {
             _ = try await runTmux(arguments: [
                 "new-session",
                 "-d",
                 "-s", sessionName,
-                "-c", projectPath.path,
-                launchCommand
+                "-c", projectPath.path
             ])
         } catch let error as ShellCommandError {
             let errorMsg: String
             switch error {
             case .executableNotFound:
                 errorMsg = "tmux command not found. Please install tmux."
-            case .failed(let result):
+            case let .failed(result):
                 let output = result.combinedOutput
-                if output.contains("command not found") || output.contains("not found") {
-                    errorMsg = "Agent command '\(launchCommand)' not found. Please ensure \(agentType.rawValue) is installed and in PATH."
-                } else if output.contains("No such file or directory") {
+                if output.contains("No such file or directory") {
                     errorMsg = "Project path not found: \(projectPath.path)"
                 } else {
                     errorMsg = "Failed to launch session: \(output)"
@@ -190,18 +199,39 @@ actor SessionMonitor {
             throw SessionMonitorError.launchFailed(error.localizedDescription)
         }
 
-        let trimmedPrompt = (prompt ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        let seedPrompt: String
-        if let beadID, !beadID.isEmpty, !trimmedPrompt.isEmpty {
-            seedPrompt = "[\(beadID)] \(trimmedPrompt)"
-        } else if let beadID, !beadID.isEmpty {
-            seedPrompt = "Continue work for bead \(beadID)."
-        } else {
-            seedPrompt = trimmedPrompt
-        }
+        try await sendAgentCommand(
+            sessionName: sessionName,
+            agentCommand: agentCommand,
+            issueNumber: issueNumber,
+            prompt: prompt
+        )
 
+        return sessionName
+    }
+
+    private func sendAgentCommand(
+        sessionName: String,
+        agentCommand: [String],
+        issueNumber: Int?,
+        prompt: String?
+    ) async throws {
+        // Brief delay for the shell to initialize before sending commands.
+        try? await Task.sleep(nanoseconds: 300_000_000)
+
+        // Send the agent command into the session's shell.
+        let agentCommandString = agentCommand.joined(separator: " ")
+        _ = try await runTmux(arguments: [
+            "send-keys",
+            "-t", sessionName,
+            agentCommandString,
+            "C-m"
+        ])
+
+        // Build and send the seed prompt if one was provided or an issue is linked.
+        let seedPrompt = Self.buildSeedPrompt(issueNumber: issueNumber, prompt: prompt)
         if !seedPrompt.isEmpty {
-            try? await Task.sleep(nanoseconds: 300_000_000)
+            // Wait for the agent CLI to start and be ready for input.
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
             _ = try await runTmux(arguments: [
                 "send-keys",
                 "-t", sessionName,
@@ -209,8 +239,6 @@ actor SessionMonitor {
                 "C-m"
             ])
         }
-
-        return sessionName
     }
 
     private func resolveStatus(hasAgentProcess: Bool, isAttached: Bool, cpuPercent: Double) -> SessionStatus {
@@ -343,43 +371,14 @@ actor SessionMonitor {
         return URL(fileURLWithPath: path, isDirectory: true)
     }
 
-    private func parseModel(from command: String) -> String? {
-        let tokens = command.split(whereSeparator: \.isWhitespace).map(String.init)
-        for (index, token) in tokens.enumerated() {
-            if token == "--model", index + 1 < tokens.count {
-                return tokens[index + 1]
-            }
-            if token == "-m", index + 1 < tokens.count {
-                return tokens[index + 1]
-            }
-            if token.hasPrefix("--model=") {
-                return String(token.dropFirst("--model=".count))
-            }
-        }
-        return nil
-    }
-
-    private func extractBeadID(from text: String) -> String? {
-        let pattern = #"\b[A-Za-z][A-Za-z0-9_-]*-[A-Za-z0-9.]+\b"#
-        guard let regex = try? NSRegularExpression(pattern: pattern) else {
-            return nil
-        }
-        let nsRange = NSRange(text.startIndex..<text.endIndex, in: text)
-        guard let match = regex.firstMatch(in: text, range: nsRange),
-              let range = Range(match.range, in: text) else {
-            return nil
-        }
-        return String(text[range])
-    }
-
-    private func command(for agentType: AgentType) -> String {
+    private func commandParts(for agentType: AgentType) -> [String] {
         switch agentType {
         case .claudeCode:
-            return "claude --dangerously-skip-permissions"
+            return ["claude", "--dangerously-skip-permissions"]
         case .codex:
-            return "codex"
+            return ["codex"]
         case .openCode:
-            return "opencode"
+            return ["opencode"]
         }
     }
 
@@ -390,7 +389,7 @@ actor SessionMonitor {
         } catch {
             if let commandError = error as? ShellCommandError {
                 switch commandError {
-                case .failed(let result):
+                case let .failed(result):
                     if Self.isMissingSessionQueryMessage(result.stderr)
                         || Self.isMissingSessionQueryMessage(result.stdout) {
                         return false
@@ -451,6 +450,64 @@ actor SessionMonitor {
             options: .regularExpression
         )
         return replaced.trimmingCharacters(in: CharacterSet(charactersIn: "-"))
+    }
+}
+
+// MARK: - Static Helpers (outside actor body for lint compliance)
+
+extension SessionMonitor {
+    /// Extracts a GitHub issue number from a session name (e.g. "ab-agentboard-gh16" → 16).
+    static func extractIssueNumber(from sessionName: String) -> Int? {
+        let pattern = #"\bgh(\d+)\b"#
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) else {
+            return nil
+        }
+        let nsRange = NSRange(sessionName.startIndex ..< sessionName.endIndex, in: sessionName)
+        guard let match = regex.firstMatch(in: sessionName, range: nsRange),
+              match.numberOfRanges >= 2,
+              let range = Range(match.range(at: 1), in: sessionName) else {
+            return nil
+        }
+        return Int(sessionName[range])
+    }
+
+    static func buildSeedPrompt(issueNumber: Int?, prompt: String?) -> String {
+        let trimmedPrompt = (prompt ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if let issueNumber, !trimmedPrompt.isEmpty {
+            return "[GH-\(issueNumber)] \(trimmedPrompt)"
+        } else if let issueNumber {
+            return "Continue work for GitHub issue #\(issueNumber)."
+        }
+        return trimmedPrompt
+    }
+
+    static func parseModel(from command: String) -> String? {
+        let tokens = command.split(whereSeparator: \.isWhitespace).map(String.init)
+        for (index, token) in tokens.enumerated() {
+            if token == "--model", index + 1 < tokens.count {
+                return tokens[index + 1]
+            }
+            if token == "-m", index + 1 < tokens.count {
+                return tokens[index + 1]
+            }
+            if token.hasPrefix("--model=") {
+                return String(token.dropFirst("--model=".count))
+            }
+        }
+        return nil
+    }
+
+    static func extractBeadID(from text: String) -> String? {
+        let pattern = #"\b[A-Za-z][A-Za-z0-9_-]*-[A-Za-z0-9.]+\b"#
+        guard let regex = try? NSRegularExpression(pattern: pattern) else {
+            return nil
+        }
+        let nsRange = NSRange(text.startIndex ..< text.endIndex, in: text)
+        guard let match = regex.firstMatch(in: text, range: nsRange),
+              let range = Range(match.range, in: text) else {
+            return nil
+        }
+        return String(text[range])
     }
 }
 

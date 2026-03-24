@@ -343,7 +343,25 @@ struct AllProjectsIssueRow: View {
 
 struct CrossRepoIssueDetailSheet: View {
     let issue: CrossRepoIssue
+    @Environment(AppState.self) private var appState
     @Environment(\.dismiss) private var dismiss
+    @State private var showingNewSessionSheet = false
+
+    /// The project matching this issue's repo, used for session launching.
+    private var matchedProject: Project? {
+        appState.projects.first(where: { $0.name == issue.projectName })
+    }
+
+    /// The GitHub issue number parsed from the bead ID.
+    private var issueNumber: Int? {
+        GitHubIssuesService.issueNumber(from: issue.bead.id)
+    }
+
+    /// Active sessions linked to this issue number.
+    private var linkedSessions: [CodingSession] {
+        guard let issueNumber else { return [] }
+        return appState.sessions.filter { $0.linkedIssueNumber == issueNumber }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -351,7 +369,7 @@ struct CrossRepoIssueDetailSheet: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 8) {
-                        Text(issue.bead.id)
+                        Text("#\(issue.bead.id)")
                             .font(.system(size: 11, design: .monospaced))
                             .foregroundStyle(.secondary)
                         AllProjectsIssueRow.staticProjectBadge(issue.projectName)
@@ -398,6 +416,40 @@ struct CrossRepoIssueDetailSheet: View {
                         }
                     }
 
+                    // Linked sessions
+                    if !linkedSessions.isEmpty {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Active Sessions")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(.secondary)
+
+                            ForEach(linkedSessions) { session in
+                                Button {
+                                    dismiss()
+                                    appState.openSessionInTerminal(session)
+                                } label: {
+                                    HStack(spacing: 6) {
+                                        Circle()
+                                            .fill(AppTheme.sessionColor(for: session.status))
+                                            .frame(width: 7, height: 7)
+                                        Text(session.name)
+                                            .font(.system(size: 12, design: .monospaced))
+                                            .lineLimit(1)
+                                        Spacer()
+                                        Image(systemName: "terminal")
+                                            .font(.system(size: 10))
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 6)
+                                    .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 6))
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityIdentifier("crossRepoDetail_button_session_\(session.id)")
+                            }
+                        }
+                    }
+
                     // Body
                     if let body = issue.bead.body, !body.isEmpty {
                         Text(body)
@@ -412,9 +464,35 @@ struct CrossRepoIssueDetailSheet: View {
                 }
                 .padding(20)
             }
+
+            Divider()
+
+            // Action bar
+            HStack {
+                if matchedProject != nil {
+                    Button {
+                        showingNewSessionSheet = true
+                    } label: {
+                        Label("Launch Session", systemImage: "terminal")
+                            .font(.system(size: 13, weight: .medium))
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("crossRepoDetail_button_launch_session")
+                }
+                Spacer()
+            }
+            .padding(16)
         }
-        .frame(width: 500, height: 400)
+        .frame(width: 520, height: 480)
         .background(AppTheme.appBackground)
+        .accessibilityIdentifier("screen_crossRepoDetail")
+        .sheet(isPresented: $showingNewSessionSheet) {
+            NewSessionSheet(
+                initialProjectID: matchedProject?.id,
+                initialIssueNumber: issueNumber,
+                initialPrompt: "Work on #\(issue.bead.id): \(issue.bead.title)"
+            )
+        }
     }
 
     private var statusColor: Color {

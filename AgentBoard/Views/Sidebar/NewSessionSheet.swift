@@ -4,9 +4,14 @@ struct NewSessionSheet: View {
     @Environment(AppState.self) private var appState
     @Environment(\.dismiss) private var dismiss
 
+    /// Optional pre-fill values (e.g. when launching from an issue detail view).
+    var initialProjectID: UUID?
+    var initialIssueNumber: Int?
+    var initialPrompt: String?
+
     @State private var selectedProjectID: UUID?
     @State private var selectedAgentType: AgentType = .claudeCode
-    @State private var beadID = ""
+    @State private var issueNumberText = ""
     @State private var prompt = ""
     @State private var isLaunching = false
 
@@ -31,6 +36,7 @@ struct NewSessionSheet: View {
                         }
                         .pickerStyle(.menu)
                         .labelsHidden()
+                        .accessibilityIdentifier("new_session_picker_project")
                     }
 
                     // Agent
@@ -46,17 +52,18 @@ struct NewSessionSheet: View {
                         }
                         .pickerStyle(.segmented)
                         .labelsHidden()
+                        .accessibilityIdentifier("new_session_picker_agent")
                     }
 
-                    // Linked Bead
+                    // GitHub Issue
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Linked Bead (optional)")
+                        Text("GitHub Issue (optional)")
                             .font(.system(size: 12, weight: .medium))
                             .foregroundStyle(.secondary)
 
-                        TextField("e.g. AB-38b", text: $beadID)
+                        TextField("e.g. 16", text: $issueNumberText)
                             .textFieldStyle(.roundedBorder)
-                            .accessibilityIdentifier("new_session_bead_id_field")
+                            .accessibilityIdentifier("new_session_issue_number_field")
                     }
 
                     // Prompt
@@ -73,6 +80,7 @@ struct NewSessionSheet: View {
                                 RoundedRectangle(cornerRadius: 8)
                                     .stroke(Color.secondary.opacity(0.25), lineWidth: 1)
                             )
+                            .accessibilityIdentifier("new_session_editor_prompt")
                     }
                 }
             }
@@ -93,6 +101,7 @@ struct NewSessionSheet: View {
                     dismiss()
                 }
                 .keyboardShortcut(.cancelAction)
+                .accessibilityIdentifier("new_session_button_cancel")
 
                 Button(isLaunching ? "Launching..." : "Launch") {
                     launch()
@@ -100,6 +109,7 @@ struct NewSessionSheet: View {
                 .buttonStyle(.borderedProminent)
                 .keyboardShortcut(.defaultAction)
                 .disabled(isLaunching || selectedProject == nil)
+                .accessibilityIdentifier("new_session_button_launch")
             }
             .padding(.top, 8)
         }
@@ -107,7 +117,13 @@ struct NewSessionSheet: View {
         .frame(width: 500)
         .frame(minHeight: 500)
         .onAppear {
-            selectedProjectID = appState.selectedProjectID ?? appState.projects.first?.id
+            selectedProjectID = initialProjectID ?? appState.selectedProjectID ?? appState.projects.first?.id
+            if let initialIssueNumber {
+                issueNumberText = String(initialIssueNumber)
+            }
+            if let initialPrompt {
+                prompt = initialPrompt
+            }
             appState.errorMessage = nil
         }
     }
@@ -119,16 +135,21 @@ struct NewSessionSheet: View {
         return appState.selectedProject ?? appState.projects.first
     }
 
+    private var parsedIssueNumber: Int? {
+        let trimmed = issueNumberText.trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "#", with: "")
+        return Int(trimmed)
+    }
+
     private func launch() {
         guard let selectedProject else { return }
         isLaunching = true
 
-        Task { @MainActor in
-            // Always launch as tmux session — visible to user and monitored
+        Task<Void, Never> { @MainActor in
             let success = await appState.launchSession(
                 project: selectedProject,
                 agentType: selectedAgentType,
-                beadID: trimmedValue(beadID),
+                issueNumber: parsedIssueNumber,
                 prompt: trimmedValue(prompt)
             )
             isLaunching = false

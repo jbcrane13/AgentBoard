@@ -49,8 +49,10 @@ struct SessionListView: View {
         HStack(spacing: 6) {
             Image(systemName: "bell.badge.fill")
                 .font(.system(size: 10))
-            Text("\(appState.unreadSessionAlertsCount) session update\(appState.unreadSessionAlertsCount == 1 ? "" : "s")")
-                .font(.system(size: 10, weight: .semibold))
+            Text(
+                "\(appState.unreadSessionAlertsCount) session update\(appState.unreadSessionAlertsCount == 1 ? "" : "s")"
+            )
+            .font(.system(size: 10, weight: .semibold))
             Spacer()
         }
         .foregroundStyle(Color(red: 1.0, green: 0.231, blue: 0.188))
@@ -69,22 +71,25 @@ struct SessionListView: View {
                 Circle()
                     .fill(statusColor(session.status))
                     .frame(width: 7, height: 7)
-                    .shadow(color: session.status == .running
+                    .shadow(
+                        color: session.status == .running
                             ? statusColor(session.status).opacity(0.5)
-                            : .clear, radius: 3)
+                            : .clear,
+                        radius: 3
+                    )
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(session.name)
                         .font(.system(size: 12))
                         .foregroundStyle(isInteractive
-                                         ? AppTheme.sidebarPrimaryText
-                                         : AppTheme.sidebarMutedText)
+                            ? AppTheme.sidebarPrimaryText
+                            : AppTheme.sidebarMutedText)
                         .lineLimit(1)
                         .truncationMode(.tail)
 
                     HStack(spacing: 5) {
-                        if let beadId = session.beadId {
-                            Text(beadId)
+                        if let issueNumber = session.linkedIssueNumber {
+                            Text("#\(issueNumber)")
                                 .font(.system(size: 9, weight: .semibold))
                                 .foregroundStyle(Color.accentColor)
                                 .padding(.horizontal, 4)
@@ -122,8 +127,8 @@ struct SessionListView: View {
             .background(
                 RoundedRectangle(cornerRadius: 6)
                     .fill(appState.activeSessionID == session.id
-                          ? Color.white.opacity(0.12)
-                          : Color.clear)
+                        ? Color.white.opacity(0.12)
+                        : Color.clear)
             )
             .contentShape(Rectangle())
             .opacity(isInteractive ? 1.0 : 0.45)

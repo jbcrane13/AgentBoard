@@ -776,14 +776,14 @@ final class AppState {
     func launchSession(
         project: Project,
         agentType: AgentType,
-        beadID: String?,
+        issueNumber: Int?,
         prompt: String?
     ) async -> Bool {
         do {
             let sessionID = try await sessionMonitor.launchSession(
                 projectPath: project.path,
                 agentType: agentType,
-                beadID: beadID,
+                issueNumber: issueNumber,
                 prompt: prompt
             )
             statusMessage = "Launched session \(sessionID)."
@@ -1189,14 +1189,14 @@ final class AppState {
                 in: project
             )
 
-            // Launch a tmux Claude Code session to work on the bead
-            let prompt = "Work on bead \(bead.id): \(bead.title)"
+            // Launch a tmux Claude Code session to work on the issue
+            let issueNum = GitHubIssuesService.issueNumber(from: bead.id)
+            let prompt = "Work on issue #\(bead.id): \(bead.title)"
                 + (bead.body.map { ". Description: \($0)" } ?? "")
-                + ". When done, run: bd close \(bead.id)"
             let sessionID = try await sessionMonitor.launchSession(
                 projectPath: project.path,
                 agentType: .claudeCode,
-                beadID: bead.id,
+                issueNumber: issueNum,
                 prompt: prompt
             )
 
@@ -1653,11 +1653,12 @@ final class AppState {
         } else {
             sessions = [
                 CodingSession(
-                    id: "ab-alpha-run",
-                    name: "ab-alpha-run",
+                    id: "ab-alpha-gh100",
+                    name: "ab-alpha-gh100",
                     agentType: .codex,
                     projectPath: alpha.path,
-                    beadId: "AB-100",
+                    beadId: "ab-alpha-gh100",
+                    linkedIssueNumber: 100,
                     status: .running,
                     startedAt: .now.addingTimeInterval(-1200),
                     elapsed: 1200,
@@ -1666,11 +1667,12 @@ final class AppState {
                     cpuPercent: 3.4
                 ),
                 CodingSession(
-                    id: "ab-alpha-idle",
-                    name: "ab-alpha-idle",
+                    id: "ab-alpha-gh101",
+                    name: "ab-alpha-gh101",
                     agentType: .claudeCode,
                     projectPath: alpha.path,
-                    beadId: "AB-101",
+                    beadId: "ab-alpha-gh101",
+                    linkedIssueNumber: 101,
                     status: .idle,
                     startedAt: .now.addingTimeInterval(-2400),
                     elapsed: 2400,
@@ -1679,11 +1681,12 @@ final class AppState {
                     cpuPercent: 0.0
                 ),
                 CodingSession(
-                    id: "ab-beta-stopped",
-                    name: "ab-beta-stopped",
+                    id: "ab-beta-1742000000",
+                    name: "ab-beta-1742000000",
                     agentType: .openCode,
                     projectPath: beta.path,
                     beadId: nil,
+                    linkedIssueNumber: nil,
                     status: .stopped,
                     startedAt: .now.addingTimeInterval(-90000),
                     elapsed: 3000,

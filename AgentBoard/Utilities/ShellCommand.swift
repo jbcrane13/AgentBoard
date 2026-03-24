@@ -20,7 +20,7 @@ enum ShellCommandError: LocalizedError {
         switch self {
         case .executableNotFound:
             return "Unable to find shell executable."
-        case .failed(let result):
+        case let .failed(result):
             return result.combinedOutput.isEmpty
                 ? "Command failed with exit code \(result.exitCode)."
                 : result.combinedOutput
@@ -44,7 +44,8 @@ enum ShellCommand {
             "/opt/homebrew/bin",
             "/opt/homebrew/sbin",
             "/usr/local/bin",
-            "\(home)/.local/bin"
+            "\(home)/.local/bin",
+            "\(home)/.claude/bin"
         ]
         env["PATH"] = (extraPaths + [basePath]).joined(separator: ":")
         process.environment = env

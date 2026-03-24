@@ -186,6 +186,7 @@ struct ModelCoverageTests {
             agentType: .codex,
             projectPath: URL(fileURLWithPath: "/tmp/project"),
             beadId: "AB-1",
+            linkedIssueNumber: 1,
             status: .running,
             startedAt: Date(timeIntervalSince1970: 1_700_000_000),
             elapsed: 100,
