@@ -1,6 +1,6 @@
+@testable import AgentBoard
 import Foundation
 import Testing
-@testable import AgentBoard
 
 extension Tag {
     @Tag static var integration: Self
@@ -9,13 +9,11 @@ extension Tag {
 /// Integration tests that exercise SessionMonitor against the real tmux binary.
 /// These tests never start a tmux session that persists — error paths are tested
 /// exclusively, so no cleanup of running sessions is required.
-@Suite("SessionMonitor Integration Tests")
 struct SessionMonitorIntegrationTests {
-
-    // The default socket path mirrors what SessionMonitor uses in production.
-    // We reuse it so listSessions() can reach any already-running openclaw
-    // tmux server if one happens to be present (still valid — returns [] or
-    // live sessions, both are acceptable).
+    /// The default socket path mirrors what SessionMonitor uses in production.
+    /// We reuse it so listSessions() can reach any already-running openclaw
+    /// tmux server if one happens to be present (still valid — returns [] or
+    /// live sessions, both are acceptable).
     private let defaultSocketPath = "/tmp/openclaw-tmux-sockets/openclaw.sock"
 
     // MARK: - listSessions
@@ -57,13 +55,16 @@ struct SessionMonitorIntegrationTests {
             _ = try await monitor.launchSession(
                 projectPath: bogusPath,
                 agentType: .claudeCode,
-                beadID: nil,
+                issueNumber: nil,
                 prompt: nil
             )
         }
     }
 
-    @Test("launchSession throws SessionMonitorError.launchFailed when project path is a file not a directory", .tags(.integration))
+    @Test(
+        "launchSession throws SessionMonitorError.launchFailed when project path is a file not a directory",
+        .tags(.integration)
+    )
     func launchSessionThrowsForInvalidProjectPath() async throws {
         // Create a temporary regular file to use as the "project path".
         let tempDir = FileManager.default.temporaryDirectory
@@ -79,7 +80,7 @@ struct SessionMonitorIntegrationTests {
             _ = try await monitor.launchSession(
                 projectPath: tempFile,
                 agentType: .claudeCode,
-                beadID: nil,
+                issueNumber: nil,
                 prompt: nil
             )
         }
