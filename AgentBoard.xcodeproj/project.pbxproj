@@ -951,6 +951,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"AgentBoard/Resources/Preview Content\"";
 				DEVELOPMENT_TEAM = 32XZRDTGK3;
+				ENABLE_APP_SANDBOX = NO;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = "AgentBoard/AgentBoard-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1115,6 +1116,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"AgentBoard/Resources/Preview Content\"";
 				DEVELOPMENT_TEAM = 32XZRDTGK3;
+				ENABLE_APP_SANDBOX = NO;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = "AgentBoard/AgentBoard-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
