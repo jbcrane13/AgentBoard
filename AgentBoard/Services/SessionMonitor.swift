@@ -105,6 +105,13 @@ actor SessionMonitor {
         }
     }
 
+    func killSession(_ sessionName: String) async throws {
+        _ = try await runTmux(arguments: [
+            "kill-session",
+            "-t", sessionName
+        ])
+    }
+
     func capturePane(session: String, lines: Int = 500) async throws -> String {
         let lineCount = max(50, lines)
         let result = try await runTmux(arguments: [

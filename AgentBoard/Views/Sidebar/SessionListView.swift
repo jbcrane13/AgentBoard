@@ -135,6 +135,13 @@ struct SessionListView: View {
         }
         .buttonStyle(.plain)
         .disabled(!isInteractive)
+        .contextMenu {
+            Button(role: .destructive) {
+                Task { await appState.killSession(session.id) }
+            } label: {
+                Label("Close Session", systemImage: "xmark.circle")
+            }
+        }
         .accessibilityIdentifier("SessionRow")
     }
 

@@ -742,6 +742,19 @@ final class AppState {
         }
     }
 
+    func killSession(_ sessionID: String) async {
+        do {
+            try await sessionMonitor.killSession(sessionID)
+            sessions.removeAll { $0.id == sessionID }
+            if activeSessionID == sessionID {
+                activeSessionID = nil
+            }
+            statusMessage = "Closed session \(sessionID)."
+        } catch {
+            setError("Failed to close session: \(error.localizedDescription)")
+        }
+    }
+
     func createGatewaySession(
         project: Project,
         agentType: AgentType,
