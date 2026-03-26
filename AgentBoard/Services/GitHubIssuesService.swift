@@ -32,15 +32,25 @@ private struct GitHubIssue: Decodable, Sendable {
     let labels: [GitHubLabel]
     let assignees: [GitHubUser]
     let milestone: GitHubMilestoneRef?
+    let pullRequest: GitHubPullRequestRef?
     let createdAt: String
     let updatedAt: String
 
+    /// True when this item is actually a pull request, not an issue.
+    var isPullRequest: Bool {
+        pullRequest != nil
+    }
+
     enum CodingKeys: String, CodingKey {
         case number, title, body, state, labels, assignees, milestone
+        case pullRequest = "pull_request"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }
 }
+
+/// Minimal stub — we only need to detect presence, not decode PR details.
+private struct GitHubPullRequestRef: Decodable, Sendable {}
 
 private struct GitHubUser: Decodable, Sendable {
     let login: String
@@ -123,7 +133,9 @@ actor GitHubIssuesService {
             page += 1
         }
 
-        return allIssues.map { mapToBead($0) }
+        return allIssues
+            .filter { !$0.isPullRequest }
+            .map { mapToBead($0) }
             .sorted { $0.updatedAt > $1.updatedAt }
     }
 
