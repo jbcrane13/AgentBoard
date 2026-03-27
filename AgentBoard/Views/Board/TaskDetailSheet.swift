@@ -13,6 +13,7 @@ struct TaskDetailSheet: View {
     @State private var isAttaching = false
     @State private var showFilePicker = false
     @State private var attachedURLs: [String] = []
+    @State private var showingNewSessionSheet = false
 
     init(bead: Bead, onDismiss: @escaping () -> Void) {
         self.bead = bead
@@ -49,6 +50,13 @@ struct TaskDetailSheet: View {
             idealHeight: 600,
             maxHeight: 680
         )
+        .sheet(isPresented: $showingNewSessionSheet) {
+            NewSessionSheet(
+                initialProjectID: appState.selectedProjectID,
+                initialIssueNumber: issueNumber,
+                initialPrompt: "Work on #\(bead.id): \(bead.title)"
+            )
+        }
     }
 
     // MARK: - Header
@@ -485,8 +493,22 @@ extension TaskDetailSheet {
 
     // MARK: - Footer
 
+    /// The GitHub issue number parsed from the bead ID.
+    private var issueNumber: Int? {
+        GitHubIssuesService.issueNumber(from: bead.id)
+    }
+
     var sheetFooter: some View {
         HStack(spacing: 8) {
+            Button {
+                showingNewSessionSheet = true
+            } label: {
+                Label("Launch Session", systemImage: "terminal")
+                    .font(.system(size: 13, weight: .medium))
+            }
+            .buttonStyle(.borderedProminent)
+            .accessibilityIdentifier("task_detail_button_launch_session")
+
             if let deps = dependencyText {
                 Text(deps)
                     .font(.system(size: 11))
