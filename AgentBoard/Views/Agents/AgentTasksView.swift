@@ -1,3 +1,4 @@
+// swiftlint:disable file_length
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -61,8 +62,15 @@ final class AgentTasksViewModel {
     private let useFixtureData: Bool
 
     init(
-        workingDirectory: URL = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".openclaw/agent-tasks"),
+        workingDirectory: URL = {
+            #if os(macOS)
+                return FileManager.default.homeDirectoryForCurrentUser
+                    .appendingPathComponent(".openclaw/agent-tasks")
+            #else
+                return FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+                    .appendingPathComponent(".openclaw/agent-tasks")
+            #endif
+        }(),
         runCommand: @escaping CommandRunner = { arguments, workingDirectory in
             try await ShellCommand.runAsync(
                 arguments: arguments,
@@ -76,7 +84,7 @@ final class AgentTasksViewModel {
         self.useFixtureData = useFixtureData
 
         if useFixtureData {
-            self.tasks = Self.fixtureTasks
+            tasks = Self.fixtureTasks
         }
     }
 
@@ -108,12 +116,12 @@ final class AgentTasksViewModel {
         do {
             let result = try await runCommand(["bd", "list", "--json"], workingDirectory)
             let parsed = try parseTasksJSON(result.stdout)
-            self.tasks = parsed
-            self.errorMessage = nil
+            tasks = parsed
+            errorMessage = nil
         } catch let parseError as ParseError {
             self.errorMessage = "Failed to parse tasks: \(parseError.localizedDescription)"
         } catch {
-            self.errorMessage = "Failed to load tasks: \(error.localizedDescription)"
+            errorMessage = "Failed to load tasks: \(error.localizedDescription)"
         }
     }
 
@@ -219,7 +227,15 @@ final class AgentTasksViewModel {
         }
     }
 
-    func updateTask(taskID: String, title: String, description: String, priority: Int, assignee: String, status: String) {
+    // swiftlint:disable:next function_parameter_count
+    func updateTask(
+        taskID: String,
+        title: String,
+        description: String,
+        priority: Int,
+        assignee: String,
+        status: String
+    ) {
         Task {
             if useFixtureData {
                 guard let index = tasks.firstIndex(where: { $0.id == taskID }) else { return }
@@ -233,11 +249,19 @@ final class AgentTasksViewModel {
             }
 
             do {
-                var args = ["bd", "update", taskID,
-                            "--title", title,
-                            "-p", "\(priority)",
-                            "-a", assignee,
-                            "--status", status]
+                var args = [
+                    "bd",
+                    "update",
+                    taskID,
+                    "--title",
+                    title,
+                    "-p",
+                    "\(priority)",
+                    "-a",
+                    assignee,
+                    "--status",
+                    status
+                ]
                 if !description.isEmpty {
                     args += ["-d", description]
                 }
@@ -295,8 +319,8 @@ final class AgentTasksViewModel {
                 priority: 1,
                 assignee: "daneel",
                 issueType: "task",
-                createdAt: .now.addingTimeInterval(-1_500),
-                updatedAt: .now.addingTimeInterval(-1_200)
+                createdAt: .now.addingTimeInterval(-1500),
+                updatedAt: .now.addingTimeInterval(-1200)
             ),
             AgentTask(
                 id: "AB-fixture-2",
@@ -306,8 +330,8 @@ final class AgentTasksViewModel {
                 priority: 2,
                 assignee: "quentin",
                 issueType: "task",
-                createdAt: .now.addingTimeInterval(-4_000),
-                updatedAt: .now.addingTimeInterval(-2_000)
+                createdAt: .now.addingTimeInterval(-4000),
+                updatedAt: .now.addingTimeInterval(-2000)
             )
         ]
     }
@@ -468,7 +492,12 @@ struct AgentTasksView: View {
                     showCreateSheet = false
                 }
                 Button("Create") {
-                    viewModel.createTask(title: createTitle, description: createDescription, assignee: createAssignee, priority: createPriority)
+                    viewModel.createTask(
+                        title: createTitle,
+                        description: createDescription,
+                        assignee: createAssignee,
+                        priority: createPriority
+                    )
                     showCreateSheet = false
                 }
                 .buttonStyle(.borderedProminent)
@@ -557,7 +586,8 @@ private struct AgentColumnView: View {
                                 showCompleted.toggle()
                             }
                         } label: {
-                            Text(showCompleted ? "Hide \(doneTasks.count) completed" : "Show \(doneTasks.count) completed")
+                            Text(showCompleted ? "Hide \(doneTasks.count) completed" :
+                                "Show \(doneTasks.count) completed")
                                 .font(.system(size: 11, weight: .medium))
                                 .foregroundStyle(.secondary)
                         }
@@ -693,11 +723,11 @@ private struct AgentTaskDetailSheet: View {
         self.task = task
         self.viewModel = viewModel
         self.onDismiss = onDismiss
-        self._editTitle = State(initialValue: task.title)
-        self._editDescription = State(initialValue: task.description)
-        self._editPriority = State(initialValue: task.priority)
-        self._editAssignee = State(initialValue: task.assignee)
-        self._editStatus = State(initialValue: task.status)
+        _editTitle = State(initialValue: task.title)
+        _editDescription = State(initialValue: task.description)
+        _editPriority = State(initialValue: task.priority)
+        _editAssignee = State(initialValue: task.assignee)
+        _editStatus = State(initialValue: task.status)
     }
 
     var body: some View {

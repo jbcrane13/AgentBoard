@@ -340,7 +340,9 @@ struct AgentsView: View {
             }
             .width(min: 70, ideal: 90, max: 120)
         }
+        #if os(macOS)
         .tableStyle(.inset(alternatesRowBackgrounds: true))
+        #endif
         .cardStyle()
     }
 

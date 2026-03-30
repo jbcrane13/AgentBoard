@@ -77,7 +77,6 @@ targets:
           DEVELOPMENT_TEAM: "32XZRDTGK3"
     dependencies:
       - package: SwiftTerm
-        platforms: [macOS]
       - package: swift-markdown
         product: Markdown
     entitlements:

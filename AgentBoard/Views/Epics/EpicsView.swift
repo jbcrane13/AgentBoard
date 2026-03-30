@@ -222,7 +222,9 @@ struct EpicsView: View {
                                                 .lineLimit(1)
                                         }
                                     }
+                                    #if os(macOS)
                                     .toggleStyle(.checkbox)
+                                    #endif
                                     .padding(.vertical, 2)
                                 }
                             }

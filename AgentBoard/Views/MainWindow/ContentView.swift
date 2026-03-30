@@ -109,11 +109,13 @@ struct ContentView: View {
         .frame(width: dividerWidth)
         .contentShape(Rectangle())
         .onHover { inside in
-            if inside {
-                NSCursor.resizeLeftRight.push()
-            } else {
-                NSCursor.pop()
-            }
+            #if os(macOS)
+                if inside {
+                    NSCursor.resizeLeftRight.push()
+                } else {
+                    NSCursor.pop()
+                }
+            #endif
         }
         .gesture(
             DragGesture(minimumDistance: 0)
@@ -133,21 +135,37 @@ struct ContentView: View {
         Group {
             if appState.sidebarNavSelection == .settings {
                 SettingsView()
-            } else if let activeSession = appState.activeSession {
-                TerminalView(session: activeSession)
             } else {
-                VStack(spacing: 0) {
-                    if let project = appState.selectedProject {
-                        ProjectHeaderView(project: project)
-                    }
-
-                    tabBar
-
-                    tabContent
-                }
+                centerPanelContent
             }
         }
         .background(AppTheme.appBackground)
+    }
+
+    private var centerPanelContent: some View {
+        Group {
+            #if os(macOS)
+                if let activeSession = appState.activeSession {
+                    TerminalView(session: activeSession)
+                } else {
+                    defaultCenterContent
+                }
+            #else
+                defaultCenterContent
+            #endif
+        }
+    }
+
+    private var defaultCenterContent: some View {
+        VStack(spacing: 0) {
+            if let project = appState.selectedProject {
+                ProjectHeaderView(project: project)
+            }
+
+            tabBar
+
+            tabContent
+        }
     }
 
     private var tabBar: some View {

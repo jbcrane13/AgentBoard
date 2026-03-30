@@ -1,4 +1,9 @@
 import SwiftUI
+#if os(macOS)
+    import AppKit
+#else
+    import UIKit
+#endif
 
 struct TaskDetailSheet: View {
     @Environment(AppState.self) private var appState
@@ -339,42 +344,55 @@ struct TaskDetailSheet: View {
     }
 
     private func attachFromClipboard() {
-        guard let pasteboard = NSPasteboard.general.pasteboardItems?.first else { return }
+        #if os(macOS)
+            guard let pasteboard = NSPasteboard.general.pasteboardItems?.first else { return }
 
-        // Check for image data on the clipboard
-        let imageTypes: [NSPasteboard.PasteboardType] = [.png, .tiff]
-        for imageType in imageTypes {
-            if let data = pasteboard.data(forType: imageType) {
-                let tempURL = FileManager.default.temporaryDirectory
-                    .appendingPathComponent("clipboard-\(Int(Date().timeIntervalSince1970)).png")
-                do {
-                    // Convert TIFF to PNG if needed
-                    let pngData: Data
-                    if imageType == .tiff, let image = NSImage(data: data),
-                       let tiffRep = image.tiffRepresentation,
-                       let bitmapRep = NSBitmapImageRep(data: tiffRep),
-                       let converted = bitmapRep.representation(using: .png, properties: [:]) {
-                        pngData = converted
-                    } else {
-                        pngData = data
+            // Check for image data on the clipboard
+            let imageTypes: [NSPasteboard.PasteboardType] = [.png, .tiff]
+            for imageType in imageTypes {
+                if let data = pasteboard.data(forType: imageType) {
+                    let tempURL = FileManager.default.temporaryDirectory
+                        .appendingPathComponent("clipboard-\(Int(Date().timeIntervalSince1970)).png")
+                    do {
+                        // Convert TIFF to PNG if needed
+                        let pngData: Data
+                        if imageType == .tiff, let image = NSImage(data: data),
+                           let tiffRep = image.tiffRepresentation,
+                           let bitmapRep = NSBitmapImageRep(data: tiffRep),
+                           let converted = bitmapRep.representation(using: .png, properties: [:]) {
+                            pngData = converted
+                        } else {
+                            pngData = data
+                        }
+                        try pngData.write(to: tempURL)
+                        attachFile(tempURL)
+                    } catch {
+                        appState.setError("Failed to read clipboard: \(error.localizedDescription)")
                     }
-                    try pngData.write(to: tempURL)
-                    attachFile(tempURL)
-                } catch {
-                    appState.setError("Failed to read clipboard: \(error.localizedDescription)")
+                    return
                 }
+            }
+
+            // Check for file URLs on the clipboard
+            if let urlString = pasteboard.string(forType: .fileURL),
+               let url = URL(string: urlString) {
+                attachFile(url)
                 return
             }
-        }
 
-        // Check for file URLs on the clipboard
-        if let urlString = pasteboard.string(forType: .fileURL),
-           let url = URL(string: urlString) {
-            attachFile(url)
-            return
-        }
-
-        appState.setError("No image or file found on clipboard.")
+            appState.setError("No image or file found on clipboard.")
+        #else
+            guard let image = UIPasteboard.general.image,
+                  let data = image.pngData() else { return }
+            let tempURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent("clipboard-\(Int(Date().timeIntervalSince1970)).png")
+            do {
+                try data.write(to: tempURL)
+                attachFile(tempURL)
+            } catch {
+                appState.setError("Failed to read clipboard: \(error.localizedDescription)")
+            }
+        #endif
     }
 }
 

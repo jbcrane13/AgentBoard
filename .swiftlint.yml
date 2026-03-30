@@ -79,6 +79,14 @@ type_name:
   max_length:
     warning: 50
     error: 60
+  excluded:
+    - iOSRootView
+    - iOSBoardView
+    - iOSChatView
+    - iOSSessionsView
+    - iOSSessionDetailView
+    - iOSAgentsView
+    - iOSMoreView
 
 function_body_length:
   warning: 80

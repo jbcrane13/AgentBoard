@@ -16,10 +16,16 @@ struct AgentBoardApp: App {
 
     var body: some Scene {
         WindowGroup("AgentBoard", content: {
-            ContentView()
-                .environment(appState)
-                .preferredColorScheme(nil)
+            #if os(iOS)
+                iOSRootView()
+                    .environment(appState)
+            #else
+                ContentView()
+                    .environment(appState)
+                    .preferredColorScheme(nil)
+            #endif
         })
+        #if os(macOS)
         .defaultSize(width: 1280, height: 820)
         .windowResizability(.contentSize)
         .commands {
@@ -106,5 +112,6 @@ struct AgentBoardApp: App {
                 .keyboardShortcut("l", modifiers: [.command])
             }
         }
+        #endif
     }
 }

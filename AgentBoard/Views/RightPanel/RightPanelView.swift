@@ -34,34 +34,36 @@ struct RightPanelView: View {
                     appState.persistLayoutState()
                     // Resize window to fit when expanding panels
                     if !wasShowing {
-                        Task { @MainActor in
-                            if let window = NSApplication.shared.keyWindow {
-                                let neededWidth: CGFloat = 1280
-                                if window.frame.width < neededWidth {
-                                    var frame = window.frame
-                                    let delta = neededWidth - frame.width
-                                    frame.size.width = neededWidth
-                                    frame.origin.x -= delta / 2
-                                    // Keep window on screen
-                                    if let screen = window.screen {
-                                        frame.origin.x = max(frame.origin.x, screen.visibleFrame.minX)
-                                        if frame.maxX > screen.visibleFrame.maxX {
-                                            frame.origin.x = screen.visibleFrame.maxX - frame.width
+                        #if os(macOS)
+                            Task { @MainActor in
+                                if let window = NSApplication.shared.keyWindow {
+                                    let neededWidth: CGFloat = 1280
+                                    if window.frame.width < neededWidth {
+                                        var frame = window.frame
+                                        let delta = neededWidth - frame.width
+                                        frame.size.width = neededWidth
+                                        frame.origin.x -= delta / 2
+                                        // Keep window on screen
+                                        if let screen = window.screen {
+                                            frame.origin.x = max(frame.origin.x, screen.visibleFrame.minX)
+                                            if frame.maxX > screen.visibleFrame.maxX {
+                                                frame.origin.x = screen.visibleFrame.maxX - frame.width
+                                            }
                                         }
+                                        window.setFrame(frame, display: true, animate: true)
                                     }
-                                    window.setFrame(frame, display: true, animate: true)
                                 }
                             }
-                        }
+                        #endif
                     }
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: (appState.sidebarVisible || appState.boardVisible)
-                              ? "sidebar.left" : "sidebar.left")
+                            ? "sidebar.left" : "sidebar.left")
                             .font(.system(size: 13, weight: .medium))
                             .foregroundStyle(.primary.opacity(0.7))
                         Text((appState.sidebarVisible || appState.boardVisible)
-                             ? "Hide" : "Dashboard")
+                            ? "Hide" : "Dashboard")
                             .font(.system(size: 11, weight: .medium))
                             .foregroundStyle(.primary.opacity(0.7))
                     }

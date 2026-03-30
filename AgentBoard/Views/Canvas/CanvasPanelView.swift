@@ -1,7 +1,11 @@
 import SwiftUI
 import UniformTypeIdentifiers
 import WebKit
-import AppKit
+#if os(macOS)
+    import AppKit
+#else
+    import UIKit
+#endif
 
 struct CanvasPanelView: View {
     @Environment(AppState.self) private var appState
@@ -39,7 +43,7 @@ struct CanvasPanelView: View {
             allowedContentTypes: [.image, .plainText, .html, .data],
             allowsMultipleSelection: false
         ) { result in
-            if case .success(let urls) = result, let url = urls.first {
+            if case let .success(urls) = result, let url = urls.first {
                 Task {
                     await appState.openCanvasFile(url)
                 }
@@ -194,87 +198,110 @@ struct CanvasPanelView: View {
     }
 
     private func pasteImageFromClipboard() {
-        let pasteboard = NSPasteboard.general
-        guard let images = pasteboard.readObjects(forClasses: [NSImage.self], options: nil) as? [NSImage],
-              let firstImage = images.first,
-              let temporaryURL = persistImageToTemporaryLocation(firstImage) else {
-            appState.errorMessage = "No image found in clipboard."
-            return
-        }
+        #if os(macOS)
+            let pasteboard = NSPasteboard.general
+            guard let images = pasteboard.readObjects(forClasses: [NSImage.self], options: nil) as? [NSImage],
+                  let firstImage = images.first,
+                  let temporaryURL = persistImageToTemporaryLocation(firstImage) else {
+                appState.errorMessage = "No image found in clipboard."
+                return
+            }
 
-        Task {
-            await appState.openCanvasFile(temporaryURL)
-        }
+            Task {
+                await appState.openCanvasFile(temporaryURL)
+            }
+        #else
+            guard let image = UIPasteboard.general.image,
+                  let data = image.pngData() else {
+                appState.errorMessage = "No image found in clipboard."
+                return
+            }
+            let tempURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent("agentboard-canvas-\(UUID().uuidString).png")
+            do {
+                try data.write(to: tempURL, options: .atomic)
+                Task {
+                    await appState.openCanvasFile(tempURL)
+                }
+            } catch {
+                appState.errorMessage = error.localizedDescription
+            }
+        #endif
     }
 
-    private func persistImageToTemporaryLocation(_ image: NSImage) -> URL? {
-        guard let tiffData = image.tiffRepresentation,
-              let bitmap = NSBitmapImageRep(data: tiffData),
-              let pngData = bitmap.representation(using: .png, properties: [:]) else {
-            return nil
-        }
+    #if os(macOS)
+        private func persistImageToTemporaryLocation(_ image: NSImage) -> URL? {
+            guard let tiffData = image.tiffRepresentation,
+                  let bitmap = NSBitmapImageRep(data: tiffData),
+                  let pngData = bitmap.representation(using: .png, properties: [:]) else {
+                return nil
+            }
 
-        let tempURL = FileManager.default.temporaryDirectory
-            .appendingPathComponent("agentboard-canvas-\(UUID().uuidString).png")
-        do {
-            try pngData.write(to: tempURL, options: .atomic)
-            return tempURL
-        } catch {
-            appState.errorMessage = error.localizedDescription
-            return nil
+            let tempURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent("agentboard-canvas-\(UUID().uuidString).png")
+            do {
+                try pngData.write(to: tempURL, options: .atomic)
+                return tempURL
+            } catch {
+                appState.errorMessage = error.localizedDescription
+                return nil
+            }
         }
-    }
+    #endif
 
     private func exportCanvasContent() {
         guard let content = appState.currentCanvasContent else { return }
+        #if os(macOS)
+            let panel = NSSavePanel()
+            panel.canCreateDirectories = true
+            panel.nameFieldStringValue = defaultExportFilename(for: content)
 
-        let panel = NSSavePanel()
-        panel.canCreateDirectories = true
-        panel.nameFieldStringValue = defaultExportFilename(for: content)
+            guard panel.runModal() == .OK, let url = panel.url else { return }
 
-        guard panel.runModal() == .OK, let url = panel.url else { return }
+            do {
+                switch content {
+                case let .image(_, _, imageURL):
+                    let data = try Data(contentsOf: imageURL)
+                    try data.write(to: url, options: .atomic)
 
-        do {
-            switch content {
-            case .image(_, _, let imageURL):
-                let data = try Data(contentsOf: imageURL)
-                try data.write(to: url, options: .atomic)
+                case let .html(_, _, html):
+                    try html.write(to: url, atomically: true, encoding: .utf8)
 
-            case .html(_, _, let html):
-                try html.write(to: url, atomically: true, encoding: .utf8)
+                case let .markdown(_, _, markdown):
+                    try markdown.write(to: url, atomically: true, encoding: .utf8)
 
-            case .markdown(_, _, let markdown):
-                try markdown.write(to: url, atomically: true, encoding: .utf8)
+                case let .terminal(_, _, output):
+                    try output.write(to: url, atomically: true, encoding: .utf8)
 
-            case .terminal(_, _, let output):
-                try output.write(to: url, atomically: true, encoding: .utf8)
+                case let .diagram(_, _, mermaid):
+                    try mermaid.write(to: url, atomically: true, encoding: .utf8)
 
-            case .diagram(_, _, let mermaid):
-                try mermaid.write(to: url, atomically: true, encoding: .utf8)
-
-            case .diff(_, _, let before, let after, let filename):
-                let payload = "file: \(filename)\n\n\(before)\n---\n\(after)"
-                try payload.write(to: url, atomically: true, encoding: .utf8)
+                case let .diff(_, _, before, after, filename):
+                    let payload = "file: \(filename)\n\n\(before)\n---\n\(after)"
+                    try payload.write(to: url, atomically: true, encoding: .utf8)
+                }
+                appState.statusMessage = "Exported canvas content."
+            } catch {
+                appState.errorMessage = error.localizedDescription
             }
-            appState.statusMessage = "Exported canvas content."
-        } catch {
-            appState.errorMessage = error.localizedDescription
-        }
+        #else
+            // Export not available on iOS v1
+        #endif
     }
 
     private func defaultExportFilename(for content: CanvasContent) -> String {
         switch content {
-        case .markdown(_, let title, _):
+        case let .markdown(_, title, _):
             return sanitizedFilename(title, fallbackExtension: "md")
-        case .html(_, let title, _):
+        case let .html(_, title, _):
             return sanitizedFilename(title, fallbackExtension: "html")
-        case .image(_, let title, _):
+        case let .image(_, title, _):
             return sanitizedFilename(title, fallbackExtension: "png")
-        case .diff(_, let title, _, _, _):
+        case let .diff(_, title, _, _, _):
             return sanitizedFilename(title, fallbackExtension: "diff")
-        case .diagram(_, let title, _):
+        case let .diagram(_, title, _):
             return sanitizedFilename(title, fallbackExtension: "mmd")
-        case .terminal(_, let title, _):
+        case let .terminal(_, title, _):
             return sanitizedFilename(title, fallbackExtension: "txt")
         }
     }
@@ -289,65 +316,123 @@ struct CanvasPanelView: View {
     }
 }
 
-private struct CanvasWebView: NSViewRepresentable {
-    let content: CanvasContent
-    let zoom: Double
-    @Binding var isLoading: Bool
+#if os(macOS)
+    private struct CanvasWebView: NSViewRepresentable {
+        let content: CanvasContent
+        let zoom: Double
+        @Binding var isLoading: Bool
 
-    func makeCoordinator() -> Coordinator {
-        Coordinator(renderer: CanvasRenderer(), isLoading: _isLoading)
-    }
+        func makeCoordinator() -> Coordinator {
+            Coordinator(renderer: CanvasRenderer(), isLoading: _isLoading)
+        }
 
-    func makeNSView(context: Context) -> WKWebView {
-        let configuration = WKWebViewConfiguration()
-        let webView = WKWebView(frame: .zero, configuration: configuration)
-        webView.setValue(false, forKey: "drawsBackground")
-        webView.navigationDelegate = context.coordinator
-        return webView
-    }
+        func makeNSView(context: Context) -> WKWebView {
+            let configuration = WKWebViewConfiguration()
+            let webView = WKWebView(frame: .zero, configuration: configuration)
+            webView.setValue(false, forKey: "drawsBackground")
+            webView.navigationDelegate = context.coordinator
+            return webView
+        }
 
-    func updateNSView(_ webView: WKWebView, context: Context) {
-        webView.pageZoom = zoom
-        if context.coordinator.lastRenderedID != content.id {
-            if case .diagram = content {
-                isLoading = true
-            } else {
-                isLoading = false
+        func updateNSView(_ webView: WKWebView, context: Context) {
+            webView.pageZoom = zoom
+            if context.coordinator.lastRenderedID != content.id {
+                if case .diagram = content {
+                    isLoading = true
+                } else {
+                    isLoading = false
+                }
+                context.coordinator.renderer.render(content, in: webView)
+                context.coordinator.lastRenderedID = content.id
             }
-            context.coordinator.renderer.render(content, in: webView)
-            context.coordinator.lastRenderedID = content.id
+        }
+
+        final class Coordinator: NSObject, WKNavigationDelegate {
+            let renderer: CanvasRenderer
+            var isLoading: Binding<Bool>
+            var lastRenderedID: UUID?
+
+            init(renderer: CanvasRenderer, isLoading: Binding<Bool>) {
+                self.renderer = renderer
+                self.isLoading = isLoading
+                lastRenderedID = nil
+            }
+
+            func webView(_: WKWebView, didFinish _: WKNavigation!) {
+                isLoading.wrappedValue = false
+            }
+
+            func webView(
+                _: WKWebView,
+                didFail _: WKNavigation!,
+                withError _: Error
+            ) {
+                isLoading.wrappedValue = false
+            }
+
+            func webView(
+                _: WKWebView,
+                didFailProvisionalNavigation _: WKNavigation!,
+                withError _: Error
+            ) {
+                isLoading.wrappedValue = false
+            }
         }
     }
+#else
+    private struct CanvasWebView: UIViewRepresentable {
+        let content: CanvasContent
+        let zoom: Double
+        @Binding var isLoading: Bool
 
-    final class Coordinator: NSObject, WKNavigationDelegate {
-        let renderer: CanvasRenderer
-        var isLoading: Binding<Bool>
-        var lastRenderedID: UUID?
-
-        init(renderer: CanvasRenderer, isLoading: Binding<Bool>) {
-            self.renderer = renderer
-            self.isLoading = isLoading
-            self.lastRenderedID = nil
+        func makeCoordinator() -> Coordinator {
+            Coordinator(renderer: CanvasRenderer(), isLoading: _isLoading)
         }
 
-        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-            isLoading.wrappedValue = false
+        func makeUIView(context: Context) -> WKWebView {
+            let configuration = WKWebViewConfiguration()
+            let webView = WKWebView(frame: .zero, configuration: configuration)
+            webView.isOpaque = false
+            webView.backgroundColor = .clear
+            webView.scrollView.backgroundColor = .clear
+            webView.navigationDelegate = context.coordinator
+            return webView
         }
 
-        func webView(
-            _ webView: WKWebView,
-            didFail navigation: WKNavigation!,
-            withError error: Error
-        ) {
-            isLoading.wrappedValue = false
+        func updateUIView(_ webView: WKWebView, context: Context) {
+            if context.coordinator.lastRenderedID != content.id {
+                if case .diagram = content {
+                    isLoading = true
+                } else {
+                    isLoading = false
+                }
+                context.coordinator.renderer.render(content, in: webView)
+                context.coordinator.lastRenderedID = content.id
+            }
         }
 
-        func webView(
-            _ webView: WKWebView,
-            didFailProvisionalNavigation navigation: WKNavigation!,
-            withError error: Error
-        ) {
-            isLoading.wrappedValue = false
+        final class Coordinator: NSObject, WKNavigationDelegate {
+            let renderer: CanvasRenderer
+            var isLoading: Binding<Bool>
+            var lastRenderedID: UUID?
+
+            init(renderer: CanvasRenderer, isLoading: Binding<Bool>) {
+                self.renderer = renderer
+                self.isLoading = isLoading
+                lastRenderedID = nil
+            }
+
+            func webView(_: WKWebView, didFinish _: WKNavigation!) {
+                isLoading.wrappedValue = false
+            }
+
+            func webView(_: WKWebView, didFail _: WKNavigation!, withError _: Error) {
+                isLoading.wrappedValue = false
+            }
+
+            func webView(_: WKWebView, didFailProvisionalNavigation _: WKNavigation!, withError _: Error) {
+                isLoading.wrappedValue = false
+            }
         }
     }
-}
+#endif

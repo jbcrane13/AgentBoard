@@ -29,106 +29,123 @@ actor SessionMonitor {
     }
 
     func listSessions() async throws -> [CodingSession] {
-        let sessionRows = try await listSessionRows()
-        guard !sessionRows.isEmpty else { return [] }
+        #if os(macOS)
+            let sessionRows = try await listSessionRows()
+            guard !sessionRows.isEmpty else { return [] }
 
-        let paneRows = try await listPaneRows()
-        let panesBySession = paneRows.reduce(into: [String: PaneRow]()) { partialResult, row in
-            if partialResult[row.sessionName] == nil {
-                partialResult[row.sessionName] = row
-            }
-        }
-
-        let processRows = try await listProcessRows()
-        let processesByPID = Dictionary(uniqueKeysWithValues: processRows.map { ($0.pid, $0) })
-        let childrenByParent = Dictionary(grouping: processRows, by: \.ppid)
-
-        let now = Date()
-        var sessions: [CodingSession] = []
-        sessions.reserveCapacity(sessionRows.count)
-
-        for sessionRow in sessionRows {
-            let pane = panesBySession[sessionRow.name]
-            let relatedProcesses = collectProcesses(
-                rootPID: pane?.panePID,
-                byPID: processesByPID,
-                childrenByParent: childrenByParent
-            )
-
-            let agentProcesses = relatedProcesses.filter {
-                Self.agentType(for: $0.command) != nil
-            }
-            let selectedProcess = agentProcesses.first
-            let detectedAgentType = selectedProcess.flatMap { Self.agentType(for: $0.command) }
-                ?? pane.flatMap { Self.agentType(for: $0.paneCommand) }
-                ?? .claudeCode
-
-            let createdDate = Date(timeIntervalSince1970: sessionRow.createdEpoch)
-            let elapsed = max(0, now.timeIntervalSince(createdDate))
-            let cpuPercent = (agentProcesses.isEmpty ? relatedProcesses : agentProcesses).map(\.cpuPercent).max() ?? 0
-            let status = resolveStatus(
-                hasAgentProcess: !agentProcesses.isEmpty,
-                isAttached: sessionRow.isAttached,
-                cpuPercent: cpuPercent
-            )
-
-            var projectPath: URL?
-            if let currentPath = pane?.currentPath, !currentPath.isEmpty {
-                projectPath = URL(fileURLWithPath: currentPath, isDirectory: true)
-            }
-            if projectPath == nil, let pid = pane?.panePID {
-                projectPath = try? await processWorkingDirectory(pid: pid)
+            let paneRows = try await listPaneRows()
+            let panesBySession = paneRows.reduce(into: [String: PaneRow]()) { partialResult, row in
+                if partialResult[row.sessionName] == nil {
+                    partialResult[row.sessionName] = row
+                }
             }
 
-            let session = CodingSession(
-                id: sessionRow.name,
-                name: sessionRow.name,
-                agentType: detectedAgentType,
-                projectPath: projectPath,
-                beadId: Self.extractBeadID(from: sessionRow.name),
-                linkedIssueNumber: Self.extractIssueNumber(from: sessionRow.name),
-                status: status,
-                startedAt: createdDate,
-                elapsed: elapsed,
-                model: selectedProcess.flatMap { Self.parseModel(from: $0.command) },
-                processID: pane?.panePID,
-                cpuPercent: cpuPercent
-            )
-            sessions.append(session)
-        }
+            let processRows = try await listProcessRows()
+            let processesByPID = Dictionary(uniqueKeysWithValues: processRows.map { ($0.pid, $0) })
+            let childrenByParent = Dictionary(grouping: processRows, by: \.ppid)
 
-        return sessions.sorted { lhs, rhs in
-            if lhs.status.sortOrder != rhs.status.sortOrder {
-                return lhs.status.sortOrder < rhs.status.sortOrder
+            let now = Date()
+            var sessions: [CodingSession] = []
+            sessions.reserveCapacity(sessionRows.count)
+
+            for sessionRow in sessionRows {
+                let pane = panesBySession[sessionRow.name]
+                let relatedProcesses = collectProcesses(
+                    rootPID: pane?.panePID,
+                    byPID: processesByPID,
+                    childrenByParent: childrenByParent
+                )
+
+                let agentProcesses = relatedProcesses.filter {
+                    Self.agentType(for: $0.command) != nil
+                }
+                let selectedProcess = agentProcesses.first
+                let detectedAgentType = selectedProcess.flatMap { Self.agentType(for: $0.command) }
+                    ?? pane.flatMap { Self.agentType(for: $0.paneCommand) }
+                    ?? .claudeCode
+
+                let createdDate = Date(timeIntervalSince1970: sessionRow.createdEpoch)
+                let elapsed = max(0, now.timeIntervalSince(createdDate))
+                let cpuPercent = (agentProcesses.isEmpty ? relatedProcesses : agentProcesses).map(\.cpuPercent)
+                    .max() ?? 0
+                let status = resolveStatus(
+                    hasAgentProcess: !agentProcesses.isEmpty,
+                    isAttached: sessionRow.isAttached,
+                    cpuPercent: cpuPercent
+                )
+
+                var projectPath: URL?
+                if let currentPath = pane?.currentPath, !currentPath.isEmpty {
+                    projectPath = URL(fileURLWithPath: currentPath, isDirectory: true)
+                }
+                if projectPath == nil, let pid = pane?.panePID {
+                    projectPath = try? await processWorkingDirectory(pid: pid)
+                }
+
+                let session = CodingSession(
+                    id: sessionRow.name,
+                    name: sessionRow.name,
+                    agentType: detectedAgentType,
+                    projectPath: projectPath,
+                    beadId: Self.extractBeadID(from: sessionRow.name),
+                    linkedIssueNumber: Self.extractIssueNumber(from: sessionRow.name),
+                    status: status,
+                    startedAt: createdDate,
+                    elapsed: elapsed,
+                    model: selectedProcess.flatMap { Self.parseModel(from: $0.command) },
+                    processID: pane?.panePID,
+                    cpuPercent: cpuPercent
+                )
+                sessions.append(session)
             }
-            return lhs.startedAt > rhs.startedAt
-        }
+
+            return sessions.sorted { lhs, rhs in
+                if lhs.status.sortOrder != rhs.status.sortOrder {
+                    return lhs.status.sortOrder < rhs.status.sortOrder
+                }
+                return lhs.startedAt > rhs.startedAt
+            }
+        #else
+            return []
+        #endif
     }
 
     func killSession(_ sessionName: String) async throws {
-        _ = try await runTmux(arguments: [
-            "kill-session",
-            "-t", sessionName
-        ])
+        #if os(macOS)
+            _ = try await runTmux(arguments: [
+                "kill-session",
+                "-t", sessionName
+            ])
+        #else
+            throw ShellCommandError.unavailableOnPlatform
+        #endif
     }
 
     func capturePane(session: String, lines: Int = 500) async throws -> String {
-        let lineCount = max(50, lines)
-        let result = try await runTmux(arguments: [
-            "capture-pane",
-            "-t", session,
-            "-p",
-            "-S", "-\(lineCount)"
-        ])
-        return result.stdout
+        #if os(macOS)
+            let lineCount = max(50, lines)
+            let result = try await runTmux(arguments: [
+                "capture-pane",
+                "-t", session,
+                "-p",
+                "-S", "-\(lineCount)"
+            ])
+            return result.stdout
+        #else
+            throw ShellCommandError.unavailableOnPlatform
+        #endif
     }
 
     func sendNudge(session: String) async throws {
-        _ = try await runTmux(arguments: [
-            "send-keys",
-            "-t", session,
-            "C-m"
-        ])
+        #if os(macOS)
+            _ = try await runTmux(arguments: [
+                "send-keys",
+                "-t", session,
+                "C-m"
+            ])
+        #else
+            throw ShellCommandError.unavailableOnPlatform
+        #endif
     }
 
     func launchSession(
@@ -137,333 +154,315 @@ actor SessionMonitor {
         issueNumber: Int?,
         prompt: String?
     ) async throws -> String {
-        let socketDir = URL(fileURLWithPath: tmuxSocketPath).deletingLastPathComponent()
-        do {
-            try FileManager.default.createDirectory(
-                at: socketDir,
-                withIntermediateDirectories: true,
-                attributes: nil
-            )
-        } catch {
-            throw SessionMonitorError
-                .launchFailed("Failed to create tmux socket directory: \(error.localizedDescription)")
-        }
-
-        let projectSlug = Self.slug(from: projectPath.lastPathComponent)
-        let contextSlug: String
-        if let issueNumber {
-            contextSlug = "gh\(issueNumber)"
-        } else {
-            contextSlug = String(Int(Date().timeIntervalSince1970))
-        }
-        var sessionName = "ab-\(projectSlug)-\(contextSlug)"
-        if sessionName == "ab--" {
-            throw SessionMonitorError.invalidSessionName
-        }
-
-        var isDirectory: ObjCBool = false
-        guard FileManager.default.fileExists(atPath: projectPath.path, isDirectory: &isDirectory),
-              isDirectory.boolValue else {
-            throw SessionMonitorError.launchFailed("Project path does not exist: \(projectPath.path)")
-        }
-
-        // On first launch there may be no tmux server/socket yet; probing with
-        // `has-session` in that state can fail before `new-session` bootstraps it.
-        // Only run collision checks when the socket already exists.
-        if FileManager.default.fileExists(atPath: tmuxSocketPath),
-           try await sessionExists(sessionName) {
-            sessionName += "-\(Int(Date().timeIntervalSince1970) % 10000)"
-        }
-
-        let agentCommand = commandParts(for: agentType)
-
-        // Create the tmux session with the default shell (no command argument).
-        // This lets the user's shell profile source normally, ensuring PATH includes
-        // agent CLIs like ~/.claude/bin/claude. We then send the agent command via
-        // send-keys so it runs inside the fully-configured shell.
-        do {
-            _ = try await runTmux(arguments: [
-                "new-session",
-                "-d",
-                "-s", sessionName,
-                "-c", projectPath.path
-            ])
-        } catch let error as ShellCommandError {
-            let errorMsg: String
-            switch error {
-            case .executableNotFound:
-                errorMsg = "tmux command not found. Please install tmux."
-            case let .failed(result):
-                let output = result.combinedOutput
-                if output.contains("No such file or directory") {
-                    errorMsg = "Project path not found: \(projectPath.path)"
-                } else {
-                    errorMsg = "Failed to launch session: \(output)"
-                }
+        #if os(macOS)
+            let socketDir = URL(fileURLWithPath: tmuxSocketPath).deletingLastPathComponent()
+            do {
+                try FileManager.default.createDirectory(
+                    at: socketDir,
+                    withIntermediateDirectories: true,
+                    attributes: nil
+                )
+            } catch {
+                throw SessionMonitorError
+                    .launchFailed("Failed to create tmux socket directory: \(error.localizedDescription)")
             }
-            throw SessionMonitorError.launchFailed(errorMsg)
-        } catch {
-            throw SessionMonitorError.launchFailed(error.localizedDescription)
-        }
 
-        try await sendAgentCommand(
-            sessionName: sessionName,
-            agentCommand: agentCommand,
-            issueNumber: issueNumber,
-            prompt: prompt
-        )
+            let projectSlug = Self.slug(from: projectPath.lastPathComponent)
+            let contextSlug: String
+            if let issueNumber {
+                contextSlug = "gh\(issueNumber)"
+            } else {
+                contextSlug = String(Int(Date().timeIntervalSince1970))
+            }
+            var sessionName = "ab-\(projectSlug)-\(contextSlug)"
+            if sessionName == "ab--" {
+                throw SessionMonitorError.invalidSessionName
+            }
 
-        return sessionName
+            var isDirectory: ObjCBool = false
+            guard FileManager.default.fileExists(atPath: projectPath.path, isDirectory: &isDirectory),
+                  isDirectory.boolValue else {
+                throw SessionMonitorError.launchFailed("Project path does not exist: \(projectPath.path)")
+            }
+
+            // On first launch there may be no tmux server/socket yet; probing with
+            // `has-session` in that state can fail before `new-session` bootstraps it.
+            // Only run collision checks when the socket already exists.
+            if FileManager.default.fileExists(atPath: tmuxSocketPath),
+               try await sessionExists(sessionName) {
+                sessionName += "-\(Int(Date().timeIntervalSince1970) % 10000)"
+            }
+
+            let agentCommand = commandParts(for: agentType)
+
+            // Create the tmux session with the default shell (no command argument).
+            // This lets the user's shell profile source normally, ensuring PATH includes
+            // agent CLIs like ~/.claude/bin/claude. We then send the agent command via
+            // send-keys so it runs inside the fully-configured shell.
+            do {
+                _ = try await runTmux(arguments: [
+                    "new-session",
+                    "-d",
+                    "-s", sessionName,
+                    "-c", projectPath.path
+                ])
+            } catch let error as ShellCommandError {
+                let errorMsg: String
+                switch error {
+                case .executableNotFound:
+                    errorMsg = "tmux command not found. Please install tmux."
+                case let .failed(result):
+                    let output = result.combinedOutput
+                    if output.contains("No such file or directory") {
+                        errorMsg = "Project path not found: \(projectPath.path)"
+                    } else {
+                        errorMsg = "Failed to launch session: \(output)"
+                    }
+                case .unavailableOnPlatform:
+                    errorMsg = "tmux is unavailable on this platform."
+                }
+                throw SessionMonitorError.launchFailed(errorMsg)
+            } catch {
+                throw SessionMonitorError.launchFailed(error.localizedDescription)
+            }
+
+            try await sendAgentCommand(
+                sessionName: sessionName,
+                agentCommand: agentCommand,
+                issueNumber: issueNumber,
+                prompt: prompt
+            )
+
+            return sessionName
+        #else
+            throw ShellCommandError.unavailableOnPlatform
+        #endif
     }
 
-    private func sendAgentCommand(
-        sessionName: String,
-        agentCommand: [String],
-        issueNumber: Int?,
-        prompt: String?
-    ) async throws {
-        // Brief delay for the shell to initialize before sending commands.
-        try? await Task.sleep(nanoseconds: 300_000_000)
+    #if os(macOS)
+        private func sendAgentCommand(
+            sessionName: String,
+            agentCommand: [String],
+            issueNumber: Int?,
+            prompt: String?
+        ) async throws {
+            // Brief delay for the shell to initialize before sending commands.
+            try? await Task.sleep(nanoseconds: 300_000_000)
 
-        // Send the agent command into the session's shell.
-        let agentCommandString = agentCommand.joined(separator: " ")
-        _ = try await runTmux(arguments: [
-            "send-keys",
-            "-t", sessionName,
-            agentCommandString,
-            "C-m"
-        ])
-
-        // Build and send the seed prompt if one was provided or an issue is linked.
-        let seedPrompt = Self.buildSeedPrompt(issueNumber: issueNumber, prompt: prompt)
-        if !seedPrompt.isEmpty {
-            // Wait for the agent CLI to start and be ready for input.
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            // Send the agent command into the session's shell.
+            let agentCommandString = agentCommand.joined(separator: " ")
             _ = try await runTmux(arguments: [
                 "send-keys",
                 "-t", sessionName,
-                seedPrompt,
+                agentCommandString,
                 "C-m"
             ])
+
+            // Build and send the seed prompt if one was provided or an issue is linked.
+            let seedPrompt = Self.buildSeedPrompt(issueNumber: issueNumber, prompt: prompt)
+            if !seedPrompt.isEmpty {
+                // Wait for the agent CLI to start and be ready for input.
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                _ = try await runTmux(arguments: [
+                    "send-keys",
+                    "-t", sessionName,
+                    seedPrompt,
+                    "C-m"
+                ])
+            }
         }
-    }
 
-    private func resolveStatus(hasAgentProcess: Bool, isAttached: Bool, cpuPercent: Double) -> SessionStatus {
-        if !hasAgentProcess {
-            return isAttached ? .idle : .stopped
+        private func resolveStatus(hasAgentProcess: Bool, isAttached: Bool, cpuPercent: Double) -> SessionStatus {
+            if !hasAgentProcess {
+                return isAttached ? .idle : .stopped
+            }
+            return cpuPercent > 0.1 ? .running : .idle
         }
-        return cpuPercent > 0.1 ? .running : .idle
-    }
 
-    /// Delimiter used in tmux format strings. Using `|||` instead of `\t` because
-    /// the tab escape is unreliable when passed through Process arguments on macOS.
-    private static let tmuxDelimiter = "|||"
+        /// Delimiter used in tmux format strings. Using `|||` instead of `\t` because
+        /// the tab escape is unreliable when passed through Process arguments on macOS.
+        private static let tmuxDelimiter = "|||"
 
-    private func listSessionRows() async throws -> [SessionRow] {
-        let delim = Self.tmuxDelimiter
-        let result: ShellCommandResult
-        do {
-            result = try await runTmux(arguments: [
-                "list-sessions",
-                "-F", "#{session_name}\(delim)#{session_created}\(delim)#{session_attached}"
+        private func listSessionRows() async throws -> [SessionRow] {
+            let delim = Self.tmuxDelimiter
+            let result: ShellCommandResult
+            do {
+                result = try await runTmux(arguments: [
+                    "list-sessions",
+                    "-F", "#{session_name}\(delim)#{session_created}\(delim)#{session_attached}"
+                ])
+            } catch {
+                if Self.isMissingTmuxServer(error: error) {
+                    return []
+                }
+                throw error
+            }
+
+            return result.stdout
+                .split(whereSeparator: \.isNewline)
+                .compactMap { line -> SessionRow? in
+                    let columns = String(line).components(separatedBy: delim)
+                    guard columns.count >= 3 else { return nil }
+                    let name = columns[0]
+                    guard !name.isEmpty else { return nil }
+                    let createdEpoch = TimeInterval(columns[1]) ?? Date().timeIntervalSince1970
+                    let isAttached = Int(columns[2]) ?? 0 > 0
+                    return SessionRow(name: name, createdEpoch: createdEpoch, isAttached: isAttached)
+                }
+        }
+
+        private func listPaneRows() async throws -> [PaneRow] {
+            let delim = Self.tmuxDelimiter
+            let result: ShellCommandResult
+            do {
+                result = try await runTmux(arguments: [
+                    "list-panes",
+                    "-a",
+                    "-F",
+                    "#{session_name}\(delim)#{pane_pid}\(delim)#{pane_current_path}\(delim)#{pane_current_command}"
+                ])
+            } catch {
+                if Self.isMissingTmuxServer(error: error) {
+                    return []
+                }
+                throw error
+            }
+
+            return result.stdout
+                .split(whereSeparator: \.isNewline)
+                .compactMap { line -> PaneRow? in
+                    let columns = String(line).components(separatedBy: delim)
+                    guard columns.count >= 4 else { return nil }
+                    guard let panePID = Int(columns[1]) else { return nil }
+                    return PaneRow(
+                        sessionName: String(columns[0]),
+                        panePID: panePID,
+                        currentPath: String(columns[2]),
+                        paneCommand: String(columns[3])
+                    )
+                }
+        }
+
+        private func listProcessRows() async throws -> [ProcessRow] {
+            let result = try await ShellCommand.runAsync(arguments: [
+                "ps",
+                "-axo",
+                "pid=,ppid=,pcpu=,command="
             ])
-        } catch {
-            if Self.isMissingTmuxServer(error: error) {
-                return []
-            }
-            throw error
+
+            return result.stdout
+                .split(whereSeparator: \.isNewline)
+                .compactMap { line -> ProcessRow? in
+                    let columns = line.split(maxSplits: 3, whereSeparator: \.isWhitespace)
+                    guard columns.count == 4 else { return nil }
+                    guard let pid = Int(columns[0]), let ppid = Int(columns[1]) else { return nil }
+                    let cpuPercent = Double(columns[2]) ?? 0
+                    return ProcessRow(
+                        pid: pid,
+                        ppid: ppid,
+                        cpuPercent: cpuPercent,
+                        command: String(columns[3])
+                    )
+                }
         }
 
-        return result.stdout
-            .split(whereSeparator: \.isNewline)
-            .compactMap { line -> SessionRow? in
-                let columns = String(line).components(separatedBy: delim)
-                guard columns.count >= 3 else { return nil }
-                let name = columns[0]
-                guard !name.isEmpty else { return nil }
-                let createdEpoch = TimeInterval(columns[1]) ?? Date().timeIntervalSince1970
-                let isAttached = Int(columns[2]) ?? 0 > 0
-                return SessionRow(name: name, createdEpoch: createdEpoch, isAttached: isAttached)
-            }
-    }
+        private func collectProcesses(
+            rootPID: Int?,
+            byPID: [Int: ProcessRow],
+            childrenByParent: [Int: [ProcessRow]]
+        ) -> [ProcessRow] {
+            guard let rootPID else { return [] }
+            var visited: Set<Int> = []
+            var queue: [Int] = [rootPID]
+            var collected: [ProcessRow] = []
 
-    private func listPaneRows() async throws -> [PaneRow] {
-        let delim = Self.tmuxDelimiter
-        let result: ShellCommandResult
-        do {
-            result = try await runTmux(arguments: [
-                "list-panes",
-                "-a",
-                "-F", "#{session_name}\(delim)#{pane_pid}\(delim)#{pane_current_path}\(delim)#{pane_current_command}"
-            ])
-        } catch {
-            if Self.isMissingTmuxServer(error: error) {
-                return []
-            }
-            throw error
-        }
-
-        return result.stdout
-            .split(whereSeparator: \.isNewline)
-            .compactMap { line -> PaneRow? in
-                let columns = String(line).components(separatedBy: delim)
-                guard columns.count >= 4 else { return nil }
-                guard let panePID = Int(columns[1]) else { return nil }
-                return PaneRow(
-                    sessionName: String(columns[0]),
-                    panePID: panePID,
-                    currentPath: String(columns[2]),
-                    paneCommand: String(columns[3])
-                )
-            }
-    }
-
-    private func listProcessRows() async throws -> [ProcessRow] {
-        let result = try await ShellCommand.runAsync(arguments: [
-            "ps",
-            "-axo",
-            "pid=,ppid=,pcpu=,command="
-        ])
-
-        return result.stdout
-            .split(whereSeparator: \.isNewline)
-            .compactMap { line -> ProcessRow? in
-                let columns = line.split(maxSplits: 3, whereSeparator: \.isWhitespace)
-                guard columns.count == 4 else { return nil }
-                guard let pid = Int(columns[0]), let ppid = Int(columns[1]) else { return nil }
-                let cpuPercent = Double(columns[2]) ?? 0
-                return ProcessRow(
-                    pid: pid,
-                    ppid: ppid,
-                    cpuPercent: cpuPercent,
-                    command: String(columns[3])
-                )
-            }
-    }
-
-    private func collectProcesses(
-        rootPID: Int?,
-        byPID: [Int: ProcessRow],
-        childrenByParent: [Int: [ProcessRow]]
-    ) -> [ProcessRow] {
-        guard let rootPID else { return [] }
-        var visited: Set<Int> = []
-        var queue: [Int] = [rootPID]
-        var collected: [ProcessRow] = []
-
-        while let pid = queue.popLast() {
-            guard visited.insert(pid).inserted else { continue }
-            if let process = byPID[pid] {
-                collected.append(process)
-            }
-            if let children = childrenByParent[pid] {
-                queue.append(contentsOf: children.map(\.pid))
-            }
-        }
-
-        return collected
-    }
-
-    private func processWorkingDirectory(pid: Int) async throws -> URL? {
-        guard pid > 0 else { return nil }
-
-        let result = try await ShellCommand.runAsync(arguments: [
-            "lsof",
-            "-a",
-            "-p", String(pid),
-            "-d", "cwd",
-            "-Fn"
-        ])
-
-        let path = result.stdout
-            .split(whereSeparator: \.isNewline)
-            .first { $0.hasPrefix("n") }
-            .map { String($0.dropFirst()) }
-
-        guard let path, !path.isEmpty else { return nil }
-        return URL(fileURLWithPath: path, isDirectory: true)
-    }
-
-    private func commandParts(for agentType: AgentType) -> [String] {
-        switch agentType {
-        case .claudeCode:
-            return ["claude", "--dangerously-skip-permissions"]
-        case .codex:
-            return ["codex"]
-        case .openCode:
-            return ["opencode"]
-        }
-    }
-
-    private func sessionExists(_ name: String) async throws -> Bool {
-        do {
-            _ = try await runTmux(arguments: ["has-session", "-t", name])
-            return true
-        } catch {
-            if let commandError = error as? ShellCommandError {
-                switch commandError {
-                case let .failed(result):
-                    if Self.isMissingSessionQueryMessage(result.stderr)
-                        || Self.isMissingSessionQueryMessage(result.stdout) {
-                        return false
-                    }
-                case .executableNotFound:
-                    break
+            while let pid = queue.popLast() {
+                guard visited.insert(pid).inserted else { continue }
+                if let process = byPID[pid] {
+                    collected.append(process)
+                }
+                if let children = childrenByParent[pid] {
+                    queue.append(contentsOf: children.map(\.pid))
                 }
             }
-            throw error
+
+            return collected
         }
-    }
 
-    private func runTmux(arguments: [String]) async throws -> ShellCommandResult {
-        try await ShellCommand.runAsync(arguments: [
-            "tmux",
-            "-S", tmuxSocketPath
-        ] + arguments)
-    }
+        private func processWorkingDirectory(pid: Int) async throws -> URL? {
+            guard pid > 0 else { return nil }
 
-    private static func agentType(for command: String) -> AgentType? {
-        let lowercased = command.lowercased()
-        if lowercased.contains("claude") {
-            return .claudeCode
+            let result = try await ShellCommand.runAsync(arguments: [
+                "lsof",
+                "-a",
+                "-p", String(pid),
+                "-d", "cwd",
+                "-Fn"
+            ])
+
+            let path = result.stdout
+                .split(whereSeparator: \.isNewline)
+                .first { $0.hasPrefix("n") }
+                .map { String($0.dropFirst()) }
+
+            guard let path, !path.isEmpty else { return nil }
+            return URL(fileURLWithPath: path, isDirectory: true)
         }
-        if lowercased.contains("codex") {
-            return .codex
+
+        private func commandParts(for agentType: AgentType) -> [String] {
+            switch agentType {
+            case .claudeCode:
+                return ["claude", "--dangerously-skip-permissions"]
+            case .codex:
+                return ["codex"]
+            case .openCode:
+                return ["opencode"]
+            }
         }
-        if lowercased.contains("opencode") {
-            return .openCode
+
+        private func sessionExists(_ name: String) async throws -> Bool {
+            do {
+                _ = try await runTmux(arguments: ["has-session", "-t", name])
+                return true
+            } catch {
+                if let commandError = error as? ShellCommandError {
+                    switch commandError {
+                    case let .failed(result):
+                        if Self.isMissingSessionQueryMessage(result.stderr)
+                            || Self.isMissingSessionQueryMessage(result.stdout) {
+                            return false
+                        }
+                    case .executableNotFound:
+                        break
+                    case .unavailableOnPlatform:
+                        break
+                    }
+                }
+                throw error
+            }
         }
-        return nil
-    }
 
-    static func isMissingTmuxServer(error: Error) -> Bool {
-        isMissingTmuxServerMessage(error.localizedDescription)
-    }
+        private func runTmux(arguments: [String]) async throws -> ShellCommandResult {
+            try await ShellCommand.runAsync(arguments: [
+                "tmux",
+                "-S", tmuxSocketPath
+            ] + arguments)
+        }
 
-    static func isMissingTmuxServerMessage(_ message: String) -> Bool {
-        let lower = message.lowercased()
-        return lower.contains("no server running on")
-            || lower.contains("failed to connect to server")
-            || lower.contains("no such file")
-            || lower.contains("can't find socket")
-            || lower.contains("error connecting to")
-    }
-
-    static func isMissingSessionQueryMessage(_ message: String) -> Bool {
-        let lower = message.lowercased()
-        return lower.contains("can't find session")
-            || isMissingTmuxServerMessage(lower)
-    }
-
-    private static func slug(from rawValue: String) -> String {
-        let lowercased = rawValue.lowercased()
-        let replaced = lowercased.replacingOccurrences(
-            of: #"[^a-z0-9]+"#,
-            with: "-",
-            options: .regularExpression
-        )
-        return replaced.trimmingCharacters(in: CharacterSet(charactersIn: "-"))
-    }
+        private static func agentType(for command: String) -> AgentType? {
+            let lowercased = command.lowercased()
+            if lowercased.contains("claude") {
+                return .claudeCode
+            }
+            if lowercased.contains("codex") {
+                return .codex
+            }
+            if lowercased.contains("opencode") {
+                return .openCode
+            }
+            return nil
+        }
+    #endif
 }
 
 // MARK: - Static Helpers (outside actor body for lint compliance)
@@ -522,24 +521,55 @@ extension SessionMonitor {
         }
         return String(text[range])
     }
+
+    static func isMissingTmuxServer(error: Error) -> Bool {
+        isMissingTmuxServerMessage(error.localizedDescription)
+    }
+
+    static func isMissingTmuxServerMessage(_ message: String) -> Bool {
+        let lower = message.lowercased()
+        return lower.contains("no server running on")
+            || lower.contains("failed to connect to server")
+            || lower.contains("no such file")
+            || lower.contains("can't find socket")
+            || lower.contains("error connecting to")
+    }
+
+    static func isMissingSessionQueryMessage(_ message: String) -> Bool {
+        let lower = message.lowercased()
+        return lower.contains("can't find session")
+            || isMissingTmuxServerMessage(lower)
+    }
+
+    private static func slug(from rawValue: String) -> String {
+        let lowercased = rawValue.lowercased()
+        let replaced = lowercased.replacingOccurrences(
+            of: #"[^a-z0-9]+"#,
+            with: "-",
+            options: .regularExpression
+        )
+        return replaced.trimmingCharacters(in: CharacterSet(charactersIn: "-"))
+    }
 }
 
-private struct SessionRow: Sendable {
-    let name: String
-    let createdEpoch: TimeInterval
-    let isAttached: Bool
-}
+#if os(macOS)
+    private struct SessionRow: Sendable {
+        let name: String
+        let createdEpoch: TimeInterval
+        let isAttached: Bool
+    }
 
-private struct PaneRow: Sendable {
-    let sessionName: String
-    let panePID: Int
-    let currentPath: String
-    let paneCommand: String
-}
+    private struct PaneRow: Sendable {
+        let sessionName: String
+        let panePID: Int
+        let currentPath: String
+        let paneCommand: String
+    }
 
-private struct ProcessRow: Sendable {
-    let pid: Int
-    let ppid: Int
-    let cpuPercent: Double
-    let command: String
-}
+    private struct ProcessRow: Sendable {
+        let pid: Int
+        let ppid: Int
+        let cpuPercent: Double
+        let command: String
+    }
+#endif

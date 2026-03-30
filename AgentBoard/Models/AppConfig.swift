@@ -23,8 +23,13 @@ struct AppConfig: Codable, Sendable {
         if let dir = projectsDirectory, !dir.isEmpty {
             return URL(fileURLWithPath: dir, isDirectory: true)
         }
-        return FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Projects", isDirectory: true)
+        #if os(macOS)
+            return FileManager.default.homeDirectoryForCurrentUser
+                .appendingPathComponent("Projects", isDirectory: true)
+        #else
+            return FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+                .appendingPathComponent("Projects", isDirectory: true)
+        #endif
     }
 
     static let empty = AppConfig(

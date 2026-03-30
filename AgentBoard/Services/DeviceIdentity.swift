@@ -10,14 +10,19 @@ struct DeviceIdentity: Codable {
 
     /// The SPKI-prefixed public key bytes (for Ed25519, 12-byte prefix + 32-byte key).
     private static let ed25519SpkiPrefix = Data([
-        0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65,
+        0x30, 0x2A, 0x30, 0x05, 0x06, 0x03, 0x2B, 0x65,
         0x70, 0x03, 0x21, 0x00
     ])
 
     /// Load or create the device identity.
     static func loadOrCreate() -> DeviceIdentity {
-        let configDir = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".agentboard", isDirectory: true)
+        #if os(macOS)
+            let configDir = FileManager.default.homeDirectoryForCurrentUser
+                .appendingPathComponent(".agentboard", isDirectory: true)
+        #else
+            let configDir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+                .appendingPathComponent("agentboard", isDirectory: true)
+        #endif
         let identityFile = configDir.appendingPathComponent("device-identity.json")
 
         if let data = try? Data(contentsOf: identityFile),
@@ -61,7 +66,7 @@ struct DeviceIdentity: Codable {
     }
 
     /// Build the device auth payload string matching the gateway's buildDeviceAuthPayload.
-    func buildAuthPayload(
+    func buildAuthPayload( // swiftlint:disable:this function_parameter_count
         clientId: String,
         clientMode: String,
         role: String,

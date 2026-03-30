@@ -1,4 +1,9 @@
 import SwiftUI
+#if os(macOS)
+    import AppKit
+#else
+    import UIKit
+#endif
 
 /// Step-by-step pairing guide shown when the gateway returns a pairingRequired error.
 struct PairingGuideView: View {
@@ -18,10 +23,12 @@ struct PairingGuideView: View {
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(.red)
 
-            Text("This device needs to be approved by the gateway before it can connect. Follow these steps on the machine running OpenClaw:")
-                .font(.system(size: 12))
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            Text(
+                "This device needs to be approved by the gateway before it can connect. Follow these steps on the machine running OpenClaw:"
+            )
+            .font(.system(size: 12))
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
 
             VStack(alignment: .leading, spacing: 10) {
                 stepView(number: 1, text: "Open a terminal on the gateway machine")
@@ -37,8 +44,12 @@ struct PairingGuideView: View {
                         .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 6))
 
                     Button {
-                        NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString(approveCommand, forType: .string)
+                        #if os(macOS)
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString(approveCommand, forType: .string)
+                        #else
+                            UIPasteboard.general.string = approveCommand
+                        #endif
                     } label: {
                         Image(systemName: "doc.on.doc")
                             .font(.system(size: 12))

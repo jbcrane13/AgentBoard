@@ -755,6 +755,19 @@ final class AppState {
         }
     }
 
+    func refreshSessions() async {
+        await refreshSessionsFromMonitor()
+    }
+
+    func captureSessionPane(sessionID: String) async -> String? {
+        do {
+            return try await sessionMonitor.capturePane(session: sessionID)
+        } catch {
+            setError("Failed to capture pane: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
     func createGatewaySession(
         project: Project,
         agentType: AgentType,
@@ -1291,19 +1304,21 @@ final class AppState {
     }
 
     func openBeadInTerminal(_ bead: Bead) async {
-        guard let project = selectedProject else { return }
-        errorMessage = nil
+        #if os(macOS)
+            guard let project = selectedProject else { return }
+            errorMessage = nil
 
-        let command = "bd show \(bead.id)"
+            let command = "bd show \(bead.id)"
 
-        do {
-            try await TerminalLauncher.openInTerminal(
-                command: command,
-                workingDirectory: project.path.path
-            )
-        } catch {
-            setError(error.localizedDescription)
-        }
+            do {
+                try await TerminalLauncher.openInTerminal(
+                    command: command,
+                    workingDirectory: project.path.path
+                )
+            } catch {
+                setError(error.localizedDescription)
+            }
+        #endif
     }
 
     private func bootstrap() {

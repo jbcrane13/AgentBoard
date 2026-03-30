@@ -4,10 +4,15 @@ struct AppConfigStore {
     private let fileManager = FileManager.default
     private let configDir: URL
 
-    /// Production initializer — uses ~/.agentboard/
+    /// Production initializer — uses ~/.agentboard/ (macOS) or App Support/agentboard/ (iOS)
     init() {
-        configDir = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".agentboard", isDirectory: true)
+        #if os(macOS)
+            configDir = FileManager.default.homeDirectoryForCurrentUser
+                .appendingPathComponent(".agentboard", isDirectory: true)
+        #else
+            configDir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+                .appendingPathComponent("agentboard", isDirectory: true)
+        #endif
     }
 
     /// Test initializer — uses a custom directory so tests never touch real config.
@@ -73,10 +78,15 @@ struct AppConfigStore {
     }
 
     func discoverProjects(in directory: URL? = nil) -> [ConfiguredProject] {
-        let projectsRoot = directory ?? fileManager.homeDirectoryForCurrentUser.appendingPathComponent(
-            "Projects",
-            isDirectory: true
-        )
+        let defaultRoot: URL = {
+            #if os(macOS)
+                return fileManager.homeDirectoryForCurrentUser.appendingPathComponent("Projects", isDirectory: true)
+            #else
+                return fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+                    .appendingPathComponent("Projects", isDirectory: true)
+            #endif
+        }()
+        let projectsRoot = directory ?? defaultRoot
         guard let projectURLs = try? fileManager.contentsOfDirectory(
             at: projectsRoot,
             includingPropertiesForKeys: [.isDirectoryKey],
@@ -123,9 +133,14 @@ struct AppConfigStore {
     }
 
     func discoverOpenClawConfig() -> (gatewayURL: String?, token: String?)? {
-        let url = fileManager.homeDirectoryForCurrentUser
-            .appendingPathComponent(".openclaw", isDirectory: true)
-            .appendingPathComponent("openclaw.json", isDirectory: false)
+        #if os(macOS)
+            let url = fileManager.homeDirectoryForCurrentUser
+                .appendingPathComponent(".openclaw", isDirectory: true)
+                .appendingPathComponent("openclaw.json", isDirectory: false)
+        #else
+            let url = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+                .appendingPathComponent("openclaw/openclaw.json", isDirectory: false)
+        #endif
 
         guard let data = try? Data(contentsOf: url),
               let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
