@@ -13,7 +13,7 @@
 		0ADC18DE4711D793185BE0BA /* GitHubLabelPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = C36C7D5398B3F58220F8460D /* GitHubLabelPicker.swift */; };
 		0BAF553639EE7A405378E977 /* JSONLEntityParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F2FDCF717C3DE00E8BA45FA /* JSONLEntityParserTests.swift */; };
 		0CE498117629DB0A727BE18F /* GitServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 638CE870A90FCCB044DE399A /* GitServiceTests.swift */; };
-		0D4B6287FB492E255C4E927C /* SwiftTerm in Frameworks */ = {isa = PBXBuildFile; productRef = AA65C204A6A99CEBA3E4B8C4 /* SwiftTerm */; };
+		0D4B6287FB492E255C4E927C /* Markdown in Frameworks */ = {isa = PBXBuildFile; productRef = 8C68D03BF071F4A8E1442A9F /* Markdown */; };
 		12BAE415F51FAC3B4A567836 /* DeviceIdentityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A84F13440D0B8C327633994 /* DeviceIdentityTests.swift */; };
 		146C478C266F680E284B4CE1 /* UtilityCoverageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FC321E96D03B460347FAD48 /* UtilityCoverageTests.swift */; };
 		14F0499FB44CF8FBCC73C22F /* AllProjectsBoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EBCD6B0C79014C750F4CC39 /* AllProjectsBoardView.swift */; };
@@ -112,7 +112,6 @@
 		E5C8EBC6F508CF015641CF6B /* AppStateMiscTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CECBA4E697CE435C748A132 /* AppStateMiscTests.swift */; };
 		E7830749BE10BD09F3F4A288 /* KeychainServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A5DFB4072DF173AEE5FFD04 /* KeychainServiceTests.swift */; };
 		EAEB93E3A63E3709C601AA4E /* CoordinationServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B5B511BB5025A65FC24F101 /* CoordinationServiceTests.swift */; };
-		EEE501D250CCB4E6D2D60418 /* Markdown in Frameworks */ = {isa = PBXBuildFile; productRef = 8C68D03BF071F4A8E1442A9F /* Markdown */; };
 		F2B26C6622D4236465BCF1D3 /* EpicsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C8EBD054EFBC054BD1651B9 /* EpicsView.swift */; };
 		F59B048F04C0B191B77A298D /* ShellCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECA6BA3AA54E81CDCDA7D3AE /* ShellCommand.swift */; };
 		FA3F385B215EEA11043653FC /* AppConfigStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111DB2534CA50DD914814A40 /* AppConfigStoreTests.swift */; };
@@ -169,7 +168,7 @@
 		2E342B801493E6187C7DFC1E /* AgentBoardTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AgentBoardTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		304789D04D45F6411C1EE51C /* tasks_valid.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = tasks_valid.json; sourceTree = "<group>"; };
 		320F02BD134FA0B846FF16C7 /* AppStateGatewaySessionRefreshTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStateGatewaySessionRefreshTests.swift; sourceTree = "<group>"; };
-		351F53C221B69731A024B864 /* AgentBoard.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AgentBoard.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		351F53C221B69731A024B864 /* AgentBoard.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = AgentBoard.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		35D4411A89018F1C32E00BA6 /* AgentBoard-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "AgentBoard-Info.plist"; sourceTree = "<group>"; };
 		3AF8D4C20B83696E82466BAA /* CanvasContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CanvasContent.swift; sourceTree = "<group>"; };
 		3B1E1058B3742AB6D3408B34 /* AgentBoardUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentBoardUITests.swift; sourceTree = "<group>"; };
@@ -265,8 +264,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0D4B6287FB492E255C4E927C /* SwiftTerm in Frameworks */,
-				EEE501D250CCB4E6D2D60418 /* Markdown in Frameworks */,
+				0D4B6287FB492E255C4E927C /* Markdown in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -630,7 +628,6 @@
 			);
 			name = AgentBoard;
 			packageProductDependencies = (
-				AA65C204A6A99CEBA3E4B8C4 /* SwiftTerm */,
 				8C68D03BF071F4A8E1442A9F /* Markdown */,
 			);
 			productName = AgentBoard;
@@ -918,7 +915,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.agentboard.AgentBoardTests;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 6.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AgentBoard.app/Contents/MacOS/AgentBoard";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AgentBoard.app/AgentBoard";
 			};
 			name = Debug;
 		};
@@ -956,15 +953,20 @@
 				INFOPLIST_FILE = "AgentBoard/AgentBoard-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
-					"@executable_path/../Frameworks",
+					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.agentboard.AgentBoard;
-				SDKROOT = macosx;
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
@@ -982,7 +984,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.agentboard.AgentBoardTests;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 6.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AgentBoard.app/Contents/MacOS/AgentBoard";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AgentBoard.app/AgentBoard";
 			};
 			name = Release;
 		};
@@ -1031,11 +1033,11 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 6.0;
@@ -1093,12 +1095,12 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = macosx;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 6.0;
@@ -1121,14 +1123,19 @@
 				INFOPLIST_FILE = "AgentBoard/AgentBoard-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
-					"@executable_path/../Frameworks",
+					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.agentboard.AgentBoard;
-				SDKROOT = macosx;
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};
@@ -1215,11 +1222,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 9DC4ADEA411AB0D93723BAE7 /* XCRemoteSwiftPackageReference "swift-markdown" */;
 			productName = Markdown;
-		};
-		AA65C204A6A99CEBA3E4B8C4 /* SwiftTerm */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 8A42E6F6CCF27450821E497E /* XCRemoteSwiftPackageReference "SwiftTerm" */;
-			productName = SwiftTerm;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
