@@ -70,6 +70,8 @@ private struct GitHubLabel: Decodable, Sendable {
 struct GitHubMilestone: Decodable, Sendable, Identifiable {
     let number: Int
     let title: String
+    let description: String?
+    let state: String
     let openIssues: Int
     let closedIssues: Int
     let dueOn: String?
@@ -86,8 +88,12 @@ struct GitHubMilestone: Decodable, Sendable, Identifiable {
         totalIssues > 0 ? Double(closedIssues) / Double(totalIssues) : 0
     }
 
+    var isOpen: Bool {
+        state == "open"
+    }
+
     enum CodingKeys: String, CodingKey {
-        case number, title
+        case number, title, description, state
         case openIssues = "open_issues"
         case closedIssues = "closed_issues"
         case dueOn = "due_on"
@@ -296,6 +302,70 @@ actor GitHubIssuesService {
         let (data, response) = try await session.data(for: authorizedRequest(url: url, token: token))
         try validateResponse(response, data: data)
         return try JSONDecoder().decode([GitHubMilestone].self, from: data)
+    }
+
+    // MARK: - Create Milestone
+
+    // swiftlint:disable:next function_parameter_count
+    func createMilestone(
+        owner: String, repo: String, token: String,
+        title: String, description: String?, dueOn: String?
+    ) async throws -> GitHubMilestone {
+        let url = try buildURL(owner: owner, repo: repo, endpoint: "milestones")
+        var request = authorizedRequest(url: url, token: token)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        var payload: [String: Any] = ["title": title]
+        if let description, !description.isEmpty { payload["description"] = description }
+        if let dueOn, !dueOn.isEmpty { payload["due_on"] = dueOn }
+        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+
+        let (data, response) = try await session.data(for: request)
+        try validateResponse(response, data: data)
+        return try JSONDecoder().decode(GitHubMilestone.self, from: data)
+    }
+
+    // MARK: - Update Milestone
+
+    // swiftlint:disable:next function_parameter_count
+    func updateMilestone(
+        owner: String, repo: String, token: String,
+        number: Int, title: String?, description: String?, dueOn: String?, state: String?
+    ) async throws -> GitHubMilestone {
+        let url = try buildURL(owner: owner, repo: repo, endpoint: "milestones/\(number)")
+        var request = authorizedRequest(url: url, token: token)
+        request.httpMethod = "PATCH"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        var payload: [String: Any] = [:]
+        if let title { payload["title"] = title }
+        if let description { payload["description"] = description }
+        if let dueOn { payload["due_on"] = dueOn }
+        if let state { payload["state"] = state }
+        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+
+        let (data, response) = try await session.data(for: request)
+        try validateResponse(response, data: data)
+        return try JSONDecoder().decode(GitHubMilestone.self, from: data)
+    }
+
+    // MARK: - Delete Milestone
+
+    func deleteMilestone(
+        owner: String, repo: String, token: String, number: Int
+    ) async throws {
+        let url = try buildURL(owner: owner, repo: repo, endpoint: "milestones/\(number)")
+        var request = authorizedRequest(url: url, token: token)
+        request.httpMethod = "DELETE"
+
+        let (data, response) = try await session.data(for: request)
+        // DELETE returns 204 No Content on success
+        guard let http = response as? HTTPURLResponse else {
+            throw GitHubError.invalidResponse
+        }
+        if http.statusCode == 204 { return }
+        try validateResponse(response, data: data)
     }
 
     // MARK: - Helpers
