@@ -1,0 +1,43 @@
+<h2>iPhone Tab Structure</h2>
+<p class="subtitle">The issue proposes 4 tabs. Here are layout options for organizing the content.</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>4 Tabs (as proposed)</h3>
+      <p><strong>Board</strong> · <strong>Chat</strong> · <strong>Sessions</strong> · <strong>More</strong></p>
+      <p style="margin-top:8px;color:#888;font-size:13px;">More tab contains: Settings, Notes, History, Agents, Milestones, Epics. Board tab has project picker + Kanban columns. Sessions tab has active sessions + session logs.</p>
+      <div class="pros-cons" style="margin-top:12px;">
+        <div class="pros"><h4>Pros</h4><ul><li>Clean, focused tabs</li><li>Chat gets dedicated space</li><li>Matches issue spec</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>"More" tab is a grab bag (6+ items)</li><li>Agents/Epics buried</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>5 Tabs</h3>
+      <p><strong>Board</strong> · <strong>Chat</strong> · <strong>Sessions</strong> · <strong>Agents</strong> · <strong>More</strong></p>
+      <p style="margin-top:8px;color:#888;font-size:13px;">Promotes Agents to a top-level tab since it's a primary workflow. More tab slims down to: Settings, Notes, History, Milestones, Epics.</p>
+      <div class="pros-cons" style="margin-top:12px;">
+        <div class="pros"><h4>Pros</h4><ul><li>Agent monitoring is one tap away</li><li>5 tabs is still clean on iPhone</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Slightly more crowded tab bar</li><li>More tab still has 5 items</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>4 Tabs — Board absorbs more</h3>
+      <p><strong>Board</strong> · <strong>Chat</strong> · <strong>Agents</strong> · <strong>Settings</strong></p>
+      <p style="margin-top:8px;color:#888;font-size:13px;">Board tab becomes the hub: project picker, Kanban, plus a segmented control to switch between Board/Epics/Milestones/Ready Queue. Sessions are accessed from Board context (tap a session badge). Agents tab shows sessions + agent workload. Settings replaces "More".</p>
+      <div class="pros-cons" style="margin-top:12px;">
+        <div class="pros"><h4>Pros</h4><ul><li>No "More" dumping ground</li><li>Every tab has clear purpose</li><li>Board is the natural home for project views</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Board tab is heavier</li><li>Sessions less discoverable</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>
