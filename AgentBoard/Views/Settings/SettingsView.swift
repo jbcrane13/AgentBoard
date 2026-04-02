@@ -14,6 +14,7 @@ struct SettingsView: View {
     @State private var isTesting = false
     @State private var showRemoteGuide = false
     @State private var showToolOutput = false
+    @State private var showGitHubRepoPicker = false
     @State private var githubToken = ""
     @State private var githubOwner = ""
     @State private var githubRepo = ""
@@ -326,10 +327,21 @@ struct SettingsView: View {
                         }
                     }
 
-                    Button("Save GitHub Settings") {
-                        saveGitHubSettings()
+                    HStack(spacing: 12) {
+                        Button("Save GitHub Settings") {
+                            saveGitHubSettings()
+                        }
+                        .accessibilityIdentifier("settings_button_github_save")
+
+                        if !githubToken.isEmpty {
+                            Button {
+                                showGitHubRepoPicker = true
+                            } label: {
+                                Label("Browse Repos…", systemImage: "plus.circle")
+                            }
+                            .accessibilityIdentifier("settings_button_github_browse")
+                        }
                     }
-                    .accessibilityIdentifier("settings_button_github_save")
                 }
             }
             .padding(20)
@@ -354,6 +366,10 @@ struct SettingsView: View {
             if case let .success(urls) = result, let url = urls.first {
                 appState.addProject(at: url)
             }
+        }
+        .sheet(isPresented: $showGitHubRepoPicker) {
+            GitHubRepoPickerView(token: githubToken.isEmpty ? (appState.appConfig.githubToken ?? "") : githubToken)
+                .environment(appState)
         }
         .fileImporter(
             isPresented: $showingDirectoryPicker,

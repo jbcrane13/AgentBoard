@@ -177,7 +177,9 @@ final class AppState {
 
     private var githubConfig: (owner: String, repo: String, token: String)? {
         guard let project = selectedProject,
-              let configured = appConfig.projects.first(where: { $0.path == project.path.path }),
+              let configured = appConfig.projects.first(where: {
+                  $0.path == project.path.path || $0.path == project.path.absoluteString
+              }),
               let owner = configured.githubOwner, !owner.isEmpty,
               let repo = configured.githubRepo, !repo.isEmpty,
               let token = appConfig.githubToken, !token.isEmpty
@@ -1862,11 +1864,21 @@ final class AppState {
     private func rebuildProjects() {
         let existingIDsByPath = Dictionary(uniqueKeysWithValues: projects.map { ($0.path.path, $0.id) })
         projects = appConfig.projects.map { configuredProject in
-            let url = URL(fileURLWithPath: configuredProject.path, isDirectory: true)
+            let isGitHubOnly = configuredProject.path.hasPrefix("github://")
+            let url: URL
+            let name: String
+            if isGitHubOnly {
+                // Synthetic GitHub-only project (no local directory)
+                url = URL(string: configuredProject.path) ?? URL(fileURLWithPath: "/tmp/agentboard-github")
+                name = configuredProject.githubRepo ?? url.lastPathComponent
+            } else {
+                url = URL(fileURLWithPath: configuredProject.path, isDirectory: true)
+                name = url.lastPathComponent
+            }
             let id = existingIDsByPath[configuredProject.path] ?? UUID()
             return Project(
                 id: id,
-                name: url.lastPathComponent,
+                name: name,
                 path: url,
                 beadsPath: url.appendingPathComponent(".beads", isDirectory: true),
                 icon: configuredProject.icon,
@@ -1878,6 +1890,14 @@ final class AppState {
         }
 
         refreshProjectCounts()
+    }
+
+    /// Public wrapper for rebuildProjects — used by GitHubRepoPickerView after adding repos.
+    func rebuildProjectsPublic() {
+        rebuildProjects()
+        if let first = projects.first, selectedProject == nil {
+            selectProject(first)
+        }
     }
 
     private func reloadSelectedProjectAndWatch() {
@@ -2197,7 +2217,7 @@ final class AppState {
         persistConfig()
     }
 
-    private func persistConfig() {
+    func persistConfig() {
         do {
             try configStore.save(appConfig)
         } catch {
