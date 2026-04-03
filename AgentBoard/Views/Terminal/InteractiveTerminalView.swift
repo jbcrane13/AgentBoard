@@ -21,9 +21,17 @@
             env["PATH"] = (extraPaths + [currentPath]).joined(separator: ":")
             env["TERM"] = "xterm-256color"
 
+            // Enable mouse mode + larger scrollback so the user can scroll up
+            // in the embedded terminal. Then attach to the session.
+            let shellCmd = [
+                "tmux -S \(socketPath) set-option -g mouse on 2>/dev/null;",
+                "tmux -S \(socketPath) set-option -g history-limit 10000 2>/dev/null;",
+                "exec tmux -S \(socketPath) attach-session -t \(sessionID)"
+            ].joined(separator: " ")
+
             terminalView.startProcess(
-                executable: "/usr/bin/env",
-                args: ["tmux", "-S", socketPath, "attach-session", "-t", sessionID],
+                executable: "/bin/sh",
+                args: ["-c", shellCmd],
                 environment: env.map { "\($0.key)=\($0.value)" },
                 execName: nil
             )
