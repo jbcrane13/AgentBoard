@@ -1,6 +1,6 @@
+@testable import AgentBoard
 import Foundation
 import Testing
-@testable import AgentBoard
 
 actor FlakySessionOpenClawService: OpenClawServicing {
     enum Mode {
@@ -14,36 +14,40 @@ actor FlakySessionOpenClawService: OpenClawServicing {
         self.mode = mode
     }
 
-    var isConnected: Bool { true }
+    var isConnected: Bool {
+        true
+    }
+
     var events: AsyncStream<GatewayEvent> {
         AsyncStream { continuation in
             continuation.finish()
         }
     }
 
-    func configure(gatewayURLString: String?, token: String?) throws {}
+    func configure(gatewayURLString _: String?, token _: String?) throws {}
     func connect() async throws {}
     func disconnect() async {}
-    func sendChat(sessionKey: String, message: String, thinking: String?) async throws {}
-    func chatHistory(sessionKey: String, limit: Int) async throws -> GatewayChatHistory {
+    func sendChat(sessionKey _: String, message _: String, thinking _: String?) async throws {}
+    func chatHistory(sessionKey _: String, limit _: Int) async throws -> GatewayChatHistory {
         GatewayChatHistory(messages: [], thinkingLevel: nil)
     }
-    func abortChat(sessionKey: String, runId: String?) async throws {}
-    func listSessions(activeMinutes: Int?, limit: Int?) async throws -> [GatewaySession] {
+
+    func abortChat(sessionKey _: String, runId _: String?) async throws {}
+    func listSessions(activeMinutes _: Int?, limit _: Int?) async throws -> [GatewaySession] {
         switch mode {
-        case .success(let sessions):
+        case let .success(sessions):
             return sessions
-        case .failure(let error):
+        case let .failure(error):
             throw error
         }
     }
 
     func createSession(
         label: String?,
-        projectPath: String?,
+        projectPath _: String?,
         agentType: String?,
-        beadId: String?,
-        prompt: String?
+        beadId _: String?,
+        prompt _: String?
     ) async throws -> GatewaySession {
         GatewaySession(
             id: "main",
@@ -57,14 +61,13 @@ actor FlakySessionOpenClawService: OpenClawServicing {
         )
     }
 
-    func patchSession(key: String, thinkingLevel: String?) async throws {}
+    func patchSession(key _: String, thinkingLevel _: String?) async throws {}
 
-    func agentIdentity(sessionKey: String?) async throws -> GatewayAgentIdentity {
+    func agentIdentity(sessionKey _: String?) async throws -> GatewayAgentIdentity {
         GatewayAgentIdentity(agentId: nil, name: "Assistant", avatar: nil)
     }
 }
 
-@Suite("AppState Gateway Session Refresh")
 @MainActor
 struct AppStateGatewaySessionRefreshTests {
     @Test("refreshGatewaySessions surfaces failure instead of swallowing it")

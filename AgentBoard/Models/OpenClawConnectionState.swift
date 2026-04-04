@@ -48,11 +48,11 @@ enum ConnectionError: Sendable, Equatable {
             return "Device pairing failed. Delete ~/.agentboard/device-identity.json and restart AgentBoard."
         case .pairingRequired:
             return "Device pairing required. Run: openclaw devices approve --latest"
-        case .connectionRefused(let url):
+        case let .connectionRefused(url):
             return "Cannot reach gateway at \(url). Check that OpenClaw is running."
         case .authFailed:
             return "Authentication failed. Check your gateway token in Settings."
-        case .generic(let message):
+        case let .generic(message):
             return message
         }
     }
@@ -103,7 +103,9 @@ enum ConnectionError: Sendable, Equatable {
         if message.contains("pairing required") {
             return .pairingRequired
         }
-        if message.contains("unauthorized") || message.contains("invalid token") || message.contains("authentication failed") || message.contains("token missing") || message.contains("token_missing") {
+        if message.contains("unauthorized") || message.contains("invalid token") || message
+            .contains("authentication failed") || message.contains("token missing") || message
+            .contains("token_missing") {
             return .authFailed
         }
 

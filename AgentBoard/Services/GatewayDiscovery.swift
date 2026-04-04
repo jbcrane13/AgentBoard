@@ -16,7 +16,9 @@ final class GatewayDiscovery: ObservableObject {
         let host: String
         let port: UInt16
 
-        var url: String { "http://\(host):\(port)" }
+        var url: String {
+            "http://\(host):\(port)"
+        }
     }
 
     func startBrowsing() {
@@ -71,7 +73,7 @@ final class GatewayDiscovery: ObservableObject {
 
     private func handleResults(_ results: Set<NWBrowser.Result>) {
         for result in results {
-            if case .service(let name, let type, let domain, _) = result.endpoint {
+            if case let .service(name, type, domain, _) = result.endpoint {
                 resolveEndpoint(name: name, type: type, domain: domain)
             }
         }
@@ -89,14 +91,14 @@ final class GatewayDiscovery: ObservableObject {
             connection.stateUpdateHandler = { [weak self] state in
                 if case .ready = state {
                     if let innerEndpoint = connection.currentPath?.remoteEndpoint,
-                       case .hostPort(let host, let port) = innerEndpoint {
+                       case let .hostPort(host, port) = innerEndpoint {
                         let hostStr: String
                         switch host {
-                        case .ipv4(let addr):
+                        case let .ipv4(addr):
                             hostStr = "\(addr)"
-                        case .ipv6(let addr):
+                        case let .ipv6(addr):
                             hostStr = "\(addr)"
-                        case .name(let hostname, _):
+                        case let .name(hostname, _):
                             hostStr = hostname
                         @unknown default:
                             hostStr = "\(host)"

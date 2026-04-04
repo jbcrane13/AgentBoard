@@ -62,8 +62,8 @@ struct ProjectListView: View {
             .background(
                 RoundedRectangle(cornerRadius: 6)
                     .fill(appState.selectedProjectID == project.id
-                          ? Color.white.opacity(0.12)
-                          : Color.clear)
+                        ? Color.white.opacity(0.12)
+                        : Color.clear)
             )
         }
         .buttonStyle(.plain)

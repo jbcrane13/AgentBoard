@@ -71,7 +71,6 @@ enum KeychainService {
         ]
         SecItemDelete(query as CFDictionary)
     }
-
 }
 
 // MARK: - KeychainTokenStorage (TokenStorage conformance wrapping static KeychainService)
@@ -79,9 +78,17 @@ enum KeychainService {
 /// Production token storage backed by macOS Keychain.
 /// Inject this in the app; use InMemoryTokenStorage in tests.
 struct KeychainTokenStorage: TokenStorage {
-    func saveToken(_ token: String) throws { try KeychainService.saveToken(token) }
-    func loadToken() -> String? { KeychainService.loadToken() }
-    func deleteToken() { KeychainService.deleteToken() }
+    func saveToken(_ token: String) throws {
+        try KeychainService.saveToken(token)
+    }
+
+    func loadToken() -> String? {
+        KeychainService.loadToken()
+    }
+
+    func deleteToken() {
+        KeychainService.deleteToken()
+    }
 }
 
 enum KeychainError: LocalizedError {
@@ -89,7 +96,7 @@ enum KeychainError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .unhandled(let status):
+        case let .unhandled(status):
             if let message = SecCopyErrorMessageString(status, nil) {
                 return message as String
             }

@@ -1,6 +1,6 @@
+@testable import AgentBoard
 import Foundation
 import Testing
-@testable import AgentBoard
 
 // MARK: - State Query Helpers for Unit Tests
 
@@ -380,7 +380,7 @@ final class AsyncWaitHelpers {
 // MARK: - Test Data Builder
 
 /// Helper for creating test data
-final class TestDataBuilder {
+enum TestDataBuilder {
     /// Create a test bead draft
     static func createBeadDraft(
         title: String = "Test Bead \(UUID().uuidString.prefix(8))",
@@ -465,13 +465,22 @@ final class TestCleanupHelper {
         clearStatus()
     }
 }
+
 // MARK: - InMemoryTokenStorage
 
 /// Drop-in replacement for KeychainTokenStorage in tests.
 /// No Keychain access — no permission dialogs.
 final class InMemoryTokenStorage: TokenStorage, @unchecked Sendable {
     private var token: String?
-    func saveToken(_ token: String) throws { self.token = token }
-    func loadToken() -> String? { token }
-    func deleteToken() { token = nil }
+    func saveToken(_ token: String) throws {
+        self.token = token
+    }
+
+    func loadToken() -> String? {
+        token
+    }
+
+    func deleteToken() {
+        token = nil
+    }
 }

@@ -5,8 +5,13 @@ private let gatewayLog = Logger(subsystem: "com.agentboard.gateway", category: "
 
 struct JSONPayload: @unchecked Sendable {
     let value: [String: Any]
-    init(_ value: [String: Any]) { self.value = value }
-    subscript(key: String) -> Any? { value[key] }
+    init(_ value: [String: Any]) {
+        self.value = value
+    }
+
+    subscript(key: String) -> Any? {
+        value[key]
+    }
 }
 
 struct GatewayEvent: @unchecked Sendable {
@@ -14,11 +19,25 @@ struct GatewayEvent: @unchecked Sendable {
     let payload: [String: Any]
     let seq: Int?
 
-    var isChatEvent: Bool { event == "chat" }
-    var chatSessionKey: String? { payload["sessionKey"] as? String }
-    var chatRunId: String? { payload["runId"] as? String }
-    var chatState: String? { payload["state"] as? String }
-    var chatErrorMessage: String? { payload["errorMessage"] as? String }
+    var isChatEvent: Bool {
+        event == "chat"
+    }
+
+    var chatSessionKey: String? {
+        payload["sessionKey"] as? String
+    }
+
+    var chatRunId: String? {
+        payload["runId"] as? String
+    }
+
+    var chatState: String? {
+        payload["state"] as? String
+    }
+
+    var chatErrorMessage: String? {
+        payload["errorMessage"] as? String
+    }
 
     var chatMessageText: String? {
         guard let message = payload["message"] as? [String: Any] else { return nil }
@@ -65,9 +84,9 @@ enum GatewayClientError: LocalizedError {
         switch self {
         case .notConnected:
             return "Not connected to OpenClaw gateway."
-        case .connectionFailed(let reason):
+        case let .connectionFailed(reason):
             return "Gateway connection failed: \(reason)"
-        case .requestFailed(let message):
+        case let .requestFailed(message):
             return message
         case .timeout:
             return "Gateway request timed out."
@@ -95,7 +114,7 @@ actor GatewayClient {
     /// Sequence number for event ordering - used to detect missed events on reconnect
     private var lastEventSeq: Int?
     private var lastInboundMessageAt: Date?
-    private var tickIntervalMs: Double = 30_000
+    private var tickIntervalMs: Double = 30000
 
     private let session: URLSession
     private let connectChallengeTimeoutSeconds: Double = 6
@@ -112,7 +131,7 @@ actor GatewayClient {
         // On reconnect, don't call disconnect() which finishes subscribers
         // Instead, just clean up the socket without touching subscribers
         if isConnected || isReconnecting {
-            gatewayLog.info("Reconnecting to gateway (wasConnected=\(self.isConnected), wasReconnecting=\(self.isReconnecting))")
+            gatewayLog.info("Reconnecting to gateway (wasConnected=\(isConnected), wasReconnecting=\(isReconnecting))")
             receiveTask?.cancel()
             receiveTask = nil
             pingTask?.cancel()
@@ -213,7 +232,7 @@ actor GatewayClient {
             )
             updateConnectionPolicy(from: hello)
             isConnected = true
-            isReconnecting = false  // Clear reconnecting flag on successful connect
+            isReconnecting = false // Clear reconnecting flag on successful connect
             lastInboundMessageAt = Date()
             gatewayLog.notice("Successfully connected to gateway")
 
@@ -356,9 +375,9 @@ actor GatewayClient {
 
     func createSession(
         label: String? = nil,
-        projectPath: String? = nil,
+        projectPath _: String? = nil,
         agentType: String? = nil,
-        beadId: String? = nil,
+        beadId _: String? = nil,
         prompt: String? = nil
     ) async throws -> GatewaySession {
         var chatParams: [String: Any] = [:]
@@ -411,9 +430,9 @@ actor GatewayClient {
                     guard let task = await self.webSocketTask else { break }
                     let message = try await task.receive()
                     switch message {
-                    case .string(let text):
+                    case let .string(text):
                         await self.handleMessage(text)
-                    case .data(let data):
+                    case let .data(data):
                         if let text = String(data: data, encoding: .utf8) {
                             await self.handleMessage(text)
                         }
@@ -501,7 +520,10 @@ actor GatewayClient {
 
         // Detect sequence gap (possible missed events during reconnect)
         if let seq, let lastSeq = lastEventSeq, seq > lastSeq + 1 {
-            gatewayLog.warning("Event sequence gap detected: expected \(lastSeq + 1) but got \(seq) - may have missed \(seq - lastSeq - 1) events")
+            gatewayLog
+                .warning(
+                    "Event sequence gap detected: expected \(lastSeq + 1) but got \(seq) - may have missed \(seq - lastSeq - 1) events"
+                )
         }
         if let seq {
             lastEventSeq = seq
@@ -687,13 +709,13 @@ actor GatewayClient {
 
     private func runTickWatchdog() async {
         while !Task.isCancelled {
-            let watchdogMs = max(tickIntervalMs, 1_000) * 2
+            let watchdogMs = max(tickIntervalMs, 1000) * 2
             try? await Task.sleep(nanoseconds: UInt64(watchdogMs * 1_000_000))
             guard !Task.isCancelled else { break }
             guard isConnected else { break }
 
             guard let lastInboundMessageAt else { continue }
-            let elapsedMs = Date().timeIntervalSince(lastInboundMessageAt) * 1_000
+            let elapsedMs = Date().timeIntervalSince(lastInboundMessageAt) * 1000
             if elapsedMs > watchdogMs {
                 gatewayLog.warning("Gateway watchdog missed inbound frames; reconnecting")
                 handleDisconnect()

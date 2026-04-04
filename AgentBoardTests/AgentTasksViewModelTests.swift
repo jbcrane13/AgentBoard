@@ -1,8 +1,7 @@
+@testable import AgentBoard
 import Foundation
 import Testing
-@testable import AgentBoard
 
-@Suite("AgentTasksViewModel")
 @MainActor
 struct AgentTasksViewModelTests {
     @Test("Malformed task payload surfaces parse error and keeps prior tasks")
@@ -21,9 +20,9 @@ struct AgentTasksViewModelTests {
 
         let model = AgentTasksViewModel(
             runCommand: { _, _ in
-                ShellCommandResult(
+                try ShellCommandResult(
                     exitCode: 0,
-                    stdout: try fixture(named: "tasks_malformed.json"),
+                    stdout: fixture(named: "tasks_malformed.json"),
                     stderr: ""
                 )
             },
@@ -41,9 +40,9 @@ struct AgentTasksViewModelTests {
     func emptyPayloadIsValid() async {
         let model = AgentTasksViewModel(
             runCommand: { _, _ in
-                ShellCommandResult(
+                try ShellCommandResult(
                     exitCode: 0,
-                    stdout: try fixture(named: "tasks_empty.json"),
+                    stdout: fixture(named: "tasks_empty.json"),
                     stderr: ""
                 )
             },
@@ -74,9 +73,9 @@ struct AgentTasksViewModelTests {
     func validPayloadParsesExpectedFields() async throws {
         let model = AgentTasksViewModel(
             runCommand: { _, _ in
-                ShellCommandResult(
+                try ShellCommandResult(
                     exitCode: 0,
-                    stdout: try fixture(named: "tasks_valid.json"),
+                    stdout: fixture(named: "tasks_valid.json"),
                     stderr: ""
                 )
             },
@@ -105,7 +104,9 @@ struct AgentTasksViewModelTests {
     @Test("Command failure surfaces load error")
     func commandFailureSurfacesLoadError() async {
         struct CommandFailure: LocalizedError {
-            var errorDescription: String? { "bd command failed" }
+            var errorDescription: String? {
+                "bd command failed"
+            }
         }
 
         let priorTask = AgentTask(
@@ -132,7 +133,7 @@ struct AgentTasksViewModelTests {
         #expect(model.errorMessage?.contains("Failed to load tasks") == true)
     }
 
-    nonisolated private func fixture(named name: String) throws -> String {
+    private nonisolated func fixture(named name: String) throws -> String {
         let testsDirectory = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
         let fixtureURL = testsDirectory

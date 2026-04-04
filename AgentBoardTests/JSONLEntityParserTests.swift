@@ -1,10 +1,8 @@
+@testable import AgentBoard
 import Foundation
 import Testing
-@testable import AgentBoard
 
-@Suite("JSONLEntityParser Tests")
 struct JSONLEntityParserTests {
-
     // MARK: - Helpers
 
     private func jsonlLine(_ dict: [String: Any]) -> String {
@@ -15,7 +13,7 @@ struct JSONLEntityParserTests {
     // MARK: 1 — create op builds an entity with correct type and properties
 
     @Test("parseText: create op builds entity with correct type and properties")
-    func parseTextCreateOpBuildsEntity() {
+    func parseTextCreateOpBuildsEntity() throws {
         let line = jsonlLine([
             "op": "create",
             "entity": [
@@ -27,7 +25,7 @@ struct JSONLEntityParserTests {
 
         let result = JSONLEntityParser.parse(text: line)
 
-        let entity = try! #require(result["e1"])
+        let entity = try #require(result["e1"])
         #expect(entity.type == "task")
         #expect(entity.properties["title"] == "Do something")
         #expect(entity.properties["status"] == "open")
@@ -36,7 +34,7 @@ struct JSONLEntityParserTests {
     // MARK: 2 — update op merges properties into an existing entity
 
     @Test("parseText: update op merges new property value")
-    func parseTextUpdateMergesProperties() {
+    func parseTextUpdateMergesProperties() throws {
         let createLine = jsonlLine([
             "op": "create",
             "entity": ["id": "e2", "type": "note", "properties": ["status": "draft"]]
@@ -49,14 +47,14 @@ struct JSONLEntityParserTests {
 
         let result = JSONLEntityParser.parse(text: createLine + "\n" + updateLine)
 
-        let entity = try! #require(result["e2"])
+        let entity = try #require(result["e2"])
         #expect(entity.properties["status"] == "published")
     }
 
     // MARK: 3 — update op preserves properties that were not mentioned
 
     @Test("parseText: update op preserves unchanged properties")
-    func parseTextUpdatePreservesUnchangedProperties() {
+    func parseTextUpdatePreservesUnchangedProperties() throws {
         let createLine = jsonlLine([
             "op": "create",
             "entity": [
@@ -73,7 +71,7 @@ struct JSONLEntityParserTests {
 
         let result = JSONLEntityParser.parse(text: createLine + "\n" + updateLine)
 
-        let entity = try! #require(result["e3"])
+        let entity = try #require(result["e3"])
         #expect(entity.properties["title"] == "Original Title")
         #expect(entity.properties["priority"] == "low")
     }

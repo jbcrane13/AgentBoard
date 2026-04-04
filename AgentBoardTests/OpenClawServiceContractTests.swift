@@ -1,6 +1,6 @@
+@testable import AgentBoard
 import Foundation
 import Testing
-@testable import AgentBoard
 
 actor MockGatewayClient: GatewayClientServing {
     var isConnected: Bool = false
@@ -19,11 +19,16 @@ actor MockGatewayClient: GatewayClientServing {
     var agentIdentityRequests: [String?] = []
     var createSessionRequests: [(label: String?, agentType: String?, beadId: String?)] = []
 
-    // Setters for test setup — actor properties can't be assigned from outside the actor.
-    func setNextSessions(_ sessions: [GatewaySession]) { nextSessions = sessions }
-    func setSendChatError(_ error: Error?) { sendChatError = error }
+    /// Setters for test setup — actor properties can't be assigned from outside the actor.
+    func setNextSessions(_ sessions: [GatewaySession]) {
+        nextSessions = sessions
+    }
 
-    func connect(url: URL, token: String?) async throws {
+    func setSendChatError(_ error: Error?) {
+        sendChatError = error
+    }
+
+    func connect(url _: URL, token _: String?) async throws {
         isConnected = true
     }
 
@@ -47,16 +52,16 @@ actor MockGatewayClient: GatewayClientServing {
         abortChatRequests.append((sessionKey: sessionKey, runId: runId))
     }
 
-    func listSessions(activeMinutes: Int?, limit: Int?) async throws -> [GatewaySession] {
+    func listSessions(activeMinutes _: Int?, limit _: Int?) async throws -> [GatewaySession] {
         nextSessions
     }
 
     func createSession(
         label: String?,
-        projectPath: String?,
+        projectPath _: String?,
         agentType: String?,
         beadId: String?,
-        prompt: String?
+        prompt _: String?
     ) async throws -> GatewaySession {
         createSessionRequests.append((label: label, agentType: agentType, beadId: beadId))
         return GatewaySession(
@@ -81,7 +86,6 @@ actor MockGatewayClient: GatewayClientServing {
     }
 }
 
-@Suite("OpenClawService Contract Tests")
 struct OpenClawServiceContractTests {
     @Test("configure rejects invalid gateway URLs")
     func configureRejectsInvalidURL() async {

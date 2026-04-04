@@ -10,12 +10,12 @@ enum CanvasContent: Identifiable, Hashable {
 
     var id: UUID {
         switch self {
-        case .markdown(let id, _, _): id
-        case .html(let id, _, _): id
-        case .image(let id, _, _): id
-        case .diff(let id, _, _, _, _): id
-        case .diagram(let id, _, _): id
-        case .terminal(let id, _, _): id
+        case let .markdown(id, _, _): id
+        case let .html(id, _, _): id
+        case let .image(id, _, _): id
+        case let .diff(id, _, _, _, _): id
+        case let .diagram(id, _, _): id
+        case let .terminal(id, _, _): id
         }
     }
 }

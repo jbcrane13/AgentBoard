@@ -1,5 +1,5 @@
-import Foundation
 @testable import AgentBoard
+import Foundation
 
 /// Creates an AppState backed by a temp config directory that never touches ~/.agentboard/
 @MainActor

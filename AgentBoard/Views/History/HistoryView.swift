@@ -193,7 +193,7 @@ private enum DateRangeFilter: String, CaseIterable {
         case .allTime:
             return true
         case .last24Hours:
-            return date >= Date().addingTimeInterval(-86_400)
+            return date >= Date().addingTimeInterval(-86400)
         case .last7Days:
             return date >= Date().addingTimeInterval(-604_800)
         case .last30Days:

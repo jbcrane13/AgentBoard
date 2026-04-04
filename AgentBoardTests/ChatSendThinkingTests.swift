@@ -1,25 +1,29 @@
+@testable import AgentBoard
 import Foundation
 import Testing
-@testable import AgentBoard
 
 actor HappyPathOpenClawService: OpenClawServicing {
-    var isConnected: Bool { true }
+    var isConnected: Bool {
+        true
+    }
+
     var events: AsyncStream<GatewayEvent> {
         AsyncStream { continuation in
             continuation.finish()
         }
     }
+
     var lastSentChat: (sessionKey: String, message: String, thinking: String?)?
     var abortRequests: [(sessionKey: String, runId: String?)] = []
 
-    func configure(gatewayURLString: String?, token: String?) throws {}
+    func configure(gatewayURLString _: String?, token _: String?) throws {}
     func connect() async throws {}
     func disconnect() async {}
     func sendChat(sessionKey: String, message: String, thinking: String?) async throws {
         lastSentChat = (sessionKey: sessionKey, message: message, thinking: thinking)
     }
 
-    func chatHistory(sessionKey: String, limit: Int) async throws -> GatewayChatHistory {
+    func chatHistory(sessionKey _: String, limit _: Int) async throws -> GatewayChatHistory {
         GatewayChatHistory(messages: [], thinkingLevel: nil)
     }
 
@@ -27,16 +31,16 @@ actor HappyPathOpenClawService: OpenClawServicing {
         abortRequests.append((sessionKey: sessionKey, runId: runId))
     }
 
-    func listSessions(activeMinutes: Int?, limit: Int?) async throws -> [GatewaySession] {
+    func listSessions(activeMinutes _: Int?, limit _: Int?) async throws -> [GatewaySession] {
         []
     }
 
     func createSession(
         label: String?,
-        projectPath: String?,
+        projectPath _: String?,
         agentType: String?,
-        beadId: String?,
-        prompt: String?
+        beadId _: String?,
+        prompt _: String?
     ) async throws -> GatewaySession {
         GatewaySession(
             id: "main",
@@ -50,14 +54,13 @@ actor HappyPathOpenClawService: OpenClawServicing {
         )
     }
 
-    func patchSession(key: String, thinkingLevel: String?) async throws {}
+    func patchSession(key _: String, thinkingLevel _: String?) async throws {}
 
-    func agentIdentity(sessionKey: String?) async throws -> GatewayAgentIdentity {
+    func agentIdentity(sessionKey _: String?) async throws -> GatewayAgentIdentity {
         GatewayAgentIdentity(agentId: "codex", name: "Assistant", avatar: nil)
     }
 }
 
-@Suite("Chat Send and Thinking Level Tests")
 @MainActor
 struct ChatSendAndThinkingLevelTests {
     private func makeState() -> AppState {

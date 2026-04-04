@@ -1,8 +1,7 @@
+@testable import AgentBoard
 import Foundation
 import Testing
-@testable import AgentBoard
 
-@Suite("Utility Coverage")
 struct UtilityCoverageTests {
     @Test("ShellCommandResult combinedOutput trims and joins stdout/stderr")
     func shellCommandResultCombinedOutput() {
@@ -27,7 +26,8 @@ struct UtilityCoverageTests {
         defer { try? FileManager.default.removeItem(at: tempDir) }
 
         let result = try ShellCommand.run(arguments: ["pwd"], workingDirectory: tempDir)
-        let actual = try URL(fileURLWithPath: result.stdout.trimmingCharacters(in: .whitespacesAndNewlines)).standardizedFileURL.path
+        let actual = try URL(fileURLWithPath: result.stdout.trimmingCharacters(in: .whitespacesAndNewlines))
+            .standardizedFileURL.path
         let expected = tempDir.standardizedFileURL.path
         #expect(actual == expected)
     }
@@ -39,7 +39,7 @@ struct UtilityCoverageTests {
                 arguments: ["sh", "-c", "printf 'stdout text\\n'; printf 'stderr text\\n' 1>&2; exit 7"]
             )
             Issue.record("Expected ShellCommandError.failed to be thrown")
-        } catch ShellCommandError.failed(let result) {
+        } catch let ShellCommandError.failed(result) {
             #expect(result.exitCode == 7)
             #expect(result.stdout.contains("stdout text"))
             #expect(result.stderr.contains("stderr text"))

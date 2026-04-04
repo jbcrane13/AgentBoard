@@ -8,8 +8,14 @@ struct ChatMessage: Identifiable, Hashable {
     let beadContext: String?
     let sentToCanvas: Bool
 
-    init(id: UUID = UUID(), role: MessageRole, content: String,
-         timestamp: Date = .now, beadContext: String? = nil, sentToCanvas: Bool = false) {
+    init(
+        id: UUID = UUID(),
+        role: MessageRole,
+        content: String,
+        timestamp: Date = .now,
+        beadContext: String? = nil,
+        sentToCanvas: Bool = false
+    ) {
         self.id = id
         self.role = role
         self.content = content
@@ -32,7 +38,7 @@ extension ChatMessage {
             return []
         }
 
-        let nsRange = NSRange(content.startIndex..<content.endIndex, in: content)
+        let nsRange = NSRange(content.startIndex ..< content.endIndex, in: content)
         let matches = regex.matches(in: content, range: nsRange)
         let values = matches.compactMap { match -> String? in
             guard let range = Range(match.range, in: content) else { return nil }

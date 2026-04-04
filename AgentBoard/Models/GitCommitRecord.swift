@@ -9,7 +9,9 @@ struct GitCommitRecord: Identifiable, Hashable, Sendable {
     let branch: String?
     let beadIDs: [String]
 
-    var id: String { sha }
+    var id: String {
+        sha
+    }
 }
 
 struct BeadGitSummary: Hashable, Sendable {

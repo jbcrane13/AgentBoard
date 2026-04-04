@@ -61,7 +61,7 @@ struct SidebarView: View {
             allowedContentTypes: [.folder],
             allowsMultipleSelection: false
         ) { result in
-            if case .success(let urls) = result, let url = urls.first {
+            if case let .success(urls) = result, let url = urls.first {
                 appState.addProject(at: url)
             }
         }

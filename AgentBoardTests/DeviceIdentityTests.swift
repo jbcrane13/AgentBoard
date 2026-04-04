@@ -1,11 +1,9 @@
+@testable import AgentBoard
 import CryptoKit
 import Foundation
 import Testing
-@testable import AgentBoard
 
-@Suite("DeviceIdentity Tests")
 struct DeviceIdentityTests {
-
     // MARK: - loadOrCreate
 
     @Test("loadOrCreate returns non-empty deviceId")
@@ -94,7 +92,7 @@ struct DeviceIdentityTests {
             clientMode: "webchat",
             role: "operator",
             scopes: scopes,
-            signedAtMs: 1_000,
+            signedAtMs: 1000,
             token: nil,
             nonce: "nonce"
         )
@@ -109,7 +107,7 @@ struct DeviceIdentityTests {
             clientMode: "webchat",
             role: "operator",
             scopes: [],
-            signedAtMs: 1_000,
+            signedAtMs: 1000,
             token: nil,
             nonce: nil
         )
@@ -150,7 +148,7 @@ struct DeviceIdentityTests {
 
     @Test("base64UrlEncoded and base64UrlDecoded are a round-trip")
     func base64UrlRoundTrip() {
-        let original = Data((0..<32).map { UInt8($0) })
+        let original = Data((0 ..< 32).map { UInt8($0) })
         let encoded = original.base64UrlEncoded
         let decoded = Data(base64UrlEncoded: encoded)
         #expect(decoded == original)

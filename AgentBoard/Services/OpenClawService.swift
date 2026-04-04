@@ -54,7 +54,7 @@ enum OpenClawServiceError: LocalizedError {
             return "Invalid OpenClaw gateway URL."
         case .notConnected:
             return "Not connected to OpenClaw gateway."
-        case .requestFailed(let message):
+        case let .requestFailed(message):
             return message
         }
     }
@@ -64,7 +64,7 @@ enum OpenClawServiceError: LocalizedError {
 /// provides typed methods for chat, sessions, and agent identity.
 actor OpenClawService {
     private let client: any GatewayClientServing
-    private var gatewayURL: URL = URL(string: "http://127.0.0.1:18789")!
+    private var gatewayURL: URL = .init(string: "http://127.0.0.1:18789")!
     private var authToken: String?
 
     init(client: any GatewayClientServing = GatewayClient()) {

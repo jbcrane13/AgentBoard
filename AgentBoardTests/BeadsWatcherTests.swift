@@ -1,8 +1,7 @@
+@testable import AgentBoard
 import Foundation
 import Testing
-@testable import AgentBoard
 
-@Suite("BeadsWatcher Tests")
 struct BeadsWatcherTests {
     @Test("watch reports an error when the target file cannot be opened")
     func watchReportsErrorForMissingFile() {
@@ -47,7 +46,7 @@ struct BeadsWatcherTests {
         try "{}".write(to: fileURL, atomically: true, encoding: .utf8)
 
         // Give the file system event a moment to fire
-        try await Task.sleep(nanoseconds: 200_000_000)  // 200ms
+        try await Task.sleep(nanoseconds: 200_000_000) // 200ms
         watcher.stop()
 
         #expect(errorMessage == nil, "No error should occur for a valid file")
@@ -57,7 +56,7 @@ struct BeadsWatcherTests {
     @Test("stop is safe to call before watch")
     func stopBeforeWatchDoesNotCrash() {
         let watcher = BeadsWatcher()
-        watcher.stop()  // Should not crash
+        watcher.stop() // Should not crash
     }
 
     @Test("stop is safe to call multiple times")
@@ -66,6 +65,6 @@ struct BeadsWatcherTests {
         let fileURL = URL(fileURLWithPath: "/tmp/\(UUID().uuidString)/nonexistent.jsonl")
         watcher.watch(fileURL: fileURL, onChange: {}, onError: { _ in })
         watcher.stop()
-        watcher.stop()  // Second stop should not crash
+        watcher.stop() // Second stop should not crash
     }
 }

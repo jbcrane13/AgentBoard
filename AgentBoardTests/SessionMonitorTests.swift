@@ -1,10 +1,8 @@
+@testable import AgentBoard
 import Foundation
 import Testing
-@testable import AgentBoard
 
-@Suite("SessionMonitor Tests")
 struct SessionMonitorTests {
-
     // MARK: - Slug Generation Tests
 
     @Test("slug generation creates valid tmux session name component")
@@ -128,7 +126,8 @@ struct SessionMonitorTests {
 
     @Test("SessionMonitorError provides correct error descriptions")
     func sessionMonitorErrorDescriptions() {
-        #expect(SessionMonitorError.invalidSessionName.errorDescription == "Unable to create a valid tmux session name.")
+        #expect(SessionMonitorError.invalidSessionName
+            .errorDescription == "Unable to create a valid tmux session name.")
         #expect(SessionMonitorError.launchFailed("test error").errorDescription == "test error")
     }
 
@@ -148,7 +147,10 @@ struct SessionMonitorTests {
     @Test("isMissingSessionQueryMessage treats missing socket/server as session not found")
     func isMissingSessionQueryMessageDetection() {
         #expect(SessionMonitor.isMissingSessionQueryMessage("can't find session: test"))
-        #expect(SessionMonitor.isMissingSessionQueryMessage("error connecting to /tmp/openclaw-tmux-sockets/openclaw.sock (No such file or directory)"))
+        #expect(SessionMonitor
+            .isMissingSessionQueryMessage(
+                "error connecting to /tmp/openclaw-tmux-sockets/openclaw.sock (No such file or directory)"
+            ))
         #expect(SessionMonitor.isMissingSessionQueryMessage("failed to connect to server"))
         #expect(!SessionMonitor.isMissingSessionQueryMessage("session already exists"))
     }

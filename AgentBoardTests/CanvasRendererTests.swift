@@ -1,6 +1,6 @@
+@testable import AgentBoard
 import Foundation
 import Testing
-@testable import AgentBoard
 
 // NOTE: CanvasRenderer uses WKWebView which requires a live run loop and causes
 // hangs in the unit test environment. CanvasContent logic is tested via AppState
@@ -9,7 +9,6 @@ import Testing
 //
 // This file is intentionally left with only a stub so the test target still compiles.
 
-@Suite("CanvasRenderer Coverage")
 struct CanvasRendererTests {
     @Test("CanvasContent types all have non-nil UUIDs")
     func canvasContentTypesHaveNonNilIDs() {
@@ -32,7 +31,7 @@ struct CanvasRendererTests {
     @Test("CanvasContent markdown carries title and content")
     func canvasContentMarkdownFields() {
         let content = CanvasContent.markdown(id: UUID(), title: "My Title", content: "# Hello")
-        if case .markdown(_, let title, let body) = content {
+        if case let .markdown(_, title, body) = content {
             #expect(title == "My Title")
             #expect(body == "# Hello")
         } else {
@@ -49,7 +48,7 @@ struct CanvasRendererTests {
             after: "new",
             filename: "main.swift"
         )
-        if case .diff(_, _, let before, let after, let filename) = content {
+        if case let .diff(_, _, before, after, filename) = content {
             #expect(before == "old")
             #expect(after == "new")
             #expect(filename == "main.swift")
@@ -62,7 +61,7 @@ struct CanvasRendererTests {
     func canvasContentDiagramFields() {
         let mermaid = "graph TD; A-->B"
         let content = CanvasContent.diagram(id: UUID(), title: "Flow", mermaid: mermaid)
-        if case .diagram(_, _, let source) = content {
+        if case let .diagram(_, _, source) = content {
             #expect(source == mermaid)
         } else {
             Issue.record("Expected diagram case")

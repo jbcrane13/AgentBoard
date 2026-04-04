@@ -69,8 +69,8 @@ struct ViewsNavView: View {
             .background(
                 RoundedRectangle(cornerRadius: 6)
                     .fill(appState.sidebarNavSelection == item.nav
-                          ? Color.white.opacity(0.12)
-                          : Color.clear)
+                        ? Color.white.opacity(0.12)
+                        : Color.clear)
             )
         }
         .buttonStyle(.plain)

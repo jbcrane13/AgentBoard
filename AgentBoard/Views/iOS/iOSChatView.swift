@@ -7,7 +7,7 @@
         var body: some View {
             NavigationStack {
                 ChatPanelView()
-                    .navigationTitle(appState.agentName ?? "Agent Chat")
+                    .navigationTitle(appState.currentSessionKey)
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
                         ToolbarItem(placement: .topBarLeading) {
@@ -18,6 +18,24 @@
                                 Text(appState.chatConnectionState.label)
                                     .font(.system(size: 11))
                                     .foregroundStyle(appState.chatConnectionState.color)
+                            }
+                        }
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Menu {
+                                Button("main") {
+                                    Task { await appState.switchSession(to: "main") }
+                                }
+                                if !appState.gatewaySessions.isEmpty {
+                                    Divider()
+                                    ForEach(appState.gatewaySessions.filter { $0.key != "main" }) { session in
+                                        Button(session.label ?? session.key) {
+                                            Task { await appState.switchSession(to: session.key) }
+                                        }
+                                    }
+                                }
+                            } label: {
+                                Image(systemName: "bubble.left.and.text.bubble.right")
+                                    .font(.system(size: 14))
                             }
                         }
                     }

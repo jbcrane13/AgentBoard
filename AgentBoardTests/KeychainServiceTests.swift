@@ -1,10 +1,9 @@
+@testable import AgentBoard
 import Foundation
 import Testing
-@testable import AgentBoard
 
 // MARK: - Always-on (no real Keychain access)
 
-@Suite("KeychainError Tests")
 struct KeychainErrorTests {
     @Test("KeychainError unhandled errorDescription is non-nil and non-empty")
     func keychainErrorDescriptionIsNonEmpty() {
@@ -21,8 +20,10 @@ struct KeychainErrorTests {
 
 private let keychainTestsEnabled = ProcessInfo.processInfo.environment["KEYCHAIN_TESTS_ENABLED"] == "1"
 
-@Suite("KeychainService Tests", .enabled(if: keychainTestsEnabled,
-       "Requires real Keychain access — triggers macOS permission dialog; set KEYCHAIN_TESTS_ENABLED=1 to run"))
+@Suite(.enabled(
+    if: keychainTestsEnabled,
+    "Requires real Keychain access — triggers macOS permission dialog; set KEYCHAIN_TESTS_ENABLED=1 to run"
+))
 struct KeychainServiceTests {
     init() {
         KeychainService.deleteToken()
@@ -60,11 +61,12 @@ struct KeychainServiceTests {
         let loaded = KeychainService.loadToken()
         #expect(loaded == nil)
     }
-
 }
 
-@Suite("KeychainTokenStorage Tests", .enabled(if: keychainTestsEnabled,
-       "Requires real Keychain access — triggers macOS permission dialog; set KEYCHAIN_TESTS_ENABLED=1 to run"))
+@Suite(.enabled(
+    if: keychainTestsEnabled,
+    "Requires real Keychain access — triggers macOS permission dialog; set KEYCHAIN_TESTS_ENABLED=1 to run"
+))
 struct KeychainTokenStorageTests {
     init() {
         KeychainService.deleteToken()

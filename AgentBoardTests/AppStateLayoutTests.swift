@@ -1,38 +1,42 @@
+@testable import AgentBoard
 import Foundation
 import Testing
-@testable import AgentBoard
 
-@Suite("AppState Layout")
 @MainActor
 struct AppStateLayoutTests {
-
     @Test("isFocusMode is true when both sidebar and board are hidden")
-    func isFocusModeWhenBothHidden() {
+    func isFocusModeWhenBothHidden() throws {
         defer {
             UserDefaults.standard.removeObject(forKey: "AB_sidebarCollapsed")
             UserDefaults.standard.removeObject(forKey: "AB_boardCollapsed")
         }
-        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString); try! FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true); let state = AppState(configStore: AppConfigStore(directory: _d))
+        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true)
+        let state = AppState(configStore: AppConfigStore(directory: _d))
         state.sidebarVisible = false
         state.boardVisible = false
         #expect(state.isFocusMode == true)
     }
 
     @Test("isFocusMode is false when only one panel is hidden")
-    func isFocusModeWhenOnlyOneHidden() {
-        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString); try! FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true); let state = AppState(configStore: AppConfigStore(directory: _d))
+    func isFocusModeWhenOnlyOneHidden() throws {
+        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true)
+        let state = AppState(configStore: AppConfigStore(directory: _d))
         state.sidebarVisible = false
         state.boardVisible = true
         #expect(state.isFocusMode == false)
     }
 
     @Test("toggleSidebar flips sidebarVisible and returns to original after two calls")
-    func toggleSidebarFlipsVisibility() {
+    func toggleSidebarFlipsVisibility() throws {
         defer {
             UserDefaults.standard.removeObject(forKey: "AB_sidebarCollapsed")
             UserDefaults.standard.removeObject(forKey: "AB_boardCollapsed")
         }
-        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString); try! FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true); let state = AppState(configStore: AppConfigStore(directory: _d))
+        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true)
+        let state = AppState(configStore: AppConfigStore(directory: _d))
         let original = state.sidebarVisible
         state.toggleSidebar()
         #expect(state.sidebarVisible == !original)
@@ -41,12 +45,14 @@ struct AppStateLayoutTests {
     }
 
     @Test("toggleBoard flips boardVisible and returns to original after two calls")
-    func toggleBoardFlipsVisibility() {
+    func toggleBoardFlipsVisibility() throws {
         defer {
             UserDefaults.standard.removeObject(forKey: "AB_sidebarCollapsed")
             UserDefaults.standard.removeObject(forKey: "AB_boardCollapsed")
         }
-        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString); try! FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true); let state = AppState(configStore: AppConfigStore(directory: _d))
+        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true)
+        let state = AppState(configStore: AppConfigStore(directory: _d))
         let original = state.boardVisible
         state.toggleBoard()
         #expect(state.boardVisible == !original)
@@ -55,12 +61,14 @@ struct AppStateLayoutTests {
     }
 
     @Test("toggleFocusMode hides both panels when starting from normal mode")
-    func toggleFocusModeFromNormalToFocus() {
+    func toggleFocusModeFromNormalToFocus() throws {
         defer {
             UserDefaults.standard.removeObject(forKey: "AB_sidebarCollapsed")
             UserDefaults.standard.removeObject(forKey: "AB_boardCollapsed")
         }
-        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString); try! FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true); let state = AppState(configStore: AppConfigStore(directory: _d))
+        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true)
+        let state = AppState(configStore: AppConfigStore(directory: _d))
         state.sidebarVisible = true
         state.boardVisible = true
         state.toggleFocusMode()
@@ -70,12 +78,14 @@ struct AppStateLayoutTests {
     }
 
     @Test("toggleFocusMode restores both panels when starting from focus mode")
-    func toggleFocusModeFromFocusToNormal() {
+    func toggleFocusModeFromFocusToNormal() throws {
         defer {
             UserDefaults.standard.removeObject(forKey: "AB_sidebarCollapsed")
             UserDefaults.standard.removeObject(forKey: "AB_boardCollapsed")
         }
-        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString); try! FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true); let state = AppState(configStore: AppConfigStore(directory: _d))
+        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true)
+        let state = AppState(configStore: AppConfigStore(directory: _d))
         state.sidebarVisible = false
         state.boardVisible = false
         state.toggleFocusMode()
@@ -85,12 +95,14 @@ struct AppStateLayoutTests {
     }
 
     @Test("persistLayoutState saves sidebarVisible inverse to UserDefaults")
-    func persistLayoutStateSavesToUserDefaults() {
+    func persistLayoutStateSavesToUserDefaults() throws {
         defer {
             UserDefaults.standard.removeObject(forKey: "AB_sidebarCollapsed")
             UserDefaults.standard.removeObject(forKey: "AB_boardCollapsed")
         }
-        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString); try! FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true); let state = AppState(configStore: AppConfigStore(directory: _d))
+        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true)
+        let state = AppState(configStore: AppConfigStore(directory: _d))
         // Ensure sidebar is visible before toggling
         state.sidebarVisible = true
         state.toggleSidebar()
@@ -100,7 +112,7 @@ struct AppStateLayoutTests {
     }
 
     @Test("sidebarVisible initializes from UserDefaults AB_sidebarCollapsed")
-    func sidebarVisibleInitializesFromUserDefaults() {
+    func sidebarVisibleInitializesFromUserDefaults() throws {
         defer {
             UserDefaults.standard.removeObject(forKey: "AB_sidebarCollapsed")
             UserDefaults.standard.removeObject(forKey: "AB_boardCollapsed")
@@ -108,12 +120,16 @@ struct AppStateLayoutTests {
 
         // Test 1: When AB_sidebarCollapsed is true, sidebarVisible should be false
         UserDefaults.standard.set(true, forKey: "AB_sidebarCollapsed")
-        let _d1 = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString); try! FileManager.default.createDirectory(at: _d1, withIntermediateDirectories: true); let state1 = AppState(configStore: AppConfigStore(directory: _d1))
+        let _d1 = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: _d1, withIntermediateDirectories: true)
+        let state1 = AppState(configStore: AppConfigStore(directory: _d1))
         #expect(state1.sidebarVisible == false)
 
         // Clean up and test 2: When AB_sidebarCollapsed is false, sidebarVisible should be true
         UserDefaults.standard.set(false, forKey: "AB_sidebarCollapsed")
-        let _d2 = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString); try! FileManager.default.createDirectory(at: _d2, withIntermediateDirectories: true); let state2 = AppState(configStore: AppConfigStore(directory: _d2))
+        let _d2 = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: _d2, withIntermediateDirectories: true)
+        let state2 = AppState(configStore: AppConfigStore(directory: _d2))
         #expect(state2.sidebarVisible == true)
     }
 }

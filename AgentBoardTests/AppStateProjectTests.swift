@@ -1,11 +1,9 @@
+@testable import AgentBoard
 import Foundation
 import Testing
-@testable import AgentBoard
 
-@Suite("AppState Project Management")
 @MainActor
 struct AppStateProjectTests {
-
     // MARK: - Helpers
 
     private func makeTempStore() throws -> (AppConfigStore, URL) {

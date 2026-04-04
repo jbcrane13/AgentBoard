@@ -1,12 +1,15 @@
+@testable import AgentBoard
 import Foundation
 import Testing
-@testable import AgentBoard
 
 /// Thread-safe mutable container for test assertions.
 private final class LockIsolated<Value>: @unchecked Sendable {
     private var _value: Value
     private let lock = NSLock()
-    init(_ value: Value) { _value = value }
+    init(_ value: Value) {
+        _value = value
+    }
+
     func withLock<T>(_ body: (inout Value) -> T) -> T {
         lock.lock()
         defer { lock.unlock() }
@@ -14,27 +17,31 @@ private final class LockIsolated<Value>: @unchecked Sendable {
     }
 }
 
-@Suite("AppState Misc")
 @MainActor
 struct AppStateMiscTests {
-
     @Test("sendChatMessage with empty string does not append any messages")
-    func sendChatMessageEmptyStringDoesNothing() async {
-        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString); try! FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true); let state = AppState(configStore: AppConfigStore(directory: _d))
+    func sendChatMessageEmptyStringDoesNothing() async throws {
+        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true)
+        let state = AppState(configStore: AppConfigStore(directory: _d))
         await state.sendChatMessage("")
         #expect(state.chatMessages.isEmpty)
     }
 
     @Test("sendChatMessage with whitespace-only string does not append any messages")
-    func sendChatMessageWhitespaceDoesNothing() async {
-        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString); try! FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true); let state = AppState(configStore: AppConfigStore(directory: _d))
+    func sendChatMessageWhitespaceDoesNothing() async throws {
+        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true)
+        let state = AppState(configStore: AppConfigStore(directory: _d))
         await state.sendChatMessage("   \n  ")
         #expect(state.chatMessages.isEmpty)
     }
 
     @Test("sendChatMessage appends a user message and an assistant placeholder")
-    func sendChatMessageAppendsUserAndAssistantMessages() async {
-        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString); try! FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true); let state = AppState(configStore: AppConfigStore(directory: _d))
+    func sendChatMessageAppendsUserAndAssistantMessages() async throws {
+        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true)
+        let state = AppState(configStore: AppConfigStore(directory: _d))
         await state.sendChatMessage("hello")
         #expect(state.chatMessages.count >= 2)
         #expect(state.chatMessages[0].role == .user)
@@ -43,24 +50,30 @@ struct AppStateMiscTests {
     }
 
     @Test("dismissConnectionErrorToast sets showConnectionErrorToast to false")
-    func dismissConnectionErrorToastSetsToFalse() {
-        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString); try! FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true); let state = AppState(configStore: AppConfigStore(directory: _d))
+    func dismissConnectionErrorToastSetsToFalse() throws {
+        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true)
+        let state = AppState(configStore: AppConfigStore(directory: _d))
         state.showConnectionErrorToast = true
         state.dismissConnectionErrorToast()
         #expect(state.showConnectionErrorToast == false)
     }
 
     @Test("clearUnreadChatCount resets unreadChatCount to zero")
-    func clearUnreadChatCountResetsToZero() {
-        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString); try! FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true); let state = AppState(configStore: AppConfigStore(directory: _d))
+    func clearUnreadChatCountResetsToZero() throws {
+        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true)
+        let state = AppState(configStore: AppConfigStore(directory: _d))
         state.unreadChatCount = 5
         state.clearUnreadChatCount()
         #expect(state.unreadChatCount == 0)
     }
 
     @Test("gitSummary returns summary for known bead ID and nil for unknown")
-    func gitSummaryForBeadID() {
-        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString); try! FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true); let state = AppState(configStore: AppConfigStore(directory: _d))
+    func gitSummaryForBeadID() throws {
+        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true)
+        let state = AppState(configStore: AppConfigStore(directory: _d))
         let commit = GitCommitRecord(
             sha: "abc123def456",
             shortSHA: "abc123d",
@@ -78,8 +91,10 @@ struct AppStateMiscTests {
     }
 
     @Test("updateOpenClaw writes config and sets statusMessage")
-    func updateOpenClawWritesConfigAndStatus() {
-        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString); try! FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true); let state = AppState(configStore: AppConfigStore(directory: _d))
+    func updateOpenClawWritesConfigAndStatus() throws {
+        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true)
+        let state = AppState(configStore: AppConfigStore(directory: _d))
         state.updateOpenClaw(gatewayURL: "http://localhost:8080", token: "secret-token", source: "manual")
 
         #expect(state.appConfig.openClawGatewayURL == "http://localhost:8080")
@@ -89,9 +104,9 @@ struct AppStateMiscTests {
     }
 
     @Test("updateBead to done calls bd close and does not pass --status")
-    func updateBeadToDonesCallsBdClose() async {
+    func updateBeadToDonesCallsBdClose() async throws {
         let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        try! FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true)
 
         // Capture all commands issued by updateBead
         let capturedCommands = LockIsolated<[[String]]>([])
@@ -107,9 +122,9 @@ struct AppStateMiscTests {
 
         // Set up a project and select it
         let projectDir = _d.appendingPathComponent("proj")
-        try! FileManager.default.createDirectory(at: projectDir, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: projectDir, withIntermediateDirectories: true)
         let beadsDir = projectDir.appendingPathComponent(".beads")
-        try! FileManager.default.createDirectory(at: beadsDir, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: beadsDir, withIntermediateDirectories: true)
         let project = Project(
             id: UUID(), name: "Test", path: projectDir, beadsPath: beadsDir,
             icon: "T", isActive: true, openCount: 1, inProgressCount: 0, totalCount: 1
@@ -141,13 +156,17 @@ struct AppStateMiscTests {
         // (2) The bd update call must NOT contain --status (since bd close handles it)
         let updateCommand = commands.first { $0.starts(with: ["bd", "update"]) }
         #expect(updateCommand != nil, "Expected 'bd update' to be called for other fields")
-        #expect(updateCommand?.contains("--status") == false,
-                "bd update must NOT pass --status when closing via bd close")
+        #expect(
+            updateCommand?.contains("--status") == false,
+            "bd update must NOT pass --status when closing via bd close"
+        )
     }
 
     @Test("updateOpenClaw with empty strings sets config fields to nil")
-    func updateOpenClawEmptyStringSetsNil() {
-        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString); try! FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true); let state = AppState(configStore: AppConfigStore(directory: _d))
+    func updateOpenClawEmptyStringSetsNil() throws {
+        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true)
+        let state = AppState(configStore: AppConfigStore(directory: _d))
         state.appConfig.openClawGatewayURL = "http://old.com"
         state.appConfig.openClawToken = "old-token"
 

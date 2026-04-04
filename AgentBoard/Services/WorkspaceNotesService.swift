@@ -12,15 +12,18 @@ struct OntologyDayEntry: Identifiable, Sendable {
 @Observable
 @MainActor
 final class WorkspaceNotesService {
-    var selectedDate: Date = Date()
+    var selectedDate: Date = .init()
     var dailyNotes: String = ""
     var ontologyEntries: [OntologyDayEntry] = []
 
     private let workspaceRoot: String
     private let ontologyPath: String
 
-    init(workspaceRoot: String = NSString(string: "~/.openclaw/workspace").expandingTildeInPath,
-         ontologyPath: String = NSString(string: "~/.openclaw/workspace/memory/ontology/graph.jsonl").expandingTildeInPath) {
+    init(
+        workspaceRoot: String = NSString(string: "~/.openclaw/workspace").expandingTildeInPath,
+        ontologyPath: String = NSString(string: "~/.openclaw/workspace/memory/ontology/graph.jsonl")
+            .expandingTildeInPath
+    ) {
         self.workspaceRoot = workspaceRoot
         self.ontologyPath = ontologyPath
     }
@@ -70,7 +73,7 @@ final class WorkspaceNotesService {
 
     private func loadOntology() {
         let dateStr = dayFormatter.string(from: selectedDate)
-        let allowedTypes: Set<String> = ["Decision", "Lesson", "Bug"]
+        let allowedTypes: Set = ["Decision", "Lesson", "Bug"]
         let entities = JSONLEntityParser.parse(filePath: ontologyPath)
 
         var results: [OntologyDayEntry] = []

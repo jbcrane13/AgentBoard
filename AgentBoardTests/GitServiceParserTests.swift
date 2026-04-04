@@ -1,8 +1,7 @@
+@testable import AgentBoard
 import Foundation
 import Testing
-@testable import AgentBoard
 
-@Suite("GitService Parser Tests")
 struct GitServiceParserTests {
     @Test("parseCommitRecords parses git log output, sorts by date, and deduplicates bead IDs")
     func parseCommitRecordsParsesAndSorts() async {

@@ -1,10 +1,8 @@
+@testable import AgentBoard
 import Foundation
 import Testing
-@testable import AgentBoard
 
-@Suite("ConnectionError Tests")
 struct ConnectionErrorTests {
-
     // MARK: - userMessage and briefLabel
 
     @Test("deviceMismatch has correct userMessage and briefLabel")

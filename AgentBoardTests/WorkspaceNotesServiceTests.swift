@@ -1,11 +1,9 @@
+@testable import AgentBoard
 import Foundation
 import Testing
-@testable import AgentBoard
 
-@Suite("WorkspaceNotesService Tests")
 @MainActor
 struct WorkspaceNotesServiceTests {
-
     // MARK: - Helpers
 
     private func makeTempDir() throws -> (root: String, cleanup: () -> Void) {

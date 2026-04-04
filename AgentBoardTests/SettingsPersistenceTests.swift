@@ -1,12 +1,10 @@
+@testable import AgentBoard
 import Foundation
 import Testing
-@testable import AgentBoard
 
-@Suite("Settings Persistence Tests")
 @MainActor
 struct SettingsPersistenceTests {
-
-    // Each test gets its own temp directory — never touches ~/.agentboard/
+    /// Each test gets its own temp directory — never touches ~/.agentboard/
     private func makeTempStore() throws -> (AppConfigStore, URL) {
         let dir = FileManager.default.temporaryDirectory
             .appendingPathComponent("ABSettingsTests-\(UUID().uuidString)")

@@ -9,7 +9,9 @@ struct ChatPanelView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            chatHeader
+            #if os(macOS)
+                chatHeader
+            #endif
             connectionErrorBanner
             messageList
             contextBar
@@ -226,7 +228,7 @@ struct ChatPanelView: View {
                     .foregroundStyle(Color.accentColor)
                 TimelineView(.animation(minimumInterval: 0.1, paused: false)) { _ in
                     HStack(spacing: 4) {
-                        ForEach(0..<3) { index in
+                        ForEach(0 ..< 3) { index in
                             Circle()
                                 .frame(width: 6, height: 6)
                                 .opacity(typingDotOpacity(for: index))
@@ -307,6 +309,7 @@ struct ChatPanelView: View {
                 .padding(.horizontal, 6)
                 .padding(.vertical, 2)
                 .focused($isInputFocused)
+            #if os(macOS)
                 .onKeyPress(keys: [.return], phases: .down) { keyPress in
                     if keyPress.modifiers.contains(.shift) {
                         return .ignored // Shift+Enter inserts newline
@@ -316,6 +319,7 @@ struct ChatPanelView: View {
                     }
                     return .handled // Enter sends (or suppresses empty send)
                 }
+            #endif
                 .overlay(alignment: .topLeading) {
                     if inputText.isEmpty {
                         Text("Message your agents...")
@@ -365,9 +369,38 @@ struct ChatPanelView: View {
     }
 
     private var emojiPickerPopover: some View {
-        let commonEmojis = ["👍", "👎", "❤️", "🎉", "🤔", "👏", "🔥", "✅", "❌", "🚀",
-                           "😀", "😂", "🙂", "🙃", "😉", "😊", "🤗", "🤩", "🥳", "😎",
-                           "👀", "💡", "⚠️", "🐛", "🔧", "📊", "📈", "📉", "💾", "🗑️"]
+        let commonEmojis = [
+            "👍",
+            "👎",
+            "❤️",
+            "🎉",
+            "🤔",
+            "👏",
+            "🔥",
+            "✅",
+            "❌",
+            "🚀",
+            "😀",
+            "😂",
+            "🙂",
+            "🙃",
+            "😉",
+            "😊",
+            "🤗",
+            "🤩",
+            "🥳",
+            "😎",
+            "👀",
+            "💡",
+            "⚠️",
+            "🐛",
+            "🔧",
+            "📊",
+            "📈",
+            "📉",
+            "💾",
+            "🗑️"
+        ]
 
         return VStack(spacing: 8) {
             Text("Insert Emoji")
@@ -479,11 +512,11 @@ struct ChatMessageBubble: View {
         VStack(alignment: .leading, spacing: 6) {
             ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
                 switch segment {
-                case .markdown(let content):
+                case let .markdown(content):
                     Text(.init(content))
                         .font(.system(size: 13))
                         .lineSpacing(2)
-                case .code(let language, let code):
+                case let .code(language, code):
                     VStack(alignment: .leading, spacing: 4) {
                         if !language.isEmpty {
                             Text(language.uppercased())
@@ -555,7 +588,10 @@ private enum MarkdownSegment {
             let lines = codeBlockRaw.split(omittingEmptySubsequences: false, whereSeparator: \.isNewline)
             let language = lines.first.map(String.init) ?? ""
             let codeBody = lines.dropFirst().joined(separator: "\n")
-            segments.append(.code(language: language.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines), content: codeBody))
+            segments.append(.code(
+                language: language.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines),
+                content: codeBody
+            ))
 
             remaining = afterFence[fenceEnd.upperBound...]
         }

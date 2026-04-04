@@ -1,10 +1,8 @@
+@testable import AgentBoard
 import Foundation
 import Testing
-@testable import AgentBoard
 
-@Suite("GitService Tests")
 struct GitServiceTests {
-
     private var projectURL: URL {
         URL(fileURLWithPath: "/Users/blake/Projects/AgentBoard")
     }
@@ -115,8 +113,8 @@ struct GitServiceTests {
         if let commit = headCommit {
             // Verify that branch was extracted correctly
             #expect(commit.branch != nil, "Branch should be extracted from refs containing HEAD ->")
-            #expect(!commit.branch!.isEmpty)
-            #expect(!commit.branch!.contains("HEAD ->"), "Branch name should not contain 'HEAD ->'")
+            #expect(try !(#require(commit.branch?.isEmpty)))
+            #expect(try !(#require(commit.branch?.contains("HEAD ->"))), "Branch name should not contain 'HEAD ->'")
         }
     }
 

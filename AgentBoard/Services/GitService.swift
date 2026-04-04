@@ -102,7 +102,7 @@ actor GitService {
             return []
         }
 
-        let range = NSRange(text.startIndex..<text.endIndex, in: text)
+        let range = NSRange(text.startIndex ..< text.endIndex, in: text)
         let matches = regex.matches(in: text, range: range)
 
         var unique: [String] = []

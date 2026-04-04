@@ -1,11 +1,9 @@
+@testable import AgentBoard
 import Foundation
 import Testing
-@testable import AgentBoard
 
 @MainActor
-@Suite("CanvasRenderer HTML Generation")
 struct CanvasRendererHTMLTests {
-
     // MARK: - escapeHTML
 
     @Test("escapeHTML replaces ampersand")
@@ -110,9 +108,9 @@ struct CanvasRendererHTMLTests {
     }
 
     @Test("htmlDocument for image escapes URL ampersand")
-    func htmlDocumentImageEscapesURL() {
+    func htmlDocumentImageEscapesURL() throws {
         let renderer = CanvasRenderer()
-        let url = URL(string: "https://example.com/img?a=1&b=2")!
+        let url = try #require(URL(string: "https://example.com/img?a=1&b=2"))
         let content = CanvasContent.image(id: UUID(), title: "Title", url: url)
         let output = renderer.htmlDocument(for: content)
         #expect(output.contains("a=1&amp;b=2"))

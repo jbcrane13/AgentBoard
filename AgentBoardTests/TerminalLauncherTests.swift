@@ -1,10 +1,8 @@
+@testable import AgentBoard
 import Foundation
 import Testing
-@testable import AgentBoard
 
-@Suite("TerminalLauncher Pure Functions")
 struct TerminalLauncherTests {
-
     // MARK: - shellSingleQuoted
 
     @Test("shellSingleQuoted wraps plain string in single quotes")

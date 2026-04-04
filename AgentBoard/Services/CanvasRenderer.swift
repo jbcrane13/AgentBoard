@@ -14,14 +14,18 @@ final class CanvasRenderer {
 
     func htmlDocument(for content: CanvasContent) -> String {
         switch content {
-        case .markdown(_, let title, let markdown):
+        case let .markdown(_, title, markdown):
             let renderedHTML = HTMLFormatter.format(markdown)
-            return shell(title: title, body: "<article class=\"markdown-body\">\(renderedHTML)</article>", includeMermaid: false)
+            return shell(
+                title: title,
+                body: "<article class=\"markdown-body\">\(renderedHTML)</article>",
+                includeMermaid: false
+            )
 
-        case .html(_, let title, let html):
+        case let .html(_, title, html):
             return shell(title: title, body: "<article class=\"html-body\">\(html)</article>", includeMermaid: false)
 
-        case .image(_, let title, let url):
+        case let .image(_, title, url):
             let escapedURL = escapeHTML(url.absoluteString)
             let body = """
             <section class="media-wrap">
@@ -30,7 +34,7 @@ final class CanvasRenderer {
             """
             return shell(title: title, body: body, includeMermaid: false)
 
-        case .diff(_, let title, let before, let after, let filename):
+        case let .diff(_, title, before, after, filename):
             let body = """
             <section class="diff-wrap">
               <div class="diff-header">\(escapeHTML(filename))</div>
@@ -48,7 +52,7 @@ final class CanvasRenderer {
             """
             return shell(title: title, body: body, includeMermaid: false)
 
-        case .diagram(_, let title, let mermaid):
+        case let .diagram(_, title, mermaid):
             let body = """
             <section class="diagram-wrap">
               <div class="mermaid">\(escapeHTML(mermaid))</div>
@@ -56,7 +60,7 @@ final class CanvasRenderer {
             """
             return shell(title: title, body: body, includeMermaid: true)
 
-        case .terminal(_, let title, let output):
+        case let .terminal(_, title, output):
             let body = """
             <section class="terminal-wrap">
               <pre><code>\(escapeHTML(output))</code></pre>

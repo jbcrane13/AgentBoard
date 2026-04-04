@@ -1,10 +1,8 @@
+@testable import AgentBoard
 import Foundation
 import Testing
-@testable import AgentBoard
 
-@Suite("GatewayClient Message Parsing Tests")
 struct GatewayClientMessageParsingTests {
-
     // MARK: - GatewayClientError descriptions
 
     @Test("notConnected error has descriptive message")
@@ -158,8 +156,8 @@ struct GatewayClientMessageParsingTests {
     func decodeSessionsPayloadSkipsEmptyKey() throws {
         let payload: [String: Any] = [
             "sessions": [
-                ["key": "", "id": ""],         // empty key + empty id → skipped
-                ["key": "valid", "id": "v1"]  // valid
+                ["key": "", "id": ""], // empty key + empty id → skipped
+                ["key": "valid", "id": "v1"] // valid
             ] as [[String: Any]]
         ]
         let sessions = try GatewayClient.decodeSessionsPayload(payload)
@@ -171,7 +169,7 @@ struct GatewayClientMessageParsingTests {
     func decodeSessionsPayloadUsesIdFallback() throws {
         let payload: [String: Any] = [
             "sessions": [
-                ["id": "fallback-id"]  // no "key" field
+                ["id": "fallback-id"] // no "key" field
             ] as [[String: Any]]
         ]
         let sessions = try GatewayClient.decodeSessionsPayload(payload)
@@ -270,7 +268,7 @@ struct GatewayClientMessageParsingTests {
         let history = try GatewayClient.decodeChatHistoryPayload(payload)
         let msg = try #require(history.messages.first)
         #expect(msg.timestamp != nil)
-        let year = Calendar.current.component(.year, from: msg.timestamp!)
+        let year = try Calendar.current.component(.year, from: #require(msg.timestamp))
         #expect(year == 2023)
     }
 
@@ -285,7 +283,7 @@ struct GatewayClientMessageParsingTests {
         let history = try GatewayClient.decodeChatHistoryPayload(payload)
         let msg = try #require(history.messages.first)
         #expect(msg.timestamp != nil)
-        let year = Calendar.current.component(.year, from: msg.timestamp!)
+        let year = try Calendar.current.component(.year, from: #require(msg.timestamp))
         #expect(year == 2023)
     }
 
@@ -302,7 +300,6 @@ struct GatewayClientMessageParsingTests {
     }
 }
 
-@Suite("GatewayDiscovery Tests")
 struct GatewayDiscoveryTests {
     @Test("DiscoveredGateway url computed property formats correctly")
     func discoveredGatewayURLFormats() {

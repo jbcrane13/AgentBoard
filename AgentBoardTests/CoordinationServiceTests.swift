@@ -1,11 +1,9 @@
+@testable import AgentBoard
 import Foundation
 import Testing
-@testable import AgentBoard
 
-@Suite("CoordinationService Tests")
 @MainActor
 struct CoordinationServiceTests {
-
     // MARK: - Helpers
 
     private func makeTempFile(content: String) throws -> (path: String, dir: URL) {
