@@ -1266,43 +1266,58 @@ final class AppState {
     }
 
     func createEpic(title: String, description: String, childIssueIDs: [String]) async {
-        guard let project = selectedProject else { return }
+        guard let config = githubConfig else {
+            setError("GitHub not configured for this project.")
+            return
+        }
         errorMessage = nil
 
         do {
-            var createArgs = [
-                "bd", "create",
-                "--title", title,
-                "--type", "epic",
-                "--priority", "2",
-                "--silent",
-                "--json"
-            ]
+            // Build epic body with child issue references
+            var bodyParts: [String] = []
             if !description.isEmpty {
-                createArgs.append(contentsOf: ["--description", description])
+                bodyParts.append(description)
             }
-
-            let result = try await runBD(arguments: createArgs, in: project)
-            guard let epicID = parseCreatedIssueID(from: result) else {
-                throw NSError(
-                    domain: "AgentBoard",
-                    code: 1,
-                    userInfo: [NSLocalizedDescriptionKey: "Unable to determine created epic ID."]
-                )
+            if !childIssueIDs.isEmpty {
+                bodyParts.append("")
+                bodyParts.append("## Sub-issues")
+                for childID in childIssueIDs {
+                    // childID is like "owner/repo#123" or just "#123" — extract number
+                    if let number = extractIssueNumber(from: childID) {
+                        bodyParts.append("- #\(number)")
+                    } else {
+                        bodyParts.append("- \(childID)")
+                    }
+                }
             }
+            let body = bodyParts.isEmpty ? nil : bodyParts.joined(separator: "\n")
 
-            for childIssueID in childIssueIDs {
-                _ = try await runBD(
-                    arguments: ["bd", "update", childIssueID, "--parent", epicID],
-                    in: project
-                )
-            }
+            let created = try await GitHubIssuesService().createIssue(
+                owner: config.owner,
+                repo: config.repo,
+                token: config.token,
+                title: title,
+                body: body,
+                labels: ["epic"]
+            )
 
-            statusMessage = "Created epic \(epicID)."
+            statusMessage = "Created epic \(created.id)."
             reloadSelectedProjectAndWatch()
         } catch {
             setError(error.localizedDescription)
         }
+    }
+
+    private func extractIssueNumber(from id: String) -> Int? {
+        // Handle formats: "GH-123", "#123", "owner/repo#123", "123"
+        if id.hasPrefix("GH-"), let number = Int(id.dropFirst(3)) {
+            return number
+        }
+        if let hashIndex = id.lastIndex(of: "#") {
+            let afterHash = id[id.index(after: hashIndex)...]
+            return Int(afterHash)
+        }
+        return Int(id)
     }
 
     func openBeadInTerminal(_ bead: Bead) async {
