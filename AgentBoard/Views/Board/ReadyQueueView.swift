@@ -8,6 +8,7 @@ struct ReadyQueueView: View {
     private let agentGroups: [(label: String, key: String)] = [
         ("Unassigned", ""),
         ("agent:daneel", "daneel"),
+        ("agent:friend", "friend"),
         ("agent:quentin", "quentin")
     ]
 

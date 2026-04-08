@@ -16,8 +16,9 @@ enum SessionMonitorError: LocalizedError {
 
 actor SessionMonitor {
     private let tmuxSocketPath: String
+    private let legacySocketPath = "/tmp/openclaw-tmux-sockets/openclaw.sock"
 
-    init(tmuxSocketPath: String = "/tmp/openclaw-tmux-sockets/openclaw.sock") {
+    init(tmuxSocketPath: String = "\(FileManager.default.homeDirectoryForCurrentUser.path)/.tmux/sock") {
         self.tmuxSocketPath = tmuxSocketPath
         // Create socket directory immediately since it's needed for listSessions
         let socketDir = URL(fileURLWithPath: tmuxSocketPath).deletingLastPathComponent()
@@ -86,6 +87,7 @@ actor SessionMonitor {
                     id: sessionRow.name,
                     name: sessionRow.name,
                     agentType: detectedAgentType,
+                    sessionType: Self.detectSessionType(paneCommand: pane?.paneCommand, agentCommand: selectedProcess?.command),
                     projectPath: projectPath,
                     beadId: Self.extractBeadID(from: sessionRow.name),
                     linkedIssueNumber: Self.extractIssueNumber(from: sessionRow.name),
@@ -151,6 +153,7 @@ actor SessionMonitor {
     func launchSession(
         projectPath: URL,
         agentType: AgentType,
+        sessionType: SessionType = .ralphLoop,
         issueNumber: Int?,
         prompt: String?
     ) async throws -> String {
@@ -193,7 +196,7 @@ actor SessionMonitor {
                 sessionName += "-\(Int(Date().timeIntervalSince1970) % 10000)"
             }
 
-            let agentCommand = commandParts(for: agentType)
+            let agentCommand = commandParts(for: agentType, sessionType: sessionType, sessionName: sessionName)
 
             // Create the tmux session with the default shell (no command argument).
             // This lets the user's shell profile source normally, ensuring PATH includes
@@ -229,6 +232,7 @@ actor SessionMonitor {
             try await sendAgentCommand(
                 sessionName: sessionName,
                 agentCommand: agentCommand,
+                sessionType: sessionType,
                 issueNumber: issueNumber,
                 prompt: prompt
             )
@@ -243,6 +247,7 @@ actor SessionMonitor {
         private func sendAgentCommand(
             sessionName: String,
             agentCommand: [String],
+            sessionType: SessionType,
             issueNumber: Int?,
             prompt: String?
         ) async throws {
@@ -259,16 +264,19 @@ actor SessionMonitor {
             ])
 
             // Build and send the seed prompt if one was provided or an issue is linked.
-            let seedPrompt = Self.buildSeedPrompt(issueNumber: issueNumber, prompt: prompt)
-            if !seedPrompt.isEmpty {
-                // Wait for the agent CLI to start and be ready for input.
-                try? await Task.sleep(nanoseconds: 2_000_000_000)
-                _ = try await runTmux(arguments: [
-                    "send-keys",
-                    "-t", sessionName,
-                    seedPrompt,
-                    "C-m"
-                ])
+            // For Ralph loops, the prompt is included in the command, so skip this.
+            if sessionType == .standard {
+                let seedPrompt = Self.buildSeedPrompt(issueNumber: issueNumber, prompt: prompt)
+                if !seedPrompt.isEmpty {
+                    // Wait for the agent CLI to start and be ready for input.
+                    try? await Task.sleep(nanoseconds: 2_000_000_000)
+                    _ = try await runTmux(arguments: [
+                        "send-keys",
+                        "-t", sessionName,
+                        seedPrompt,
+                        "C-m"
+                    ])
+                }
             }
         }
 
@@ -409,14 +417,37 @@ actor SessionMonitor {
             return URL(fileURLWithPath: path, isDirectory: true)
         }
 
-        private func commandParts(for agentType: AgentType) -> [String] {
+        private func commandParts(for agentType: AgentType, sessionType: SessionType, sessionName: String) -> [String] {
+            let baseCommand: [String]
             switch agentType {
             case .claudeCode:
-                return ["claude", "--dangerously-skip-permissions"]
+                baseCommand = ["ralphy", "--claude"]
             case .codex:
-                return ["codex"]
+                baseCommand = ["ralphy", "--codex"]
             case .openCode:
-                return ["opencode"]
+                baseCommand = ["ralphy", "--opencode"]
+            }
+
+            switch sessionType {
+            case .ralphLoop:
+                // Ralph loop with completion hook that fires wake event
+                // Build completion hook with shell variables ($ must not be escaped)
+                let exitCapture = "EXIT_CODE=$?"
+                let echoCmd = "echo EXITED: $EXIT_CODE"
+                let wakeEvent = "openclaw system event --text 'Ralph loop " + sessionName + " finished (exit $EXIT_CODE) in $(pwd)' --mode now"
+                let sleepCmd = "sleep 999999"
+                let completionHook = exitCapture + "; " + echoCmd + "; " + wakeEvent + "; " + sleepCmd
+                return baseCommand + ["&&", completionHook]
+            case .standard:
+                // Standard session without Ralph loop
+                switch agentType {
+                case .claudeCode:
+                    return ["claude", "--dangerously-skip-permissions"]
+                case .codex:
+                    return ["codex"]
+                case .openCode:
+                    return ["opencode"]
+                }
             }
         }
 
@@ -461,6 +492,17 @@ actor SessionMonitor {
                 return .openCode
             }
             return nil
+        }
+
+        private static func detectSessionType(paneCommand: String?, agentCommand: String?) -> SessionType {
+            // Check if the command includes ralphy
+            let commandsToCheck = [paneCommand, agentCommand].compactMap { $0 }
+            for cmd in commandsToCheck {
+                if cmd.lowercased().contains("ralphy") {
+                    return .ralphLoop
+                }
+            }
+            return .standard
         }
     #endif
 }

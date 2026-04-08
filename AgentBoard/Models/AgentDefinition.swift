@@ -13,6 +13,7 @@ struct AgentDefinition: Identifiable, Hashable {
     static let knownAgents: [AgentDefinition] = [
         .init(id: "", name: "Unassigned", emoji: "📋", githubUsername: nil),
         .init(id: "daneel", name: "Daneel", emoji: "🤖", githubUsername: "jbcrane13"),
+        .init(id: "friend", name: "Friend", emoji: "🛠️", githubUsername: nil),
         .init(id: "quentin", name: "Quentin", emoji: "🔬", githubUsername: nil),
         .init(id: "argus", name: "Argus", emoji: "⚙️", githubUsername: nil)
     ]

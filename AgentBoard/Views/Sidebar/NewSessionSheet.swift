@@ -11,6 +11,7 @@ struct NewSessionSheet: View {
 
     @State private var selectedProjectID: UUID?
     @State private var selectedAgentType: AgentType = .claudeCode
+    @State private var selectedSessionType: SessionType = .ralphLoop
     @State private var issueNumberText = ""
     @State private var prompt = ""
     @State private var isLaunching = false
@@ -53,6 +54,22 @@ struct NewSessionSheet: View {
                         .pickerStyle(.segmented)
                         .labelsHidden()
                         .accessibilityIdentifier("new_session_picker_agent")
+                    }
+
+                    // Session Type
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Session Type")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(.secondary)
+
+                        Picker("Session Type", selection: $selectedSessionType) {
+                            ForEach(SessionType.allCases, id: \.self) { type in
+                                Text(type.displayName).tag(type)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
+                        .accessibilityIdentifier("new_session_picker_session_type")
                     }
 
                     // GitHub Issue
@@ -120,6 +137,8 @@ struct NewSessionSheet: View {
             selectedProjectID = initialProjectID ?? appState.selectedProjectID ?? appState.projects.first?.id
             if let initialIssueNumber {
                 issueNumberText = String(initialIssueNumber)
+                // Default to Ralph Loop when launching from a ticket
+                selectedSessionType = .ralphLoop
             }
             if let initialPrompt {
                 prompt = initialPrompt
@@ -149,6 +168,7 @@ struct NewSessionSheet: View {
             let success = await appState.launchSession(
                 project: selectedProject,
                 agentType: selectedAgentType,
+                sessionType: selectedSessionType,
                 issueNumber: parsedIssueNumber,
                 prompt: trimmedValue(prompt)
             )

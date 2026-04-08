@@ -4,6 +4,7 @@ struct CodingSession: Identifiable, Hashable {
     let id: String
     let name: String
     let agentType: AgentType
+    let sessionType: SessionType
     let projectPath: URL?
     let beadId: String?
     let linkedIssueNumber: Int?
@@ -19,6 +20,20 @@ enum AgentType: String, CaseIterable, Sendable {
     case claudeCode = "claude-code"
     case codex
     case openCode = "opencode"
+}
+
+enum SessionType: String, CaseIterable, Sendable {
+    case standard
+    case ralphLoop = "ralph-loop"
+
+    var displayName: String {
+        switch self {
+        case .standard:
+            return "Standard"
+        case .ralphLoop:
+            return "Ralph Loop"
+        }
+    }
 }
 
 enum SessionStatus: String, Sendable {
@@ -47,28 +62,28 @@ extension CodingSession {
     static let samples: [CodingSession] = [
         CodingSession(
             id: "ab-netmonitor-gh96", name: "ab-netmonitor-gh96",
-            agentType: .claudeCode, projectPath: nil, beadId: "ab-netmonitor-gh96",
+            agentType: .claudeCode, sessionType: .ralphLoop, projectPath: nil, beadId: "ab-netmonitor-gh96",
             linkedIssueNumber: 96,
             status: .running, startedAt: .now.addingTimeInterval(-720),
             elapsed: 720, model: "claude-opus-4-6", processID: nil, cpuPercent: 2.6
         ),
         CodingSession(
             id: "ab-netmonitor-gh94", name: "ab-netmonitor-gh94",
-            agentType: .claudeCode, projectPath: nil, beadId: "ab-netmonitor-gh94",
+            agentType: .claudeCode, sessionType: .standard, projectPath: nil, beadId: "ab-netmonitor-gh94",
             linkedIssueNumber: 94,
             status: .running, startedAt: .now.addingTimeInterval(-240),
             elapsed: 240, model: "claude-opus-4-6", processID: nil, cpuPercent: 1.2
         ),
         CodingSession(
             id: "ab-jubileetracker-1742000000", name: "ab-jubileetracker-1742000000",
-            agentType: .claudeCode, projectPath: nil, beadId: nil,
+            agentType: .claudeCode, sessionType: .ralphLoop, projectPath: nil, beadId: nil,
             linkedIssueNumber: nil,
             status: .idle, startedAt: .now.addingTimeInterval(-3600),
             elapsed: 3600, model: "claude-sonnet-4-5", processID: nil, cpuPercent: 0
         ),
         CodingSession(
             id: "ab-cabinetvision-1742000000", name: "ab-cabinetvision-1742000000",
-            agentType: .codex, projectPath: nil, beadId: nil,
+            agentType: .codex, sessionType: .standard, projectPath: nil, beadId: nil,
             linkedIssueNumber: nil,
             status: .stopped, startedAt: .now.addingTimeInterval(-7200),
             elapsed: 1800, model: "gpt-5.3-codex", processID: nil, cpuPercent: 0

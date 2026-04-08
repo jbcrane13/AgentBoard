@@ -22,7 +22,7 @@ struct SessionMonitorTests {
         #expect(slug(from: "AB-123") == "ab-123")
         #expect(slug(from: "Test___Multiple") == "test-multiple")
         #expect(slug(from: "---Leading-Trailing---") == "leading-trailing")
-        #expect(slug(from: "") == "")
+        #expect(slug(from: "").isEmpty)
     }
 
     // MARK: - Status Resolution Tests
@@ -109,7 +109,8 @@ struct SessionMonitorTests {
 
     @Test("command for agentType returns correct launch command")
     func commandForAgentType() {
-        func command(for agentType: AgentType) -> String {
+        // Standard sessions use raw commands
+        func standardCommand(for agentType: AgentType) -> String {
             switch agentType {
             case .claudeCode: return "claude"
             case .codex: return "codex"
@@ -117,9 +118,29 @@ struct SessionMonitorTests {
             }
         }
 
-        #expect(command(for: .claudeCode) == "claude")
-        #expect(command(for: .codex) == "codex")
-        #expect(command(for: .openCode) == "opencode")
+        #expect(standardCommand(for: .claudeCode) == "claude")
+        #expect(standardCommand(for: .codex) == "codex")
+        #expect(standardCommand(for: .openCode) == "opencode")
+
+        // Ralph loops use ralphy wrapper
+        func ralphCommand(for agentType: AgentType) -> String {
+            switch agentType {
+            case .claudeCode: return "ralphy"
+            case .codex: return "ralphy"
+            case .openCode: return "ralphy"
+            }
+        }
+
+        #expect(ralphCommand(for: .claudeCode) == "ralphy")
+        #expect(ralphCommand(for: .codex) == "ralphy")
+    }
+
+    // MARK: - SessionType Tests
+
+    @Test("SessionType displayName returns correct values")
+    func sessionTypeDisplayNames() {
+        #expect(SessionType.standard.displayName == "Standard")
+        #expect(SessionType.ralphLoop.displayName == "Ralph Loop")
     }
 
     // MARK: - Error Tests

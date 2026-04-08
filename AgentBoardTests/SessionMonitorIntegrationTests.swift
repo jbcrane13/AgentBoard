@@ -55,6 +55,7 @@ struct SessionMonitorIntegrationTests {
             _ = try await monitor.launchSession(
                 projectPath: bogusPath,
                 agentType: .claudeCode,
+                sessionType: .ralphLoop,
                 issueNumber: nil,
                 prompt: nil
             )
@@ -80,6 +81,7 @@ struct SessionMonitorIntegrationTests {
             _ = try await monitor.launchSession(
                 projectPath: tempFile,
                 agentType: .claudeCode,
+                sessionType: .standard,
                 issueNumber: nil,
                 prompt: nil
             )

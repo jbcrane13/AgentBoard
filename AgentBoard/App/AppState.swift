@@ -804,6 +804,7 @@ final class AppState {
     func launchSession(
         project: Project,
         agentType: AgentType,
+        sessionType: SessionType = .ralphLoop,
         issueNumber: Int?,
         prompt: String?
     ) async -> Bool {
@@ -811,6 +812,7 @@ final class AppState {
             let sessionID = try await sessionMonitor.launchSession(
                 projectPath: project.path,
                 agentType: agentType,
+                sessionType: sessionType,
                 issueNumber: issueNumber,
                 prompt: prompt
             )
@@ -1251,6 +1253,7 @@ final class AppState {
             let sessionID = try await sessionMonitor.launchSession(
                 projectPath: project.path,
                 agentType: .claudeCode,
+                sessionType: .ralphLoop,
                 issueNumber: issueNum,
                 prompt: prompt
             )
@@ -1729,6 +1732,7 @@ final class AppState {
                     id: "ab-alpha-gh100",
                     name: "ab-alpha-gh100",
                     agentType: .codex,
+                    sessionType: .ralphLoop,
                     projectPath: alpha.path,
                     beadId: "ab-alpha-gh100",
                     linkedIssueNumber: 100,
@@ -1743,6 +1747,7 @@ final class AppState {
                     id: "ab-alpha-gh101",
                     name: "ab-alpha-gh101",
                     agentType: .claudeCode,
+                    sessionType: .standard,
                     projectPath: alpha.path,
                     beadId: "ab-alpha-gh101",
                     linkedIssueNumber: 101,
@@ -1757,6 +1762,7 @@ final class AppState {
                     id: "ab-beta-1742000000",
                     name: "ab-beta-1742000000",
                     agentType: .openCode,
+                    sessionType: .ralphLoop,
                     projectPath: beta.path,
                     beadId: nil,
                     linkedIssueNumber: nil,
