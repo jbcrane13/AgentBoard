@@ -133,7 +133,7 @@ struct AgentTasksViewModelTests {
         #expect(model.errorMessage?.contains("Failed to load tasks") == true)
     }
 
-    private nonisolated func fixture(named name: String) throws -> String {
+    nonisolated private func fixture(named name: String) throws -> String {
         let testsDirectory = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
         let fixtureURL = testsDirectory

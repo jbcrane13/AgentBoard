@@ -12,14 +12,16 @@ struct AgentTask: Identifiable, Hashable {
     var priority: Int
     var assignee: String
     var issueType: String
+    var ticketRef: String
+    var note: String
     var createdAt: Date
     var updatedAt: Date
 
     var statusColor: Color {
         switch status.lowercased() {
-        case "open": return .gray
+        case "open", "pending": return .gray
         case "in_progress", "in-progress": return .blue
-        case "done", "closed": return .green
+        case "done", "closed", "complete": return .green
         case "blocked": return .orange
         default: return .gray
         }
@@ -27,7 +29,30 @@ struct AgentTask: Identifiable, Hashable {
 
     var isCompleted: Bool {
         let s = status.lowercased()
-        return s == "done" || s == "closed"
+        return s == "done" || s == "closed" || s == "complete"
+    }
+    
+    /// Priority level for display
+    var priorityLevel: PriorityLevel {
+        switch priority {
+        case 0, 1: return .high
+        case 2: return .medium
+        default: return .low
+        }
+    }
+    
+    enum PriorityLevel: String, CaseIterable {
+        case low = "Low"
+        case medium = "Medium"
+        case high = "High"
+        
+        var color: Color {
+            switch self {
+            case .high: return Color(hex: "E2544A")
+            case .medium: return Color(hex: "F0A030")
+            case .low: return Color(hex: "555555")
+            }
+        }
     }
 }
 
@@ -144,6 +169,8 @@ final class AgentTasksViewModel {
                         priority: priority,
                         assignee: assignee,
                         issueType: "task",
+                        ticketRef: "",
+                        note: "",
                         createdAt: now,
                         updatedAt: now
                     ),
@@ -295,6 +322,8 @@ final class AgentTasksViewModel {
             let updatedAt = (dict["updated_at"] as? String).flatMap { formatter.date(from: $0) } ?? createdAt
 
             let description = dict["description"] as? String ?? ""
+            let ticketRef = dict["ticket_ref"] as? String ?? ""
+            let note = dict["note"] as? String ?? ""
             return AgentTask(
                 id: id,
                 title: title,
@@ -303,6 +332,8 @@ final class AgentTasksViewModel {
                 priority: priority,
                 assignee: assignee,
                 issueType: issueType,
+                ticketRef: ticketRef,
+                note: note,
                 createdAt: createdAt,
                 updatedAt: updatedAt
             )
@@ -319,6 +350,8 @@ final class AgentTasksViewModel {
                 priority: 1,
                 assignee: "daneel",
                 issueType: "task",
+                ticketRef: "HON-14",
+                note: "Check session history import perf",
                 createdAt: .now.addingTimeInterval(-1500),
                 updatedAt: .now.addingTimeInterval(-1200)
             ),
@@ -330,8 +363,88 @@ final class AgentTasksViewModel {
                 priority: 2,
                 assignee: "quentin",
                 issueType: "task",
+                ticketRef: "",
+                note: "",
                 createdAt: .now.addingTimeInterval(-4000),
                 updatedAt: .now.addingTimeInterval(-2000)
+            ),
+            AgentTask(
+                id: "AB-fixture-3",
+                title: "Draft daily standup summary",
+                description: "",
+                status: "pending",
+                priority: 2,
+                assignee: "daneel",
+                issueType: "task",
+                ticketRef: "",
+                note: "",
+                createdAt: .now.addingTimeInterval(-3600),
+                updatedAt: .now.addingTimeInterval(-1800)
+            ),
+            AgentTask(
+                id: "AB-fixture-4",
+                title: "Implement Cultivation AR plant scan",
+                description: "",
+                status: "in-progress",
+                priority: 1,
+                assignee: "friend",
+                issueType: "feature",
+                ticketRef: "CUL-42",
+                note: "",
+                createdAt: .now.addingTimeInterval(-7200),
+                updatedAt: .now.addingTimeInterval(-3600)
+            ),
+            AgentTask(
+                id: "AB-fixture-5",
+                title: "Review PR — app icon redesign",
+                description: "",
+                status: "pending",
+                priority: 3,
+                assignee: "friend",
+                issueType: "task",
+                ticketRef: "CUL-38",
+                note: "",
+                createdAt: .now.addingTimeInterval(-86400),
+                updatedAt: .now.addingTimeInterval(-43200)
+            ),
+            AgentTask(
+                id: "AB-fixture-6",
+                title: "Monitor dev machine memory usage",
+                description: "",
+                status: "pending",
+                priority: 2,
+                assignee: "argus",
+                issueType: "task",
+                ticketRef: "",
+                note: "",
+                createdAt: .now.addingTimeInterval(-1800),
+                updatedAt: .now
+            ),
+            AgentTask(
+                id: "AB-fixture-7",
+                title: "Update Claude Code plugin config",
+                description: "",
+                status: "complete",
+                priority: 3,
+                assignee: "argus",
+                issueType: "task",
+                ticketRef: "",
+                note: "OMC multi-agent setup done",
+                createdAt: .now.addingTimeInterval(-172800),
+                updatedAt: .now.addingTimeInterval(-86400)
+            ),
+            AgentTask(
+                id: "AB-fixture-8",
+                title: "Regression suite — NetMonitor v2.3",
+                description: "",
+                status: "pending",
+                priority: 1,
+                assignee: "quentin",
+                issueType: "task",
+                ticketRef: "NM-88",
+                note: "",
+                createdAt: .now.addingTimeInterval(-3600),
+                updatedAt: .now.addingTimeInterval(-1800)
             )
         ]
     }

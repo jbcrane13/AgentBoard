@@ -96,6 +96,7 @@
 		C27DB45018D25D593E218621 /* GatewayClientContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71C742AEB1E871C95986B439 /* GatewayClientContractTests.swift */; };
 		C32E8F7202A2885C24E491C9 /* TestHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = D786FEAA5AA58A734D8E89B6 /* TestHelpers.swift */; };
 		C575BBE19BB150557AA231B5 /* iOSBoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1769DAF37527076936354BBC /* iOSBoardView.swift */; };
+			B2C3D4E5F6A7890123456789 /* AgentBoardDailyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6789012345678 /* AgentBoardDailyView.swift */; };
 		CA10430B4F87ED3479C834B4 /* CanvasPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDB7B68F558BF1ECE861C33 /* CanvasPanelView.swift */; };
 		CA383D0BF9EF102F3AED3DD5 /* BeadsWatcherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F511A10DC1A01D5DA4329B1 /* BeadsWatcherTests.swift */; };
 		CB84A6D9890205B36DEB1899 /* AgentTasksViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A6ECC582ACFD5A4140DF8F /* AgentTasksViewModelTests.swift */; };
@@ -161,6 +162,7 @@
 		1598734AE1632D8250B38E4A /* CrossRepoIssue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrossRepoIssue.swift; sourceTree = "<group>"; };
 		15F7AF72EBDF6BF1C4007645 /* SessionMonitorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionMonitorTests.swift; sourceTree = "<group>"; };
 		1769DAF37527076936354BBC /* iOSBoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iOSBoardView.swift; sourceTree = "<group>"; };
+			A1B2C3D4E5F6789012345678 /* AgentBoardDailyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentBoardDailyView.swift; sourceTree = "<group>"; };
 		1825CBC7AE7A0140105195E1 /* BacklogFilterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BacklogFilterTests.swift; sourceTree = "<group>"; };
 		1B0D9C078A4B90C7891D91D2 /* ViewsNavView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewsNavView.swift; sourceTree = "<group>"; };
 		1B2589D88E275C8954AD163C /* MockURLProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockURLProtocol.swift; sourceTree = "<group>"; };
@@ -454,6 +456,7 @@
 			children = (
 				71A1368202AE9EEFEBFB76DD /* iOSAgentsView.swift */,
 				1769DAF37527076936354BBC /* iOSBoardView.swift */,
+				A1B2C3D4E5F6789012345678 /* AgentBoardDailyView.swift */,
 				D1AE4F21096283EA2336206A /* iOSChatView.swift */,
 				EC49374D322C6249F8AF52C5 /* iOSMoreView.swift */,
 				675734452B67E78E8C43514C /* iOSRootView.swift */,
@@ -861,6 +864,7 @@
 				D95DEAB1AD16521BC6D9459A /* WorkspaceNotesService.swift in Sources */,
 				649D7E031467F576369E7016 /* iOSAgentsView.swift in Sources */,
 				C575BBE19BB150557AA231B5 /* iOSBoardView.swift in Sources */,
+				B2C3D4E5F6A7890123456789 /* AgentBoardDailyView.swift in Sources */,
 				05D5B0869AF8F94E5233BC61 /* iOSChatView.swift in Sources */,
 				D3EE8A6A054ED2838466955D /* iOSMoreView.swift in Sources */,
 				FB5CB3629B4A5A53996FEB4F /* iOSRootView.swift in Sources */,

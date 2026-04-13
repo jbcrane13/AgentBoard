@@ -22,6 +22,11 @@
                 }
                 .accessibilityIdentifier("ios_tab_sessions")
 
+                Tab("Tasks", systemImage: "checklist") {
+                    IOSTasksView()
+                }
+                .accessibilityIdentifier("ios_tab_tasks")
+
                 Tab("Agents", systemImage: "cpu") {
                     iOSAgentsView()
                 }
@@ -31,6 +36,17 @@
                     iOSMoreView()
                 }
                 .accessibilityIdentifier("ios_tab_more")
+            }
+        }
+    }
+
+    // swiftlint:disable:next type_name
+    struct IOSTasksView: View {
+        var body: some View {
+            NavigationStack {
+                AgentBoardDailyView()
+                    .navigationTitle("Tasks")
+                    .navigationBarTitleDisplayMode(.inline)
             }
         }
     }
