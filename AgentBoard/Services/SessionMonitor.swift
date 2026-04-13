@@ -1,5 +1,7 @@
 import Foundation
 
+private let defaultSessionMonitorTmuxSocketPath = "\(NSHomeDirectory())/.tmux/sock"
+
 enum SessionMonitorError: LocalizedError {
     case invalidSessionName
     case launchFailed(String)
@@ -18,7 +20,7 @@ actor SessionMonitor {
     private let tmuxSocketPath: String
     private let legacySocketPath = "/tmp/openclaw-tmux-sockets/openclaw.sock"
 
-    init(tmuxSocketPath: String = "\(FileManager.default.homeDirectoryForCurrentUser.path)/.tmux/sock") {
+    init(tmuxSocketPath: String = defaultSessionMonitorTmuxSocketPath) {
         self.tmuxSocketPath = tmuxSocketPath
         // Create socket directory immediately since it's needed for listSessions
         let socketDir = URL(fileURLWithPath: tmuxSocketPath).deletingLastPathComponent()
@@ -510,6 +512,10 @@ actor SessionMonitor {
 // MARK: - Static Helpers (outside actor body for lint compliance)
 
 extension SessionMonitor {
+    static func defaultTmuxSocketPath() -> String {
+        defaultSessionMonitorTmuxSocketPath
+    }
+
     /// Extracts a GitHub issue number from a session name (e.g. "ab-agentboard-gh16" → 16).
     static func extractIssueNumber(from sessionName: String) -> Int? {
         let pattern = #"\bgh(\d+)\b"#

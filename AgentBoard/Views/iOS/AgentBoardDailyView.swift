@@ -568,4 +568,3 @@ private struct AgentPickerButton: View {
     .frame(width: 365, height: 700)
     .preferredColorScheme(.dark)
 }
-#endif

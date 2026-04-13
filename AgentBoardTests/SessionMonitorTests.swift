@@ -3,6 +3,12 @@ import Foundation
 import Testing
 
 struct SessionMonitorTests {
+    @Test("defaultTmuxSocketPath uses home directory tmux socket path")
+    func defaultTmuxSocketPathUsesHomeDirectory() {
+        let path = SessionMonitor.defaultTmuxSocketPath()
+        #expect(path == "\(NSHomeDirectory())/.tmux/sock")
+    }
+
     // MARK: - Slug Generation Tests
 
     @Test("slug generation creates valid tmux session name component")
