@@ -31,7 +31,7 @@ struct AgentTask: Identifiable, Hashable {
         let s = status.lowercased()
         return s == "done" || s == "closed" || s == "complete"
     }
-    
+
     /// Priority level for display
     var priorityLevel: PriorityLevel {
         switch priority {
@@ -40,12 +40,12 @@ struct AgentTask: Identifiable, Hashable {
         default: return .low
         }
     }
-    
+
     enum PriorityLevel: String, CaseIterable {
         case low = "Low"
         case medium = "Medium"
         case high = "High"
-        
+
         var color: Color {
             switch self {
             case .high: return Color(hex: "E2544A")
