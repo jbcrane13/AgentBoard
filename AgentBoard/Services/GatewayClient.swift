@@ -375,21 +375,23 @@ actor GatewayClient {
 
     func createSession(
         label: String? = nil,
-        projectPath _: String? = nil,
+        projectPath: String? = nil,
         agentType: String? = nil,
-        beadId _: String? = nil,
+        beadId: String? = nil,
         prompt: String? = nil
     ) async throws -> GatewaySession {
-        var chatParams: [String: Any] = [:]
-        if let label { chatParams["sessionLabel"] = label }
-        if let prompt { chatParams["message"] = prompt }
-        if let agentType { chatParams["agentId"] = agentType }
+        var params: [String: Any] = [:]
+        if let label { params["label"] = label }
+        if let projectPath { params["projectPath"] = projectPath }
+        if let agentType { params["agentId"] = agentType }
+        if let beadId { params["beadId"] = beadId }
+        if let prompt { params["prompt"] = prompt }
 
-        let payload = try await request("chat.send", params: chatParams)
-        let key = payload["sessionKey"] as? String
-            ?? payload["key"] as? String
-            ?? payload["id"] as? String
-            ?? UUID().uuidString
+        let payload = try await request("sessions.create", params: params)
+        guard let key = payload["key"] as? String
+            ?? payload["id"] as? String else {
+            throw GatewayClientError.invalidResponse
+        }
         return GatewaySession(
             id: key,
             key: key,
