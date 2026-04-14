@@ -5,6 +5,8 @@ struct ChatPanelView: View {
     @State private var inputText = ""
     @State private var handledFocusRequestID = 0
     @State private var showingEmojiPicker = false
+    @State private var slashService = SlashCommandService()
+    @State private var slashCompletions: [SlashCompletion] = []
     @FocusState private var isInputFocused: Bool
 
     var body: some View {
@@ -26,6 +28,9 @@ struct ChatPanelView: View {
         }
         .onChange(of: appState.chatInputFocusRequestID) { _, _ in
             handleFocusRequestIfNeeded()
+        }
+        .onChange(of: inputText) { _, newValue in
+            slashCompletions = slashService.completions(for: newValue)
         }
     }
 
@@ -292,6 +297,52 @@ struct ChatPanelView: View {
     // MARK: - Chat Input
 
     private var chatInput: some View {
+        VStack(spacing: 0) {
+            slashAutocomplete
+            chatInputBar
+        }
+        .cardStyle()
+        .shadow(color: .black.opacity(0.04), radius: 1.5, y: 1)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+    }
+
+    @ViewBuilder
+    private var slashAutocomplete: some View {
+        if !slashCompletions.isEmpty {
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(slashCompletions) { completion in
+                    Button(action: {
+                        inputText = slashService.completionText(for: completion, originalInput: inputText) + " "
+                        slashCompletions = []
+                    }) {
+                        HStack(spacing: 8) {
+                            Text(completion.title)
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(.primary)
+                            Text(completion.subtitle)
+                                .font(.system(size: 11))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                            Spacer()
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                    }
+                    .buttonStyle(.plain)
+
+                    if completion.id != slashCompletions.last?.id {
+                        Divider()
+                            .padding(.horizontal, 8)
+                    }
+                }
+            }
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
+            .padding(.bottom, 6)
+        }
+    }
+
+    private var chatInputBar: some View {
         HStack(alignment: .bottom, spacing: 8) {
             // Emoji picker button
             Button(action: showEmojiPicker) {
@@ -358,10 +409,6 @@ struct ChatPanelView: View {
             }
         }
         .padding(10)
-        .cardStyle()
-        .shadow(color: .black.opacity(0.04), radius: 1.5, y: 1)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
     }
 
     private func showEmojiPicker() {
@@ -430,8 +477,34 @@ struct ChatPanelView: View {
     private func sendMessage() {
         let message = inputText
         inputText = ""
-        Task {
-            await appState.sendChatMessage(message)
+        slashCompletions = []
+
+        let action = slashService.resolve(message)
+        switch action {
+        case .chat:
+            Task {
+                await appState.sendChatMessage(message)
+            }
+        case .execute(let name, let arguments):
+            handleSlashCommand(name: name, arguments: arguments, originalInput: message)
+        case .error(let errorMessageText):
+            let errorMessage = ChatMessage(role: .assistant, content: errorMessageText)
+            appState.chatMessages.append(errorMessage)
+        }
+    }
+
+    private func handleSlashCommand(name: String, arguments: String, originalInput: String) {
+        switch name {
+        case "help":
+            let text = arguments.isEmpty
+                ? slashService.helpText()
+                : slashService.helpText(for: arguments)
+            appState.chatMessages.append(ChatMessage(role: .assistant, content: "```\n\(text)\n```"))
+        default:
+            // Forward unrecognized slash commands as chat messages for now
+            Task {
+                await appState.sendChatMessage(originalInput)
+            }
         }
     }
 
