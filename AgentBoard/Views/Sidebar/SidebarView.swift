@@ -43,6 +43,8 @@ struct SidebarView: View {
 
             Spacer()
 
+            githubStatusIndicator
+
             newSessionButton
         }
         .frame(minWidth: 220, idealWidth: 220, maxWidth: 220)
@@ -84,6 +86,48 @@ struct SidebarView: View {
         .buttonStyle(.plain)
         .padding(.horizontal, 12)
         .padding(.bottom, 14)
+    }
+
+    private var githubStatusIndicator: some View {
+        HStack(spacing: 6) {
+            if appState.isGitHubLoading {
+                ProgressView()
+                    .controlSize(.small)
+                    .scaleEffect(0.7)
+            } else {
+                Circle()
+                    .fill(githubStatusColor)
+                    .frame(width: 8, height: 8)
+            }
+
+            Text(githubStatusText)
+                .font(.system(size: 11))
+                .foregroundStyle(AppTheme.sidebarMutedText)
+        }
+        .padding(.horizontal, 12)
+        .padding(.bottom, 8)
+    }
+
+    private var githubStatusColor: Color {
+        if appState.appConfig.githubToken == nil || appState.appConfig.githubToken?.isEmpty == true {
+            return AppTheme.sidebarMutedText
+        } else if appState.githubError != nil {
+            return Color(red: 1.0, green: 0.231, blue: 0.188)
+        } else {
+            return Color(red: 0.204, green: 0.78, blue: 0.349)
+        }
+    }
+
+    private var githubStatusText: String {
+        if appState.appConfig.githubToken == nil || appState.appConfig.githubToken?.isEmpty == true {
+            return "GitHub: Not configured"
+        } else if appState.isGitHubLoading {
+            return "GitHub: Connecting..."
+        } else if appState.githubError != nil {
+            return "GitHub: Error"
+        } else {
+            return "GitHub: Connected"
+        }
     }
 
     private func section<Content: View>(
