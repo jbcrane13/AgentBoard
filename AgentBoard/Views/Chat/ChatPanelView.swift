@@ -305,7 +305,7 @@ struct ChatPanelView: View {
 
             TextEditor(text: $inputText)
                 .font(.system(size: 13))
-                .frame(minHeight: 40, maxHeight: 110)
+                .frame(minHeight: 40, maxHeight: 200)
                 .padding(.horizontal, 6)
                 .padding(.vertical, 2)
                 .focused($isInputFocused)
