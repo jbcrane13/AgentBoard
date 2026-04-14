@@ -50,6 +50,8 @@ final class AppState {
     var lastGitHubSyncDate: Date?
     var githubIssueCount: Int = 0
     var isLoadingBeads = false
+    var githubError: String?
+    var isGitHubLoading = false
     var allProjectIssues: [CrossRepoIssue] = []
     var isLoadingAllProjects = false
     var allProjectLoadErrors: [String] = []
@@ -969,6 +971,43 @@ final class AppState {
             )) ?? cachedMilestones
         } catch {
             setError("GitHub sync failed: \(error.localizedDescription)")
+        }
+    }
+
+    /// Loads GitHub issues with dedicated error and loading state tracking.
+    func loadGitHubIssues() async {
+        guard let (owner, repo, token) = githubConfig else {
+            githubError = "GitHub not configured"
+            return
+        }
+        
+        isGitHubLoading = true
+        githubError = nil
+        
+        defer { isGitHubLoading = false }
+        
+        do {
+            let fetched = try await gitHubService.fetchIssues(owner: owner, repo: repo, token: token)
+            
+            // Guard: drop stale results if the user switched projects while we were fetching.
+            guard selectedProjectID == selectedProjectID else { return }
+            
+            beads = fetched
+            beadsFileMissing = false
+            githubIssueCount = fetched.count
+            lastGitHubSyncDate = Date()
+            selectedBeadID = selectedBeadID.flatMap { existingID in
+                beads.contains(where: { $0.id == existingID }) ? existingID : nil
+            }
+            refreshProjectCounts()
+            rebuildHistoryEvents()
+            
+            // Also refresh milestones alongside issues
+            cachedMilestones = (try? await gitHubService.fetchMilestones(
+                owner: owner, repo: repo, token: token
+            )) ?? cachedMilestones
+        } catch {
+            githubError = error.localizedDescription
         }
     }
 
