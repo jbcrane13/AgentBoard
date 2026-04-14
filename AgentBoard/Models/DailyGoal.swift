@@ -86,7 +86,7 @@ extension DailyGoal {
             DailyGoal(title: "Implement DailyGoal model", project: "AgentBoard", isCompleted: true, sortOrder: 0),
             DailyGoal(title: "Add todo board view", project: "AgentBoard", sortOrder: 1),
             DailyGoal(title: "Wire up GitHub issues", project: "AgentBoard", assignedAgent: "claude-code", sortOrder: 2),
-            DailyGoal(title: "Fix WebSocket reconnect", project: "NetMonitor", linkedIssueNumber: 42, sortOrder: 0)
+            DailyGoal(title: "Fix WebSocket reconnect", project: "NetMonitor", sortOrder: 0, linkedIssueNumber: 42)
         ]
 
         for goal in goals {
