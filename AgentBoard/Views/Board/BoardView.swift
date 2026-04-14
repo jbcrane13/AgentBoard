@@ -34,6 +34,34 @@ struct BoardView: View {
         VStack(spacing: 12) {
             filterBar
 
+            if let error = appState.githubError {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.yellow)
+                    Text(error)
+                        .font(.system(size: 12))
+                        .lineLimit(2)
+                    Spacer()
+                    Button("Retry") {
+                        Task {
+                            await appState.loadGitHubIssues()
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    Button {
+                        appState.githubError = nil
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 10, weight: .bold))
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(.red.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
+            }
+
             if appState.beadsFileMissing {
                 missingBeadsState
             } else {
