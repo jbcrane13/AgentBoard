@@ -24,6 +24,7 @@ struct TaskDetailSheet: View {
     /// - Parameters:
     ///   - bead: The bead being viewed/edited.
     ///   - onDismiss: Callback fired when the sheet should close.
+    /// - Note: `BeadDraft.from(bead)` initializes a mutable working copy, so edits are staged until save.
     init(bead: Bead, onDismiss: @escaping () -> Void) {
         self.bead = bead
         self.onDismiss = onDismiss
