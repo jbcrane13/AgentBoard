@@ -277,7 +277,7 @@ public struct AttachmentPicker: View {
             if task.terminationStatus == 0 {
                 let url = URL(fileURLWithPath: tempPath)
                 if let attachment = Attachment.from(url: url) {
-                    attachments.append(attachment)
+                    appendAttachmentIfAllowed(attachment)
                 }
             }
         } catch {
@@ -303,11 +303,7 @@ public struct AttachmentPicker: View {
                        let url = URL(dataRepresentation: data, relativeTo: nil) {
                         DispatchQueue.main.async {
                             guard let attachment = Attachment.from(url: url) else { return }
-                            if attachment.fileSize <= maxFileSize {
-                                attachments.append(attachment)
-                            } else {
-                                showErrorMessage("File too large: \(attachment.fileName)")
-                            }
+                            appendAttachmentIfAllowed(attachment)
                         }
                     }
                 }
@@ -319,16 +315,12 @@ public struct AttachmentPicker: View {
                     if let url = item as? URL {
                         DispatchQueue.main.async {
                             guard let attachment = Attachment.from(url: url) else { return }
-                            if attachment.fileSize <= maxFileSize {
-                                attachments.append(attachment)
-                            }
+                            appendAttachmentIfAllowed(attachment)
                         }
                     } else if let data = item as? Data {
                         DispatchQueue.main.async {
                             let attachment = Attachment.fromImageData(data)
-                            if attachment.fileSize <= maxFileSize {
-                                attachments.append(attachment)
-                            }
+                            appendAttachmentIfAllowed(attachment)
                         }
                     }
                     #elseif canImport(UIKit)
@@ -336,9 +328,7 @@ public struct AttachmentPicker: View {
                        let data = image.pngData() {
                         DispatchQueue.main.async {
                             let attachment = Attachment.fromImageData(data)
-                            if attachment.fileSize <= maxFileSize {
-                                attachments.append(attachment)
-                            }
+                            appendAttachmentIfAllowed(attachment)
                         }
                     }
                     #endif
@@ -346,6 +336,20 @@ public struct AttachmentPicker: View {
             }
         }
         return true
+    }
+
+    private func appendAttachmentIfAllowed(_ attachment: Attachment) {
+        guard attachments.count < maxAttachments else {
+            showErrorMessage("Maximum \(maxAttachments) attachments allowed")
+            return
+        }
+
+        guard attachment.fileSize <= maxFileSize else {
+            showErrorMessage("File too large: \(attachment.fileName)")
+            return
+        }
+
+        attachments.append(attachment)
     }
 
     private func removeAttachment(_ attachment: Attachment) {

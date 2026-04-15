@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700">
+  <rect width="1200" height="700" fill="#ffffff" />
+  <text x="40" y="80" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="38" fill="#111827">
+    AgentBoard PR #36 — UI Update Snapshot
+  </text>
+  <text x="40" y="170" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="28" fill="#1f2937">
+    • TaskDetailSheet compatibility restored (bead-based sheet initializer)
+  </text>
+  <text x="40" y="230" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="28" fill="#1f2937">
+    • EpicCardView platform-safe colors and macOS-only menu/hover handling
+  </text>
+  <text x="40" y="290" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="28" fill="#1f2937">
+    • SessionLauncher platform-safe colors and shell-escaped command generation
+  </text>
+  <text x="40" y="350" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="28" fill="#1f2937">
+    • MessageRenderer copy action supports macOS and iOS clipboard APIs
+  </text>
+</svg>

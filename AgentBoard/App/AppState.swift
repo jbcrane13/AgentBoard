@@ -986,25 +986,12 @@ final class AppState {
         let fetchedForProjectID = selectedProjectID
 
         do {
-            let fetched = try await gitHubService.fetchIssues(owner: owner, repo: repo, token: token)
-
-            // Guard: drop stale results if the user switched projects while we were fetching.
-            guard selectedProjectID == fetchedForProjectID else { return }
-
-            beads = fetched
-            beadsFileMissing = false
-            githubIssueCount = fetched.count
-            lastGitHubSyncDate = Date()
-            selectedBeadID = selectedBeadID.flatMap { existingID in
-                beads.contains(where: { $0.id == existingID }) ? existingID : nil
-            }
-            refreshProjectCounts()
-            rebuildHistoryEvents()
-
-            // Also refresh milestones alongside issues
-            cachedMilestones = (try? await gitHubService.fetchMilestones(
-                owner: owner, repo: repo, token: token
-            )) ?? cachedMilestones
+            let response = try await fetchGitHubIssuesAndMilestones(owner: owner, repo: repo, token: token)
+            applyGitHubIssueFetch(
+                issues: response.issues,
+                milestones: response.milestones,
+                fetchedForProjectID: fetchedForProjectID
+            )
         } catch {
             setError("GitHub sync failed: \(error.localizedDescription)")
         }
@@ -1021,30 +1008,51 @@ final class AppState {
         githubError = nil
         
         defer { isGitHubLoading = false }
+
+        // Snapshot the project we're fetching for — discard result if selection changed mid-flight.
+        let fetchedForProjectID = selectedProjectID
         
         do {
-            let fetched = try await gitHubService.fetchIssues(owner: owner, repo: repo, token: token)
-            
-            // Guard: drop stale results if the user switched projects while we were fetching.
-            guard selectedProjectID == selectedProjectID else { return }
-            
-            beads = fetched
-            beadsFileMissing = false
-            githubIssueCount = fetched.count
-            lastGitHubSyncDate = Date()
-            selectedBeadID = selectedBeadID.flatMap { existingID in
-                beads.contains(where: { $0.id == existingID }) ? existingID : nil
-            }
-            refreshProjectCounts()
-            rebuildHistoryEvents()
-            
-            // Also refresh milestones alongside issues
-            cachedMilestones = (try? await gitHubService.fetchMilestones(
-                owner: owner, repo: repo, token: token
-            )) ?? cachedMilestones
+            let response = try await fetchGitHubIssuesAndMilestones(owner: owner, repo: repo, token: token)
+            applyGitHubIssueFetch(
+                issues: response.issues,
+                milestones: response.milestones,
+                fetchedForProjectID: fetchedForProjectID
+            )
         } catch {
             githubError = error.localizedDescription
         }
+    }
+
+    private func fetchGitHubIssuesAndMilestones(
+        owner: String,
+        repo: String,
+        token: String
+    ) async throws -> (issues: [Bead], milestones: [GitHubMilestone]) {
+        let issues = try await gitHubService.fetchIssues(owner: owner, repo: repo, token: token)
+        let milestones = (try? await gitHubService.fetchMilestones(owner: owner, repo: repo, token: token))
+            ?? cachedMilestones
+        return (issues: issues, milestones: milestones)
+    }
+
+    private func applyGitHubIssueFetch(
+        issues: [Bead],
+        milestones: [GitHubMilestone],
+        fetchedForProjectID: UUID?
+    ) {
+        // Guard: drop stale results if the user switched projects while we were fetching.
+        guard selectedProjectID == fetchedForProjectID else { return }
+
+        beads = issues
+        beadsFileMissing = false
+        githubIssueCount = issues.count
+        lastGitHubSyncDate = Date()
+        selectedBeadID = selectedBeadID.flatMap { existingID in
+            beads.contains(where: { $0.id == existingID }) ? existingID : nil
+        }
+        refreshProjectCounts()
+        rebuildHistoryEvents()
+        cachedMilestones = milestones
     }
 
     /// Runs `bd list --all --flat --json`, converts the JSON array to JSONL, and writes to issues.jsonl.

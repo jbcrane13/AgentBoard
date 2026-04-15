@@ -1,4 +1,9 @@
 import SwiftUI
+#if os(macOS)
+import AppKit
+#elseif os(iOS)
+import UIKit
+#endif
 
 /// Renders chat messages cleanly, hiding raw tool calls from users.
 /// Shows human-readable summaries instead of raw terminal(command: ...) syntax.
@@ -159,8 +164,7 @@ struct CodeBlock: View {
                         .foregroundStyle(.secondary)
                     Spacer()
                     Button("Copy") {
-                        NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString(code, forType: .string)
+                        copyCodeToClipboard()
                     }
                     .buttonStyle(.borderless)
                     .font(.caption)
@@ -179,5 +183,14 @@ struct CodeBlock: View {
         }
         .background(Color.gray.opacity(0.05))
         .cornerRadius(8)
+    }
+
+    private func copyCodeToClipboard() {
+        #if os(macOS)
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(code, forType: .string)
+        #elseif os(iOS)
+        UIPasteboard.general.string = code
+        #endif
     }
 }

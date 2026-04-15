@@ -150,11 +150,11 @@ public struct SessionLauncher: View {
             .padding(12)
             .background(
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(Color(nsColor: .controlBackgroundColor))
+                    .fill(platformCardBackgroundColor)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 10)
-                    .stroke(Color(nsColor: .separatorColor), lineWidth: 0.5)
+                    .stroke(platformSeparatorColor, lineWidth: 0.5)
             )
         }
     }
@@ -196,12 +196,12 @@ public struct SessionLauncher: View {
             .padding(.vertical, 14)
             .background(
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(selectedAgent == agent ? agent.brandColor : Color(nsColor: .controlBackgroundColor))
+                    .fill(selectedAgent == agent ? agent.brandColor : platformCardBackgroundColor)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 10)
                     .stroke(
-                        selectedAgent == agent ? agent.brandColor : Color(nsColor: .separatorColor),
+                        selectedAgent == agent ? agent.brandColor : platformSeparatorColor,
                         lineWidth: selectedAgent == agent ? 2 : 0.5
                     )
             )
@@ -242,7 +242,7 @@ public struct SessionLauncher: View {
             .padding(12)
             .background(
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(Color(nsColor: .controlBackgroundColor).opacity(0.5))
+                    .fill(platformCardBackgroundColor.opacity(0.5))
             )
         }
     }
@@ -299,7 +299,7 @@ public struct SessionLauncher: View {
         .padding(10)
         .background(
             RoundedRectangle(cornerRadius: 8)
-                .fill(Color(nsColor: .controlBackgroundColor))
+                .fill(platformCardBackgroundColor)
         )
     }
 
@@ -330,6 +330,22 @@ public struct SessionLauncher: View {
         case .done: return .green
         case .blocked: return .red
         }
+    }
+
+    private var platformCardBackgroundColor: Color {
+        #if os(macOS)
+        Color(nsColor: .controlBackgroundColor)
+        #else
+        Color(uiColor: .secondarySystemBackground)
+        #endif
+    }
+
+    private var platformSeparatorColor: Color {
+        #if os(macOS)
+        Color(nsColor: .separatorColor)
+        #else
+        Color(uiColor: .separator)
+        #endif
     }
 
     // MARK: - Session Launch
@@ -417,21 +433,42 @@ public enum CodingAgent: String, CaseIterable, Codable, Sendable {
         var parts: [String] = []
 
         // Change to working directory
-        parts.append("cd \(workingDirectory)")
+        parts.append("cd \(shellEscaped(workingDirectory))")
 
         // Create and checkout branch if specified
-        if let branch = branchName {
-            parts.append("git checkout -b \(branch)")
+        if let branch = branchName,
+           let sanitizedBranch = sanitizedBranchName(branch) {
+            parts.append("git checkout -b \(shellEscaped(sanitizedBranch))")
         }
 
         switch self {
         case .claudeCode:
-            parts.append("claude --issue \"\(issueId)\" --title \"\(issueTitle)\"")
+            parts.append("claude --issue \(shellEscaped(issueId)) --title \(shellEscaped(issueTitle))")
         case .codex:
-            parts.append("codex --issue \"\(issueId)\" \"\(issueTitle)\"")
+            parts.append("codex --issue \(shellEscaped(issueId)) \(shellEscaped(issueTitle))")
         }
 
         return parts.joined(separator: " && ")
+    }
+
+    private func shellEscaped(_ value: String) -> String {
+        "'\(value.replacingOccurrences(of: "'", with: "'\"'\"'"))'"
+    }
+
+    private func sanitizedBranchName(_ branchName: String) -> String? {
+        let trimmed = branchName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        let allowed = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._/-")
+        guard trimmed.rangeOfCharacter(from: allowed.inverted) == nil else { return nil }
+        guard !trimmed.hasPrefix("-"),
+              !trimmed.hasPrefix("/"),
+              !trimmed.hasSuffix("/"),
+              !trimmed.contains(".."),
+              !trimmed.contains("//"),
+              !trimmed.contains("@{"),
+              trimmed != "@"
+        else { return nil }
+        return trimmed
     }
 }
 
