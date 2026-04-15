@@ -14,7 +14,7 @@ struct AgentBoardDailyView: View {
     }
 
     init(viewModel: AgentTasksViewModel = AgentTasksViewModel()) {
-        self._viewModel = State(initialValue: viewModel)
+        _viewModel = State(initialValue: viewModel)
     }
 
     var body: some View {
@@ -43,13 +43,13 @@ struct AgentBoardDailyView: View {
             Spacer()
 
             #if os(macOS)
-            Picker("", selection: $viewMode) {
-                ForEach(TaskViewMode.allCases, id: \.self) { mode in
-                    Text(mode.rawValue).tag(mode)
+                Picker("", selection: $viewMode) {
+                    ForEach(TaskViewMode.allCases, id: \.self) { mode in
+                        Text(mode.rawValue).tag(mode)
+                    }
                 }
-            }
-            .pickerStyle(.segmented)
-            .frame(width: 140)
+                .pickerStyle(.segmented)
+                .frame(width: 140)
             #endif
 
             Button {
@@ -179,7 +179,7 @@ struct AgentBoardDailyView: View {
         viewModel.updateStatus(taskID: taskID, status: status)
     }
 
-    private func updatePriority(_ taskID: String, priority: AgentTask.PriorityLevel) {
+    private func updatePriority(_: String, priority: AgentTask.PriorityLevel) {
         let priorityInt: Int
         switch priority {
         case .high: priorityInt = 1
@@ -193,11 +193,11 @@ struct AgentBoardDailyView: View {
         viewModel.updateAssignee(taskID: taskID, assignee: assignee)
     }
 
-    private func updateTicketRef(_ taskID: String, ticketRef: String) {
+    private func updateTicketRef(_: String, ticketRef _: String) {
         // TODO: Add ticket ref update to viewModel
     }
 
-    private func updateNote(_ taskID: String, note: String) {
+    private func updateNote(_: String, note _: String) {
         // TODO: Add note update to viewModel
     }
 }
@@ -230,7 +230,8 @@ private struct AllTabBadge: View {
             .background(
                 RoundedRectangle(cornerRadius: 20)
                     .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
-                    .background(RoundedRectangle(cornerRadius: 20).fill(isSelected ? Color.secondary.opacity(0.1) : .clear))
+                    .background(RoundedRectangle(cornerRadius: 20)
+                        .fill(isSelected ? Color.secondary.opacity(0.1) : .clear))
             )
             .foregroundColor(isSelected ? .primary : .secondary)
         }
@@ -371,7 +372,7 @@ private struct TaskCard: View {
                             StatusButton(
                                 status: status,
                                 isSelected: task.status.lowercased() == status ||
-                                            (status == "pending" && task.status.lowercased() == "open"),
+                                    (status == "pending" && task.status.lowercased() == "open"),
                                 color: statusColor(for: status),
                                 action: { onStatusChange(status) }
                             )
@@ -411,7 +412,7 @@ private struct TaskCard: View {
                     TextField("Add a note...", text: $editingNote, axis: .vertical)
                         .textFieldStyle(.plain)
                         .font(.system(size: 13))
-                        .lineLimit(2...4)
+                        .lineLimit(2 ... 4)
                         .padding(8)
                         .background(Color.secondary.opacity(0.1))
                         .clipShape(RoundedRectangle(cornerRadius: 8))
@@ -561,10 +562,7 @@ private struct AgentPickerButton: View {
 // MARK: - Preview
 
 #Preview {
-    AgentBoardDailyView(viewModel: {
-        let viewModel = AgentTasksViewModel(useFixtureData: true)
-        return viewModel
-    }())
-    .frame(width: 365, height: 700)
-    .preferredColorScheme(.dark)
+    AgentBoardDailyView(viewModel: AgentTasksViewModel(useFixtureData: true))
+        .frame(width: 365, height: 700)
+        .preferredColorScheme(.dark)
 }

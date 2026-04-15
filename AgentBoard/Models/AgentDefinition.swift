@@ -33,14 +33,49 @@ struct AgentDefinition: Identifiable, Hashable {
 
     static let knownAgents: [AgentDefinition] = [
         .init(id: "", name: "Unassigned", emoji: "📋", githubUsername: nil, color: .gray, role: "Not assigned"),
-        .init(id: "daneel", name: "Daneel", emoji: "🤖", githubUsername: "jbcrane13", color: Color(hex: "4A9EE0"), role: "Main assistant"),
-        .init(id: "friend", name: "Friend", emoji: "🛠️", githubUsername: "jbcrane13", color: Color(hex: "F0A030"), role: "Coding lead"),
-        .init(id: "quentin", name: "Quentin", emoji: "🔬", githubUsername: "jbcrane13", color: Color(hex: "D46090"), role: "QA lead"),
-        .init(id: "argus", name: "Argus", emoji: "⚙️", githubUsername: "jbcrane13", color: Color(hex: "22B882"), role: "Sys ops")
+        .init(
+            id: "daneel",
+            name: "Daneel",
+            emoji: "🤖",
+            githubUsername: "jbcrane13",
+            color: Color(hex: "4A9EE0"),
+            role: "Main assistant"
+        ),
+        .init(
+            id: "friend",
+            name: "Friend",
+            emoji: "🛠️",
+            githubUsername: "jbcrane13",
+            color: Color(hex: "#A0C4FF"), // Light blue for Friend
+            role: "Coding lead"
+        ),
+        .init(
+            id: "quentin",
+            name: "Quentin",
+            emoji: "🔬",
+            githubUsername: "jbcrane13",
+            color: Color(hex: "#BDB2FF"), // Light purple for Quentin
+            role: "QA lead"
+        ),
+        .init(
+            id: "argus",
+            name: "Argus",
+            emoji: "⚙️",
+            githubUsername: "jbcrane13",
+            color: Color(hex: "#FFC6FF"), // Light pink/purple for Argus
+            role: "Sys ops"
+        )
     ]
 
     static func find(_ id: String) -> AgentDefinition {
-        knownAgents.first(where: { $0.id == id }) ?? .init(id: id, name: id, emoji: "🔹", githubUsername: nil, color: .gray, role: "Unknown")
+        knownAgents.first(where: { $0.id == id }) ?? .init(
+            id: id,
+            name: id,
+            emoji: "🔹",
+            githubUsername: nil,
+            color: .gray,
+            role: "Unknown"
+        )
     }
 
     /// Map an agent ID to GitHub usernames for the assignees API field.

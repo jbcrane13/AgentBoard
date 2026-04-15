@@ -89,7 +89,10 @@ actor SessionMonitor {
                     id: sessionRow.name,
                     name: sessionRow.name,
                     agentType: detectedAgentType,
-                    sessionType: Self.detectSessionType(paneCommand: pane?.paneCommand, agentCommand: selectedProcess?.command),
+                    sessionType: Self.detectSessionType(
+                        paneCommand: pane?.paneCommand,
+                        agentCommand: selectedProcess?.command
+                    ),
                     projectPath: projectPath,
                     beadId: Self.extractBeadID(from: sessionRow.name),
                     linkedIssueNumber: Self.extractIssueNumber(from: sessionRow.name),

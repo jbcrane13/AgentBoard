@@ -29,14 +29,18 @@
 		2937CD26CC9454119B423F42 /* agent_identity_payload.json in Resources */ = {isa = PBXBuildFile; fileRef = 86017738796EF05BE6830B3B /* agent_identity_payload.json */; };
 		3009B7A2C4525DD9A47DE2E4 /* GatewayDiscovery.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7FBECECA248FE8D05DA69A3 /* GatewayDiscovery.swift */; };
 		324103A779885A8D8C7DBB12 /* StateQueryHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7761D77C22F466FC9D48245 /* StateQueryHelpers.swift */; };
+		34E62E29D49C5B94B24086F3 /* AgentTasksTodoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD93A99A6EEED24047DED56E /* AgentTasksTodoView.swift */; };
 		3B8F1D5EED90B7EC24B57577 /* ConnectionErrorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E251AF742713D24615AA037 /* ConnectionErrorTests.swift */; };
 		3BB29835444515EB94FD813C /* ProjectHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5AE3EDEE83915C26EAC9CDC /* ProjectHeaderView.swift */; };
 		3E96B4557DFB397E3FDBDC8A /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E2DF7595890403B84F1A090 /* AppTheme.swift */; };
+		4373E0D071FF4A9B84BBA461 /* GitHubRepoPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 477C28FB1BE64724402F97C2 /* GitHubRepoPickerView.swift */; };
 		44097275AD1DC9E186E35F66 /* CanvasRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5F4500B562B9987DE72A37A /* CanvasRenderer.swift */; };
 		4BA90DB3C58DEFD4A1FDA51A /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB72F151C5258F99F3949B6C /* AppConfig.swift */; };
 		4BBD995FFF6928C345F8BDAB /* NewSessionOutcomeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66270992D27B8F640D0F7452 /* NewSessionOutcomeTests.swift */; };
 		4C7374176A948F5520772AD1 /* AgentDefinition.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2FA7440AB80163FB1491327 /* AgentDefinition.swift */; };
+		4C7486F43AC2066458F28872 /* ObservabilityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8889770C642C81E91511FD96 /* ObservabilityService.swift */; };
 		4E59C7C591C48925D86509F9 /* GitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B70C99F0DC6498D9190C7535 /* GitService.swift */; };
+		53760C00A84FA2ED25C37019 /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = 8A96DCD7E914CD6269552C36 /* Sentry */; };
 		563C1AEC2AE5B2C15AFB5224 /* BeadDraft.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72FBE50FAAA5B79FB22D609C /* BeadDraft.swift */; };
 		58F4A64A5D37DB4E8D3EE1D8 /* SplitPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C58E348553C3BD9682EE30E /* SplitPanelView.swift */; };
 		5BB15EC0714CDA03277913E4 /* tasks_malformed.json in Resources */ = {isa = PBXBuildFile; fileRef = 1F5CDA37C9BE1807AFB068A5 /* tasks_malformed.json */; };
@@ -68,7 +72,6 @@
 		8E768D4BA2D82362D0CBEEAD /* MockURLProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B2589D88E275C8954AD163C /* MockURLProtocol.swift */; };
 		8EB67E19E1DEC45824E09FB3 /* WorkspaceNotesServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 259E05A7A42B99B87018605E /* WorkspaceNotesServiceTests.swift */; };
 		8F1D4A27BA64ABBAE159D78E /* PairingGuideView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDD271A41885F3D4B023C0BB /* PairingGuideView.swift */; };
-		F2E1D0C9B8A7F6E5D4C3B2A1 /* GitHubRepoPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D0E1F2 /* GitHubRepoPickerView.swift */; };
 		8F46404903A130EC2D556A52 /* ChatSendThinkingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BB64FB0BBBCFCCA0AF72E27 /* ChatSendThinkingTests.swift */; };
 		90C5E985C53CB33CBC3D07D1 /* ModelCoverageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 811F9513818CB8ACADB83C3A /* ModelCoverageTests.swift */; };
 		9414BECE28CF2D8589DFFD2B /* BeadsWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD8201A1E527D30542D3C8A4 /* BeadsWatcher.swift */; };
@@ -86,6 +89,7 @@
 		B4A3C0D200BE41D27D4DB5BA /* BoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4F0F32D49217E1515476A4B /* BoardView.swift */; };
 		B52B4339DE39E09C615CFFB4 /* tasks_empty.json in Resources */ = {isa = PBXBuildFile; fileRef = FF911D61EAF3341CE675D69F /* tasks_empty.json */; };
 		B7C813822B9A333006322582 /* AgentTasksDashboardOutcomeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59CD8197094FD47685DA94AF /* AgentTasksDashboardOutcomeTests.swift */; };
+		B7F1F3756D7B0742E41B7E60 /* AgentBoardDailyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B49622D430828F5BFDBDD70 /* AgentBoardDailyView.swift */; };
 		BC6C0E8237F921FD44C0F1AB /* OpenClawConnectionState.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE49BCA31BB12B8C4B6573CA /* OpenClawConnectionState.swift */; };
 		BDA09B57C4BAB789606943C8 /* NewSessionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C79A3B2CEFB6F05487F49D6 /* NewSessionSheet.swift */; };
 		BDA34F067D009B0FDA43081B /* AppStateCoverageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F783378E449330C659E1727E /* AppStateCoverageTests.swift */; };
@@ -96,7 +100,6 @@
 		C27DB45018D25D593E218621 /* GatewayClientContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71C742AEB1E871C95986B439 /* GatewayClientContractTests.swift */; };
 		C32E8F7202A2885C24E491C9 /* TestHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = D786FEAA5AA58A734D8E89B6 /* TestHelpers.swift */; };
 		C575BBE19BB150557AA231B5 /* iOSBoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1769DAF37527076936354BBC /* iOSBoardView.swift */; };
-			B2C3D4E5F6A7890123456789 /* AgentBoardDailyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6789012345678 /* AgentBoardDailyView.swift */; };
 		CA10430B4F87ED3479C834B4 /* CanvasPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDB7B68F558BF1ECE861C33 /* CanvasPanelView.swift */; };
 		CA383D0BF9EF102F3AED3DD5 /* BeadsWatcherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F511A10DC1A01D5DA4329B1 /* BeadsWatcherTests.swift */; };
 		CB84A6D9890205B36DEB1899 /* AgentTasksViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A6ECC582ACFD5A4140DF8F /* AgentTasksViewModelTests.swift */; };
@@ -162,7 +165,6 @@
 		1598734AE1632D8250B38E4A /* CrossRepoIssue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrossRepoIssue.swift; sourceTree = "<group>"; };
 		15F7AF72EBDF6BF1C4007645 /* SessionMonitorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionMonitorTests.swift; sourceTree = "<group>"; };
 		1769DAF37527076936354BBC /* iOSBoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iOSBoardView.swift; sourceTree = "<group>"; };
-			A1B2C3D4E5F6789012345678 /* AgentBoardDailyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentBoardDailyView.swift; sourceTree = "<group>"; };
 		1825CBC7AE7A0140105195E1 /* BacklogFilterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BacklogFilterTests.swift; sourceTree = "<group>"; };
 		1B0D9C078A4B90C7891D91D2 /* ViewsNavView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewsNavView.swift; sourceTree = "<group>"; };
 		1B2589D88E275C8954AD163C /* MockURLProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockURLProtocol.swift; sourceTree = "<group>"; };
@@ -186,7 +188,9 @@
 		3AF8D4C20B83696E82466BAA /* CanvasContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CanvasContent.swift; sourceTree = "<group>"; };
 		3B1E1058B3742AB6D3408B34 /* AgentBoardUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentBoardUITests.swift; sourceTree = "<group>"; };
 		3B20E6299800A90120B707EE /* chat_history_payload.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = chat_history_payload.json; sourceTree = "<group>"; };
+		3B49622D430828F5BFDBDD70 /* AgentBoardDailyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentBoardDailyView.swift; sourceTree = "<group>"; };
 		45105CB7F88820AC05447A0C /* SessionMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionMonitor.swift; sourceTree = "<group>"; };
+		477C28FB1BE64724402F97C2 /* GitHubRepoPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubRepoPickerView.swift; sourceTree = "<group>"; };
 		47E09571DDBB9E0162995AA8 /* SettingsPersistenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsPersistenceTests.swift; sourceTree = "<group>"; };
 		47F056764E661E242F136D71 /* CoordinationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoordinationService.swift; sourceTree = "<group>"; };
 		482B7399FB53B9321E48F6FD /* HistoryEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryEvent.swift; sourceTree = "<group>"; };
@@ -226,6 +230,7 @@
 		811F9513818CB8ACADB83C3A /* ModelCoverageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelCoverageTests.swift; sourceTree = "<group>"; };
 		83C9DC59CA844EC64C98FAB1 /* DashboardNavigationOutcomeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardNavigationOutcomeTests.swift; sourceTree = "<group>"; };
 		86017738796EF05BE6830B3B /* agent_identity_payload.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = agent_identity_payload.json; sourceTree = "<group>"; };
+		8889770C642C81E91511FD96 /* ObservabilityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObservabilityService.swift; sourceTree = "<group>"; };
 		893DF138DE3B70A713549BD4 /* HistoryDashboardOutcomeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryDashboardOutcomeTests.swift; sourceTree = "<group>"; };
 		8A5DFB4072DF173AEE5FFD04 /* KeychainServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainServiceTests.swift; sourceTree = "<group>"; };
 		8AF1D87D885DF54C43FB53EF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -253,7 +258,6 @@
 		C7761D77C22F466FC9D48245 /* StateQueryHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StateQueryHelpers.swift; sourceTree = "<group>"; };
 		C8C0DE4A9604A9FA90611FDE /* ChatPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatPanelView.swift; sourceTree = "<group>"; };
 		CDD271A41885F3D4B023C0BB /* PairingGuideView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingGuideView.swift; sourceTree = "<group>"; };
-		A1B2C3D4E5F6A7B8C9D0E1F2 /* GitHubRepoPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubRepoPickerView.swift; sourceTree = "<group>"; };
 		CEA40B44F65FE8F98F15F89E /* TerminalLauncherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalLauncherTests.swift; sourceTree = "<group>"; };
 		D0D1BFBF69B8B8FC3D8C2E88 /* UIStateQueryHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIStateQueryHelpers.swift; sourceTree = "<group>"; };
 		D1AE4F21096283EA2336206A /* iOSChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iOSChatView.swift; sourceTree = "<group>"; };
@@ -273,6 +277,7 @@
 		F6AE7C2D1BC9B6257D23BAD6 /* KeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainService.swift; sourceTree = "<group>"; };
 		F783378E449330C659E1727E /* AppStateCoverageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStateCoverageTests.swift; sourceTree = "<group>"; };
 		F8AC6743B67E34EB380FAAB0 /* OpenClawService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenClawService.swift; sourceTree = "<group>"; };
+		FD93A99A6EEED24047DED56E /* AgentTasksTodoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentTasksTodoView.swift; sourceTree = "<group>"; };
 		FDF3231CBEE1D572FDB3FA64 /* TaskDetailSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskDetailSheet.swift; sourceTree = "<group>"; };
 		FE1A5A7EFD8E894DC6A25793 /* GitHubWorkloadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubWorkloadView.swift; sourceTree = "<group>"; };
 		FF911D61EAF3341CE675D69F /* tasks_empty.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = tasks_empty.json; sourceTree = "<group>"; };
@@ -285,6 +290,7 @@
 			files = (
 				0D4B6287FB492E255C4E927C /* SwiftTerm in Frameworks */,
 				EEE501D250CCB4E6D2D60418 /* Markdown in Frameworks */,
+				53760C00A84FA2ED25C37019 /* Sentry in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -410,8 +416,8 @@
 		591210C1672E8E6506D997B6 /* Settings */ = {
 			isa = PBXGroup;
 			children = (
+				477C28FB1BE64724402F97C2 /* GitHubRepoPickerView.swift */,
 				CDD271A41885F3D4B023C0BB /* PairingGuideView.swift */,
-				A1B2C3D4E5F6A7B8C9D0E1F2 /* GitHubRepoPickerView.swift */,
 				7E271E3BB2B34873674B4A3D /* SettingsView.swift */,
 			);
 			path = Settings;
@@ -454,9 +460,9 @@
 		7D5D890BC1FB0A05AE87F48B /* iOS */ = {
 			isa = PBXGroup;
 			children = (
+				3B49622D430828F5BFDBDD70 /* AgentBoardDailyView.swift */,
 				71A1368202AE9EEFEBFB76DD /* iOSAgentsView.swift */,
 				1769DAF37527076936354BBC /* iOSBoardView.swift */,
-				A1B2C3D4E5F6789012345678 /* AgentBoardDailyView.swift */,
 				D1AE4F21096283EA2336206A /* iOSChatView.swift */,
 				EC49374D322C6249F8AF52C5 /* iOSMoreView.swift */,
 				675734452B67E78E8C43514C /* iOSRootView.swift */,
@@ -464,6 +470,14 @@
 				B65764DF3EACB5AD1185571F /* iOSSessionsView.swift */,
 			);
 			path = iOS;
+			sourceTree = "<group>";
+		};
+		7E48AA3544F5AE0C1C288D7E /* mac */ = {
+			isa = PBXGroup;
+			children = (
+				FD93A99A6EEED24047DED56E /* AgentTasksTodoView.swift */,
+			);
+			path = mac;
 			sourceTree = "<group>";
 		};
 		81E8705C0A4C85BE52A078CB /* Products */ = {
@@ -490,6 +504,7 @@
 				B70C99F0DC6498D9190C7535 /* GitService.swift */,
 				99E22E6B21241B648DFB4223 /* JSONLParser.swift */,
 				F6AE7C2D1BC9B6257D23BAD6 /* KeychainService.swift */,
+				8889770C642C81E91511FD96 /* ObservabilityService.swift */,
 				F8AC6743B67E34EB380FAAB0 /* OpenClawService.swift */,
 				45105CB7F88820AC05447A0C /* SessionMonitor.swift */,
 				91B8514E13FF5DE34605F75F /* WorkspaceNotesService.swift */,
@@ -570,6 +585,7 @@
 				4F8EEDF5AC1AE590A1A46F64 /* Epics */,
 				567DBBD77119BE736026649A /* History */,
 				7D5D890BC1FB0A05AE87F48B /* iOS */,
+				7E48AA3544F5AE0C1C288D7E /* mac */,
 				7462C50CBB7780C4CB74E6B2 /* MainWindow */,
 				1766098B820AA703C4BB7BB8 /* Milestones */,
 				ACE2A09B10077EEC0B3D99D9 /* Notes */,
@@ -667,6 +683,7 @@
 			packageProductDependencies = (
 				AA65C204A6A99CEBA3E4B8C4 /* SwiftTerm */,
 				8C68D03BF071F4A8E1442A9F /* Markdown */,
+				8A96DCD7E914CD6269552C36 /* Sentry */,
 			);
 			productName = AgentBoard;
 			productReference = 351F53C221B69731A024B864 /* AgentBoard.app */;
@@ -737,6 +754,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				8A42E6F6CCF27450821E497E /* XCRemoteSwiftPackageReference "SwiftTerm" */,
+				09F172CE3AA3D9241DCCA6F1 /* XCRemoteSwiftPackageReference "sentry-cocoa" */,
 				9DC4ADEA411AB0D93723BAE7 /* XCRemoteSwiftPackageReference "swift-markdown" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -802,7 +820,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				FBCF78054253963AFE5E26D2 /* AgentBoardApp.swift in Sources */,
+				B7F1F3756D7B0742E41B7E60 /* AgentBoardDailyView.swift in Sources */,
 				4C7374176A948F5520772AD1 /* AgentDefinition.swift in Sources */,
+				34E62E29D49C5B94B24086F3 /* AgentTasksTodoView.swift in Sources */,
 				5BB6C98FAFFED80C6D2A7BD9 /* AgentTasksView.swift in Sources */,
 				837C81E9912212E704C50800 /* AgentsView.swift in Sources */,
 				14F0499FB44CF8FBCC73C22F /* AllProjectsBoardView.swift in Sources */,
@@ -830,6 +850,7 @@
 				FCA8353A2693E9EDBB582089 /* GitCommitRecord.swift in Sources */,
 				73A1EDFC0D87ECED4FE07025 /* GitHubIssuesService.swift in Sources */,
 				0ADC18DE4711D793185BE0BA /* GitHubLabelPicker.swift in Sources */,
+				4373E0D071FF4A9B84BBA461 /* GitHubRepoPickerView.swift in Sources */,
 				BFE4316E30FD2C3DDF0E30E5 /* GitHubWorkloadView.swift in Sources */,
 				4E59C7C591C48925D86509F9 /* GitService.swift in Sources */,
 				CC2D85FA86988622C2409CC2 /* HistoryEvent.swift in Sources */,
@@ -841,10 +862,10 @@
 				E0CA7E88EED0676FCACBCF6B /* MilestonesView.swift in Sources */,
 				BDA09B57C4BAB789606943C8 /* NewSessionSheet.swift in Sources */,
 				014673DCB9DAA060E3D14E47 /* NotesView.swift in Sources */,
+				4C7486F43AC2066458F28872 /* ObservabilityService.swift in Sources */,
 				BC6C0E8237F921FD44C0F1AB /* OpenClawConnectionState.swift in Sources */,
 				CE46C7D0263F5CBF136A7CC5 /* OpenClawService.swift in Sources */,
 				8F1D4A27BA64ABBAE159D78E /* PairingGuideView.swift in Sources */,
-				F2E1D0C9B8A7F6E5D4C3B2A1 /* GitHubRepoPickerView.swift in Sources */,
 				1E8A4C59C79A436C871BB2FC /* Project.swift in Sources */,
 				3BB29835444515EB94FD813C /* ProjectHeaderView.swift in Sources */,
 				06DC69705C80751A73297E5B /* ProjectListView.swift in Sources */,
@@ -864,7 +885,6 @@
 				D95DEAB1AD16521BC6D9459A /* WorkspaceNotesService.swift in Sources */,
 				649D7E031467F576369E7016 /* iOSAgentsView.swift in Sources */,
 				C575BBE19BB150557AA231B5 /* iOSBoardView.swift in Sources */,
-				B2C3D4E5F6A7890123456789 /* AgentBoardDailyView.swift in Sources */,
 				05D5B0869AF8F94E5233BC61 /* iOSChatView.swift in Sources */,
 				D3EE8A6A054ED2838466955D /* iOSMoreView.swift in Sources */,
 				FB5CB3629B4A5A53996FEB4F /* iOSRootView.swift in Sources */,
@@ -962,7 +982,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.agentboard.AgentBoardTests;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 6.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AgentBoard.app/AgentBoard";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AgentBoard.app/Contents/MacOS/AgentBoard";
 			};
 			name = Debug;
 		};
@@ -992,7 +1012,7 @@
 				CODE_SIGN_ENTITLEMENTS = AgentBoard/AgentBoard.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"AgentBoard/Resources/Preview Content\"";
 				DEVELOPMENT_TEAM = 32XZRDTGK3;
 				ENABLE_APP_SANDBOX = NO;
@@ -1031,7 +1051,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.agentboard.AgentBoardTests;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 6.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AgentBoard.app/AgentBoard";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AgentBoard.app/Contents/MacOS/AgentBoard";
 			};
 			name = Release;
 		};
@@ -1162,7 +1182,7 @@
 				CODE_SIGN_ENTITLEMENTS = AgentBoard/AgentBoard.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"AgentBoard/Resources/Preview Content\"";
 				DEVELOPMENT_TEAM = 32XZRDTGK3;
 				ENABLE_APP_SANDBOX = NO;
@@ -1246,6 +1266,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		09F172CE3AA3D9241DCCA6F1 /* XCRemoteSwiftPackageReference "sentry-cocoa" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/getsentry/sentry-cocoa";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 9.10.0;
+			};
+		};
 		8A42E6F6CCF27450821E497E /* XCRemoteSwiftPackageReference "SwiftTerm" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/migueldeicaza/SwiftTerm";
@@ -1265,6 +1293,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		8A96DCD7E914CD6269552C36 /* Sentry */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 09F172CE3AA3D9241DCCA6F1 /* XCRemoteSwiftPackageReference "sentry-cocoa" */;
+			productName = Sentry;
+		};
 		8C68D03BF071F4A8E1442A9F /* Markdown */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 9DC4ADEA411AB0D93723BAE7 /* XCRemoteSwiftPackageReference "swift-markdown" */;

@@ -22,6 +22,9 @@ packages:
   swift-markdown:
     url: https://github.com/apple/swift-markdown
     from: "0.4.0"
+  sentry-cocoa:
+    url: https://github.com/getsentry/sentry-cocoa
+    from: "9.10.0"
 
 targets:
   AgentBoard:
@@ -79,6 +82,8 @@ targets:
       - package: SwiftTerm
       - package: swift-markdown
         product: Markdown
+      - package: sentry-cocoa
+        product: Sentry
     entitlements:
       path: AgentBoard/AgentBoard.entitlements
   AgentBoardTests:
@@ -90,6 +95,8 @@ targets:
       base:
         GENERATE_INFOPLIST_FILE: YES
         SWIFT_VERSION: "6.0"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/AgentBoard.app/Contents/MacOS/AgentBoard"
+        BUNDLE_LOADER: "$(TEST_HOST)"
     dependencies:
       - target: AgentBoard
   AgentBoardUITests:

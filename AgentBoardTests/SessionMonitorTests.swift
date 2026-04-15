@@ -115,7 +115,7 @@ struct SessionMonitorTests {
 
     @Test("command for agentType returns correct launch command")
     func commandForAgentType() {
-        // Standard sessions use raw commands
+        /// Standard sessions use raw commands
         func standardCommand(for agentType: AgentType) -> String {
             switch agentType {
             case .claudeCode: return "claude"
@@ -128,7 +128,7 @@ struct SessionMonitorTests {
         #expect(standardCommand(for: .codex) == "codex")
         #expect(standardCommand(for: .openCode) == "opencode")
 
-        // Ralph loops use ralphy wrapper
+        /// Ralph loops use ralphy wrapper
         func ralphCommand(for agentType: AgentType) -> String {
             switch agentType {
             case .claudeCode: return "ralphy"
