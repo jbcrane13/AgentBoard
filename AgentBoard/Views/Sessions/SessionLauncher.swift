@@ -458,7 +458,7 @@ public enum CodingAgent: String, CaseIterable, Codable, Sendable {
     private func sanitizedBranchName(_ branchName: String) -> String? {
         let trimmed = branchName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
-        // Allow the standard git-safe branch character subset.
+        // Allow only git-safe branch characters: alphanumerics, ".", "_", "/", and "-".
         let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "._/-"))
         guard trimmed.rangeOfCharacter(from: allowed.inverted) == nil else { return nil }
         guard !trimmed.hasPrefix("-"),
