@@ -34,6 +34,12 @@ struct JSONLParser {
                         return BeadKind.fromBeads(typeByID[dependency.dependsOnID]) == .epic
                     })?
                     .dependsOnID
+                
+                // Extract parent issue number from epicId if it's a GitHub issue (GH-123)
+                let parentIssueNumber: Int? = {
+                    guard let epicId else { return nil }
+                    return GitHubIssuesService.issueNumber(from: epicId)
+                }()
 
                 return Bead(
                     id: record.id,
@@ -49,7 +55,8 @@ struct JSONLParser {
                     updatedAt: updatedAt,
                     dependencies: dependencyIDs,
                     gitBranch: nil,
-                    lastCommit: nil
+                    lastCommit: nil,
+                    parentIssueNumber: parentIssueNumber
                 )
             }
             .sorted { lhs, rhs in lhs.updatedAt > rhs.updatedAt }

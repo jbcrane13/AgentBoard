@@ -9,6 +9,7 @@ struct Bead: Identifiable, Hashable, Codable {
     let kind: BeadKind
     let priority: Int
     let epicId: String?
+    var parentIssueNumber: Int?  // nil = top-level epic, otherwise GitHub issue number of parent
     let labels: [String]
     let assignee: String?
     var milestoneNumber: Int?
@@ -24,7 +25,8 @@ struct Bead: Identifiable, Hashable, Codable {
         priority: Int, epicId: String?, labels: [String], assignee: String?,
         milestoneNumber: Int? = nil, milestoneTitle: String? = nil,
         createdAt: Date, updatedAt: Date, dependencies: [String],
-        gitBranch: String?, lastCommit: String?
+        gitBranch: String?, lastCommit: String?,
+        parentIssueNumber: Int? = nil
     ) {
         self.id = id
         self.title = title
@@ -33,6 +35,7 @@ struct Bead: Identifiable, Hashable, Codable {
         self.kind = kind
         self.priority = priority
         self.epicId = epicId
+        self.parentIssueNumber = parentIssueNumber
         self.labels = labels
         self.assignee = assignee
         self.milestoneNumber = milestoneNumber
@@ -156,7 +159,8 @@ extension Bead {
             updatedAt: .now.addingTimeInterval(-3600),
             dependencies: [],
             gitBranch: nil,
-            lastCommit: nil
+            lastCommit: nil,
+            parentIssueNumber: nil
         ),
         Bead(
             id: "NM-095",
@@ -172,7 +176,8 @@ extension Bead {
             updatedAt: .now.addingTimeInterval(-86400),
             dependencies: [],
             gitBranch: nil,
-            lastCommit: nil
+            lastCommit: nil,
+            parentIssueNumber: nil
         ),
         Bead(
             id: "NM-093",
@@ -188,7 +193,8 @@ extension Bead {
             updatedAt: .now.addingTimeInterval(-172_800),
             dependencies: [],
             gitBranch: nil,
-            lastCommit: nil
+            lastCommit: nil,
+            parentIssueNumber: nil
         ),
         Bead(
             id: "NM-096",
@@ -204,7 +210,8 @@ extension Bead {
             updatedAt: .now.addingTimeInterval(-1800),
             dependencies: [],
             gitBranch: "feat/nwpath-monitor",
-            lastCommit: "a3f2c1d"
+            lastCommit: "a3f2c1d",
+            parentIssueNumber: nil
         ),
         Bead(
             id: "NM-094",
@@ -220,7 +227,8 @@ extension Bead {
             updatedAt: .now.addingTimeInterval(-3600),
             dependencies: [],
             gitBranch: "test/scan-ui-tests",
-            lastCommit: "b7e4a09"
+            lastCommit: "b7e4a09",
+            parentIssueNumber: nil
         ),
         Bead(
             id: "NM-092",
@@ -236,7 +244,8 @@ extension Bead {
             updatedAt: .now.addingTimeInterval(-172_800),
             dependencies: [],
             gitBranch: nil,
-            lastCommit: "c1d9f32"
+            lastCommit: "c1d9f32",
+            parentIssueNumber: nil
         ),
         Bead(
             id: "NM-091",
@@ -252,7 +261,8 @@ extension Bead {
             updatedAt: .now.addingTimeInterval(-259_200),
             dependencies: [],
             gitBranch: nil,
-            lastCommit: "d4e8b21"
+            lastCommit: "d4e8b21",
+            parentIssueNumber: nil
         )
     ]
 }

@@ -309,7 +309,8 @@ struct AppStateCoverageTests {
             updatedAt: updatedAt,
             dependencies: [],
             gitBranch: nil,
-            lastCommit: nil
+            lastCommit: nil,
+            parentIssueNumber: nil
         )
     }
 

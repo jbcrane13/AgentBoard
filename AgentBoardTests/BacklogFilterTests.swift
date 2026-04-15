@@ -38,7 +38,8 @@ struct BacklogFilterTests {
             updatedAt: .now,
             dependencies: [],
             gitBranch: nil,
-            lastCommit: nil
+            lastCommit: nil,
+            parentIssueNumber: nil
         )
     }
 

@@ -124,6 +124,42 @@ final class AppState {
         beads.filter { $0.kind == .epic }
             .sorted { lhs, rhs in lhs.updatedAt > rhs.updatedAt }
     }
+    
+    /// Returns child tasks for a given epic (by GitHub issue number)
+    func childTasks(of epicNumber: Int) -> [Bead] {
+        beads.filter { $0.parentIssueNumber == epicNumber }
+            .sorted { lhs, rhs in lhs.updatedAt > rhs.updatedAt }
+    }
+    
+    /// Returns child tasks for a given epic (by bead ID)
+    func childTasks(ofEpicID epicID: String) -> [Bead] {
+        beads.filter { $0.epicId == epicID }
+            .sorted { lhs, rhs in lhs.updatedAt > rhs.updatedAt }
+    }
+    
+    /// Returns the parent epic for a given bead, if it exists
+    func parentEpic(for bead: Bead) -> Bead? {
+        guard let epicId = bead.epicId else { return nil }
+        return beads.first(where: { $0.id == epicId })
+    }
+    
+    /// Returns subtask progress (completed/total) for an epic
+    func subtaskProgress(for epic: Bead) -> (completed: Int, total: Int) {
+        let children: [Bead]
+        if let epicNumber = GitHubIssuesService.issueNumber(from: epic.id) {
+            children = childTasks(of: epicNumber)
+        } else {
+            children = childTasks(ofEpicID: epic.id)
+        }
+        let completed = children.filter { $0.status == .done }.count
+        return (completed, children.count)
+    }
+    
+    /// Returns top-level epics (epics without a parent)
+    var topLevelEpics: [Bead] {
+        beads.filter { $0.kind == .epic && $0.parentIssueNumber == nil }
+            .sorted { lhs, rhs in lhs.updatedAt > rhs.updatedAt }
+    }
 
     var readyIssues: [CrossRepoIssue] {
         allProjectIssues
@@ -1741,7 +1777,8 @@ final class AppState {
                 updatedAt: .now.addingTimeInterval(-2000),
                 dependencies: [],
                 gitBranch: nil,
-                lastCommit: nil
+                lastCommit: nil,
+                parentIssueNumber: nil
             ),
             Bead(
                 id: "AB-101",
@@ -1757,7 +1794,8 @@ final class AppState {
                 updatedAt: .now.addingTimeInterval(-1800),
                 dependencies: [],
                 gitBranch: nil,
-                lastCommit: nil
+                lastCommit: nil,
+                parentIssueNumber: nil
             )
         ]
 

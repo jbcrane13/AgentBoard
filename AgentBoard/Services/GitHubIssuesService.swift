@@ -477,7 +477,8 @@ actor GitHubIssuesService {
             updatedAt: parseDate(issue.updatedAt),
             dependencies: [],
             gitBranch: nil,
-            lastCommit: nil
+            lastCommit: nil,
+            parentIssueNumber: nil
         )
     }
 

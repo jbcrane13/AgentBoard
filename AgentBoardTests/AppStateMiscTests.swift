@@ -137,7 +137,7 @@ struct AppStateMiscTests {
             id: "AB-test1", title: "Test bead", body: nil, status: .open,
             kind: .task, priority: 2, epicId: nil, labels: [], assignee: nil,
             createdAt: Date(), updatedAt: Date(), dependencies: [],
-            gitBranch: nil, lastCommit: nil
+            gitBranch: nil, lastCommit: nil, parentIssueNumber: nil
         )
 
         // Draft with status changed to done

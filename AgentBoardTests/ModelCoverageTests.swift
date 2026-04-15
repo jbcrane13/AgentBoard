@@ -81,7 +81,8 @@ struct ModelCoverageTests {
             updatedAt: Date(timeIntervalSince1970: 1_700_000_123),
             dependencies: ["AB-0"],
             gitBranch: "feat/tests",
-            lastCommit: "abcdef1"
+            lastCommit: "abcdef1",
+            parentIssueNumber: 42
         )
 
         let data = try JSONEncoder().encode(bead)
@@ -109,7 +110,8 @@ struct ModelCoverageTests {
             updatedAt: .distantPast,
             dependencies: [],
             gitBranch: nil,
-            lastCommit: nil
+            lastCommit: nil,
+            parentIssueNumber: 42
         )
 
         let mapped = BeadDraft.from(bead)
@@ -301,7 +303,8 @@ struct ModelCoverageTests {
             updatedAt: .distantPast,
             dependencies: [],
             gitBranch: nil,
-            lastCommit: nil
+            lastCommit: nil,
+            parentIssueNumber: nil
         )
 
         #expect(bead.milestoneNumber == nil)
@@ -326,7 +329,8 @@ struct ModelCoverageTests {
             updatedAt: .distantPast,
             dependencies: [],
             gitBranch: nil,
-            lastCommit: nil
+            lastCommit: nil,
+            parentIssueNumber: nil
         )
 
         #expect(bead.milestoneNumber == 3)
@@ -351,7 +355,8 @@ struct ModelCoverageTests {
             updatedAt: .distantPast,
             dependencies: [],
             gitBranch: nil,
-            lastCommit: nil
+            lastCommit: nil,
+            parentIssueNumber: nil
         )
 
         let draft = BeadDraft.from(bead)
@@ -374,7 +379,8 @@ struct ModelCoverageTests {
             updatedAt: .distantPast,
             dependencies: [],
             gitBranch: nil,
-            lastCommit: nil
+            lastCommit: nil,
+            parentIssueNumber: nil
         )
 
         let issue = CrossRepoIssue(
