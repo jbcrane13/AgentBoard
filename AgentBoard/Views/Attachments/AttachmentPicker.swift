@@ -338,6 +338,7 @@ public struct AttachmentPicker: View {
         return true
     }
 
+    /// Centralized attachment validation to enforce max count and size limits before append.
     private func appendAttachmentIfAllowed(_ attachment: Attachment) {
         guard attachments.count < maxAttachments else {
             showErrorMessage("Maximum \(maxAttachments) attachments allowed")

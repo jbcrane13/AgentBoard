@@ -20,6 +20,10 @@ struct TaskDetailSheet: View {
     @State private var attachedURLs: [String] = []
     @State private var showingNewSessionSheet = false
 
+    /// Creates the detail sheet for an existing bead.
+    /// - Parameters:
+    ///   - bead: The bead being viewed/edited.
+    ///   - onDismiss: Callback fired when the sheet should close.
     init(bead: Bead, onDismiss: @escaping () -> Void) {
         self.bead = bead
         self.onDismiss = onDismiss
