@@ -2,8 +2,8 @@ import Foundation
 
 // MARK: - Models
 
-/// Represents an agent that can be assigned tasks
-public struct Agent: Codable, Identifiable, Sendable {
+/// Represents a notification agent that can be assigned tasks
+public struct NotificationAgent: Codable, Identifiable, Sendable {
     public let id: String
     public let name: String
     public let telegramUserId: String?
@@ -15,8 +15,8 @@ public struct Agent: Codable, Identifiable, Sendable {
     }
 }
 
-/// Represents a task that can be assigned to an agent
-public struct AgentTask: Codable, Identifiable, Sendable {
+/// Represents a notification agent task that can be assigned to an agent
+public struct NotificationAgentTask: Codable, Identifiable, Sendable {
     public let id: String
     public let title: String
     public let description: String
@@ -98,7 +98,7 @@ public struct TelegramConfiguration: Sendable {
 
 // MARK: - AgentNotificationService
 
-/// Service for sending Telegram notifications related to agent task assignments
+/// Service for sending Telegram notifications related to notification agent task assignments
 public final class AgentNotificationService: Sendable {
 
     private let configuration: TelegramConfiguration
@@ -117,31 +117,31 @@ public final class AgentNotificationService: Sendable {
 
     // MARK: - Public Methods
 
-    /// Notify that a task has been assigned to an agent
+    /// Notify that a task has been assigned to a notification agent
     /// - Parameters:
-    ///   - agent: The agent being assigned
-    ///   - task: The task being assigned
+    ///   - agent: The notification agent being assigned
+    ///   - task: The notification agent task being assigned
     ///   - chatId: Optional override chat ID (uses default if nil)
     /// - Returns: NotificationResult with the message ID on success
     public func notifyAssignment(
-        agent: Agent,
-        task: AgentTask,
+        agent: NotificationAgent,
+        task: NotificationAgentTask,
         chatId: String? = nil
     ) async -> NotificationResult {
         let message = formatAssignmentMessage(agent: agent, task: task)
         return await sendMessage(text: message, chatId: chatId ?? configuration.defaultChatId)
     }
 
-    /// Notify that an agent has completed a task
+    /// Notify that a notification agent has completed a task
     /// - Parameters:
-    ///   - agent: The agent who completed the task
-    ///   - task: The completed task
+    ///   - agent: The notification agent who completed the task
+    ///   - task: The completed notification agent task
     ///   - notes: Optional completion notes
     ///   - chatId: Optional override chat ID (uses default if nil)
     /// - Returns: NotificationResult with the message ID on success
     public func notifyCompletion(
-        agent: Agent,
-        task: AgentTask,
+        agent: NotificationAgent,
+        task: NotificationAgentTask,
         notes: String? = nil,
         chatId: String? = nil
     ) async -> NotificationResult {
@@ -149,16 +149,16 @@ public final class AgentNotificationService: Sendable {
         return await sendMessage(text: message, chatId: chatId ?? configuration.defaultChatId)
     }
 
-    /// Acknowledge a task assignment (agent confirms receipt)
+    /// Acknowledge a task assignment (notification agent confirms receipt)
     /// - Parameters:
-    ///   - agent: The agent acknowledging
-    ///   - task: The task being acknowledged
+    ///   - agent: The notification agent acknowledging
+    ///   - task: The notification agent task being acknowledged
     ///   - estimatedCompletion: Optional estimated completion time string
     ///   - chatId: Optional override chat ID (uses default if nil)
     /// - Returns: NotificationResult with the message ID on success
     public func acknowledgeAssignment(
-        agent: Agent,
-        task: AgentTask,
+        agent: NotificationAgent,
+        task: NotificationAgentTask,
         estimatedCompletion: String? = nil,
         chatId: String? = nil
     ) async -> NotificationResult {
@@ -247,7 +247,7 @@ public final class AgentNotificationService: Sendable {
 
     // MARK: - Message Formatting
 
-    private func formatAssignmentMessage(agent: Agent, task: AgentTask) -> String {
+    private func formatAssignmentMessage(agent: NotificationAgent, task: NotificationAgentTask) -> String {
         var message = """
         <b>📋 New Task Assignment</b>
 
@@ -263,7 +263,7 @@ public final class AgentNotificationService: Sendable {
         return message
     }
 
-    private func formatCompletionMessage(agent: Agent, task: AgentTask, notes: String?) -> String {
+    private func formatCompletionMessage(agent: NotificationAgent, task: NotificationAgentTask, notes: String?) -> String {
         var message = """
         <b>✅ Task Completed</b>
 
@@ -279,8 +279,8 @@ public final class AgentNotificationService: Sendable {
     }
 
     private func formatAcknowledgmentMessage(
-        agent: Agent,
-        task: AgentTask,
+        agent: NotificationAgent,
+        task: NotificationAgentTask,
         estimatedCompletion: String?
     ) -> String {
         var message = """

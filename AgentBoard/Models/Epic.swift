@@ -53,7 +53,7 @@ public struct Epic: Codable, Identifiable, Sendable {
     public let id: String
     public var title: String
     public var description: String?
-    public var priority: AgentTask.Priority
+    public var priority: Priority
     public var status: TaskStatus
     public var subtasks: [Subtask]
     public var assignee: String?
@@ -82,7 +82,7 @@ public struct Epic: Codable, Identifiable, Sendable {
         id: String = UUID().uuidString,
         title: String,
         description: String? = nil,
-        priority: AgentTask.Priority = .medium,
+        priority: Priority = .medium,
         status: TaskStatus = .todo,
         subtasks: [Subtask] = [],
         assignee: String? = nil,
@@ -124,7 +124,7 @@ public struct Epic: Codable, Identifiable, Sendable {
         var epic = Epic(
             title: "Implement User Authentication",
             description: "Add complete authentication flow including login, signup, and password reset",
-            priority: .high,
+            priority: Priority.high,
             status: .inProgress,
             tags: ["security", "backend", "frontend"]
         )
