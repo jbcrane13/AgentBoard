@@ -1,10 +1,70 @@
 import Foundation
 
 /// Generates lightweight PRD markdown from GitHub issues.
-public final class PRDGenerator: Sendable {
-    public init() {}
+final class PRDGenerator: Sendable {
+    init() {}
 
-    public func generatePRD(from issue: GitHubIssue) -> String {
+    func generatePRD(from issue: Bead, childIssues: [Bead] = []) -> String {
+        var lines: [String] = []
+
+        lines.append("# \(issue.id): \(issue.title)")
+        lines.append("")
+        lines.append("## Context")
+        lines.append("")
+        lines.append("- **Issue:** \(issue.id)")
+
+        if !issue.labels.isEmpty {
+            lines.append("- **Labels:** \(issue.labels.joined(separator: ", "))")
+        }
+        if let milestoneTitle = issue.milestoneTitle {
+            lines.append("- **Milestone:** \(milestoneTitle)")
+        }
+        if let assignee = issue.assignee, !assignee.isEmpty {
+            lines.append("- **Assignee:** \(assignee)")
+        }
+
+        lines.append("- **Status:** \(issue.status.rawValue)")
+        lines.append("")
+
+        if let body = issue.body, !body.isEmpty {
+            lines.append("## Description")
+            lines.append("")
+            lines.append(body)
+            lines.append("")
+        }
+
+        if !childIssues.isEmpty {
+            lines.append("## Child issues")
+            lines.append("")
+            for childIssue in childIssues {
+                let checkbox = childIssue.status == .done ? "x" : " "
+                lines.append("- [\(checkbox)] \(childIssue.id): \(childIssue.title)")
+            }
+            lines.append("")
+        }
+
+        let tasks = childIssues.isEmpty ? extractTasks(from: issue.body ?? "") : []
+        if !tasks.isEmpty {
+            lines.append("## Tasks")
+            lines.append("")
+            for task in tasks {
+                lines.append("- [ ] \(task)")
+            }
+            lines.append("")
+        }
+
+        lines.append("## Acceptance Criteria")
+        lines.append("")
+        lines.append("- [ ] All tests pass")
+        lines.append("- [ ] Code review completed")
+        lines.append("- [ ] No regressions introduced")
+        lines.append("- [ ] Documentation updated (if needed)")
+        lines.append("")
+
+        return lines.joined(separator: "\n")
+    }
+
+    func generatePRD(from issue: GitHubIssue) -> String {
         var lines: [String] = []
 
         lines.append("# #\(issue.number): \(issue.title)")
@@ -54,7 +114,52 @@ public final class PRDGenerator: Sendable {
         return lines.joined(separator: "\n")
     }
 
-    public func generatePRD(from issues: [GitHubIssue]) -> String {
+    func generatePRD(from epic: Epic) -> String {
+        var lines: [String] = []
+
+        lines.append("# \(epic.id): \(epic.title)")
+        lines.append("")
+        lines.append("## Context")
+        lines.append("")
+        lines.append("- **Issue:** \(epic.id)")
+        if let assignee = epic.assignee, !assignee.isEmpty {
+            lines.append("- **Assignee:** \(assignee)")
+        }
+        if !epic.tags.isEmpty {
+            lines.append("- **Tags:** \(epic.tags.joined(separator: ", "))")
+        }
+        lines.append("- **Status:** \(epic.status.rawValue)")
+        lines.append("")
+
+        if let description = epic.description, !description.isEmpty {
+            lines.append("## Description")
+            lines.append("")
+            lines.append(description)
+            lines.append("")
+        }
+
+        if !epic.subtasks.isEmpty {
+            lines.append("## Tasks")
+            lines.append("")
+            for subtask in epic.subtasks {
+                let checkbox = subtask.status == .done ? "x" : " "
+                lines.append("- [\(checkbox)] \(subtask.title)")
+            }
+            lines.append("")
+        }
+
+        lines.append("## Acceptance Criteria")
+        lines.append("")
+        lines.append("- [ ] All tests pass")
+        lines.append("- [ ] Code review completed")
+        lines.append("- [ ] No regressions introduced")
+        lines.append("- [ ] Documentation updated (if needed)")
+        lines.append("")
+
+        return lines.joined(separator: "\n")
+    }
+
+    func generatePRD(from issues: [GitHubIssue]) -> String {
         var lines: [String] = []
         lines.append("# PRD: Combined Issues")
         lines.append("")

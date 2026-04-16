@@ -97,9 +97,12 @@ actor GitHubIssuesService {
             page += 1
         }
 
-        return allIssues
+        let mappedIssues = allIssues
             .filter { !$0.isPullRequest }
             .map { mapToBead($0) }
+
+        return GitHubIssueHierarchy
+            .applyingParentRelationships(to: mappedIssues)
             .sorted { $0.updatedAt > $1.updatedAt }
     }
 

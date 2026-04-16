@@ -115,7 +115,7 @@ public struct SessionLauncher: View {
                     Image(systemName: priorityIcon)
                         .font(.title3)
                         .foregroundColor(priorityColor)
-                    Text(epic.priority.rawValue.capitalized)
+                    Text(epic.priority.label)
                         .font(.system(size: 9, weight: .medium))
                         .foregroundColor(priorityColor)
                 }
@@ -453,78 +453,55 @@ public struct SessionLauncher: View {
     
     /// Launch session with PRD-based workflow using ralphy --prd flag
     private func launchWithPRD(sessionId: String) {
-        // Convert Epic to BeadIssue for PRD generation
-        let issue = BeadIssue(
-            beadId: epic.id,
-            title: epic.title,
-            description: epic.description ?? "No description provided",
-            tasks: epic.subtasks.map { subtask in
-                IssueTask(
-                    title: subtask.title,
-                    isCompleted: subtask.status == .done,
-                    assignee: subtask.assignee
-                )
-            },
-            priority: epic.priority
-        )
-        
-        // Generate PRD markdown
         let generator = PRDGenerator()
-        let result = generator.generatePRD(from: issue)
-        
-        switch result {
-        case .success(let markdown):
-            // Save PRD to temp file
-            let tempPath = NSTemporaryDirectory() + "prd-\(epic.id).md"
-            do {
-                try markdown.write(toFile: tempPath, atomically: true, encoding: .utf8)
-                prdFilePath = tempPath
-                
-                // Build command with --prd flag
-                let command = selectedAgent.buildCommand(
-                    workingDirectory: workingDirectory,
-                    branchName: branchName.isEmpty ? nil : branchName,
-                    issueId: epic.id,
-                    issueTitle: epic.title,
-                    prdPath: tempPath
-                )
-                
-                // Simulate launch delay for UI feedback
-                Task {
-                    try? await Task.sleep(for: .seconds(1))
-                    await MainActor.run {
-                        sessionState = .launched
-                        statusMessage = "✓ PRD session launched successfully"
+        let markdown = generator.generatePRD(from: epic)
 
-                        let launchResult = SessionLaunchResult(
-                            sessionId: sessionId,
-                            agent: selectedAgent,
-                            epicId: epic.id,
-                            workingDirectory: workingDirectory,
-                            branchName: branchName.isEmpty ? nil : branchName,
-                            command: command,
-                            prdFilePath: tempPath
-                        )
+        // Save PRD to temp file
+        let tempPath = NSTemporaryDirectory() + "prd-\(epic.id).md"
+        do {
+            try markdown.write(toFile: tempPath, atomically: true, encoding: String.Encoding.utf8)
+            prdFilePath = tempPath
 
-                        onSessionLaunched?(launchResult)
+            // Build command with --prd flag
+            let command = selectedAgent.buildCommand(
+                workingDirectory: workingDirectory,
+                branchName: branchName.isEmpty ? nil : branchName,
+                issueId: epic.id,
+                issueTitle: epic.title,
+                prdPath: tempPath
+            )
 
-                        // Auto-dismiss after success
-                        Task {
-                            try? await Task.sleep(for: .seconds(1.5))
-                            await MainActor.run {
-                                dismiss()
-                            }
+            // Simulate launch delay for UI feedback
+            Task {
+                try? await Task.sleep(for: .seconds(1))
+                await MainActor.run {
+                    sessionState = .launched
+                    statusMessage = "✓ PRD session launched successfully"
+
+                    let launchResult = SessionLaunchResult(
+                        sessionId: sessionId,
+                        agent: selectedAgent,
+                        epicId: epic.id,
+                        workingDirectory: workingDirectory,
+                        branchName: branchName.isEmpty ? nil : branchName,
+                        command: command,
+                        prdFilePath: tempPath
+                    )
+
+                    onSessionLaunched?(launchResult)
+
+                    // Auto-dismiss after success
+                    Task {
+                        try? await Task.sleep(for: .seconds(1.5))
+                        await MainActor.run {
+                            dismiss()
                         }
                     }
                 }
-            } catch {
-                sessionState = .failed
-                statusMessage = "Failed to save PRD file: \(error.localizedDescription)"
             }
-            
-        case .failure(let error):
+        } catch {
             sessionState = .failed
-            statusMessage = "PRD generation failed: \(error.localizedDescription)"
+            statusMessage = "Failed to save PRD file: \(error.localizedDescription)"
         }
     }
 }

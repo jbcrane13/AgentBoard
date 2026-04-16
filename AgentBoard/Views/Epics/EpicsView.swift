@@ -26,7 +26,7 @@ struct EpicsView: View {
             .padding(.horizontal, 20)
             .padding(.top, 16)
 
-            if appState.epicBeads.isEmpty {
+            if appState.topLevelEpics.isEmpty {
                 VStack(spacing: 8) {
                     Image(systemName: "target")
                         .font(.system(size: 36))
@@ -39,7 +39,7 @@ struct EpicsView: View {
             } else {
                 ScrollView {
                     LazyVStack(spacing: 10) {
-                        ForEach(appState.epicBeads) { epic in
+                        ForEach(appState.topLevelEpics) { epic in
                             epicCard(epic)
                         }
                     }
@@ -69,9 +69,8 @@ struct EpicsView: View {
     }
 
     private func epicCard(_ epic: Bead) -> some View {
-        let children = appState.beads
-            .filter { $0.epicId == epic.id && $0.kind != .epic }
-            .sorted { lhs, rhs in lhs.updatedAt > rhs.updatedAt }
+        let children = appState.childTasks(of: epic)
+            .filter { $0.kind != .epic }
         let doneCount = children.filter { $0.status == .done }.count
         let totalCount = max(children.count, 1)
 

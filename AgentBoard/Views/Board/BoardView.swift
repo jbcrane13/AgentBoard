@@ -96,7 +96,7 @@ struct BoardView: View {
             BeadEditorForm(
                 title: "Create Bead",
                 draft: $createDraft,
-                availableEpics: appState.epicBeads,
+                availableEpics: appState.topLevelEpics,
                 availableMilestones: appState.cachedMilestones,
                 onCancel: {
                     showingCreateSheet = false
@@ -117,7 +117,7 @@ struct BoardView: View {
             BeadEditorForm(
                 title: "Edit \(context.bead.id)",
                 draft: $editDraft,
-                availableEpics: appState.epicBeads,
+                availableEpics: appState.topLevelEpics,
                 availableMilestones: appState.cachedMilestones,
                 onCancel: {
                     editingContext = nil
@@ -139,7 +139,7 @@ struct BoardView: View {
             }
         }
         .sheet(item: $detailContext) { context in
-            TaskDetailSheet(bead: context.bead) {
+            BeadTaskDetailSheetAdapter(bead: context.bead) {
                 detailContext = nil
             }
         }
@@ -166,7 +166,7 @@ struct BoardView: View {
 
             Picker("Epic", selection: $selectedEpicID) {
                 Text(FilterOption.all).tag(FilterOption.all)
-                ForEach(appState.epicBeads, id: \.id) { epic in
+                ForEach(appState.topLevelEpics, id: \.id) { epic in
                     Text(epic.id).tag(epic.id)
                 }
             }
@@ -277,7 +277,7 @@ struct BoardView: View {
     }
 
     private func beadCard(_ bead: Bead) -> some View {
-        TaskCardView(bead: bead)
+        BeadTaskCardAdapter(bead: bead)
             .onDrag { NSItemProvider(object: bead.id as NSString) }
             .onTapGesture {
                 appState.selectedBeadID = bead.id
@@ -315,7 +315,7 @@ struct BoardView: View {
         appState.beads.filter { bead in
             let kindMatches = selectedKind == .all || bead.kind == selectedKind.beadKind
             let assigneeMatches = selectedAssignee == FilterOption.all || bead.assignee == selectedAssignee
-            let epicMatches = selectedEpicID == FilterOption.all || bead.epicId == selectedEpicID
+            let epicMatches = selectedEpicID == FilterOption.all || appState.belongsToEpic(bead, epicID: selectedEpicID)
 
             let backlogMatches: Bool
             if hideBacklog, bead.status != .done {

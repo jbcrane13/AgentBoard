@@ -124,40 +124,63 @@ final class AppState {
         beads.filter { $0.kind == .epic }
             .sorted { lhs, rhs in lhs.updatedAt > rhs.updatedAt }
     }
+
+    func bead(issueNumber: Int) -> Bead? {
+        beads.first { GitHubIssuesService.issueNumber(from: $0.id) == issueNumber }
+    }
+
+    func belongsToEpic(_ bead: Bead, epicID: String) -> Bool {
+        bead.id == epicID || parentEpic(for: bead)?.id == epicID
+    }
+
+    private func canonicalParentIssueNumber(for bead: Bead) -> Int? {
+        bead.parentIssueNumber ?? bead.epicId.flatMap(GitHubIssuesService.issueNumber(from:))
+    }
     
     /// Returns child tasks for a given epic (by GitHub issue number)
     func childTasks(of epicNumber: Int) -> [Bead] {
-        beads.filter { $0.parentIssueNumber == epicNumber }
+        beads.filter { canonicalParentIssueNumber(for: $0) == epicNumber }
             .sorted { lhs, rhs in lhs.updatedAt > rhs.updatedAt }
+    }
+
+    func childTasks(of epic: Bead) -> [Bead] {
+        if let epicNumber = GitHubIssuesService.issueNumber(from: epic.id) {
+            return childTasks(of: epicNumber)
+        }
+
+        return childTasks(ofEpicID: epic.id)
     }
     
     /// Returns child tasks for a given epic (by bead ID)
     func childTasks(ofEpicID epicID: String) -> [Bead] {
-        beads.filter { $0.epicId == epicID }
+        if let epicNumber = GitHubIssuesService.issueNumber(from: epicID) {
+            return childTasks(of: epicNumber)
+        }
+
+        return beads.filter { $0.epicId == epicID }
             .sorted { lhs, rhs in lhs.updatedAt > rhs.updatedAt }
     }
     
     /// Returns the parent epic for a given bead, if it exists
     func parentEpic(for bead: Bead) -> Bead? {
+        if let parentIssueNumber = canonicalParentIssueNumber(for: bead) {
+            return self.bead(issueNumber: parentIssueNumber)
+        }
+
         guard let epicId = bead.epicId else { return nil }
         return beads.first(where: { $0.id == epicId })
     }
     
     /// Returns subtask progress (completed/total) for an epic
     func subtaskProgress(for epic: Bead) -> (completed: Int, total: Int) {
-        let children: [Bead]
-        if let epicNumber = GitHubIssuesService.issueNumber(from: epic.id) {
-            children = childTasks(of: epicNumber)
-        } else {
-            children = childTasks(ofEpicID: epic.id)
-        }
+        let children = childTasks(of: epic)
         let completed = children.filter { $0.status == .done }.count
         return (completed, children.count)
     }
     
     /// Returns top-level epics (epics without a parent)
     var topLevelEpics: [Bead] {
-        beads.filter { $0.kind == .epic && $0.parentIssueNumber == nil }
+        beads.filter { $0.kind == .epic && canonicalParentIssueNumber(for: $0) == nil }
             .sorted { lhs, rhs in lhs.updatedAt > rhs.updatedAt }
     }
 
@@ -1366,7 +1389,7 @@ final class AppState {
             }
             if !childIssueIDs.isEmpty {
                 bodyParts.append("")
-                bodyParts.append("## Sub-issues")
+                bodyParts.append("## \(GitHubIssueHierarchy.canonicalChildSectionTitle)")
                 for childID in childIssueIDs {
                     // childID is like "owner/repo#123" or just "#123" — extract number
                     if let number = extractIssueNumber(from: childID) {

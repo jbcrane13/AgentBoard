@@ -96,7 +96,11 @@ struct PRDLauncherSheet: View {
     }
 
     private func regeneratePRD() {
-        generatedPRD = PRDGenerator().generatePRD(from: issue)
+        if let bead = appState.bead(issueNumber: issue.number) {
+            generatedPRD = PRDGenerator().generatePRD(from: bead, childIssues: appState.childTasks(of: bead))
+        } else {
+            generatedPRD = PRDGenerator().generatePRD(from: issue)
+        }
     }
 
     private func launchSession() {

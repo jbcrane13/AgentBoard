@@ -1,7 +1,7 @@
 import Foundation
 
 /// Agent that can be assigned to tasks
-public struct Agent: Identifiable, Hashable, Codable {
+public struct Agent: Identifiable, Hashable, Codable, Sendable {
     public let id: String
     public let name: String
     public let role: String

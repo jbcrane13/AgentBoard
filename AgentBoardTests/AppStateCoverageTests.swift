@@ -255,6 +255,27 @@ struct AppStateCoverageTests {
         #expect(state.epicBeads.isEmpty)
     }
 
+    @Test("hierarchy helpers use reconstructed GitHub parent metadata")
+    func hierarchyHelpersUseGitHubParentIssueNumber() throws {
+        let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: _d, withIntermediateDirectories: true)
+        let state = AppState(configStore: AppConfigStore(directory: _d))
+
+        let epic = makeBead(id: "GH-37", kind: .epic, updatedAt: Date(timeIntervalSince1970: 1_700_000_500))
+        let doneChild = makeBead(id: "GH-38", kind: .task, updatedAt: Date(timeIntervalSince1970: 1_700_000_400), status: .done, parentIssueNumber: 37)
+        let openChild = makeBead(id: "GH-39", kind: .task, updatedAt: Date(timeIntervalSince1970: 1_700_000_300), status: .open, parentIssueNumber: 37)
+
+        state.beads = [openChild, epic, doneChild]
+
+        #expect(state.topLevelEpics.map(\.id) == ["GH-37"])
+        #expect(state.childTasks(of: epic).map(\.id) == ["GH-38", "GH-39"])
+        #expect(state.parentEpic(for: openChild)?.id == "GH-37")
+
+        let progress = state.subtaskProgress(for: epic)
+        #expect(progress.completed == 1)
+        #expect(progress.total == 2)
+    }
+
     @Test("activeSession returns session matching activeSessionID")
     func activeSessionReturnsMatchingSession() throws {
         let _d = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -293,13 +314,15 @@ struct AppStateCoverageTests {
     private func makeBead(
         id: String,
         kind: BeadKind,
-        updatedAt: Date = Date(timeIntervalSince1970: 1_700_000_100)
+        updatedAt: Date = Date(timeIntervalSince1970: 1_700_000_100),
+        status: BeadStatus = .open,
+        parentIssueNumber: Int? = nil
     ) -> Bead {
         Bead(
             id: id,
             title: "Title \(id)",
             body: nil,
-            status: .open,
+            status: status,
             kind: kind,
             priority: 2,
             epicId: nil,
@@ -310,7 +333,7 @@ struct AppStateCoverageTests {
             dependencies: [],
             gitBranch: nil,
             lastCommit: nil,
-            parentIssueNumber: nil
+            parentIssueNumber: parentIssueNumber
         )
     }
 
