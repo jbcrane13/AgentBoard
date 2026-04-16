@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct SessionListView: View {
+struct SidebarSessionListView: View {
     @Environment(AppState.self) private var appState
     let showHeader: Bool
 
