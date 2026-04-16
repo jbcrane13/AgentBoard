@@ -120,7 +120,7 @@ public struct TaskCardView: View {
                 .font(.title3)
                 .foregroundColor(priorityColor)
             
-            Text(issue.priority.rawValue.capitalized)
+            Text(issue.priority.label)
                 .font(.system(size: 9, weight: .medium))
                 .foregroundColor(priorityColor)
         }

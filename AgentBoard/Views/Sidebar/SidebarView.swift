@@ -26,7 +26,7 @@ struct SidebarView: View {
                         title: "Sessions",
                         isExpanded: $sessionsExpanded
                     ) {
-                        SessionListView(showHeader: false)
+                        SidebarSessionListView(showHeader: false)
                     }
 
                     section(

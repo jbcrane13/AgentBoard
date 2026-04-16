@@ -46,7 +46,7 @@ public struct BeadIssue: Codable, Identifiable, Sendable {
     public var context: String?
     public var tasks: [IssueTask]
     public var acceptanceCriteria: [AcceptanceCriterion]
-    public var priority: AgentTask.Priority
+    public var priority: Priority
     public var createdAt: Date
     public var updatedAt: Date
     
@@ -80,7 +80,7 @@ public struct BeadIssue: Codable, Identifiable, Sendable {
         context: String? = nil,
         tasks: [IssueTask] = [],
         acceptanceCriteria: [AcceptanceCriterion] = [],
-        priority: AgentTask.Priority = .medium
+        priority: Priority = .medium
     ) {
         self.id = id
         self.beadId = beadId

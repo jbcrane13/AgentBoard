@@ -108,7 +108,7 @@ public struct TaskDetailSheet: View {
             }
 
             HStack(spacing: 12) {
-                Label(epic.priority.rawValue.capitalized, systemImage: priorityIcon)
+                Label(epic.priority.label, systemImage: priorityIcon)
                     .font(.caption)
                     .foregroundColor(priorityColor)
 
@@ -270,18 +270,26 @@ public struct TaskDetailSheet: View {
     }
 
     private func sendAssignmentNotification(agent: Agent, service: AgentNotificationService) {
-        let task = AgentTask(
+        let notificationPriority: NotificationAgentTask.Priority
+        switch epic.priority {
+        case .low: notificationPriority = .low
+        case .medium: notificationPriority = .medium
+        case .high: notificationPriority = .high
+        case .critical: notificationPriority = .critical
+        }
+        let task = NotificationAgentTask(
             id: epic.id,
             title: epic.title,
             description: epic.description ?? "",
-            priority: epic.priority
+            priority: notificationPriority
         )
+        let notificationAgent = NotificationAgent(id: agent.id, name: agent.name)
 
         isNotifying = true
         notificationMessage = "Sending notification..."
 
         Task {
-            let result = await service.notifyAssignment(agent: agent, task: task)
+            let result = await service.notifyAssignment(agent: notificationAgent, task: task)
             await MainActor.run {
                 isNotifying = false
                 switch result {
@@ -301,18 +309,6 @@ public struct TaskDetailSheet: View {
             }
         }
     }
-}
-
-// MARK: - Default Agents
-
-extension Agent {
-    /// Default set of agents commonly used in AgentBoard
-    public static let defaultAgents: [Agent] = [
-        Agent(id: "codex", name: "Codex", telegramUserId: nil),
-        Agent(id: "claude", name: "Claude", telegramUserId: nil),
-        Agent(id: "gemini", name: "Gemini", telegramUserId: nil),
-        Agent(id: "copilot", name: "Copilot", telegramUserId: nil),
-    ]
 }
 
 // MARK: - Preview

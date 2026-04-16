@@ -130,7 +130,7 @@ public struct EpicCardView: View {
                 .font(.title3)
                 .foregroundColor(priorityColor)
             
-            Text(epic.priority.rawValue.capitalized)
+            Text(epic.priority.label)
                 .font(.system(size: 9, weight: .medium))
                 .foregroundColor(priorityColor)
         }
