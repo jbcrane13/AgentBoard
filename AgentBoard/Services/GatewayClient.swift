@@ -131,7 +131,9 @@ actor GatewayClient {
         // On reconnect, don't call disconnect() which finishes subscribers
         // Instead, just clean up the socket without touching subscribers
         if isConnected || isReconnecting {
-            gatewayLog.info("Reconnecting to gateway (wasConnected=\(isConnected), wasReconnecting=\(isReconnecting))")
+            let wasConnected = isConnected
+            let wasReconnecting = isReconnecting
+            gatewayLog.info("Reconnecting to gateway (wasConnected=\(wasConnected), wasReconnecting=\(wasReconnecting))")
             receiveTask?.cancel()
             receiveTask = nil
             pingTask?.cancel()
