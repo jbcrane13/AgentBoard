@@ -233,6 +233,7 @@ extension XCTestCase {
     }
 
     /// Create a session via the UI
+    @MainActor
     func createSessionViaUI(projectName: String, agentType: String = "Claude Code", file: StaticString = #filePath, line: UInt = #line) {
         let app = XCUIApplication()
 
