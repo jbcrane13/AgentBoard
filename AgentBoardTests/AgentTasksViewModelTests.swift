@@ -14,6 +14,8 @@ struct AgentTasksViewModelTests {
             priority: 2,
             assignee: "codex",
             issueType: "task",
+            ticketRef: "",
+            note: "",
             createdAt: .distantPast,
             updatedAt: .distantPast
         )
@@ -58,6 +60,8 @@ struct AgentTasksViewModelTests {
                 priority: 2,
                 assignee: "codex",
                 issueType: "task",
+                ticketRef: "",
+                note: "",
                 createdAt: .distantPast,
                 updatedAt: .distantPast
             )
@@ -117,6 +121,8 @@ struct AgentTasksViewModelTests {
             priority: 2,
             assignee: "codex",
             issueType: "task",
+            ticketRef: "",
+            note: "",
             createdAt: .distantPast,
             updatedAt: .distantPast
         )
@@ -133,7 +139,7 @@ struct AgentTasksViewModelTests {
         #expect(model.errorMessage?.contains("Failed to load tasks") == true)
     }
 
-    nonisolated private func fixture(named name: String) throws -> String {
+    private nonisolated func fixture(named name: String) throws -> String {
         let testsDirectory = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
         let fixtureURL = testsDirectory

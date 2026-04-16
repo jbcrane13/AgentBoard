@@ -430,7 +430,7 @@ final class AgentTasksViewModel {
                 issueType: "task",
                 ticketRef: "",
                 note: "OMC multi-agent setup done",
-                createdAt: .now.addingTimeInterval(-172800),
+                createdAt: .now.addingTimeInterval(-172_800),
                 updatedAt: .now.addingTimeInterval(-86400)
             ),
             AgentTask(

@@ -43,6 +43,7 @@
 		4C7374176A948F5520772AD1 /* AgentDefinition.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2FA7440AB80163FB1491327 /* AgentDefinition.swift */; };
 		4C7486F43AC2066458F28872 /* ObservabilityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8889770C642C81E91511FD96 /* ObservabilityService.swift */; };
 		4E59C7C591C48925D86509F9 /* GitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B70C99F0DC6498D9190C7535 /* GitService.swift */; };
+		53760C00A84FA2ED25C37019 /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = 8A96DCD7E914CD6269552C36 /* Sentry */; };
 		563C1AEC2AE5B2C15AFB5224 /* BeadDraft.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72FBE50FAAA5B79FB22D609C /* BeadDraft.swift */; };
 		58F4A64A5D37DB4E8D3EE1D8 /* SplitPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C58E348553C3BD9682EE30E /* SplitPanelView.swift */; };
 		5AAFCD192497C750B5285F00 /* AgentNotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4380D8B67B5E037F03AF8C8 /* AgentNotificationService.swift */; };
@@ -311,6 +312,7 @@
 			files = (
 				0D4B6287FB492E255C4E927C /* SwiftTerm in Frameworks */,
 				EEE501D250CCB4E6D2D60418 /* Markdown in Frameworks */,
+				53760C00A84FA2ED25C37019 /* Sentry in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -738,6 +740,7 @@
 			packageProductDependencies = (
 				AA65C204A6A99CEBA3E4B8C4 /* SwiftTerm */,
 				8C68D03BF071F4A8E1442A9F /* Markdown */,
+				8A96DCD7E914CD6269552C36 /* Sentry */,
 			);
 			productName = AgentBoard;
 			productReference = 351F53C221B69731A024B864 /* AgentBoard.app */;
@@ -808,6 +811,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				8A42E6F6CCF27450821E497E /* XCRemoteSwiftPackageReference "SwiftTerm" */,
+				09F172CE3AA3D9241DCCA6F1 /* XCRemoteSwiftPackageReference "sentry-cocoa" */,
 				9DC4ADEA411AB0D93723BAE7 /* XCRemoteSwiftPackageReference "swift-markdown" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -1046,7 +1050,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.agentboard.AgentBoardTests;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 6.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AgentBoard.app/AgentBoard";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AgentBoard.app/Contents/MacOS/AgentBoard";
 			};
 			name = Debug;
 		};
@@ -1076,7 +1080,7 @@
 				CODE_SIGN_ENTITLEMENTS = AgentBoard/AgentBoard.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"AgentBoard/Resources/Preview Content\"";
 				DEVELOPMENT_TEAM = 32XZRDTGK3;
 				ENABLE_APP_SANDBOX = NO;
@@ -1115,7 +1119,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.agentboard.AgentBoardTests;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 6.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AgentBoard.app/AgentBoard";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AgentBoard.app/Contents/MacOS/AgentBoard";
 			};
 			name = Release;
 		};
@@ -1246,7 +1250,7 @@
 				CODE_SIGN_ENTITLEMENTS = AgentBoard/AgentBoard.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"AgentBoard/Resources/Preview Content\"";
 				DEVELOPMENT_TEAM = 32XZRDTGK3;
 				ENABLE_APP_SANDBOX = NO;
@@ -1330,6 +1334,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		09F172CE3AA3D9241DCCA6F1 /* XCRemoteSwiftPackageReference "sentry-cocoa" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/getsentry/sentry-cocoa";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 9.10.0;
+			};
+		};
 		8A42E6F6CCF27450821E497E /* XCRemoteSwiftPackageReference "SwiftTerm" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/migueldeicaza/SwiftTerm";
@@ -1349,6 +1361,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		8A96DCD7E914CD6269552C36 /* Sentry */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 09F172CE3AA3D9241DCCA6F1 /* XCRemoteSwiftPackageReference "sentry-cocoa" */;
+			productName = Sentry;
+		};
 		8C68D03BF071F4A8E1442A9F /* Markdown */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 9DC4ADEA411AB0D93723BAE7 /* XCRemoteSwiftPackageReference "swift-markdown" */;

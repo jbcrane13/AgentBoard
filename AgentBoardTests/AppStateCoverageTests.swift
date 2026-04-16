@@ -319,6 +319,7 @@ struct AppStateCoverageTests {
             id: id,
             name: "Session \(id)",
             agentType: .codex,
+            sessionType: .standard,
             projectPath: URL(fileURLWithPath: "/tmp/project"),
             beadId: nil,
             linkedIssueNumber: nil,

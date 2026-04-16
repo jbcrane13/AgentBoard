@@ -186,6 +186,7 @@ struct ModelCoverageTests {
             id: "ses-1",
             name: "Session",
             agentType: .codex,
+            sessionType: .standard,
             projectPath: URL(fileURLWithPath: "/tmp/project"),
             beadId: "AB-1",
             linkedIssueNumber: 1,
