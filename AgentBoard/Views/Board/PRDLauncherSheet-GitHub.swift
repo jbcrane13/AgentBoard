@@ -1,38 +1,25 @@
 import SwiftUI
 
-/// Sheet for launching PRD-based sessions from GitHub Issues
+/// Sheet for generating a PRD from a GitHub issue and launching a GitHub-linked session.
 struct PRDLauncherSheet: View {
     let issue: GitHubIssue
+
     @Environment(\.dismiss) private var dismiss
     @Environment(AppState.self) private var appState
+
     @State private var selectedAgent: AgentType = .claudeCode
-    @State private var generatedPRD: String = ""
+    @State private var generatedPRD = ""
     @State private var isLaunching = false
     @State private var prdFilePath: String?
-    
-    enum AgentType: String, CaseIterable {
-        case claudeCode = "Claude Code"
-        case codex = "Codex"
-        case openCode = "OpenCode"
-        
-        var command: String {
-            switch self {
-            case .claudeCode: return "claude"
-            case .codex: return "codex"
-            case .openCode: return "opencode"
-            }
-        }
-    }
-    
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // Header
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Launch PRD Session")
                         .font(.title2)
                         .fontWeight(.bold)
-                    
+
                     Text("Issue #\(issue.number): \(issue.title)")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
@@ -40,39 +27,37 @@ struct PRDLauncherSheet: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
                 .background(.ultraThinMaterial)
-                
+
                 Divider()
-                
-                // Agent selection
+
                 HStack {
                     Text("Agent:")
                         .fontWeight(.medium)
-                    
+
                     Picker("Agent", selection: $selectedAgent) {
-                        ForEach(AgentType.allCases, id: \.self) { agent in
-                            Text(agent.rawValue).tag(agent)
-                        }
+                        Text("Claude Code").tag(AgentType.claudeCode)
+                        Text("Codex").tag(AgentType.codex)
+                        Text("OpenCode").tag(AgentType.openCode)
                     }
                     .pickerStyle(.segmented)
                 }
                 .padding()
-                
+
                 Divider()
-                
-                // PRD preview
+
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Text("Generated PRD:")
                             .fontWeight(.medium)
-                        
+
                         Spacer()
-                        
+
                         Button("Regenerate") {
                             regeneratePRD()
                         }
                         .buttonStyle(.borderless)
                     }
-                    
+
                     ScrollView {
                         TextEditor(text: $generatedPRD)
                             .font(.system(.body, design: .monospaced))
@@ -83,23 +68,22 @@ struct PRDLauncherSheet: View {
                     }
                 }
                 .padding()
-                
+
                 Divider()
-                
-                // Launch button
+
                 HStack {
                     Button("Cancel") {
                         dismiss()
                     }
                     .keyboardShortcut(.cancelAction)
-                    
+
                     Spacer()
-                    
+
                     Button("Launch Session") {
                         launchSession()
                     }
                     .keyboardShortcut(.defaultAction)
-                    .disabled(isLaunching || generatedPRD.isEmpty)
+                    .disabled(isLaunching || generatedPRD.isEmpty || appState.selectedProject == nil)
                     .buttonStyle(.borderedProminent)
                 }
                 .padding()
@@ -110,48 +94,45 @@ struct PRDLauncherSheet: View {
             regeneratePRD()
         }
     }
-    
+
     private func regeneratePRD() {
-        let generator = PRDGenerator()
-        generatedPRD = generator.generatePRD(from: issue)
+        generatedPRD = PRDGenerator().generatePRD(from: issue)
     }
-    
+
     private func launchSession() {
-        guard !generatedPRD.isEmpty else { return }
-        
+        guard !generatedPRD.isEmpty, let project = appState.selectedProject else { return }
+
         isLaunching = true
-        
+
         Task {
-            // Save PRD to temp file
             let generator = PRDGenerator()
-            let prdPath = generator.savePRD(content: generatedPRD, issueNumber: issue.number)
-            self.prdFilePath = prdPath
-            
-            // Launch session with PRD
-            let projectName = extractProjectName(from: issue)
-            let sessionName = "\(selectedAgent.command)-issue-\(issue.number)"
-            
-            await appState.launchSession(
-                name: sessionName,
-                agent: selectedAgent.command,
-                project: projectName,
-                task: "--prd \(prdPath)"
+            let savedPath = generator.savePRD(content: generatedPRD, issueNumber: issue.number)
+            await MainActor.run {
+                prdFilePath = savedPath
+            }
+
+            let prompt = """
+            Use the attached PRD as the execution brief for GitHub issue #\(issue.number).
+
+            PRD file: \(savedPath)
+
+            \(generatedPRD)
+            """
+
+            let launched = await appState.launchSession(
+                project: project,
+                agentType: selectedAgent,
+                sessionType: .ralphLoop,
+                issueNumber: issue.number,
+                prompt: prompt
             )
-            
-            isLaunching = false
-            dismiss()
-        }
-    }
-    
-    private func extractProjectName(from issue: GitHubIssue) -> String {
-        // Try to extract project from labels
-        for label in issue.labels {
-            if label.name.hasPrefix("project:") {
-                return String(label.name.dropFirst("project:".count))
+
+            await MainActor.run {
+                isLaunching = false
+                if launched {
+                    dismiss()
+                }
             }
         }
-        
-        // Default to first label or "default"
-        return issue.labels.first?.name ?? "default"
     }
 }

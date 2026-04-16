@@ -1,174 +1,114 @@
 import Foundation
 
-/// Result of PRD generation
-public enum PRDGenerationResult: Sendable {
-    case success(markdown: String)
-    case failure(PRDGeneratorError)
-}
-
-/// Errors that can occur during PRD generation
-public enum PRDGeneratorError: Error, LocalizedError {
-    case emptyTitle
-    case emptyDescription
-    case invalidIssue
-    
-    public var errorDescription: String? {
-        switch self {
-        case .emptyTitle:
-            return "Issue title cannot be empty"
-        case .emptyDescription:
-            return "Issue description cannot be empty"
-        case .invalidIssue:
-            return "Invalid issue data"
-        }
-    }
-}
-
-/// Service for generating PRD (Product Requirements Document) markdown from Bead issues
+/// Generates lightweight PRD markdown from GitHub issues.
 public final class PRDGenerator: Sendable {
-    
-    /// Initialize the PRD generator
     public init() {}
-    
-    /// Generate PRD markdown from a Bead issue
-    /// - Parameter issue: The issue to convert to PRD markdown
-    /// - Returns: PRDGenerationResult with markdown string on success
-    public func generatePRD(from issue: BeadIssue) -> PRDGenerationResult {
-        guard !issue.title.isEmpty else {
-            return .failure(.emptyTitle)
-        }
-        guard !issue.description.isEmpty else {
-            return .failure(.emptyDescription)
-        }
-        
-        let markdown = buildMarkdown(from: issue)
-        return .success(markdown: markdown)
-    }
-    
-    /// Generate PRD markdown from multiple issues
-    /// - Parameter issues: Array of issues to convert
-    /// - Returns: PRDGenerationResult with combined markdown on success
-    public func generatePRD(from issues: [BeadIssue]) -> PRDGenerationResult {
-        guard !issues.isEmpty else {
-            return .failure(.invalidIssue)
-        }
-        
-        var markdownParts: [String] = []
-        markdownParts.append("# Product Requirements Document")
-        markdownParts.append("")
-        markdownParts.append("*Generated on \(formattedDate())*")
-        markdownParts.append("")
-        markdownParts.append("---")
-        markdownParts.append("")
-        
-        for (index, issue) in issues.enumerated() {
-            guard !issue.title.isEmpty, !issue.description.isEmpty else {
-                return .failure(issue.title.isEmpty ? .emptyTitle : .emptyDescription)
-            }
-            
-            if index > 0 {
-                markdownParts.append("")
-                markdownParts.append("---")
-                markdownParts.append("")
-            }
-            
-            markdownParts.append(buildMarkdown(from: issue, includeHeader: true))
-        }
-        
-        let combinedMarkdown = markdownParts.joined(separator: "\n")
-        return .success(markdown: combinedMarkdown)
-    }
-    
-    // MARK: - Private Methods
-    
-    private func buildMarkdown(from issue: BeadIssue, includeHeader: Bool = false) -> String {
+
+    public func generatePRD(from issue: GitHubIssue) -> String {
         var lines: [String] = []
-        
-        // Title
-        if includeHeader {
-            lines.append("## \(issue.title)")
-        } else {
-            lines.append("# \(issue.title)")
+
+        lines.append("# #\(issue.number): \(issue.title)")
+        lines.append("")
+        lines.append("## Context")
+        lines.append("")
+        lines.append("- **Issue:** #\(issue.number)")
+
+        if !issue.labels.isEmpty {
+            lines.append("- **Labels:** \(issue.labels.map(\.name).joined(separator: ", "))")
         }
+        if let milestone = issue.milestone {
+            lines.append("- **Milestone:** \(milestone.title)")
+        }
+        if !issue.assignees.isEmpty {
+            lines.append("- **Assignees:** \(issue.assignees.map(\.login).joined(separator: ", "))")
+        }
+
+        lines.append("- **Status:** \(issue.state)")
         lines.append("")
-        
-        // Priority badge
-        lines.append("**Priority:** \(issue.priority.emoji) \(issue.priority.rawValue.capitalized)")
-        lines.append("")
-        
-        // Progress indicator
-        let progressPercent = Int(issue.progress * 100)
-        let progressBar = generateProgressBar(issue.progress)
-        lines.append("**Progress:** \(progressBar) \(progressPercent)% (\(issue.completedTaskCount)/\(issue.tasks.count) tasks)")
-        lines.append("")
-        
-        // Description section
-        lines.append("## Description")
-        lines.append("")
-        lines.append(issue.description)
-        lines.append("")
-        
-        // Context section (if provided)
-        if let context = issue.context, !context.isEmpty {
-            lines.append("## Context")
+
+        if let body = issue.body, !body.isEmpty {
+            lines.append("## Description")
             lines.append("")
-            lines.append(context)
+            lines.append(body)
             lines.append("")
         }
-        
-        // Tasks checklist section
-        if !issue.tasks.isEmpty {
+
+        let tasks = extractTasks(from: issue.body ?? "")
+        if !tasks.isEmpty {
             lines.append("## Tasks")
             lines.append("")
-            
-            for task in issue.tasks {
-                let checkbox = task.isCompleted ? "[x]" : "[ ]"
-                var taskLine = "- \(checkbox) \(task.title)"
-                if let assignee = task.assignee {
-                    taskLine += " *(assigned: \(assignee))*"
-                }
-                lines.append(taskLine)
+            for task in tasks {
+                lines.append("- [ ] \(task)")
             }
             lines.append("")
         }
-        
-        // Acceptance criteria section
-        if !issue.acceptanceCriteria.isEmpty {
-            lines.append("## Acceptance Criteria")
-            lines.append("")
-            
-            for criterion in issue.acceptanceCriteria {
-                let checkbox = criterion.isMet ? "[x]" : "[ ]"
-                lines.append("- \(checkbox) \(criterion.description)")
-            }
-            lines.append("")
-        }
-        
-        // Metadata footer
-        lines.append("---")
+
+        lines.append("## Acceptance Criteria")
         lines.append("")
-        lines.append("*Issue ID: \(issue.id)*")
-        lines.append("*Bead ID: \(issue.beadId)*")
-        lines.append("*Created: \(formatDate(issue.createdAt))*")
-        lines.append("*Last Updated: \(formatDate(issue.updatedAt))*")
-        
+        lines.append("- [ ] All tests pass")
+        lines.append("- [ ] Code review completed")
+        lines.append("- [ ] No regressions introduced")
+        lines.append("- [ ] Documentation updated (if needed)")
+        lines.append("")
+
         return lines.joined(separator: "\n")
     }
-    
-    private func generateProgressBar(_ progress: Double, width: Int = 10) -> String {
-        let filled = Int(progress * Double(width))
-        let empty = width - filled
-        return "[\(String(repeating: "█", count: filled))\(String(repeating: "░", count: empty))]"
+
+    public func generatePRD(from issues: [GitHubIssue]) -> String {
+        var lines: [String] = []
+        lines.append("# PRD: Combined Issues")
+        lines.append("")
+        lines.append("Generated: \(Date())")
+        lines.append("Issues: \(issues.count)")
+        lines.append("")
+
+        for issue in issues {
+            lines.append("---")
+            lines.append("")
+            lines.append(generatePRD(from: issue))
+            lines.append("")
+        }
+
+        return lines.joined(separator: "\n")
     }
-    
-    private func formatDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .short
-        return formatter.string(from: date)
+
+    public func savePRD(content: String, issueNumber: Int) -> String {
+        let filename = "PRD-\(issueNumber).md"
+        let path = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+        try? content.write(to: path, atomically: true, encoding: .utf8)
+        return path.path
     }
-    
-    private func formattedDate() -> String {
-        formatDate(Date())
+
+    private func extractTasks(from body: String) -> [String] {
+        var tasks: [String] = []
+
+        let checkboxPattern = "- \\[ \\] (.+)"
+        if let regex = try? NSRegularExpression(pattern: checkboxPattern, options: .caseInsensitive) {
+            let matches = regex.matches(in: body, range: NSRange(body.startIndex..., in: body))
+            for match in matches {
+                if let range = Range(match.range(at: 1), in: body) {
+                    let task = String(body[range]).trimmingCharacters(in: .whitespaces)
+                    if !task.isEmpty {
+                        tasks.append(task)
+                    }
+                }
+            }
+        }
+
+        if tasks.isEmpty {
+            let lines = body.components(separatedBy: .newlines)
+            for line in lines {
+                let trimmed = line.trimmingCharacters(in: .whitespaces)
+                if trimmed.hasPrefix("- ") || trimmed.hasPrefix("* ") ||
+                    (trimmed.count > 2 && trimmed[trimmed.startIndex].isNumber && trimmed[trimmed.index(after: trimmed.startIndex)] == ".") {
+                    let task = String(trimmed.dropFirst(2)).trimmingCharacters(in: .whitespaces)
+                    if !task.isEmpty {
+                        tasks.append(task)
+                    }
+                }
+            }
+        }
+
+        return tasks
     }
 }

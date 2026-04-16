@@ -22,49 +22,6 @@ enum GitHubError: LocalizedError, Sendable {
     }
 }
 
-// MARK: - Raw GitHub Issue (Decodable from API)
-
-private struct GitHubIssue: Decodable, Sendable {
-    let number: Int
-    let title: String
-    let body: String?
-    let state: String
-    let labels: [GitHubLabel]
-    let assignees: [GitHubUser]
-    let milestone: GitHubMilestoneRef?
-    let pullRequest: GitHubPullRequestRef?
-    let createdAt: String
-    let updatedAt: String
-
-    /// True when this item is actually a pull request, not an issue.
-    var isPullRequest: Bool {
-        pullRequest != nil
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case number, title, body, state, labels, assignees, milestone
-        case pullRequest = "pull_request"
-        case createdAt = "created_at"
-        case updatedAt = "updated_at"
-    }
-}
-
-/// Minimal stub — we only need to detect presence, not decode PR details.
-private struct GitHubPullRequestRef: Decodable, Sendable {}
-
-private struct GitHubUser: Decodable, Sendable {
-    let login: String
-}
-
-private struct GitHubMilestoneRef: Decodable, Sendable {
-    let number: Int
-    let title: String
-}
-
-private struct GitHubLabel: Decodable, Sendable {
-    let name: String
-}
-
 // MARK: - GitHub Milestone (public, used by UI)
 
 struct GitHubMilestone: Decodable, Sendable, Identifiable {
@@ -102,7 +59,8 @@ struct GitHubMilestone: Decodable, Sendable, Identifiable {
 
 // MARK: - GitHubIssuesService
 
-/// Fetches and mutates GitHub Issues for a project, mapping them to the Bead model.
+/// Fetches and mutates GitHub Issues for a project, mapping them into the app's
+/// canonical GitHub-backed issue representation.
 /// Inject a custom URLSession in tests via URLProtocol mock.
 actor GitHubIssuesService {
     private let session: URLSession
