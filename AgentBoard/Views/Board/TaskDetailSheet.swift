@@ -19,6 +19,7 @@ struct TaskDetailSheet: View {
     @State private var showFilePicker = false
     @State private var attachedURLs: [String] = []
     @State private var showingNewSessionSheet = false
+    @State private var showingPRDLauncher = false
 
     /// Creates the detail sheet for an existing bead.
     /// - Parameters:
@@ -66,6 +67,9 @@ struct TaskDetailSheet: View {
                 initialIssueNumber: issueNumber,
                 initialPrompt: "Work on #\(bead.id): \(bead.title)"
             )
+        }
+        .sheet(isPresented: $showingPRDLauncher) {
+            PRDLauncherSheet(bead: bead)
         }
     }
 
@@ -531,6 +535,16 @@ extension TaskDetailSheet {
             }
             .buttonStyle(.borderedProminent)
             .accessibilityIdentifier("task_detail_button_launch_session")
+
+            Button {
+                showingPRDLauncher = true
+            } label: {
+                Label("Launch PRD", systemImage: "doc.text")
+                    .font(.system(size: 13, weight: .medium))
+            }
+            .buttonStyle(.bordered)
+            .tint(.purple)
+            .accessibilityIdentifier("task_detail_button_launch_prd")
 
             if let deps = dependencyText {
                 Text(deps)
