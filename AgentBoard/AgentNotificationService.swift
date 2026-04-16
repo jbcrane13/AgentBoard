@@ -16,7 +16,7 @@ public struct Agent: Codable, Identifiable, Sendable {
 }
 
 /// Represents a task that can be assigned to an agent
-public struct AgentNotificationTask: Codable, Identifiable, Sendable {
+public struct AgentTask: Codable, Identifiable, Sendable {
     public let id: String
     public let title: String
     public let description: String
@@ -125,7 +125,7 @@ public final class AgentNotificationService: Sendable {
     /// - Returns: NotificationResult with the message ID on success
     public func notifyAssignment(
         agent: Agent,
-        task: AgentNotificationTask,
+        task: AgentTask,
         chatId: String? = nil
     ) async -> NotificationResult {
         let message = formatAssignmentMessage(agent: agent, task: task)
@@ -141,7 +141,7 @@ public final class AgentNotificationService: Sendable {
     /// - Returns: NotificationResult with the message ID on success
     public func notifyCompletion(
         agent: Agent,
-        task: AgentNotificationTask,
+        task: AgentTask,
         notes: String? = nil,
         chatId: String? = nil
     ) async -> NotificationResult {
@@ -158,7 +158,7 @@ public final class AgentNotificationService: Sendable {
     /// - Returns: NotificationResult with the message ID on success
     public func acknowledgeAssignment(
         agent: Agent,
-        task: AgentNotificationTask,
+        task: AgentTask,
         estimatedCompletion: String? = nil,
         chatId: String? = nil
     ) async -> NotificationResult {
@@ -247,39 +247,32 @@ public final class AgentNotificationService: Sendable {
 
     // MARK: - Message Formatting
 
-    private func formatAssignmentMessage(agent: Agent, task: AgentNotificationTask) -> String {
-        let agentName = escapeHTML(agent.name)
-        let taskTitle = escapeHTML(task.title)
-        let taskID = escapeHTML(task.id)
-        let taskDescription = escapeHTML(task.description)
+    private func formatAssignmentMessage(agent: Agent, task: AgentTask) -> String {
         var message = """
         <b>📋 New Task Assignment</b>
 
-        <b>Agent:</b> \(agentName)
-        <b>Task:</b> \(taskTitle)
+        <b>Agent:</b> \(agent.name)
+        <b>Task:</b> \(task.title)
         <b>Priority:</b> \(task.priority.emoji) \(task.priority.rawValue.capitalized)
-        <b>Task ID:</b> \(taskID)
+        <b>Task ID:</b> \(task.id)
         """
         if !task.description.isEmpty {
-            message += "\n\n<b>Description:</b>\n\(taskDescription)"
+            message += "\n\n<b>Description:</b>\n\(task.description)"
         }
         message += "\n\n<i>Task assigned at \(formattedTimestamp())</i>"
         return message
     }
 
-    private func formatCompletionMessage(agent: Agent, task: AgentNotificationTask, notes: String?) -> String {
-        let agentName = escapeHTML(agent.name)
-        let taskTitle = escapeHTML(task.title)
-        let taskID = escapeHTML(task.id)
+    private func formatCompletionMessage(agent: Agent, task: AgentTask, notes: String?) -> String {
         var message = """
         <b>✅ Task Completed</b>
 
-        <b>Agent:</b> \(agentName)
-        <b>Task:</b> \(taskTitle)
-        <b>Task ID:</b> \(taskID)
+        <b>Agent:</b> \(agent.name)
+        <b>Task:</b> \(task.title)
+        <b>Task ID:</b> \(task.id)
         """
         if let notes = notes, !notes.isEmpty {
-            message += "\n\n<b>Notes:</b>\n\(escapeHTML(notes))"
+            message += "\n\n<b>Notes:</b>\n\(notes)"
         }
         message += "\n\n<i>Completed at \(formattedTimestamp())</i>"
         return message
@@ -287,33 +280,21 @@ public final class AgentNotificationService: Sendable {
 
     private func formatAcknowledgmentMessage(
         agent: Agent,
-        task: AgentNotificationTask,
+        task: AgentTask,
         estimatedCompletion: String?
     ) -> String {
-        let agentName = escapeHTML(agent.name)
-        let taskTitle = escapeHTML(task.title)
-        let taskID = escapeHTML(task.id)
         var message = """
         <b>👍 Assignment Acknowledged</b>
 
-        <b>Agent:</b> \(agentName)
-        <b>Task:</b> \(taskTitle)
-        <b>Task ID:</b> \(taskID)
+        <b>Agent:</b> \(agent.name)
+        <b>Task:</b> \(task.title)
+        <b>Task ID:</b> \(task.id)
         """
         if let eta = estimatedCompletion, !eta.isEmpty {
-            message += "\n\n<b>Estimated Completion:</b> \(escapeHTML(eta))"
+            message += "\n\n<b>Estimated Completion:</b> \(eta)"
         }
         message += "\n\n<i>Acknowledged at \(formattedTimestamp())</i>"
         return message
-    }
-
-    private func escapeHTML(_ value: String) -> String {
-        value
-            .replacingOccurrences(of: "&", with: "&amp;")
-            .replacingOccurrences(of: "<", with: "&lt;")
-            .replacingOccurrences(of: ">", with: "&gt;")
-            .replacingOccurrences(of: "\"", with: "&quot;")
-            .replacingOccurrences(of: "'", with: "&#39;")
     }
 
     private func formattedTimestamp() -> String {

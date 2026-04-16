@@ -57,7 +57,7 @@ public struct EpicCardView: View {
         }
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(platformCardBackgroundColor)
+                .fill(Color(nsColor: .controlBackgroundColor))
                 .shadow(color: .black.opacity(0.1), radius: 4, y: 2)
         )
         .overlay(
@@ -172,7 +172,7 @@ public struct EpicCardView: View {
                 ZStack(alignment: .leading) {
                     // Background track
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(platformSeparatorColor)
+                        .fill(Color(nsColor: .separatorColor))
                         .frame(height: 8)
                     
                     // Filled portion
@@ -273,7 +273,7 @@ public struct EpicCardView: View {
             .padding(.vertical, 4)
             .background(
                 RoundedRectangle(cornerRadius: 6)
-                    .fill(platformSeparatorColor.opacity(0.5))
+                    .fill(Color(nsColor: .separatorColor).opacity(0.5))
             )
         }
         .buttonStyle(.plain)
@@ -367,11 +367,9 @@ public struct EpicCardView: View {
                     .frame(width: 24, height: 24)
             }
             .buttonStyle(.plain)
-            #if os(macOS)
             .onHover { isHovered in
                 hoveredSubtask = isHovered ? subtask.id : nil
             }
-            #endif
             
             VStack(alignment: .leading, spacing: 2) {
                 Text(subtask.title)
@@ -404,12 +402,10 @@ public struct EpicCardView: View {
                     .padding(4)
                     .background(
                         RoundedRectangle(cornerRadius: 4)
-                            .fill(hoveredSubtask == subtask.id ? platformSeparatorColor : Color.clear)
+                            .fill(hoveredSubtask == subtask.id ? Color(nsColor: .separatorColor) : Color.clear)
                     )
             }
-            #if os(macOS)
             .menuStyle(.borderlessButton)
-            #endif
             .fixedSize()
         }
         .padding(.horizontal, 16)
@@ -426,22 +422,6 @@ public struct EpicCardView: View {
         case .done: return .green
         case .blocked: return .red
         }
-    }
-
-    private var platformCardBackgroundColor: Color {
-        #if os(macOS)
-        Color(nsColor: .controlBackgroundColor)
-        #else
-        Color(uiColor: .secondarySystemBackground)
-        #endif
-    }
-
-    private var platformSeparatorColor: Color {
-        #if os(macOS)
-        Color(nsColor: .separatorColor)
-        #else
-        Color(uiColor: .separator)
-        #endif
     }
     
     private func toggleSubtaskStatus(_ subtask: Subtask) {

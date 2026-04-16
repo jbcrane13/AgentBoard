@@ -53,7 +53,7 @@ public struct Epic: Codable, Identifiable, Sendable {
     public let id: String
     public var title: String
     public var description: String?
-    public var priority: AgentNotificationTask.Priority
+    public var priority: AgentTask.Priority
     public var status: TaskStatus
     public var subtasks: [Subtask]
     public var assignee: String?
@@ -82,7 +82,7 @@ public struct Epic: Codable, Identifiable, Sendable {
         id: String = UUID().uuidString,
         title: String,
         description: String? = nil,
-        priority: AgentNotificationTask.Priority = .medium,
+        priority: AgentTask.Priority = .medium,
         status: TaskStatus = .todo,
         subtasks: [Subtask] = [],
         assignee: String? = nil,

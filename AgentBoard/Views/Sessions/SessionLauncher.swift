@@ -8,6 +8,7 @@ import SwiftUI
 /// - Session configuration options (working directory, branch name)
 /// - Real-time session status tracking
 /// - Issue context display with priority and status
+/// - PRD-based workflow support for ralphy --prd flag
 ///
 /// Usage:
 /// ```swift
@@ -28,6 +29,10 @@ public struct SessionLauncher: View {
     @State private var branchName: String = ""
     @State private var sessionState: SessionState = .idle
     @State private var statusMessage: String?
+    
+    /// Launch mode selection
+    @State private var launchMode: LaunchMode = .simple
+    @State private var prdFilePath: String?
 
     /// Callback when a session is launched
     public var onSessionLaunched: ((SessionLaunchResult) -> Void)?
@@ -55,6 +60,7 @@ public struct SessionLauncher: View {
                 VStack(alignment: .leading, spacing: 20) {
                     issueContextSection
                     agentSelectionSection
+                    launchModeSection
                     configurationSection
 
                     if let message = statusMessage {
@@ -150,11 +156,11 @@ public struct SessionLauncher: View {
             .padding(12)
             .background(
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(platformCardBackgroundColor)
+                    .fill(Color(nsColor: .controlBackgroundColor))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 10)
-                    .stroke(platformSeparatorColor, lineWidth: 0.5)
+                    .stroke(Color(nsColor: .separatorColor), lineWidth: 0.5)
             )
         }
     }
@@ -196,13 +202,74 @@ public struct SessionLauncher: View {
             .padding(.vertical, 14)
             .background(
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(selectedAgent == agent ? agent.brandColor : platformCardBackgroundColor)
+                    .fill(selectedAgent == agent ? agent.brandColor : Color(nsColor: .controlBackgroundColor))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 10)
                     .stroke(
-                        selectedAgent == agent ? agent.brandColor : platformSeparatorColor,
+                        selectedAgent == agent ? agent.brandColor : Color(nsColor: .separatorColor),
                         lineWidth: selectedAgent == agent ? 2 : 0.5
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Launch Mode
+
+    private var launchModeSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Launch Mode")
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .foregroundColor(.secondary)
+
+            HStack(spacing: 12) {
+                ForEach(LaunchMode.allCases, id: \.self) { mode in
+                    launchModeCard(mode)
+                }
+            }
+            
+            if launchMode == .prd {
+                HStack(spacing: 6) {
+                    Image(systemName: "info.circle")
+                        .foregroundColor(.accentColor)
+                    Text("Generates PRD markdown and launches with ralphy --prd flag")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.top, 4)
+            }
+        }
+    }
+
+    private func launchModeCard(_ mode: LaunchMode) -> some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.15)) {
+                launchMode = mode
+            }
+        } label: {
+            VStack(spacing: 8) {
+                Image(systemName: mode.iconName)
+                    .font(.title2)
+                    .foregroundColor(launchMode == mode ? .white : mode.color)
+
+                Text(mode.displayName)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(launchMode == mode ? .white : .primary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(launchMode == mode ? mode.color : Color(nsColor: .controlBackgroundColor))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(
+                        launchMode == mode ? mode.color : Color(nsColor: .separatorColor),
+                        lineWidth: launchMode == mode ? 2 : 0.5
                     )
             )
         }
@@ -242,7 +309,7 @@ public struct SessionLauncher: View {
             .padding(12)
             .background(
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(platformCardBackgroundColor.opacity(0.5))
+                    .fill(Color(nsColor: .controlBackgroundColor).opacity(0.5))
             )
         }
     }
@@ -299,7 +366,7 @@ public struct SessionLauncher: View {
         .padding(10)
         .background(
             RoundedRectangle(cornerRadius: 8)
-                .fill(platformCardBackgroundColor)
+                .fill(Color(nsColor: .controlBackgroundColor))
         )
     }
 
@@ -332,22 +399,6 @@ public struct SessionLauncher: View {
         }
     }
 
-    private var platformCardBackgroundColor: Color {
-        #if os(macOS)
-        Color(nsColor: .controlBackgroundColor)
-        #else
-        Color(uiColor: .secondarySystemBackground)
-        #endif
-    }
-
-    private var platformSeparatorColor: Color {
-        #if os(macOS)
-        Color(nsColor: .separatorColor)
-        #else
-        Color(uiColor: .separator)
-        #endif
-    }
-
     // MARK: - Session Launch
 
     private func launchSession() {
@@ -357,7 +408,13 @@ public struct SessionLauncher: View {
         // Generate a session ID
         let sessionId = UUID().uuidString
 
-        // Build the command based on selected agent
+        // Handle PRD mode
+        if launchMode == .prd {
+            launchWithPRD(sessionId: sessionId)
+            return
+        }
+
+        // Build the command based on selected agent (simple mode)
         let command = selectedAgent.buildCommand(
             workingDirectory: workingDirectory,
             branchName: branchName.isEmpty ? nil : branchName,
@@ -391,6 +448,107 @@ public struct SessionLauncher: View {
                     }
                 }
             }
+        }
+    }
+    
+    /// Launch session with PRD-based workflow using ralphy --prd flag
+    private func launchWithPRD(sessionId: String) {
+        // Convert Epic to BeadIssue for PRD generation
+        let issue = BeadIssue(
+            beadId: epic.id,
+            title: epic.title,
+            description: epic.description ?? "No description provided",
+            tasks: epic.subtasks.map { subtask in
+                IssueTask(
+                    title: subtask.title,
+                    isCompleted: subtask.status == .done,
+                    assignee: subtask.assignee
+                )
+            },
+            priority: epic.priority
+        )
+        
+        // Generate PRD markdown
+        let generator = PRDGenerator()
+        let result = generator.generatePRD(from: issue)
+        
+        switch result {
+        case .success(let markdown):
+            // Save PRD to temp file
+            let tempPath = NSTemporaryDirectory() + "prd-\(epic.id).md"
+            do {
+                try markdown.write(toFile: tempPath, atomically: true, encoding: .utf8)
+                prdFilePath = tempPath
+                
+                // Build command with --prd flag
+                let command = selectedAgent.buildCommand(
+                    workingDirectory: workingDirectory,
+                    branchName: branchName.isEmpty ? nil : branchName,
+                    issueId: epic.id,
+                    issueTitle: epic.title,
+                    prdPath: tempPath
+                )
+                
+                // Simulate launch delay for UI feedback
+                Task {
+                    try? await Task.sleep(for: .seconds(1))
+                    await MainActor.run {
+                        sessionState = .launched
+                        statusMessage = "✓ PRD session launched successfully"
+
+                        let launchResult = SessionLaunchResult(
+                            sessionId: sessionId,
+                            agent: selectedAgent,
+                            epicId: epic.id,
+                            workingDirectory: workingDirectory,
+                            branchName: branchName.isEmpty ? nil : branchName,
+                            command: command,
+                            prdFilePath: tempPath
+                        )
+
+                        onSessionLaunched?(launchResult)
+
+                        // Auto-dismiss after success
+                        Task {
+                            try? await Task.sleep(for: .seconds(1.5))
+                            await MainActor.run {
+                                dismiss()
+                            }
+                        }
+                    }
+                }
+            } catch {
+                sessionState = .failed
+                statusMessage = "Failed to save PRD file: \(error.localizedDescription)"
+            }
+            
+        case .failure(let error):
+            sessionState = .failed
+            statusMessage = "PRD generation failed: \(error.localizedDescription)"
+        }
+    }
+}
+
+// MARK: - Launch Mode
+
+/// Launch mode for session execution
+public enum LaunchMode: String, CaseIterable, Codable, Sendable {
+    case simple = "Simple"
+    case prd = "PRD"
+
+    public var displayName: String { rawValue }
+
+    public var iconName: String {
+        switch self {
+        case .simple: return "play.circle"
+        case .prd: return "doc.text"
+        }
+    }
+
+    public var color: Color {
+        switch self {
+        case .simple: return .blue
+        case .prd: return .orange
         }
     }
 }
@@ -428,48 +586,36 @@ public enum CodingAgent: String, CaseIterable, Codable, Sendable {
         workingDirectory: String,
         branchName: String?,
         issueId: String,
-        issueTitle: String
+        issueTitle: String,
+        prdPath: String? = nil
     ) -> String {
         var parts: [String] = []
 
         // Change to working directory
-        parts.append("cd \(shellEscaped(workingDirectory))")
+        parts.append("cd \(workingDirectory)")
 
         // Create and checkout branch if specified
-        if let branch = branchName,
-           let sanitizedBranch = sanitizedBranchName(branch) {
-            parts.append("git checkout -b \(shellEscaped(sanitizedBranch))")
+        if let branch = branchName {
+            parts.append("git checkout -b \(branch)")
         }
 
+        // Build the agent command
+        var agentCommand: String
         switch self {
         case .claudeCode:
-            parts.append("claude --issue \(shellEscaped(issueId)) --title \(shellEscaped(issueTitle))")
+            agentCommand = "claude --issue \"\(issueId)\" --title \"\(issueTitle)\""
         case .codex:
-            parts.append("codex --issue \(shellEscaped(issueId)) \(shellEscaped(issueTitle))")
+            agentCommand = "codex --issue \"\(issueId)\" \"\(issueTitle)\""
         }
+        
+        // Append --prd flag if PRD path is provided
+        if let prdPath = prdPath {
+            agentCommand += " --prd \"\(prdPath)\""
+        }
+        
+        parts.append(agentCommand)
 
         return parts.joined(separator: " && ")
-    }
-
-    private func shellEscaped(_ value: String) -> String {
-        "'\(value.replacingOccurrences(of: "'", with: "'\"'\"'"))'"
-    }
-
-    private func sanitizedBranchName(_ branchName: String) -> String? {
-        let trimmed = branchName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
-        // Allow only git-safe branch characters: alphanumerics, ".", "_", "/", and "-".
-        let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "._/-"))
-        guard trimmed.rangeOfCharacter(from: allowed.inverted) == nil else { return nil }
-        guard !trimmed.hasPrefix("-"),
-              !trimmed.hasPrefix("/"),
-              !trimmed.hasSuffix("/"),
-              !trimmed.contains(".."),
-              !trimmed.contains("//"),
-              !trimmed.contains("@{"),
-              trimmed != "@"
-        else { return nil }
-        return trimmed
     }
 }
 
@@ -495,6 +641,7 @@ public struct SessionLaunchResult: Codable, Identifiable, Sendable {
     public let branchName: String?
     public let command: String
     public let launchedAt: Date
+    public let prdFilePath: String?
 
     public init(
         id: String = UUID().uuidString,
@@ -504,7 +651,8 @@ public struct SessionLaunchResult: Codable, Identifiable, Sendable {
         workingDirectory: String,
         branchName: String?,
         command: String,
-        launchedAt: Date = Date()
+        launchedAt: Date = Date(),
+        prdFilePath: String? = nil
     ) {
         self.id = id
         self.sessionId = sessionId
@@ -514,6 +662,7 @@ public struct SessionLaunchResult: Codable, Identifiable, Sendable {
         self.branchName = branchName
         self.command = command
         self.launchedAt = launchedAt
+        self.prdFilePath = prdFilePath
     }
 }
 
