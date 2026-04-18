@@ -1,6 +1,7 @@
 import CoreGraphics
 import XCTest
 
+@MainActor
 final class AgentBoardUITests: XCTestCase {
     private var testApp: XCUIApplication!
 

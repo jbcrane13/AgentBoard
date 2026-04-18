@@ -2,6 +2,7 @@ import XCTest
 
 /// UI tests for New Session outcome validation
 /// Tests that launching a session actually creates a tmux session
+@MainActor
 final class NewSessionOutcomeTests: XCTestCase {
     private var testApp: XCUIApplication!
     private let timeout: TimeInterval = 15

@@ -2,6 +2,7 @@ import XCTest
 
 /// Tests that validate Create Bead actually creates a bead in the board
 /// These tests verify outcomes, not just UI interactions
+@MainActor
 final class BeadOutcomeTests: XCTestCase {
     private var testApp: XCUIApplication!
     private let timeout: TimeInterval = 10

@@ -1,5 +1,6 @@
 import XCTest
 
+@MainActor
 final class DashboardNavigationOutcomeTests: XCTestCase {
     private var app: XCUIApplication!
     private let timeout: TimeInterval = 8

@@ -6,7 +6,7 @@ public enum TaskStatus: String, Codable, Sendable, CaseIterable {
     case inProgress = "In Progress"
     case done = "Done"
     case blocked = "Blocked"
-    
+
     public var iconName: String {
         switch self {
         case .todo: return "circle"
@@ -15,7 +15,7 @@ public enum TaskStatus: String, Codable, Sendable, CaseIterable {
         case .blocked: return "exclamationmark.circle.fill"
         }
     }
-    
+
     public var color: String {
         switch self {
         case .todo: return "gray"
@@ -33,7 +33,7 @@ public struct Subtask: Codable, Identifiable, Sendable {
     public var status: TaskStatus
     public var assignee: String?
     public var createdAt: Date
-    
+
     public init(
         id: String = UUID().uuidString,
         title: String,
@@ -60,24 +60,24 @@ public struct Epic: Codable, Identifiable, Sendable {
     public var tags: [String]
     public var createdAt: Date
     public var updatedAt: Date
-    
+
     /// Computed progress based on completed subtasks
     public var progress: Double {
         guard !subtasks.isEmpty else { return 0 }
         let completedCount = subtasks.filter { $0.status == .done }.count
         return Double(completedCount) / Double(subtasks.count)
     }
-    
+
     /// Number of completed subtasks
     public var completedSubtaskCount: Int {
         subtasks.filter { $0.status == .done }.count
     }
-    
+
     /// Whether all subtasks are complete
     public var isComplete: Bool {
         !subtasks.isEmpty && subtasks.allSatisfy { $0.status == .done }
     }
-    
+
     public init(
         id: String = UUID().uuidString,
         title: String,
@@ -99,26 +99,26 @@ public struct Epic: Codable, Identifiable, Sendable {
         self.createdAt = Date()
         self.updatedAt = Date()
     }
-    
+
     /// Update a subtask's status
     public mutating func updateSubtask(id: String, status: TaskStatus) {
         guard let index = subtasks.firstIndex(where: { $0.id == id }) else { return }
         subtasks[index].status = status
         updatedAt = Date()
     }
-    
+
     /// Add a new subtask
     public mutating func addSubtask(_ subtask: Subtask) {
         subtasks.append(subtask)
         updatedAt = Date()
     }
-    
+
     /// Remove a subtask
     public mutating func removeSubtask(id: String) {
         subtasks.removeAll { $0.id == id }
         updatedAt = Date()
     }
-    
+
     /// Create a sample epic for preview purposes
     public static func sample() -> Epic {
         var epic = Epic(

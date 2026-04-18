@@ -1,5 +1,6 @@
 import XCTest
 
+@MainActor
 final class AgentTasksDashboardOutcomeTests: XCTestCase {
     private var app: XCUIApplication!
     private let timeout: TimeInterval = 10

@@ -162,7 +162,7 @@ extension UTType {
             .commaSeparatedText,
             .zip,
             .mpeg4Movie,
-            .quickTimeMovie,
+            .quickTimeMovie
         ]
     }
 }
