@@ -15,7 +15,6 @@ final class AgentTasksDashboardOutcomeTests: XCTestCase {
         clickSidebar("Agent Tasks")
     }
 
-    @MainActor
     override func tearDownWithError() throws {
         app = nil
     }

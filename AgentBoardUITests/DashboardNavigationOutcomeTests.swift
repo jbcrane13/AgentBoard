@@ -13,7 +13,6 @@ final class DashboardNavigationOutcomeTests: XCTestCase {
         app.launch()
     }
 
-    @MainActor
     override func tearDownWithError() throws {
         app = nil
     }

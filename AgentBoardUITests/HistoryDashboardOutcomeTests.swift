@@ -13,7 +13,6 @@ final class HistoryDashboardOutcomeTests: XCTestCase {
         app.launch()
     }
 
-    @MainActor
     override func tearDownWithError() throws {
         app = nil
     }
