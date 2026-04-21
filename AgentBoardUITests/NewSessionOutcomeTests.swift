@@ -8,10 +8,12 @@ final class NewSessionOutcomeTests: XCTestCase {
     private let timeout: TimeInterval = 15
     private var sessionIDsToCleanup: [String] = []
 
+    @MainActor
     override func setUp() async throws {
         throw XCTSkip("New session UI suite disabled in shared desktop environments due system notification interruptions.")
     }
 
+    @MainActor
     override func tearDownWithError() throws {
         // Clean up any created tmux sessions
         for sessionID in sessionIDsToCleanup {

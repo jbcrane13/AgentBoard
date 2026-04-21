@@ -7,10 +7,12 @@ final class BeadOutcomeTests: XCTestCase {
     private var testApp: XCUIApplication!
     private let timeout: TimeInterval = 10
 
+    @MainActor
     override func setUp() async throws {
         throw XCTSkip("Board outcome UI suite disabled in shared desktop environments due focus interruptions.")
     }
 
+    @MainActor
     override func tearDownWithError() throws {
         testApp = nil
     }

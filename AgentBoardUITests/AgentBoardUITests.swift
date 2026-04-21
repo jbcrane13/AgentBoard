@@ -10,10 +10,12 @@ final class AgentBoardUITests: XCTestCase {
     private let minimumWindowHeight: CGFloat = 600
     private let launchArguments = ["--uitesting", "--disable-animations", "--uitesting-dashboard-fixtures"]
 
+    @MainActor
     override func setUp() async throws {
         throw XCTSkip("Legacy UI smoke suite replaced by deterministic dashboard outcome tests.")
     }
 
+    @MainActor
     override func tearDownWithError() throws {
         testApp = nil
     }

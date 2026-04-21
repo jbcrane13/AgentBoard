@@ -5,6 +5,7 @@ final class AgentTasksDashboardOutcomeTests: XCTestCase {
     private var app: XCUIApplication!
     private let timeout: TimeInterval = 10
 
+    @MainActor
     override func setUp() async throws {
         continueAfterFailure = false
         app = XCUIApplication()
@@ -14,6 +15,7 @@ final class AgentTasksDashboardOutcomeTests: XCTestCase {
         clickSidebar("Agent Tasks")
     }
 
+    @MainActor
     override func tearDownWithError() throws {
         app = nil
     }
