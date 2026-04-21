@@ -5,7 +5,7 @@ final class AgentsDashboardOutcomeTests: XCTestCase {
     private var app: XCUIApplication!
     private let timeout: TimeInterval = 8
 
-    override func setUpWithError() throws {
+    override func setUp() async throws {
         continueAfterFailure = false
         app = XCUIApplication()
         var args = ["--uitesting", "--disable-animations", "--uitesting-dashboard-fixtures"]

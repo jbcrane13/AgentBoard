@@ -8,7 +8,7 @@ final class NewSessionOutcomeTests: XCTestCase {
     private let timeout: TimeInterval = 15
     private var sessionIDsToCleanup: [String] = []
 
-    override func setUpWithError() throws {
+    override func setUp() async throws {
         throw XCTSkip("New session UI suite disabled in shared desktop environments due system notification interruptions.")
     }
 
