@@ -5,6 +5,7 @@ import XCTest
 
 /// Provides state query access for UI tests via launch arguments
 /// The app must be configured to read these launch arguments and expose state
+@MainActor
 final class UIStateQueryHelper {
     private let app: XCUIApplication
 

@@ -15,7 +15,6 @@ final class AgentBoardUITests: XCTestCase {
         throw XCTSkip("Legacy UI smoke suite replaced by deterministic dashboard outcome tests.")
     }
 
-    @MainActor
     override func tearDownWithError() throws {
         testApp = nil
     }
@@ -482,6 +481,7 @@ final class AgentBoardUITests: XCTestCase {
     }
 }
 
+@MainActor
 private extension AgentBoardUITests {
     @discardableResult
     func requireWindow(

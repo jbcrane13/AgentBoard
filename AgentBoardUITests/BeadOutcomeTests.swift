@@ -12,7 +12,6 @@ final class BeadOutcomeTests: XCTestCase {
         throw XCTSkip("Board outcome UI suite disabled in shared desktop environments due focus interruptions.")
     }
 
-    @MainActor
     override func tearDownWithError() throws {
         testApp = nil
     }
