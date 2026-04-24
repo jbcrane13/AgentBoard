@@ -1,5 +1,7 @@
 # Claude Notes
 
+> Archived context: this file documents the retired pre-Hermes prototype. The active app architecture now lives in `docs/architecture.md`, `docs/ADR.md` (ADR-010), and the `AgentBoard` / `AgentBoardMobile` / `AgentBoardCore` targets.
+
 ## Key Documents
 
 - **`docs/ADR.md`** — Architecture Decision Records. Read before making structural changes. Append when making new decisions.
