@@ -2,7 +2,7 @@ import AgentBoardCore
 import SwiftUI
 
 @main
-struct AgentBoardDesktopApp: App {
+struct AgentBoardApp: App {
     @State private var appModel = AgentBoardBootstrap.makeLiveAppModel()
 
     var body: some Scene {

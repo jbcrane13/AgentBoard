@@ -1,5 +1,7 @@
 # AgentBoard — Implementation Plan
 
+> Archived plan: this phased plan tracks the retired pre-Hermes prototype. The active app targets and workflows are now defined by `project.yml`, `README.md`, and `docs/architecture.md`.
+
 **Reference:** See `DESIGN.md` for full architecture and data models.
 **Mockup:** `/Users/blake/Downloads/agentboard-mockup.html`
 

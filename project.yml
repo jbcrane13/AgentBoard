@@ -2,41 +2,57 @@ name: AgentBoard
 options:
   bundleIdPrefix: com.agentboard
   deploymentTarget:
-    macOS: "15.0"
-    iOS: "18.0"
-  xcodeVersion: "16.2"
+    macOS: "26.0"
+    iOS: "26.0"
+  xcodeVersion: "26.4"
   createIntermediateGroups: true
   defaultConfig: Debug
 
 settings:
   base:
     SWIFT_VERSION: "6.0"
-    MACOSX_DEPLOYMENT_TARGET: "15.0"
-    IPHONEOS_DEPLOYMENT_TARGET: "18.0"
-
-packages:
-  SwiftTerm:
-    url: https://github.com/migueldeicaza/SwiftTerm
-    from: "1.0.0"
-    platforms: [macOS]
-  swift-markdown:
-    url: https://github.com/apple/swift-markdown
-    from: "0.4.0"
-  sentry-cocoa:
-    url: https://github.com/getsentry/sentry-cocoa
-    from: "9.10.0"
+    MACOSX_DEPLOYMENT_TARGET: "26.0"
+    IPHONEOS_DEPLOYMENT_TARGET: "26.0"
 
 targets:
+  AgentBoardCore:
+    type: framework
+    supportedDestinations: [macOS, iOS]
+    sources:
+      - path: AgentBoardCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.agentboard.AgentBoardCore
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_STRICT_CONCURRENCY: complete
+        SWIFT_VERSION: "6.0"
+        MACOSX_DEPLOYMENT_TARGET: "26.0"
+        IPHONEOS_DEPLOYMENT_TARGET: "26.0"
+
+  AgentBoardCompanionKit:
+    type: framework
+    platform: macOS
+    sources:
+      - path: AgentBoardCompanionKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.agentboard.AgentBoardCompanionKit
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_STRICT_CONCURRENCY: complete
+        SWIFT_VERSION: "6.0"
+        MACOSX_DEPLOYMENT_TARGET: "26.0"
+    dependencies:
+      - target: AgentBoardCore
+
   AgentBoard:
     type: application
-    supportedDestinations: [macOS, iOS]
+    platform: macOS
     info:
-      path: AgentBoard/AgentBoard-Info.plist
+      path: AgentBoard/Info.plist
       properties:
         NSHumanReadableCopyright: "Copyright © 2026 Blake Crane. All rights reserved."
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
-        UILaunchScreen: {}
     preBuildScripts:
       - script: |
           if which swiftlint > /dev/null; then
@@ -49,12 +65,9 @@ targets:
         outputFiles: []
     sources:
       - path: AgentBoard
-        excludes:
-          - Resources/Preview Content
+      - path: AgentBoardUI
     resources:
-      - path: AgentBoard/Resources/Assets.xcassets
-      - path: AgentBoard/Resources/Preview Content
-        buildPhase: none
+      - path: SharedResources/Assets.xcassets
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.agentboard.AgentBoard
@@ -62,115 +75,8 @@ targets:
         CURRENT_PROJECT_VERSION: 1
         SWIFT_STRICT_CONCURRENCY: complete
         SWIFT_VERSION: "6.0"
-        ENABLE_APP_SANDBOX: NO
-        CODE_SIGN_ENTITLEMENTS: AgentBoard/AgentBoard.entitlements
-        CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION: YES
-        DEVELOPMENT_ASSET_PATHS: "\"AgentBoard/Resources/Preview Content\""
-        ENABLE_PREVIEWS: YES
-        COMBINE_HIDPI_IMAGES: YES
-      configs:
-        Debug:
-          SWIFT_OPTIMIZATION_LEVEL: "-Onone"
-          SWIFT_ACTIVE_COMPILATION_CONDITIONS: "DEBUG $(inherited)"
-          CODE_SIGN_IDENTITY: "Apple Development"
-          DEVELOPMENT_TEAM: "32XZRDTGK3"
-        Release:
-          SWIFT_COMPILATION_MODE: wholemodule
-          CODE_SIGN_IDENTITY: "Apple Development"
-          DEVELOPMENT_TEAM: "32XZRDTGK3"
-    dependencies:
-      - package: SwiftTerm
-      - package: swift-markdown
-        product: Markdown
-      - package: sentry-cocoa
-        product: Sentry
-    entitlements:
-      path: AgentBoard/AgentBoard.entitlements
-  AgentBoardTests:
-    type: bundle.unit-test
-    platform: macOS
-    sources:
-      - path: AgentBoardTests
-    settings:
-      base:
-        GENERATE_INFOPLIST_FILE: YES
-        SWIFT_VERSION: "6.0"
-        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/AgentBoard.app/Contents/MacOS/AgentBoard"
-        BUNDLE_LOADER: "$(TEST_HOST)"
-    dependencies:
-      - target: AgentBoard
-  AgentBoardUITests:
-    type: bundle.ui-testing
-    platform: macOS
-    sources:
-      - path: AgentBoardUITests
-    settings:
-      base:
-        GENERATE_INFOPLIST_FILE: YES
-        SWIFT_VERSION: "6.0"
-    dependencies:
-      - target: AgentBoard
-  AgentBoardCore:
-    type: framework
-    supportedDestinations: [macOS, iOS]
-    sources:
-      - path: Modern/AgentBoardCore
-    settings:
-      base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.agentboard.AgentBoardCore
-        GENERATE_INFOPLIST_FILE: YES
-        SWIFT_STRICT_CONCURRENCY: complete
-        SWIFT_VERSION: "6.0"
-        MACOSX_DEPLOYMENT_TARGET: "26.0"
-        IPHONEOS_DEPLOYMENT_TARGET: "26.0"
-  AgentBoardCompanionKit:
-    type: framework
-    platform: macOS
-    sources:
-      - path: Modern/AgentBoardCompanionKit
-    settings:
-      base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.agentboard.AgentBoardCompanionKit
-        GENERATE_INFOPLIST_FILE: YES
-        SWIFT_STRICT_CONCURRENCY: complete
-        SWIFT_VERSION: "6.0"
-        MACOSX_DEPLOYMENT_TARGET: "26.0"
-    dependencies:
-      - target: AgentBoardCore
-  AgentBoardDesktop:
-    type: application
-    platform: macOS
-    info:
-      path: Modern/AgentBoardDesktop/Info.plist
-      properties:
-        NSHumanReadableCopyright: "Copyright © 2026 Blake Crane. All rights reserved."
-        NSAppTransportSecurity:
-          NSAllowsLocalNetworking: true
-    preBuildScripts:
-      - script: |
-          if which swiftlint > /dev/null; then
-            swiftlint lint
-          else
-            echo "warning: SwiftLint not installed — run: brew install swiftlint"
-          fi
-        name: SwiftLint
-        inputFiles: []
-        outputFiles: []
-    sources:
-      - path: Modern/AgentBoardDesktop
-      - path: Modern/AgentBoardUI
-    resources:
-      - path: AgentBoard/Resources/Assets.xcassets
-    settings:
-      base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.agentboard.AgentBoardDesktop
-        MARKETING_VERSION: "0.1.0"
-        CURRENT_PROJECT_VERSION: 1
-        SWIFT_STRICT_CONCURRENCY: complete
-        SWIFT_VERSION: "6.0"
         MACOSX_DEPLOYMENT_TARGET: "26.0"
         ENABLE_APP_SANDBOX: NO
-        CODE_SIGN_ENTITLEMENTS: AgentBoard/AgentBoard.entitlements
         CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION: YES
       configs:
         Debug:
@@ -184,14 +90,14 @@ targets:
           DEVELOPMENT_TEAM: "32XZRDTGK3"
     dependencies:
       - target: AgentBoardCore
-    entitlements:
-      path: AgentBoard/AgentBoard.entitlements
+
   AgentBoardMobile:
     type: application
     platform: iOS
     info:
-      path: Modern/AgentBoardMobile/Info.plist
+      path: AgentBoardMobile/Info.plist
       properties:
+        CFBundleDisplayName: AgentBoard
         NSHumanReadableCopyright: "Copyright © 2026 Blake Crane. All rights reserved."
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
@@ -207,10 +113,10 @@ targets:
         inputFiles: []
         outputFiles: []
     sources:
-      - path: Modern/AgentBoardMobile
-      - path: Modern/AgentBoardUI
+      - path: AgentBoardMobile
+      - path: AgentBoardUI
     resources:
-      - path: AgentBoard/Resources/Assets.xcassets
+      - path: SharedResources/Assets.xcassets
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.agentboard.AgentBoardMobile
@@ -231,11 +137,12 @@ targets:
           DEVELOPMENT_TEAM: "32XZRDTGK3"
     dependencies:
       - target: AgentBoardCore
+
   AgentBoardCompanion:
     type: tool
     platform: macOS
     sources:
-      - path: Modern/AgentBoardCompanion
+      - path: AgentBoardCompanion
     settings:
       base:
         SWIFT_STRICT_CONCURRENCY: complete
@@ -243,11 +150,12 @@ targets:
         MACOSX_DEPLOYMENT_TARGET: "26.0"
     dependencies:
       - target: AgentBoardCompanionKit
-  AgentBoardModernTests:
+
+  AgentBoardTests:
     type: bundle.unit-test
     platform: macOS
     sources:
-      - path: Modern/AgentBoardModernTests
+      - path: AgentBoardTests
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
@@ -263,36 +171,21 @@ schemes:
       targets:
         AgentBoard: all
         AgentBoardTests: [test]
-        AgentBoardUITests: [test]
-    test:
-      gatherCoverageData: true
-      coverageTargets:
-        - AgentBoard
-      targets:
-        - name: AgentBoardTests
-          parallelizable: true
-          randomExecutionOrder: true
-        - name: AgentBoardUITests
-          parallelizable: true
-          randomExecutionOrder: true
-  AgentBoardDesktop:
-    build:
-      targets:
-        AgentBoardDesktop: all
-        AgentBoardModernTests: [test]
     test:
       gatherCoverageData: true
       coverageTargets:
         - AgentBoardCore
         - AgentBoardCompanionKit
       targets:
-        - name: AgentBoardModernTests
+        - name: AgentBoardTests
           parallelizable: true
           randomExecutionOrder: true
+
   AgentBoardMobile:
     build:
       targets:
         AgentBoardMobile: all
+
   AgentBoardCompanion:
     build:
       targets:

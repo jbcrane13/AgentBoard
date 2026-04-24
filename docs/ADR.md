@@ -136,3 +136,17 @@ A running log of significant architecture and design decisions. Both Daneel (Ope
 - `discoverOpenClawConfig` made `func` (not `private`) so SettingsView can call it for refresh
 - Breaking change: none (new field defaults to nil which is treated as "auto")
 
+---
+
+## ADR-010: Hermes-first shared SwiftUI rebuild
+**Date:** 2026-04-23  
+**Status:** Active  
+**Decision:** Replace the earlier OpenClaw/beads/macOS-only app with a shared SwiftUI architecture that targets the newest OS releases on both macOS and iOS, backed by `AgentBoardCore`, GitHub Issues, Hermes gateway chat, and a companion service.  
+**Context:** The earlier codebase had become a poor fit for the desired product direction. It was tightly shaped around OpenClaw, beads, tmux monitoring, and a monolithic `AppState`. The rebuild already existed in parallel, so the cleaner long-term move was to promote it into the primary application and retire the old tree.  
+**Consequences:**
+- `AgentBoard` is now the macOS app shell and `AgentBoardMobile` is the iOS shell
+- `AgentBoardCore` owns shared state via `ChatStore`, `WorkStore`, `AgentsStore`, `SessionsStore`, and `SettingsStore`
+- Hermes gateway is the chat transport, GitHub Issues are the work tracker, and the companion service is the source of truth for runtime agent state
+- SwiftData caches local snapshots; Observation and Swift Concurrency are used throughout the shared core
+- The old OpenClaw, beads, SwiftTerm, canvas-heavy prototype code was removed from the active source tree
+- `project.yml`, CI, readiness docs, and local test skills now point at the rebuilt targets instead of the retired app
