@@ -5,6 +5,7 @@ import Testing
 // Extended tests for assignees, milestones, and state filtering (AB-bvu, AB-thl, AB-86l)
 // Core GitHubIssuesService tests remain in GitHubIssuesServiceTests.swift
 
+@Suite(.serialized)
 struct GitHubIssuesServiceExtendedTests {
     // MARK: - Assignees
 
@@ -86,7 +87,7 @@ struct GitHubIssuesServiceExtendedTests {
 
         MockURLProtocol.requestHandler = { request in
             let url = request.url!
-            if url.query?.contains("page=1") == true {
+            if queryValue(named: "page", in: url) == "1" {
                 return (mockResponse(statusCode: 200, url: url), Data(issueJSON.utf8))
             }
             return (mockResponse(statusCode: 200, url: url), Data("[]".utf8))
@@ -134,7 +135,7 @@ struct GitHubIssuesServiceExtendedTests {
 
         MockURLProtocol.requestHandler = { request in
             let url = request.url!
-            if url.query?.contains("page=1") == true {
+            if queryValue(named: "page", in: url) == "1" {
                 return (mockResponse(statusCode: 200, url: url), Data(combinedJSON.utf8))
             }
             return (mockResponse(statusCode: 200, url: url), Data("[]".utf8))
@@ -247,7 +248,7 @@ struct GitHubIssuesServiceExtendedTests {
 
         MockURLProtocol.requestHandler = { req in
             let url = req.url!
-            if url.query?.contains("page=1") == true {
+            if queryValue(named: "page", in: url) == "1" {
                 return (mockResponse(statusCode: 200, url: url), Data(issueJSON.utf8))
             }
             return (mockResponse(statusCode: 200, url: url), Data("[]".utf8))
@@ -272,7 +273,7 @@ struct GitHubIssuesServiceExtendedTests {
 
         MockURLProtocol.requestHandler = { req in
             let url = req.url!
-            if url.query?.contains("page=1") == true {
+            if queryValue(named: "page", in: url) == "1" {
                 return (mockResponse(statusCode: 200, url: url), Data(issueJSON.utf8))
             }
             return (mockResponse(statusCode: 200, url: url), Data("[]".utf8))

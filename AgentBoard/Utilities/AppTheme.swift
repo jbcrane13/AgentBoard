@@ -30,6 +30,22 @@ enum AppTheme {
         lightR: 0.35, lightG: 0.35, lightB: 0.38,
         darkR: 0.72, darkG: 0.72, darkB: 0.75
     )
+    static let hermesAccent = dynamicColor(
+        lightR: 0.69, lightG: 0.40, lightB: 0.16,
+        darkR: 0.89, darkG: 0.67, darkB: 0.36
+    )
+    static let hermesAccentMuted = dynamicColor(
+        lightR: 0.95, lightG: 0.90, lightB: 0.84,
+        darkR: 0.24, darkG: 0.20, darkB: 0.17
+    )
+    static let openClawAccent = dynamicColor(
+        lightR: 0.15, lightG: 0.42, lightB: 0.72,
+        darkR: 0.43, darkG: 0.67, darkB: 0.95
+    )
+    static let chatHeaderBackground = dynamicColor(
+        lightR: 0.996, lightG: 0.988, lightB: 0.968,
+        darkR: 0.14, darkG: 0.14, darkB: 0.15
+    )
 
     static func sessionColor(for status: SessionStatus) -> Color {
         switch status {

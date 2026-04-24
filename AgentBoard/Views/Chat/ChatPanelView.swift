@@ -1,5 +1,7 @@
 import SwiftUI
 
+// swiftlint:disable file_length
+// swiftlint:disable:next type_body_length
 struct ChatPanelView: View {
     @Environment(AppState.self) private var appState
     @State private var inputText = ""
@@ -9,9 +11,7 @@ struct ChatPanelView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            #if os(macOS)
-                chatHeader
-            #endif
+            chatHeader
             connectionErrorBanner
             messageList
             contextBar
@@ -32,91 +32,176 @@ struct ChatPanelView: View {
     // MARK: - Chat Header
 
     private var chatHeader: some View {
-        HStack(spacing: 8) {
-            // Connection indicator
-            Circle()
-                .fill(connectionIndicatorColor)
-                .frame(width: 7, height: 7)
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top, spacing: 14) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(appState.chatHeaderTitle)
+                        .font(.system(size: 20, weight: .bold, design: .serif))
+                    Text(headerSubtitle)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
 
-            // Session picker
-            Menu {
-                Button("main") {
-                    Task { await appState.switchSession(to: "main") }
-                }
-                if !appState.gatewaySessions.isEmpty {
-                    Divider()
-                    ForEach(appState.gatewaySessions.filter { $0.key != "main" }) { session in
-                        Button(session.label ?? session.key) {
-                            Task { await appState.switchSession(to: session.key) }
-                        }
+                Spacer(minLength: 0)
+
+                VStack(alignment: .trailing, spacing: 6) {
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(connectionIndicatorColor)
+                            .frame(width: 8, height: 8)
+                        Text(connectionStatusLabel)
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(connectionIndicatorColor)
                     }
-                }
-            } label: {
-                HStack(spacing: 4) {
-                    Text(appState.currentSessionKey)
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(.primary)
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 8, weight: .bold))
+
+                    Text(appState.activeChatBackend.shortDescription)
+                        .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(.secondary)
                 }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 5))
-            }
-            .menuStyle(.borderlessButton)
-            .fixedSize()
-
-            Spacer()
-
-            // Thinking level control
-            Menu {
-                Button("Default") {
-                    Task { await appState.setThinkingLevel(nil) }
-                }
-                Button("Off") {
-                    Task { await appState.setThinkingLevel("off") }
-                }
-                Button("Low") {
-                    Task { await appState.setThinkingLevel("low") }
-                }
-                Button("Medium") {
-                    Task { await appState.setThinkingLevel("medium") }
-                }
-                Button("High") {
-                    Task { await appState.setThinkingLevel("high") }
-                }
-            } label: {
-                HStack(spacing: 3) {
-                    Image(systemName: "brain")
-                        .font(.system(size: 10))
-                    Text(thinkingLevelLabel)
-                        .font(.system(size: 10, weight: .medium))
-                }
-                .foregroundStyle(appState.chatThinkingLevel != nil ? Color.accentColor : .secondary)
-                .padding(.horizontal, 6)
-                .padding(.vertical, 3)
-                .background(
-                    appState.chatThinkingLevel != nil
-                        ? Color.accentColor.opacity(0.1)
-                        : Color.primary.opacity(0.04),
-                    in: RoundedRectangle(cornerRadius: 4)
-                )
-            }
-            .menuStyle(.borderlessButton)
-            .help("Set session thinking level")
-
-            // Connection status text
-            Text(connectionStatusLabel)
-                .font(.system(size: 9, weight: .medium))
-                .foregroundStyle(connectionIndicatorColor)
                 .help(connectionStatusTooltip)
+            }
+
+            HStack(spacing: 8) {
+                headerPill(
+                    title: "Gateway",
+                    value: appState.currentChatGatewayHostLabel,
+                    tint: backendTint
+                )
+
+                if appState.supportsGatewaySessions {
+                    sessionPicker
+                } else {
+                    headerPill(
+                        title: "Model",
+                        value: "hermes-agent",
+                        tint: AppTheme.hermesAccent
+                    )
+                }
+
+                if appState.supportsThinkingLevel {
+                    thinkingLevelMenu
+                }
+
+                Spacer(minLength: 0)
+
+                if appState.usesHermesChat {
+                    Button("Fresh Chat") {
+                        appState.clearHermesConversation()
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(AppTheme.hermesAccent)
+                }
+            }
         }
+        .padding(16)
+        .background(
+            LinearGradient(
+                colors: [
+                    AppTheme.chatHeaderBackground,
+                    backendTint.opacity(0.08)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
+            in: RoundedRectangle(cornerRadius: 18)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(AppTheme.subtleBorder, lineWidth: 1)
+        )
         .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .overlay(alignment: .bottom) {
-            Divider()
+        .padding(.top, 14)
+        .padding(.bottom, 8)
+    }
+
+    private var headerSubtitle: String {
+        if appState.usesHermesChat {
+            return "\(appState.chatHeaderSubtitle) Connected target: \(appState.currentChatGatewayHostLabel)"
         }
+        return "\(appState.chatHeaderSubtitle) Active target: \(appState.currentChatGatewayHostLabel)"
+    }
+
+    private var backendTint: Color {
+        appState.usesHermesChat ? AppTheme.hermesAccent : AppTheme.openClawAccent
+    }
+
+    private var sessionPicker: some View {
+        Menu {
+            Button("main") {
+                Task { await appState.switchSession(to: "main") }
+            }
+            if !appState.gatewaySessions.isEmpty {
+                Divider()
+                ForEach(appState.gatewaySessions.filter { $0.key != "main" }) { session in
+                    Button(session.label ?? session.key) {
+                        Task { await appState.switchSession(to: session.key) }
+                    }
+                }
+            }
+        } label: {
+            headerPill(
+                title: "Session",
+                value: appState.currentSessionKey,
+                tint: AppTheme.openClawAccent,
+                systemImage: "chevron.down"
+            )
+        }
+    }
+
+    private var thinkingLevelMenu: some View {
+        Menu {
+            Button("Default") {
+                Task { await appState.setThinkingLevel(nil) }
+            }
+            Button("Off") {
+                Task { await appState.setThinkingLevel("off") }
+            }
+            Button("Low") {
+                Task { await appState.setThinkingLevel("low") }
+            }
+            Button("Medium") {
+                Task { await appState.setThinkingLevel("medium") }
+            }
+            Button("High") {
+                Task { await appState.setThinkingLevel("high") }
+            }
+        } label: {
+            headerPill(
+                title: "Thinking",
+                value: thinkingLevelLabel,
+                tint: appState.chatThinkingLevel != nil ? AppTheme.openClawAccent : .secondary,
+                systemImage: "brain"
+            )
+        }
+        .help("Set session thinking level")
+    }
+
+    private func headerPill(
+        title: String,
+        value: String,
+        tint: Color,
+        systemImage: String? = nil
+    ) -> some View {
+        HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title.uppercased())
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(.secondary)
+                HStack(spacing: 5) {
+                    if let systemImage {
+                        Image(systemName: systemImage)
+                            .font(.system(size: 9, weight: .semibold))
+                    }
+                    Text(value)
+                        .font(.system(size: 11, weight: .semibold))
+                }
+                .foregroundStyle(tint)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(tint.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
     }
 
     // MARK: - Connection Error Banner
@@ -128,17 +213,23 @@ struct ChatPanelView: View {
             HStack(spacing: 8) {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.system(size: 11))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(error.indicatorColor)
                 Text(error.userMessage)
                     .font(.system(size: 11))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.primary)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer()
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(error.indicatorColor.opacity(0.85))
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(error.indicatorColor.opacity(0.08), in: RoundedRectangle(cornerRadius: 14))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(error.indicatorColor.opacity(0.24), lineWidth: 1)
+            )
+            .padding(.horizontal, 16)
+            .padding(.bottom, 8)
         }
     }
 
@@ -225,7 +316,7 @@ struct ChatPanelView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(appState.agentName)
                     .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(backendTint)
                 TimelineView(.animation(minimumInterval: 0.1, paused: false)) { _ in
                     HStack(spacing: 4) {
                         ForEach(0 ..< 3) { index in
@@ -262,10 +353,16 @@ struct ChatPanelView: View {
             if let beadID = appState.selectedBeadID {
                 contextChip(label: beadID, color: .teal)
             }
-            contextChip(
-                label: "\(appState.gatewaySessions.count) sessions",
-                color: .teal
-            )
+            contextChip(label: appState.activeChatBackend.displayName, color: backendTint)
+            contextChip(label: appState.currentChatGatewayHostLabel, color: backendTint)
+            if appState.supportsGatewaySessions {
+                contextChip(
+                    label: "\(appState.gatewaySessions.count) sessions",
+                    color: AppTheme.openClawAccent
+                )
+            } else {
+                contextChip(label: "chat-only stream", color: AppTheme.hermesAccent)
+            }
             Spacer()
         }
         .padding(.horizontal, 16)
@@ -322,7 +419,7 @@ struct ChatPanelView: View {
             #endif
                 .overlay(alignment: .topLeading) {
                     if inputText.isEmpty {
-                        Text("Message your agents...")
+                        Text(appState.usesHermesChat ? "Message Hermes..." : "Message your agents...")
                             .font(.system(size: 13))
                             .foregroundStyle(.secondary)
                             .padding(.horizontal, 10)
@@ -351,7 +448,7 @@ struct ChatPanelView: View {
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(.white)
                         .frame(width: 28, height: 28)
-                        .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 7))
+                        .background(backendTint, in: RoundedRectangle(cornerRadius: 7))
                 }
                 .buttonStyle(.plain)
                 .disabled(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -456,6 +553,8 @@ struct ChatMessageBubble: View {
     let onIssueTap: (String) -> Void
     let onOpenInCanvas: () -> Void
 
+    private let assistantTint = AppTheme.hermesAccent
+
     var body: some View {
         HStack(alignment: .bottom) {
             if message.role == .user { Spacer(minLength: 20) }
@@ -464,7 +563,7 @@ struct ChatMessageBubble: View {
                 if message.role == .assistant {
                     Text(agentName)
                         .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(Color.accentColor)
+                        .foregroundStyle(assistantTint)
                 }
 
                 messageContent
@@ -487,7 +586,7 @@ struct ChatMessageBubble: View {
                 if message.role == .assistant && message.sentToCanvas {
                     Text("📋 Sent to canvas")
                         .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(Color.accentColor)
+                        .foregroundStyle(assistantTint)
                 }
             }
             .padding(.horizontal, 14)
@@ -604,3 +703,5 @@ private enum MarkdownSegment {
         return segments.isEmpty ? [.markdown(content)] : segments
     }
 }
+
+// swiftlint:enable file_length

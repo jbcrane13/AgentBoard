@@ -1,13 +1,17 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
+// swiftlint:disable file_length
 // swiftlint:disable:next type_body_length
 struct SettingsView: View {
     @Environment(AppState.self) private var appState
 
-    @State private var gatewayURL = ""
-    @State private var token = ""
-    @State private var isManualConfig = false
+    @State private var selectedChatBackend: ChatBackend = .platformDefault
+    @State private var hermesGatewayURL = ""
+    @State private var hermesAPIKey = ""
+    @State private var openClawGatewayURL = ""
+    @State private var openClawToken = ""
+    @State private var isManualOpenClawConfig = false
     @State private var showingProjectImporter = false
     @State private var showingDirectoryPicker = false
     @State private var connectionTestResult: ConnectionTestResult?
@@ -21,342 +25,66 @@ struct SettingsView: View {
     @StateObject private var discovery = GatewayDiscovery()
 
     private enum ConnectionTestResult {
-        case success
+        case success(String)
         case failure(String)
     }
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 24) {
                 sectionTitle("Projects Directory")
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("AgentBoard auto-discovers projects with a .beads/ folder in this directory.")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-
-                    HStack(spacing: 8) {
-                        Text(appState.appConfig.resolvedProjectsDirectory.path)
-                            .font(.system(size: 12, design: .monospaced))
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(8)
-                            .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 6))
-
-                        Button("Change…") {
-                            showingDirectoryPicker = true
-                        }
-
-                        Button {
-                            appState.rescanProjectsDirectory()
-                        } label: {
-                            Label("Rescan", systemImage: "arrow.clockwise")
-                                .font(.system(size: 11))
-                        }
-                        .buttonStyle(.borderless)
-                    }
-                }
+                projectsDirectoryCard
 
                 sectionTitle("Projects")
+                projectsCard
 
-                VStack(alignment: .leading, spacing: 10) {
-                    if appState.projects.isEmpty {
-                        Text("No projects found. Add a project folder or change the projects directory above.")
-                            .font(.system(size: 12))
-                            .foregroundStyle(.secondary)
-                            .padding(10)
-                    }
+                sectionTitle("Chat Gateway")
+                gatewayHeroCard
 
-                    ForEach(appState.projects) { project in
-                        HStack(spacing: 10) {
-                            Text(project.icon)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(project.name)
-                                    .font(.system(size: 13, weight: .semibold))
-                                Text(project.path.path)
-                                    .font(.system(size: 11))
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(1)
-                                    .truncationMode(.middle)
-                            }
-
-                            Spacer()
-
-                            Button("Remove") {
-                                appState.removeProject(project)
-                            }
-                            .buttonStyle(.borderless)
-                            .foregroundStyle(.red)
-                        }
-                        .padding(10)
-                        .background(.background, in: RoundedRectangle(cornerRadius: 8))
-                    }
-
-                    Button {
-                        showingProjectImporter = true
-                    } label: {
-                        Label("Add Project Folder…", systemImage: "plus")
-                    }
+                if selectedChatBackend == .hermes {
+                    hermesGatewayCard
+                } else {
+                    openClawGatewayCard
                 }
 
-                sectionTitle("Gateway Connection")
-
-                VStack(alignment: .leading, spacing: 12) {
-                    // Auto vs Manual picker
-                    Picker("Configuration", selection: $isManualConfig) {
-                        Text("Auto-discover from OpenClaw").tag(false)
-                        Text("Manual").tag(true)
-                    }
-                    .pickerStyle(.segmented)
-                    .onChange(of: isManualConfig) { _, newValue in
-                        if !newValue {
-                            refreshFromOpenClawConfig()
-                        }
-                        connectionTestResult = nil
-                    }
-
-                    if isManualConfig {
-                        Text("Enter your OpenClaw gateway URL and auth token.")
-                            .font(.system(size: 11))
-                            .foregroundStyle(.secondary)
-
-                        TextField("Gateway URL (e.g. http://192.168.1.100:18789)", text: $gatewayURL)
-                            .textFieldStyle(.roundedBorder)
-                            .accessibilityIdentifier("settings_textfield_gateway_url")
-
-                        if !gatewayURL.isEmpty, !isValidGatewayURL(gatewayURL) {
-                            Label(
-                                "URL should start with http:// or https:// and include a port",
-                                systemImage: "exclamationmark.triangle"
-                            )
-                            .font(.system(size: 11))
-                            .foregroundStyle(.orange)
-                        }
-
-                        HStack(spacing: 8) {
-                            SecureField("Auth Token", text: $token)
-                                .textFieldStyle(.roundedBorder)
-                        }
-                    } else {
-                        HStack(spacing: 8) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                HStack(spacing: 4) {
-                                    Text("URL:")
-                                        .font(.system(size: 11, weight: .medium))
-                                        .foregroundStyle(.secondary)
-                                    Text(gatewayURL.isEmpty ? "Not discovered" : gatewayURL)
-                                        .font(.system(size: 11, design: .monospaced))
-                                        .foregroundStyle(gatewayURL.isEmpty ? .red : .primary)
-                                }
-                                HStack(spacing: 4) {
-                                    Text("Token:")
-                                        .font(.system(size: 11, weight: .medium))
-                                        .foregroundStyle(.secondary)
-                                    Text(token.isEmpty ? "Not found" : maskedToken(token))
-                                        .font(.system(size: 11, design: .monospaced))
-                                        .foregroundStyle(token.isEmpty ? .red : .primary)
-                                }
-                            }
-
-                            Spacer()
-
-                            Button {
-                                refreshFromOpenClawConfig()
-                                connectionTestResult = nil
-                            } label: {
-                                Label("Refresh", systemImage: "arrow.clockwise")
-                                    .font(.system(size: 11))
-                            }
-                            .buttonStyle(.borderless)
-                        }
-                        .padding(10)
-                        .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 8))
-                    }
-
-                    // Discovered gateways on local network
-                    if !discovery.discoveredGateways.isEmpty || discovery.isSearching {
-                        discoveredGatewaysSection
-                    }
-
-                    // Action buttons
-                    HStack(spacing: 12) {
-                        Button("Save") {
-                            saveGatewaySettings()
-                        }
-
-                        Button {
-                            testConnection()
-                        } label: {
-                            if isTesting {
-                                ProgressView()
-                                    .controlSize(.small)
-                                    .padding(.trailing, 4)
-                                Text("Testing…")
-                            } else {
-                                Label("Test Connection", systemImage: "antenna.radiowaves.left.and.right")
-                            }
-                        }
-                        .disabled(isTesting || gatewayURL.isEmpty)
-
-                        Spacer()
-
-                        Button {
-                            discovery.startBrowsing()
-                        } label: {
-                            Label("Scan Network", systemImage: "wifi")
-                                .font(.system(size: 11))
-                        }
-                        .buttonStyle(.borderless)
-                        .disabled(discovery.isSearching)
-                    }
-
-                    // Connection test result
-                    if let result = connectionTestResult {
-                        switch result {
-                        case .success:
-                            Label("Connected successfully!", systemImage: "checkmark.circle.fill")
-                                .font(.system(size: 12))
-                                .foregroundStyle(.green)
-                        case let .failure(message):
-                            Label(message, systemImage: "xmark.circle.fill")
-                                .font(.system(size: 12))
-                                .foregroundStyle(.red)
-                        }
-                    }
-
-                    // Pairing guide (replaces generic error for pairingRequired)
-                    if let connError = appState.connectionErrorDetail,
-                       appState.chatConnectionState != .connected {
-                        if case .pairingRequired = connError {
-                            PairingGuideView()
-                        } else {
-                            connectionErrorBanner(connError)
-                        }
-                    }
+                if selectedChatBackend == .openClaw,
+                   !discovery.discoveredGateways.isEmpty || discovery.isSearching {
+                    discoveredGatewaysSection
                 }
 
-                // Remote setup guide
-                remoteSetupGuide
+                gatewayGuideCard
 
                 if let status = appState.statusMessage {
-                    Text(status)
-                        .font(.system(size: 12))
-                        .foregroundStyle(.secondary)
+                    statusBanner(status, color: AppTheme.hermesAccent)
                 }
 
                 if let error = appState.errorMessage {
-                    Text(error)
-                        .font(.system(size: 12))
-                        .foregroundStyle(.red)
+                    statusBanner(error, color: .red)
                 }
 
                 sectionTitle("Chat")
-
-                Toggle("Show tool output in chat", isOn: $showToolOutput)
-                    .onChange(of: showToolOutput) { _, newValue in
-                        appState.updateShowToolOutput(newValue)
-                    }
-                    .help("When enabled, detailed tool and subagent output will appear in chat messages")
+                chatPreferencesCard
 
                 sectionTitle("GitHub Issues")
-
-                VStack(alignment: .leading, spacing: 12) {
-                    Text(
-                        "Connect a GitHub repository to load issues live from GitHub instead of the local .beads/issues.jsonl file."
-                    )
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("GitHub Token")
-                            .font(.system(size: 12, weight: .medium))
-                        SecureField("ghp_…", text: $githubToken)
-                            .textFieldStyle(.roundedBorder)
-                            .accessibilityIdentifier("settings_textfield_github_token")
-                    }
-
-                    if appState.selectedProject != nil {
-                        Divider()
-
-                        Text("Project: \(appState.selectedProject?.name ?? "")")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(.secondary)
-
-                        HStack(spacing: 8) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Owner")
-                                    .font(.system(size: 11, weight: .medium))
-                                TextField("github-user-or-org", text: $githubOwner)
-                                    .textFieldStyle(.roundedBorder)
-                                    .accessibilityIdentifier("settings_textfield_github_owner")
-                            }
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Repository")
-                                    .font(.system(size: 11, weight: .medium))
-                                TextField("repo-name", text: $githubRepo)
-                                    .textFieldStyle(.roundedBorder)
-                                    .accessibilityIdentifier("settings_textfield_github_repo")
-                            }
-                        }
-
-                        HStack(spacing: 8) {
-                            if let syncDate = appState.lastGitHubSyncDate {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Last synced: \(syncDate.formatted(.relative(presentation: .named)))")
-                                        .font(.system(size: 11))
-                                        .foregroundStyle(.secondary)
-                                    Text("\(appState.githubIssueCount) issues")
-                                        .font(.system(size: 11))
-                                        .foregroundStyle(.secondary)
-                                }
-                            } else {
-                                Text("Not yet synced")
-                                    .font(.system(size: 11))
-                                    .foregroundStyle(.secondary)
-                            }
-
-                            Spacer()
-
-                            Button("Sync Now") {
-                                Task { await appState.refreshBeads() }
-                            }
-                            .disabled(appState.isLoadingBeads)
-                            .accessibilityIdentifier("settings_button_github_sync")
-                        }
-                    }
-
-                    HStack(spacing: 12) {
-                        Button("Save GitHub Settings") {
-                            saveGitHubSettings()
-                        }
-                        .accessibilityIdentifier("settings_button_github_save")
-
-                        if !githubToken.isEmpty {
-                            Button {
-                                showGitHubRepoPicker = true
-                            } label: {
-                                Label("Browse Repos…", systemImage: "plus.circle")
-                            }
-                            .accessibilityIdentifier("settings_button_github_browse")
-                        }
-                    }
-                }
+                gitHubCard
             }
             .padding(20)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: 860, alignment: .leading)
         }
         .onAppear {
-            gatewayURL = appState.appConfig.openClawGatewayURL ?? ""
-            token = appState.appConfig.openClawToken ?? ""
-            isManualConfig = appState.appConfig.isGatewayManual
-            showToolOutput = appState.appConfig.showToolOutputInChat ?? false
-            githubToken = appState.appConfig.githubToken ?? ""
-            refreshGitHubFields()
+            refreshFormFromConfig()
         }
         .onChange(of: appState.selectedProjectID) { _, _ in
             refreshGitHubFields()
+        }
+        .onChange(of: selectedChatBackend) { _, newValue in
+            if newValue == .openClaw, !isManualOpenClawConfig {
+                refreshFromOpenClawConfig()
+            }
+            connectionTestResult = nil
+            if newValue == .openClaw {
+                showRemoteGuide = false
+            }
         }
         .fileImporter(
             isPresented: $showingProjectImporter,
@@ -382,123 +110,621 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: - Discovered Gateways
-
-    private var discoveredGatewaysSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 6) {
-                Text("Discovered on Network")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(.secondary)
-                if discovery.isSearching {
-                    ProgressView()
-                        .controlSize(.mini)
-                }
-            }
-
-            ForEach(discovery.discoveredGateways) { gw in
-                Button {
-                    gatewayURL = gw.url
-                    isManualConfig = true
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "network")
-                            .font(.system(size: 11))
-                            .foregroundStyle(.blue)
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text(gw.name)
-                                .font(.system(size: 12, weight: .medium))
-                            Text(gw.url)
-                                .font(.system(size: 10, design: .monospaced))
-                                .foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        Text("Use")
-                            .font(.system(size: 11))
-                            .foregroundStyle(.blue)
-                    }
-                    .padding(8)
-                    .background(Color.blue.opacity(0.06), in: RoundedRectangle(cornerRadius: 6))
-                }
-                .buttonStyle(.plain)
-            }
-        }
-    }
-
-    // MARK: - Remote Setup Guide
-
-    private var remoteSetupGuide: some View {
-        DisclosureGroup(isExpanded: $showRemoteGuide) {
+    private var projectsDirectoryCard: some View {
+        settingsCard {
             VStack(alignment: .leading, spacing: 10) {
-                remoteGuideItem(
-                    icon: "network",
-                    title: "LAN Connection",
-                    text: "If the gateway is on your local network, switch to Manual and enter its LAN IP (e.g. http://192.168.1.100:18789). Click \"Scan Network\" to auto-discover gateways." // swiftlint:disable:this line_length
-                )
+                Text("AgentBoard auto-discovers repos with a `.beads/` folder inside this directory.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
 
-                remoteGuideItem(
-                    icon: "lock.shield",
-                    title: "Tailscale / VPN",
-                    text: "With Tailscale, use the gateway machine's Tailscale IP (e.g. http://100.x.y.z:18789). No port forwarding needed."
-                )
+                HStack(spacing: 10) {
+                    Text(appState.appConfig.resolvedProjectsDirectory.path)
+                        .font(.system(size: 12, design: .monospaced))
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(12)
+                        .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10))
 
-                remoteGuideItem(
-                    icon: "terminal",
-                    title: "SSH Tunnel",
-                    text: "Forward the gateway port over SSH:\nssh -L 18789:localhost:18789 user@gateway-host\nThen connect to http://127.0.0.1:18789 as usual."
-                )
+                    Button("Change…") {
+                        showingDirectoryPicker = true
+                    }
+                    .buttonStyle(.bordered)
 
-                remoteGuideItem(
-                    icon: "person.badge.key",
-                    title: "Device Pairing",
-                    text: "Each device must be approved by the gateway. On first connect you'll see a pairing guide with the approval command."
-                )
-
-                remoteGuideItem(
-                    icon: "lock.fill",
-                    title: "Token Security",
-                    text: "Auth tokens are saved in ~/.agentboard/config.json on this machine. Restrict local account access if this device is shared."
-                )
+                    Button {
+                        appState.rescanProjectsDirectory()
+                    } label: {
+                        Label("Rescan", systemImage: "arrow.clockwise")
+                    }
+                    .buttonStyle(.bordered)
+                }
             }
-            .padding(.top, 6)
-        } label: {
-            Label("Remote Setup Guide", systemImage: "questionmark.circle")
-                .font(.system(size: 13, weight: .medium))
         }
     }
 
-    // MARK: - Helpers
+    private var projectsCard: some View {
+        settingsCard {
+            VStack(alignment: .leading, spacing: 12) {
+                if appState.projects.isEmpty {
+                    Text("No projects found yet. Add a project folder or change the directory above.")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                        .padding(.vertical, 8)
+                }
 
-    private func connectionErrorBanner(_ connError: ConnectionError) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 6) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundStyle(connError.indicatorColor)
-                Text(connError.briefLabel)
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(connError.indicatorColor)
+                ForEach(appState.projects) { project in
+                    HStack(spacing: 12) {
+                        Text(project.icon)
+                            .font(.system(size: 20))
+                            .frame(width: 28)
+
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(project.name)
+                                .font(.system(size: 14, weight: .semibold))
+                            Text(project.path.path)
+                                .font(.system(size: 11))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                        }
+
+                        Spacer()
+
+                        Button("Remove") {
+                            appState.removeProject(project)
+                        }
+                        .buttonStyle(.borderless)
+                        .foregroundStyle(.red)
+                    }
+                    .padding(12)
+                    .background(Color.primary.opacity(0.035), in: RoundedRectangle(cornerRadius: 12))
+                }
+
+                Button {
+                    showingProjectImporter = true
+                } label: {
+                    Label("Add Project Folder…", systemImage: "plus")
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(AppTheme.hermesAccent)
             }
-            Text(connError.userMessage)
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
-                .textSelection(.enabled)
         }
-        .padding(10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(connError.indicatorColor.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(connError.indicatorColor.opacity(0.3), lineWidth: 1)
+    }
+
+    private var gatewayHeroCard: some View {
+        settingsCard {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(alignment: .top, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(selectedChatBackend == .hermes ? "Hermes Relay" : "OpenClaw Session Bridge")
+                            .font(.system(size: 22, weight: .bold, design: .serif))
+
+                        Text(selectedChatBackend == .hermes
+                            ? "A calmer, gateway-first chat flow powered by the v2 Hermes SSE transport."
+                            :
+                            "The original WebSocket + session-routed chat path, kept for legacy workflows and session-aware controls.")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    Spacer()
+
+                    backendIcon
+                }
+
+                Picker("Chat Backend", selection: $selectedChatBackend) {
+                    ForEach(ChatBackend.allCases) { backend in
+                        Text(backend.displayName).tag(backend)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                HStack(spacing: 10) {
+                    infoPill(
+                        title: "Status",
+                        value: appState.chatConnectionState.label,
+                        tint: appState.chatConnectionState.color
+                    )
+                    infoPill(
+                        title: "Gateway",
+                        value: selectedChatBackend.displayName,
+                        tint: backendTint(selectedChatBackend)
+                    )
+                    infoPill(
+                        title: selectedChatBackend == .hermes ? "Model" : "Mode",
+                        value: selectedChatBackend == .hermes ? "hermes-agent" : "session-aware",
+                        tint: backendTint(selectedChatBackend)
+                    )
+                }
+
+                HStack(spacing: 10) {
+                    Button("Save") {
+                        saveChatSettings()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(backendTint(selectedChatBackend))
+
+                    Button {
+                        testConnection()
+                    } label: {
+                        if isTesting {
+                            ProgressView()
+                                .controlSize(.small)
+                                .frame(minWidth: 90)
+                        } else {
+                            Label("Test Connection", systemImage: "bolt.horizontal")
+                        }
+                    }
+                    .buttonStyle(.bordered)
+
+                    if selectedChatBackend == .openClaw {
+                        Button {
+                            discovery.startBrowsing()
+                        } label: {
+                            Label("Scan Network", systemImage: "wifi")
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(discovery.isSearching)
+                    } else {
+                        Button("Fresh Conversation") {
+                            appState.clearHermesConversation()
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(!appState.usesHermesChat)
+                    }
+                }
+
+                if let result = connectionTestResult {
+                    switch result {
+                    case let .success(message):
+                        statusBanner(message, color: .green)
+                    case let .failure(message):
+                        statusBanner(message, color: .red)
+                    }
+                }
+
+                if selectedChatBackend == appState.activeChatBackend,
+                   let connError = appState.connectionErrorDetail,
+                   appState.chatConnectionState != .connected {
+                    if case .pairingRequired = connError {
+                        PairingGuideView()
+                    } else {
+                        connectionErrorBanner(connError)
+                    }
+                }
+            }
+        }
+        .background(
+            LinearGradient(
+                colors: [
+                    AppTheme.chatHeaderBackground,
+                    backendTint(selectedChatBackend).opacity(0.08)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
+            in: RoundedRectangle(cornerRadius: 18)
         )
     }
 
-    private func remoteGuideItem(icon: String, title: String, text: String) -> some View {
-        HStack(alignment: .top, spacing: 8) {
-            Image(systemName: icon)
+    private var hermesGatewayCard: some View {
+        settingsCard {
+            VStack(alignment: .leading, spacing: 14) {
+                gatewayCardHeader(
+                    title: "Hermes Gateway",
+                    subtitle: "Hermes uses an OpenAI-compatible HTTP API. Chat streams from `/v1/chat/completions` and feels much lighter on iPhone."
+                )
+
+                labeledTextField(
+                    title: "Gateway URL",
+                    prompt: "http://100.x.y.z:8642",
+                    text: $hermesGatewayURL,
+                    accessibilityIdentifier: "settings_textfield_hermes_gateway_url"
+                )
+
+                if !hermesGatewayURL.isEmpty, !isValidGatewayURL(hermesGatewayURL) {
+                    statusBanner("Use a valid http:// or https:// URL.", color: .orange)
+                }
+
+                labeledSecureField(
+                    title: "API Key (Optional)",
+                    prompt: "Bearer token",
+                    text: $hermesAPIKey,
+                    accessibilityIdentifier: "settings_textfield_hermes_api_key"
+                )
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Why this mode feels better")
+                        .font(.system(size: 12, weight: .semibold))
+                    Text(
+                        "Hermes keeps the UI in charge of the conversation state, so iPhone and macOS can share a cleaner " +
+                            "streaming experience without the old session plumbing leaking into every screen."
+                    )
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(12)
+                .background(AppTheme.hermesAccentMuted, in: RoundedRectangle(cornerRadius: 12))
+            }
+        }
+    }
+
+    private var openClawGatewayCard: some View {
+        settingsCard {
+            VStack(alignment: .leading, spacing: 14) {
+                gatewayCardHeader(
+                    title: "OpenClaw Gateway",
+                    subtitle: "Legacy session-aware gateway with pairing, thinking levels, and remote session switching."
+                )
+
+                Picker("Configuration", selection: $isManualOpenClawConfig) {
+                    Text("Auto-discover").tag(false)
+                    Text("Manual").tag(true)
+                }
+                .pickerStyle(.segmented)
+                .onChange(of: isManualOpenClawConfig) { _, newValue in
+                    if !newValue {
+                        refreshFromOpenClawConfig()
+                    }
+                    connectionTestResult = nil
+                }
+
+                if isManualOpenClawConfig {
+                    labeledTextField(
+                        title: "Gateway URL",
+                        prompt: "http://192.168.1.100:18789",
+                        text: $openClawGatewayURL,
+                        accessibilityIdentifier: "settings_textfield_gateway_url"
+                    )
+
+                    if !openClawGatewayURL.isEmpty, !isValidGatewayURL(openClawGatewayURL) {
+                        statusBanner("URL should include a host and port.", color: .orange)
+                    }
+
+                    labeledSecureField(
+                        title: "Auth Token",
+                        prompt: "Gateway token",
+                        text: $openClawToken,
+                        accessibilityIdentifier: "settings_textfield_openclaw_token"
+                    )
+                } else {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(spacing: 6) {
+                            Text("URL")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(.secondary)
+                            Text(openClawGatewayURL.isEmpty ? "Not discovered" : openClawGatewayURL)
+                                .font(.system(size: 11, design: .monospaced))
+                                .foregroundStyle(openClawGatewayURL.isEmpty ? .red : .primary)
+                        }
+
+                        HStack(spacing: 6) {
+                            Text("Token")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(.secondary)
+                            Text(openClawToken.isEmpty ? "Not found" : maskedToken(openClawToken))
+                                .font(.system(size: 11, design: .monospaced))
+                                .foregroundStyle(openClawToken.isEmpty ? .red : .primary)
+                        }
+
+                        Button {
+                            refreshFromOpenClawConfig()
+                        } label: {
+                            Label("Refresh From Config", systemImage: "arrow.clockwise")
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                    .padding(12)
+                    .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 12))
+                }
+            }
+        }
+    }
+
+    private var discoveredGatewaysSection: some View {
+        settingsCard {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 8) {
+                    Text("Discovered on Network")
+                        .font(.system(size: 12, weight: .semibold))
+                    if discovery.isSearching {
+                        ProgressView()
+                            .controlSize(.small)
+                    }
+                }
+
+                ForEach(discovery.discoveredGateways) { gateway in
+                    Button {
+                        openClawGatewayURL = gateway.url
+                        isManualOpenClawConfig = true
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: "network")
+                                .foregroundStyle(AppTheme.openClawAccent)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(gateway.name)
+                                    .font(.system(size: 12, weight: .semibold))
+                                Text(gateway.url)
+                                    .font(.system(size: 10, design: .monospaced))
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Text("Use")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(AppTheme.openClawAccent)
+                        }
+                        .padding(10)
+                        .background(AppTheme.openClawAccent.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    private var gatewayGuideCard: some View {
+        settingsCard {
+            DisclosureGroup(isExpanded: $showRemoteGuide) {
+                VStack(alignment: .leading, spacing: 12) {
+                    if selectedChatBackend == .hermes {
+                        guideItem(
+                            icon: "network",
+                            title: "LAN or Tailscale",
+                            text: "Point iPhone or macOS at the machine running Hermes. A Tailscale URL like " +
+                                "`http://100.x.y.z:8642` is usually the smoothest setup."
+                        )
+                        guideItem(
+                            icon: "text.bubble",
+                            title: "Chat-First Transport",
+                            text: "Hermes mode only owns chat right now. tmux session monitoring and local launch flows still live on the macOS side."
+                        )
+                        guideItem(
+                            icon: "key.fill",
+                            title: "API Key",
+                            text: "If your Hermes gateway requires bearer auth, paste that token here. Otherwise leave it blank."
+                        )
+                    } else {
+                        guideItem(
+                            icon: "network",
+                            title: "LAN Connection",
+                            text: "Use the gateway machine's LAN IP, or scan the network to discover local OpenClaw instances."
+                        )
+                        guideItem(
+                            icon: "lock.shield",
+                            title: "Tailscale or VPN",
+                            text: "Remote access works well over Tailscale using the gateway host's private network IP."
+                        )
+                        guideItem(
+                            icon: "person.badge.key",
+                            title: "Device Pairing",
+                            text: "OpenClaw requires device approval. If the first connection is rejected, use the pairing guide shown above."
+                        )
+                    }
+                }
+                .padding(.top, 8)
+            } label: {
+                Label(
+                    selectedChatBackend == .hermes ? "Hermes Gateway Guide" : "OpenClaw Gateway Guide",
+                    systemImage: "questionmark.circle"
+                )
+                .font(.system(size: 13, weight: .medium))
+            }
+        }
+    }
+
+    private var chatPreferencesCard: some View {
+        settingsCard {
+            Toggle("Show detailed tool output in chat", isOn: $showToolOutput)
+                .onChange(of: showToolOutput) { _, newValue in
+                    appState.updateShowToolOutput(newValue)
+                }
+                .tint(AppTheme.hermesAccent)
+        }
+    }
+
+    private var gitHubCard: some View {
+        settingsCard {
+            VStack(alignment: .leading, spacing: 14) {
+                Text("Connect a GitHub repository to load issues live instead of reading `.beads/issues.jsonl`.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+
+                labeledSecureField(
+                    title: "GitHub Token",
+                    prompt: "ghp_…",
+                    text: $githubToken,
+                    accessibilityIdentifier: "settings_textfield_github_token"
+                )
+
+                if appState.selectedProject != nil {
+                    Divider()
+
+                    Text("Project: \(appState.selectedProject?.name ?? "")")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(.secondary)
+
+                    HStack(spacing: 10) {
+                        labeledTextField(
+                            title: "Owner",
+                            prompt: "github-user-or-org",
+                            text: $githubOwner,
+                            accessibilityIdentifier: "settings_textfield_github_owner"
+                        )
+                        labeledTextField(
+                            title: "Repository",
+                            prompt: "repo-name",
+                            text: $githubRepo,
+                            accessibilityIdentifier: "settings_textfield_github_repo"
+                        )
+                    }
+
+                    HStack(spacing: 10) {
+                        if let syncDate = appState.lastGitHubSyncDate {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Last synced: \(syncDate.formatted(.relative(presentation: .named)))")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(.secondary)
+                                Text("\(appState.githubIssueCount) issues")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(.secondary)
+                            }
+                        } else {
+                            Text("Not yet synced")
+                                .font(.system(size: 11))
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Spacer()
+
+                        Button("Sync Now") {
+                            Task { await appState.refreshBeads() }
+                        }
+                        .disabled(appState.isLoadingBeads)
+                        .buttonStyle(.bordered)
+                        .accessibilityIdentifier("settings_button_github_sync")
+                    }
+                }
+
+                HStack(spacing: 10) {
+                    Button("Save GitHub Settings") {
+                        saveGitHubSettings()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(AppTheme.hermesAccent)
+                    .accessibilityIdentifier("settings_button_github_save")
+
+                    if !githubToken.isEmpty {
+                        Button {
+                            showGitHubRepoPicker = true
+                        } label: {
+                            Label("Browse Repos…", systemImage: "plus.circle")
+                        }
+                        .buttonStyle(.bordered)
+                        .accessibilityIdentifier("settings_button_github_browse")
+                    }
+                }
+            }
+        }
+    }
+
+    private var backendIcon: some View {
+        ZStack {
+            Circle()
+                .fill(backendTint(selectedChatBackend).opacity(0.12))
+                .frame(width: 56, height: 56)
+            Image(systemName: selectedChatBackend == .hermes
+                ? "bolt.horizontal.circle.fill"
+                : "bubble.left.and.text.bubble.right.fill")
+                .font(.system(size: 26))
+                .foregroundStyle(backendTint(selectedChatBackend))
+        }
+    }
+
+    private func sectionTitle(_ title: String) -> some View {
+        Text(title)
+            .font(.system(size: 15, weight: .bold, design: .serif))
+            .foregroundStyle(.primary)
+    }
+
+    private func settingsCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        content()
+            .padding(18)
+            .background(AppTheme.chatHeaderBackground, in: RoundedRectangle(cornerRadius: 18))
+            .overlay(
+                RoundedRectangle(cornerRadius: 18)
+                    .stroke(AppTheme.subtleBorder, lineWidth: 1)
+            )
+    }
+
+    private func gatewayCardHeader(title: String, subtitle: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.system(size: 14, weight: .semibold))
+            Text(subtitle)
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func labeledTextField(
+        title: String,
+        prompt: String,
+        text: Binding<String>,
+        accessibilityIdentifier: String
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.system(size: 12, weight: .medium))
+            TextField(prompt, text: text)
+                .textFieldStyle(.roundedBorder)
+                .accessibilityIdentifier(accessibilityIdentifier)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func labeledSecureField(
+        title: String,
+        prompt: String,
+        text: Binding<String>,
+        accessibilityIdentifier: String
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.system(size: 12, weight: .medium))
+            SecureField(prompt, text: text)
+                .textFieldStyle(.roundedBorder)
+                .accessibilityIdentifier(accessibilityIdentifier)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func infoPill(title: String, value: String, tint: Color) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(title.uppercased())
+                .font(.system(size: 9, weight: .bold))
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(tint)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(tint.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func statusBanner(_ text: String, color: Color) -> some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(color)
+                .frame(width: 8, height: 8)
+            Text(text)
                 .font(.system(size: 12))
-                .foregroundStyle(.blue)
-                .frame(width: 16)
-            VStack(alignment: .leading, spacing: 2) {
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer()
+        }
+        .padding(12)
+        .background(color.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(color.opacity(0.24), lineWidth: 1)
+        )
+    }
+
+    private func connectionErrorBanner(_ connError: ConnectionError) -> some View {
+        statusBanner(connError.userMessage, color: connError.indicatorColor)
+    }
+
+    private func guideItem(icon: String, title: String, text: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 13))
+                .foregroundStyle(backendTint(selectedChatBackend))
+                .frame(width: 18)
+
+            VStack(alignment: .leading, spacing: 3) {
                 Text(title)
                     .font(.system(size: 12, weight: .semibold))
                 Text(text)
@@ -509,10 +735,20 @@ struct SettingsView: View {
         }
     }
 
-    private func sectionTitle(_ title: String) -> some View {
-        Text(title)
-            .font(.system(size: 14, weight: .semibold))
-            .foregroundStyle(.primary)
+    private func refreshFormFromConfig() {
+        selectedChatBackend = appState.appConfig.resolvedChatBackend
+        hermesGatewayURL = appState.appConfig.hermesGatewayURL ?? ""
+        hermesAPIKey = appState.appConfig.hermesAPIKey ?? ""
+        openClawGatewayURL = appState.appConfig.openClawGatewayURL ?? ""
+        openClawToken = appState.appConfig.openClawToken ?? ""
+        isManualOpenClawConfig = appState.appConfig.isGatewayManual
+        showToolOutput = appState.appConfig.showToolOutputInChat ?? false
+        githubToken = appState.appConfig.githubToken ?? ""
+        refreshGitHubFields()
+
+        if selectedChatBackend == .openClaw, !isManualOpenClawConfig {
+            refreshFromOpenClawConfig()
+        }
     }
 
     private func maskedToken(_ token: String) -> String {
@@ -535,9 +771,28 @@ struct SettingsView: View {
     private func refreshFromOpenClawConfig() {
         let store = AppConfigStore()
         if let discovered = store.discoverOpenClawConfig() {
-            gatewayURL = discovered.gatewayURL ?? ""
-            token = discovered.token ?? ""
+            openClawGatewayURL = discovered.gatewayURL ?? ""
+            openClawToken = discovered.token ?? ""
         }
+    }
+
+    private func saveChatSettings() {
+        switch selectedChatBackend {
+        case .hermes:
+            appState.updateHermesGateway(
+                gatewayURL: hermesGatewayURL,
+                apiKey: hermesAPIKey
+            )
+        case .openClaw:
+            appState.updateOpenClaw(
+                gatewayURL: openClawGatewayURL,
+                token: openClawToken,
+                source: isManualOpenClawConfig ? "manual" : "auto"
+            )
+        }
+
+        appState.updateChatBackend(selectedChatBackend)
+        connectionTestResult = nil
     }
 
     private func saveGitHubSettings() {
@@ -559,34 +814,42 @@ struct SettingsView: View {
         }
     }
 
-    private func saveGatewaySettings() {
-        appState.updateOpenClaw(
-            gatewayURL: gatewayURL,
-            token: token,
-            source: isManualConfig ? "manual" : "auto"
-        )
-        connectionTestResult = nil
-    }
-
-    func testConnection() {
+    private func testConnection() {
         isTesting = true
         connectionTestResult = nil
 
         Task {
-            let testClient = GatewayClient()
             do {
-                guard let url = URL(string: gatewayURL.isEmpty ? "http://127.0.0.1:18789" : gatewayURL) else {
+                switch selectedChatBackend {
+                case .hermes:
+                    let service = HermesChatService()
+                    try await service.configure(
+                        gatewayURLString: hermesGatewayURL,
+                        apiKey: hermesAPIKey
+                    )
+                    let healthy = try await service.healthCheck()
                     await MainActor.run {
-                        connectionTestResult = .failure("Invalid URL")
+                        connectionTestResult = healthy
+                            ? .success("Hermes gateway is reachable.")
+                            : .failure("Hermes gateway returned a non-healthy response.")
                         isTesting = false
                     }
-                    return
-                }
-                try await testClient.connect(url: url, token: token.isEmpty ? nil : token)
-                await testClient.disconnect()
-                await MainActor.run {
-                    connectionTestResult = .success
-                    isTesting = false
+                case .openClaw:
+                    let client = GatewayClient()
+                    guard let url = URL(string: openClawGatewayURL
+                        .isEmpty ? "http://127.0.0.1:18789" : openClawGatewayURL) else {
+                        await MainActor.run {
+                            connectionTestResult = .failure("Invalid URL")
+                            isTesting = false
+                        }
+                        return
+                    }
+                    try await client.connect(url: url, token: openClawToken.nilIfEmpty)
+                    await client.disconnect()
+                    await MainActor.run {
+                        connectionTestResult = .success("OpenClaw gateway is reachable.")
+                        isTesting = false
+                    }
                 }
             } catch {
                 await MainActor.run {
@@ -596,4 +859,21 @@ struct SettingsView: View {
             }
         }
     }
+
+    private func backendTint(_ backend: ChatBackend) -> Color {
+        switch backend {
+        case .hermes:
+            return AppTheme.hermesAccent
+        case .openClaw:
+            return AppTheme.openClawAccent
+        }
+    }
 }
+
+private extension String {
+    var nilIfEmpty: String? {
+        isEmpty ? nil : self
+    }
+}
+
+// swiftlint:enable file_length

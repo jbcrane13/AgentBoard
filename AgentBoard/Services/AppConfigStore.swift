@@ -52,6 +52,9 @@ struct AppConfigStore {
         var config = AppConfig(
             projects: discoverProjects(in: nil),
             selectedProjectPath: nil,
+            chatBackend: ChatBackend.platformDefault.rawValue,
+            hermesGatewayURL: nil,
+            hermesAPIKey: nil,
             openClawGatewayURL: nil,
             openClawToken: nil,
             gatewayConfigSource: "auto",

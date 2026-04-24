@@ -51,6 +51,7 @@ private func singleIssueJSON(
 
 // MARK: - Tests
 
+@Suite(.serialized)
 struct GitHubIssuesServiceTests {
     // MARK: - JSON→Bead Mapping
 
@@ -61,7 +62,7 @@ struct GitHubIssuesServiceTests {
 
         MockURLProtocol.requestHandler = { request in
             let url = request.url!
-            if url.query?.contains("page=1") == true {
+            if queryValue(named: "page", in: url) == "1" {
                 return (
                     mockResponse(statusCode: 200, url: url),
                     Data(sampleOpenIssueJSON.utf8)
@@ -91,7 +92,7 @@ struct GitHubIssuesServiceTests {
 
         MockURLProtocol.requestHandler = { request in
             let url = request.url!
-            if url.query?.contains("page=1") == true {
+            if queryValue(named: "page", in: url) == "1" {
                 return (
                     mockResponse(statusCode: 200, url: url),
                     Data(sampleClosedIssueJSON.utf8)
@@ -126,7 +127,7 @@ struct GitHubIssuesServiceTests {
             let service = GitHubIssuesService(session: session)
             MockURLProtocol.requestHandler = { req in
                 let url = req.url!
-                if url.query?.contains("page=1") == true {
+                if queryValue(named: "page", in: url) == "1" {
                     return (mockResponse(statusCode: 200, url: url), Data(json.utf8))
                 }
                 return (mockResponse(statusCode: 200, url: url), Data("[]".utf8))
@@ -161,12 +162,12 @@ struct GitHubIssuesServiceTests {
         MockURLProtocol.requestHandler = { request in
             let url = request.url!
             callCount += 1
-            if url.query?.contains("page=1") == true {
+            if queryValue(named: "page", in: url) == "1" {
                 return (
                     mockResponse(statusCode: 200, url: url),
                     Data(makeIssues(start: 1, count: 100).utf8)
                 )
-            } else if url.query?.contains("page=2") == true {
+            } else if queryValue(named: "page", in: url) == "2" {
                 return (
                     mockResponse(statusCode: 200, url: url),
                     Data(makeIssues(start: 101, count: 1).utf8)
@@ -177,7 +178,7 @@ struct GitHubIssuesServiceTests {
 
         let beads = try await service.fetchIssues(owner: "o", repo: "r", token: "t")
         #expect(beads.count == 101)
-        #expect(callCount == 3) // page1=100 items, page2=1 item, page3=empty → stop
+        #expect(callCount == 2) // page1=100 items, page2=1 item → stop
     }
 
     // MARK: - Error Cases

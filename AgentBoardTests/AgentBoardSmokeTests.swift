@@ -13,7 +13,7 @@ final class AgentBoardSmokeTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: dir) }
         let state = AppState(configStore: AppConfigStore(directory: dir))
         XCTAssertEqual(state.selectedTab, .board)
-        XCTAssertEqual(state.rightPanelMode, .chat)
+        XCTAssertEqual(state.rightPanelMode, .split)
     }
 
     func testAssistantMessageExtractsUniqueReferencedIssueIDs() {

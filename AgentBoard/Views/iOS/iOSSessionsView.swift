@@ -11,7 +11,9 @@
                         ContentUnavailableView(
                             "No Active Sessions",
                             systemImage: "terminal",
-                            description: Text("Sessions from your macOS gateway will appear here.")
+                            description: Text(appState.usesHermesChat
+                                ? "Hermes chat is live. Session mirroring still depends on the macOS side of AgentBoard."
+                                : "Sessions from your macOS gateway will appear here.")
                         )
                     } else {
                         List(appState.sessions) { session in

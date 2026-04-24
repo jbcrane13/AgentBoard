@@ -27,7 +27,8 @@ final class MockURLProtocol: URLProtocol, @unchecked Sendable {
             return
         }
         do {
-            let (response, data) = try handler(request)
+            let materializedRequest = Self.materializedRequestBody(from: request)
+            let (response, data) = try handler(materializedRequest)
             client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
             client?.urlProtocol(self, didLoad: data)
             client?.urlProtocolDidFinishLoading(self)
@@ -37,6 +38,40 @@ final class MockURLProtocol: URLProtocol, @unchecked Sendable {
     }
 
     override func stopLoading() {}
+
+    private static func materializedRequestBody(from request: URLRequest) -> URLRequest {
+        guard request.httpBody == nil,
+              let stream = request.httpBodyStream,
+              let body = readAllData(from: stream)
+        else {
+            return request
+        }
+
+        var request = request
+        request.httpBody = body
+        return request
+    }
+
+    private static func readAllData(from stream: InputStream) -> Data? {
+        stream.open()
+        defer { stream.close() }
+
+        var data = Data()
+        var buffer = [UInt8](repeating: 0, count: 4096)
+
+        while stream.hasBytesAvailable {
+            let count = stream.read(&buffer, maxLength: buffer.count)
+            if count < 0 {
+                return nil
+            }
+            if count == 0 {
+                break
+            }
+            data.append(buffer, count: count)
+        }
+
+        return data
+    }
 }
 
 func makeMockSession() -> URLSession {
@@ -47,4 +82,11 @@ func makeMockSession() -> URLSession {
 
 func mockResponse(statusCode: Int, url: URL) -> HTTPURLResponse {
     HTTPURLResponse(url: url, statusCode: statusCode, httpVersion: nil, headerFields: nil)!
+}
+
+func queryValue(named name: String, in url: URL) -> String? {
+    URLComponents(url: url, resolvingAgainstBaseURL: false)?
+        .queryItems?
+        .first(where: { $0.name == name })?
+        .value
 }

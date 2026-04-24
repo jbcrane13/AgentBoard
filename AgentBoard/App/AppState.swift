@@ -32,6 +32,8 @@ enum RightPanelMode: String, CaseIterable, Sendable {
 @MainActor
 // swiftlint:disable:next type_body_length
 final class AppState {
+    private static let isRunningTests = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+
     var projects: [Project] = []
     var selectedProjectID: UUID?
     var beads: [Bead] = []
@@ -42,7 +44,7 @@ final class AppState {
     private var activeSessionIDSetAt: Date?
 
     var selectedTab: CenterTab = .board
-    var rightPanelMode: RightPanelMode = .chat
+    var rightPanelMode: RightPanelMode = .split
     var sidebarNavSelection: SidebarNavItem? = .board
 
     var appConfig: AppConfig = .empty
@@ -98,6 +100,7 @@ final class AppState {
     private let parser = JSONLParser()
     private let watcher = BeadsWatcher()
     private let openClawService: any OpenClawServicing
+    private let hermesChatService: any HermesChatServicing
     private let sessionMonitor = SessionMonitor()
     private let gitService = GitService()
     private let gitHubService = GitHubIssuesService()
@@ -105,8 +108,10 @@ final class AppState {
     private var allProjectsPollingTask: Task<Void, Never>?
     private var watchedFilePath: String?
     private var chatReconnectTask: Task<Void, Never>?
+    private var hermesStreamTask: Task<Void, Never>?
     private var gatewaySessionRefreshTask: Task<Void, Never>?
     private var sessionMonitorTask: Task<Void, Never>?
+    private var beadsPollingTask: Task<Void, Never>?
     private var sessionStatusByID: [String: SessionStatus] = [:]
     private var sessionMonitorTick = 0
     private let gatewaySessionRefreshErrorPrefix = "Gateway session refresh failed:"
@@ -137,6 +142,64 @@ final class AppState {
     var selectedBead: Bead? {
         guard let selectedBeadID else { return nil }
         return beads.first(where: { $0.id == selectedBeadID })
+    }
+
+    var activeChatBackend: ChatBackend {
+        appConfig.resolvedChatBackend
+    }
+
+    var usesHermesChat: Bool {
+        activeChatBackend == .hermes
+    }
+
+    var supportsGatewaySessions: Bool {
+        activeChatBackend == .openClaw
+    }
+
+    var supportsThinkingLevel: Bool {
+        activeChatBackend == .openClaw
+    }
+
+    var chatHeaderTitle: String {
+        switch activeChatBackend {
+        case .hermes:
+            return "Hermes Relay"
+        case .openClaw:
+            return "Agent Session Chat"
+        }
+    }
+
+    var chatHeaderSubtitle: String {
+        switch activeChatBackend {
+        case .hermes:
+            return "Streaming directly from the Hermes gateway."
+        case .openClaw:
+            return "Session-aware chat over the OpenClaw gateway."
+        }
+    }
+
+    var currentChatGatewayURL: String {
+        switch activeChatBackend {
+        case .hermes:
+            return appConfig.hermesGatewayURL?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
+                ?? "http://127.0.0.1:8642"
+        case .openClaw:
+            return appConfig.openClawGatewayURL?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
+                ?? "http://127.0.0.1:18789"
+        }
+    }
+
+    var currentChatGatewayHostLabel: String {
+        guard let url = URL(string: currentChatGatewayURL),
+              let host = url.host, !host.isEmpty else {
+            return currentChatGatewayURL
+        }
+
+        if let port = url.port {
+            return "\(host):\(port)"
+        }
+
+        return host
     }
 
     var currentCanvasContent: CanvasContent? {
@@ -189,6 +252,7 @@ final class AppState {
 
     init(
         openClawService: any OpenClawServicing = OpenClawService(),
+        hermesChatService: any HermesChatServicing = HermesChatService(),
         configStore: AppConfigStore = AppConfigStore(),
         bootstrapOnInit: Bool = true,
         startBackgroundLoops: Bool = true,
@@ -196,6 +260,7 @@ final class AppState {
     ) {
         self.configStore = configStore
         self.openClawService = openClawService
+        self.hermesChatService = hermesChatService
         self.commandRunner = commandRunner ?? { args, dir in
             try await ShellCommand.runAsync(arguments: args, workingDirectory: dir)
         }
@@ -203,7 +268,7 @@ final class AppState {
         if bootstrapOnInit {
             bootstrap()
         }
-        if startBackgroundLoops {
+        if startBackgroundLoops, !isUITesting, !Self.isRunningTests {
             startChatConnectionLoop()
             startSessionMonitorLoop()
             startGatewaySessionRefreshLoop()
@@ -472,18 +537,66 @@ final class AppState {
         startChatConnectionLoop()
     }
 
+    func updateChatBackend(_ backend: ChatBackend) {
+        guard appConfig.resolvedChatBackend != backend else { return }
+        appConfig.chatBackend = backend.rawValue
+        persistConfig()
+
+        chatMessages = []
+        chatThinkingLevel = nil
+        chatRunId = nil
+        gatewaySessions = []
+        hermesStreamTask?.cancel()
+        hermesStreamTask = nil
+        isChatStreaming = false
+        currentSessionKey = "main"
+        agentName = backend == .hermes ? "Hermes" : "Assistant"
+        connectionErrorDetail = nil
+        showConnectionErrorToast = false
+        statusMessage = "Chat backend set to \(backend.displayName)."
+        startChatConnectionLoop()
+    }
+
+    func updateHermesGateway(gatewayURL: String, apiKey: String) {
+        appConfig.hermesGatewayURL = gatewayURL.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
+        appConfig.hermesAPIKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
+        persistConfig()
+        statusMessage = "Saved Hermes settings."
+        if activeChatBackend == .hermes {
+            startChatConnectionLoop()
+        }
+    }
+
     func updateOpenClaw(gatewayURL: String, token: String, source: String = "auto") {
-        appConfig.openClawGatewayURL = gatewayURL.isEmpty ? nil : gatewayURL
-        appConfig.openClawToken = token.isEmpty ? nil : token
+        appConfig.openClawGatewayURL = gatewayURL.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
+        appConfig.openClawToken = token.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
         appConfig.gatewayConfigSource = source
         persistConfig()
         statusMessage = "Saved OpenClaw settings."
-        startChatConnectionLoop()
+        if activeChatBackend == .openClaw {
+            startChatConnectionLoop()
+        }
+    }
+
+    func clearHermesConversation() {
+        guard usesHermesChat else { return }
+        hermesStreamTask?.cancel()
+        hermesStreamTask = nil
+        chatMessages = []
+        chatRunId = nil
+        isChatStreaming = false
+        errorMessage = nil
+        statusMessage = "Started a fresh Hermes conversation."
     }
 
     func sendChatMessage(_ text: String) async {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
+        if usesHermesChat {
+            sendHermesChatMessage(trimmed)
+            return
+        }
+
         clearUnreadChatCount()
 
         let contextID = selectedBeadID
@@ -519,6 +632,22 @@ final class AppState {
     }
 
     func abortChat() async {
+        if usesHermesChat {
+            hermesStreamTask?.cancel()
+            hermesStreamTask = nil
+            chatRunId = nil
+            isChatStreaming = false
+
+            if let last = chatMessages.last,
+               last.role == .assistant,
+               last.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                chatMessages.removeLast()
+            }
+
+            statusMessage = "Response aborted."
+            return
+        }
+
         do {
             try await openClawService.abortChat(
                 sessionKey: currentSessionKey,
@@ -530,6 +659,10 @@ final class AppState {
     }
 
     func switchSession(to sessionKey: String) async {
+        guard activeChatBackend == .openClaw else {
+            currentSessionKey = sessionKey
+            return
+        }
         guard sessionKey != currentSessionKey else { return }
         let previousSessionKey = currentSessionKey
         let previousRunId = chatRunId
@@ -554,6 +687,12 @@ final class AppState {
     }
 
     func setThinkingLevel(_ level: String?) async {
+        guard activeChatBackend == .openClaw else {
+            chatThinkingLevel = nil
+            statusMessage = "Thinking controls are available in OpenClaw mode."
+            return
+        }
+
         let normalized = normalizedThinkingLevel(level)
         do {
             try await openClawService.patchSession(
@@ -571,7 +710,109 @@ final class AppState {
         }
     }
 
+    private func sendHermesChatMessage(_ trimmed: String) {
+        clearUnreadChatCount()
+
+        let history = hermesConversationHistory()
+        let contextID = selectedBeadID
+        let userMessage = ChatMessage(role: .user, content: trimmed, beadContext: contextID)
+        chatMessages.append(userMessage)
+
+        let assistantID = UUID()
+        chatMessages.append(
+            ChatMessage(id: assistantID, role: .assistant, content: "", beadContext: contextID)
+        )
+
+        let runID = "hermes-\(UUID().uuidString)"
+        chatRunId = runID
+        isChatStreaming = true
+        errorMessage = nil
+        hermesStreamTask?.cancel()
+
+        hermesStreamTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+
+            do {
+                try await self.hermesChatService.configure(
+                    gatewayURLString: self.appConfig.hermesGatewayURL,
+                    apiKey: self.appConfig.hermesAPIKey
+                )
+
+                let stream = try await self.hermesChatService.streamChat(
+                    message: trimmed,
+                    history: history,
+                    model: nil
+                )
+
+                self.chatConnectionState = .connected
+                self.connectionErrorDetail = nil
+                self.showConnectionErrorToast = false
+
+                var accumulated = ""
+                for try await chunk in stream {
+                    guard !Task.isCancelled else { break }
+                    accumulated += chunk
+                    self.replaceAssistantMessage(messageID: assistantID, content: accumulated)
+                }
+
+                if Task.isCancelled {
+                    if accumulated.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        self.chatMessages.removeAll { $0.id == assistantID }
+                    } else {
+                        self.replaceAssistantMessage(messageID: assistantID, content: accumulated)
+                    }
+                } else if accumulated.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    self.replaceAssistantMessage(
+                        messageID: assistantID,
+                        content: "Hermes returned an empty response."
+                    )
+                }
+
+                self.chatRunId = nil
+                self.isChatStreaming = false
+                self.hermesStreamTask = nil
+            } catch is CancellationError {
+                self.chatRunId = nil
+                self.isChatStreaming = false
+                self.hermesStreamTask = nil
+            } catch {
+                self.chatConnectionState = .reconnecting
+                self.connectionErrorDetail = ConnectionError.classify(
+                    error,
+                    gatewayURL: self.currentChatGatewayURL
+                )
+                self.showConnectionErrorToast = true
+                self.dismissConnectionErrorToastAfterDelay()
+                self.replaceAssistantMessage(
+                    messageID: assistantID,
+                    content: "Failed to send message: \(error.localizedDescription)"
+                )
+                self.setError(error.localizedDescription)
+                self.chatRunId = nil
+                self.isChatStreaming = false
+                self.hermesStreamTask = nil
+                self.startChatConnectionLoop()
+            }
+        }
+    }
+
+    private func hermesConversationHistory() -> [ChatMessage] {
+        chatMessages
+            .filter { $0.role == .user || $0.role == .assistant }
+            .filter { !$0.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            .filter { message in
+                message.role == .user ||
+                    (!message.content.hasPrefix("Failed to send message:") &&
+                        !message.content.hasPrefix("Hermes returned an empty response."))
+            }
+    }
+
     func loadChatHistory() async {
+        guard activeChatBackend == .openClaw else {
+            chatThinkingLevel = nil
+            return
+        }
+
         do {
             let history = try await openClawService.chatHistory(
                 sessionKey: currentSessionKey,
@@ -611,6 +852,12 @@ final class AppState {
     }
 
     func loadAgentIdentity() async {
+        guard activeChatBackend == .openClaw else {
+            agentName = "Hermes"
+            agentAvatar = nil
+            return
+        }
+
         do {
             let identity = try await openClawService.agentIdentity(
                 sessionKey: currentSessionKey
@@ -1366,9 +1613,8 @@ final class AppState {
     private func startSessionMonitorLoop() {
         sessionMonitorTask?.cancel()
         sessionMonitorTask = Task { @MainActor [weak self] in
-            guard let self else { return }
-
             while !Task.isCancelled {
+                guard let self, !Task.isCancelled else { break }
                 await self.refreshSessionsFromMonitor()
                 try? await Task.sleep(nanoseconds: 3_000_000_000)
             }
@@ -1438,12 +1684,23 @@ final class AppState {
     }
 
     private func startChatConnectionLoop() {
+        hermesStreamTask?.cancel()
+        hermesStreamTask = nil
+
+        switch activeChatBackend {
+        case .hermes:
+            startHermesConnectionLoop()
+        case .openClaw:
+            startOpenClawConnectionLoop()
+        }
+    }
+
+    private func startOpenClawConnectionLoop() {
         chatReconnectTask?.cancel()
         chatReconnectTask = Task { @MainActor [weak self] in
-            guard let self else { return }
-
             var attempt = 0
             while !Task.isCancelled {
+                guard let self, self.activeChatBackend == .openClaw else { break }
                 do {
                     if attempt > 0 {
                         self.refreshAutoDiscoveredGatewayConfigOnReconnect()
@@ -1483,7 +1740,7 @@ final class AppState {
                     attempt += 1
                     let classified = ConnectionError.classify(
                         error,
-                        gatewayURL: self.appConfig.openClawGatewayURL ?? "http://127.0.0.1:18789"
+                        gatewayURL: self.currentChatGatewayURL
                     )
                     self.connectionErrorDetail = classified
 
@@ -1505,7 +1762,62 @@ final class AppState {
                 }
             }
 
-            self.chatConnectionState = .disconnected
+            self?.chatConnectionState = .disconnected
+        }
+    }
+
+    private func startHermesConnectionLoop() {
+        chatReconnectTask?.cancel()
+        chatReconnectTask = Task { @MainActor [weak self] in
+            var attempt = 0
+            while !Task.isCancelled {
+                guard let self, self.activeChatBackend == .hermes else { break }
+                do {
+                    try await self.hermesChatService.configure(
+                        gatewayURLString: self.appConfig.hermesGatewayURL,
+                        apiKey: self.appConfig.hermesAPIKey
+                    )
+
+                    self.chatConnectionState = attempt == 0 ? .connecting : .reconnecting
+                    let isHealthy = try await self.hermesChatService.healthCheck()
+                    guard isHealthy else {
+                        throw HermesChatServiceError.invalidResponse
+                    }
+
+                    self.chatConnectionState = .connected
+                    self.connectionErrorDetail = nil
+                    self.showConnectionErrorToast = false
+                    self.chatThinkingLevel = nil
+                    self.agentName = "Hermes"
+                    attempt = 0
+
+                    while !Task.isCancelled, self.activeChatBackend == .hermes {
+                        try await Task.sleep(for: .seconds(20))
+                        let stillHealthy = try await self.hermesChatService.healthCheck()
+                        guard stillHealthy else {
+                            throw HermesChatServiceError.invalidResponse
+                        }
+                    }
+                } catch {
+                    attempt += 1
+                    let classified = ConnectionError.classify(
+                        error,
+                        gatewayURL: self.currentChatGatewayURL
+                    )
+                    self.connectionErrorDetail = classified
+
+                    if attempt == 1 {
+                        self.showConnectionErrorToast = true
+                        self.dismissConnectionErrorToastAfterDelay()
+                    }
+
+                    self.chatConnectionState = .reconnecting
+                    let backoffSeconds = min(pow(2.0, Double(max(attempt - 1, 0))), 30)
+                    try? await Task.sleep(nanoseconds: UInt64(backoffSeconds * 1_000_000_000))
+                }
+            }
+
+            self?.chatConnectionState = .disconnected
         }
     }
 
@@ -1636,6 +1948,14 @@ final class AppState {
     }
 
     func refreshGatewaySessions() async {
+        guard activeChatBackend == .openClaw else {
+            gatewaySessions = []
+            if errorMessage?.hasPrefix(gatewaySessionRefreshErrorPrefix) == true {
+                setError(nil)
+            }
+            return
+        }
+
         do {
             gatewaySessions = try await openClawService.listSessions(
                 activeMinutes: 120,
@@ -1987,7 +2307,7 @@ final class AppState {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(60))
                 guard let self, !Task.isCancelled else { break }
-                guard let (owner, repo, token) = await self.githubConfig else { break }
+                guard let (owner, repo, token) = self.githubConfig else { break }
                 await self.loadBeadsFromGitHub(owner: owner, repo: repo, token: token)
             }
         }
@@ -2150,9 +2470,11 @@ final class AppState {
     }
 
     private func startBeadsPollingLoop() {
-        Task { @MainActor in
+        beadsPollingTask?.cancel()
+        beadsPollingTask = Task { @MainActor [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(10))
+                guard let self, !Task.isCancelled else { break }
                 guard !isGitHubConfigured else { continue }
                 guard let project = selectedProject else { continue }
                 loadBeads(for: project)
@@ -2632,6 +2954,12 @@ final class AppState {
         return toolPatterns.contains { pattern in
             text.contains(pattern)
         }
+    }
+}
+
+private extension String {
+    var nilIfEmpty: String? {
+        isEmpty ? nil : self
     }
 }
 

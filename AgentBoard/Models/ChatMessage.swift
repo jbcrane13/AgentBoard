@@ -1,6 +1,6 @@
 import Foundation
 
-struct ChatMessage: Identifiable, Hashable {
+struct ChatMessage: Identifiable, Hashable, Sendable {
     let id: UUID
     let role: MessageRole
     let content: String
@@ -71,7 +71,8 @@ extension ChatMessage {
         ),
         ChatMessage(
             role: .assistant,
-            content: "Got it. I'll wrap the monitor in a NetworkPathActor using the same isolation pattern as ConnectionBudget. Currently reading your existing actor code to match the style.",
+            content: "Got it. I'll wrap the monitor in a NetworkPathActor using the same isolation pattern as ConnectionBudget. " +
+                "Currently reading your existing actor code to match the style.",
             timestamp: .now.addingTimeInterval(-480)
         ),
         ChatMessage(
@@ -86,7 +87,8 @@ extension ChatMessage {
         ),
         ChatMessage(
             role: .assistant,
-            content: "2 of 3 passing. testNetworkStatusBanner is failing — the accessibility identifier on the status banner doesn't match. I'll fix it and re-run.",
+            content: "2 of 3 passing. testNetworkStatusBanner is failing — the accessibility identifier on the status banner " +
+                "doesn't match. I'll fix it and re-run.",
             timestamp: .now.addingTimeInterval(-120)
         )
     ]

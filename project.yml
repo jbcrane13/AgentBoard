@@ -124,7 +124,7 @@ schemes:
         - AgentBoard
       targets:
         - name: AgentBoardTests
-          parallelizable: true
+          parallelizable: false
           randomExecutionOrder: true
         - name: AgentBoardUITests
           parallelizable: true

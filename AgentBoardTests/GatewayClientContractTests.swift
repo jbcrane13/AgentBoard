@@ -4,6 +4,7 @@ import Testing
 
 // MockURLProtocol is now in TestHelpers/MockURLProtocol.swift
 
+@Suite(.serialized)
 struct GatewayClientContractTests {
     @Test("chat.history payload fixture decodes through real GatewayClient decoder")
     func chatHistoryFixtureDecodes() throws {

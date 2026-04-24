@@ -49,9 +49,9 @@ enum ConnectionError: Sendable, Equatable {
         case .pairingRequired:
             return "Device pairing required. Run: openclaw devices approve --latest"
         case let .connectionRefused(url):
-            return "Cannot reach gateway at \(url). Check that OpenClaw is running."
+            return "Cannot reach the configured gateway at \(url). Check that it is running and reachable from this device."
         case .authFailed:
-            return "Authentication failed. Check your gateway token in Settings."
+            return "Authentication failed. Check your gateway token or API key in Settings."
         case let .generic(message):
             return message
         }
@@ -105,7 +105,7 @@ enum ConnectionError: Sendable, Equatable {
         }
         if message.contains("unauthorized") || message.contains("invalid token") || message
             .contains("authentication failed") || message.contains("token missing") || message
-            .contains("token_missing") {
+            .contains("token_missing") || message.contains("http 401") || message.contains("http 403") {
             return .authFailed
         }
 

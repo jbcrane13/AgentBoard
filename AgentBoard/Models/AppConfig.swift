@@ -3,6 +3,9 @@ import Foundation
 struct AppConfig: Codable, Sendable {
     var projects: [ConfiguredProject]
     var selectedProjectPath: String?
+    var chatBackend: String?
+    var hermesGatewayURL: String?
+    var hermesAPIKey: String?
     var openClawGatewayURL: String?
     var openClawToken: String?
     /// "auto" = re-read from openclaw.json every launch; "manual" = user-entered, don't overwrite
@@ -17,6 +20,14 @@ struct AppConfig: Codable, Sendable {
 
     var isGatewayManual: Bool {
         gatewayConfigSource == "manual"
+    }
+
+    var resolvedChatBackend: ChatBackend {
+        guard let chatBackend,
+              let backend = ChatBackend(rawValue: chatBackend) else {
+            return ChatBackend.platformDefault
+        }
+        return backend
     }
 
     var resolvedProjectsDirectory: URL {
@@ -35,6 +46,9 @@ struct AppConfig: Codable, Sendable {
     static let empty = AppConfig(
         projects: [],
         selectedProjectPath: nil,
+        chatBackend: ChatBackend.platformDefault.rawValue,
+        hermesGatewayURL: nil,
+        hermesAPIKey: nil,
         openClawGatewayURL: nil,
         openClawToken: nil,
         gatewayConfigSource: "auto",

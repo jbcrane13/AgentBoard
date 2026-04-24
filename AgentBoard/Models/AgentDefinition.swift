@@ -53,7 +53,7 @@ struct AgentDefinition: Identifiable, Hashable {
             id: "quentin",
             name: "Quentin",
             emoji: "🔬",
-            githubUsername: "jbcrane13",
+            githubUsername: nil,
             color: Color(hex: "#BDB2FF"), // Light purple for Quentin
             role: "QA lead"
         ),

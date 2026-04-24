@@ -98,6 +98,17 @@ struct GitHubMilestone: Decodable, Sendable, Identifiable {
         case closedIssues = "closed_issues"
         case dueOn = "due_on"
     }
+
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        number = try container.decode(Int.self, forKey: .number)
+        title = try container.decode(String.self, forKey: .title)
+        description = try container.decodeIfPresent(String.self, forKey: .description)
+        state = try container.decodeIfPresent(String.self, forKey: .state) ?? "open"
+        openIssues = try container.decodeIfPresent(Int.self, forKey: .openIssues) ?? 0
+        closedIssues = try container.decodeIfPresent(Int.self, forKey: .closedIssues) ?? 0
+        dueOn = try container.decodeIfPresent(String.self, forKey: .dueOn)
+    }
 }
 
 // MARK: - GitHubIssuesService

@@ -1,6 +1,7 @@
 import Foundation
 import OSLog
 
+// swiftlint:disable file_length
 private let gatewayLog = Logger(subsystem: "com.agentboard.gateway", category: "GatewayClient")
 
 struct JSONPayload: @unchecked Sendable {
@@ -96,6 +97,7 @@ enum GatewayClientError: LocalizedError {
     }
 }
 
+// swiftlint:disable:next type_body_length
 actor GatewayClient {
     private var webSocketTask: URLSessionWebSocketTask?
     private var pendingRequests: [String: CheckedContinuation<JSONPayload, Error>] = [:]
@@ -127,11 +129,16 @@ actor GatewayClient {
         self.session = session
     }
 
+    // swiftlint:disable:next function_body_length
     func connect(url: URL, token: String?) async throws {
         // On reconnect, don't call disconnect() which finishes subscribers
         // Instead, just clean up the socket without touching subscribers
         if isConnected || isReconnecting {
-            gatewayLog.info("Reconnecting to gateway (wasConnected=\(isConnected), wasReconnecting=\(isReconnecting))")
+            let wasConnected = isConnected
+            let wasReconnecting = isReconnecting
+            gatewayLog.info(
+                "Reconnecting to gateway (wasConnected=\(wasConnected), wasReconnecting=\(wasReconnecting))"
+            )
             receiveTask?.cancel()
             receiveTask = nil
             pingTask?.cancel()
@@ -813,3 +820,5 @@ actor GatewayClient {
         return nil
     }
 }
+
+// swiftlint:enable file_length
