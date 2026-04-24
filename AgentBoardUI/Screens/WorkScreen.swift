@@ -13,7 +13,7 @@ private enum WorkLayoutMode: String, CaseIterable, Identifiable {
 struct WorkScreen: View {
     @Environment(AgentBoardAppModel.self) private var appModel
     @Environment(\.horizontalSizeClass) private var hSizeClass
-    @State private var layoutMode: WorkLayoutMode = .board
+    @State private var layoutMode: WorkLayoutMode = .list
     @State private var selectedItem: WorkItem?
     @State private var isPresentingCreate = false
     @State private var selectedRepo: String = "all"
@@ -23,45 +23,34 @@ struct WorkScreen: View {
     }
 
     var body: some View {
-        Group {
-            if filteredItems.isEmpty {
-                EmptyStateCard(
-                    title: "No work items",
-                    message: appModel.workStore.statusMessage ?? "Connect a GitHub token and repository in Settings.",
-                    systemImage: "tray"
-                )
-            } else if !isCompact, layoutMode == .board {
-                boardLayout
-            } else {
-                listLayout
+        ZStack {
+            NeuBackground()
+
+            VStack(alignment: .leading, spacing: 0) {
+                header
+                    .padding(.horizontal, isCompact ? 16 : 24)
+                    .padding(.top, isCompact ? 16 : 24)
+                    .padding(.bottom, 16)
+
+                if filteredItems.isEmpty {
+                    EmptyStateCard(
+                        title: "No work items",
+                        message: appModel.workStore
+                            .statusMessage ?? "Connect a GitHub token and repository in Settings.",
+                        systemImage: "tray"
+                    )
+                    .padding(isCompact ? 16 : 24)
+                } else if !isCompact, layoutMode == .board {
+                    boardLayout
+                } else {
+                    listLayout
+                }
             }
         }
-        .navigationTitle("Work")
+        .navigationBarHidden(true)
         .refreshable {
             await appModel.workStore.refresh()
         }
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    isPresentingCreate = true
-                } label: {
-                    Image(systemName: "plus")
-                }
-                .disabled(!appModel.settingsStore.isGitHubConfigured)
-            }
-            ToolbarItem(placement: .topBarLeading) {
-                if !isCompact {
-                    Picker("Layout", selection: $layoutMode) {
-                        ForEach(WorkLayoutMode.allCases) { mode in
-                            Image(systemName: mode == .board ? "square.grid.2x2" : "list.bullet")
-                                .tag(mode)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                }
-            }
-        }
-        .searchable(text: Bindable(appModel.workStore).searchText, prompt: "Search issues, labels…")
         .sheet(item: $selectedItem) { item in
             IssueDetailSheet(item: item)
                 .environment(appModel)
@@ -84,6 +73,26 @@ struct WorkScreen: View {
         }
     }
 
+    private var header: some View {
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("WORKSPACE")
+                    .font(.caption.weight(.bold))
+                    .tracking(2)
+                    .foregroundStyle(NeuPalette.accentCyan)
+                Text("GitHub Issues")
+                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .foregroundStyle(NeuPalette.textPrimary)
+            }
+            Spacer()
+            Button { isPresentingCreate = true } label: {
+                Image(systemName: "plus")
+            }
+            .buttonStyle(NeuButtonTarget(isAccent: true))
+            .disabled(!appModel.settingsStore.isGitHubConfigured)
+        }
+    }
+
     private var filterRepositoryPicker: some View {
         Group {
             if appModel.settingsStore.repositories.count > 1 {
@@ -93,187 +102,159 @@ struct WorkScreen: View {
                         Text(repo.shortName).tag(repo.fullName)
                     }
                 }
+                .tint(NeuPalette.accentOrange)
             }
         }
     }
 
     private var boardLayout: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(alignment: .top, spacing: 20) {
+            HStack(alignment: .top, spacing: 24) {
                 ForEach(groupedFilteredItems, id: \.state) { column in
-                    VStack(alignment: .leading, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 16) {
                         HStack {
-                            WorkStatusPill(state: column.state)
+                            Text(column.state.title.uppercased())
+                                .font(.caption.weight(.bold))
+                                .tracking(1)
+                                .foregroundStyle(NeuPalette.textSecondary)
                             Spacer()
-                            Text("\(column.items.count)")
-                                .font(.headline)
-                                .foregroundStyle(.secondary)
                         }
+                        .padding(.horizontal, 4)
 
                         if column.items.isEmpty {
                             Text("None")
                                 .font(.subheadline)
-                                .foregroundStyle(.tertiary)
+                                .foregroundStyle(NeuPalette.textSecondary)
                                 .frame(maxWidth: .infinity, alignment: .center)
-                                .padding(.vertical, 12)
+                                .padding(.vertical, 24)
                         } else {
-                            ScrollView {
-                                LazyVStack(spacing: 12) {
+                            ScrollView(showsIndicators: false) {
+                                LazyVStack(spacing: 16) {
                                     ForEach(column.items) { item in
-                                        WorkCard(item: item) { selectedItem = item }
+                                        WorkCardNeu(item: item) { selectedItem = item }
                                     }
                                 }
+                                .padding(.bottom, 24)
                             }
                         }
                     }
                     .frame(width: 320, alignment: .topLeading)
-                    .padding(16)
-                    .background(Color(.secondarySystemBackground))
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .padding(20)
+                    .neuExtruded(cornerRadius: 32, elevation: 12)
                 }
             }
-            .padding(20)
+            .padding(24)
         }
-        .background(Color(.systemGroupedBackground))
     }
 
     private var listLayout: some View {
-        List {
-            Section {
-                ForEach(filteredItems) { item in
-                    WorkListRow(item: item) { selectedItem = item }
-                }
-            } header: {
+        ScrollView(showsIndicators: false) {
+            LazyVStack(spacing: 20) {
                 HStack {
                     filterRepositoryPicker
-                        .textCase(nil)
                     Spacer()
-                    Text("\(filteredItems.count) items").textCase(nil)
+                    Text("\(filteredItems.count) items")
+                        .font(.caption)
+                        .foregroundStyle(NeuPalette.textSecondary)
+                }
+                .padding(.horizontal, 8)
+
+                ForEach(filteredItems) { item in
+                    WorkCardNeu(item: item) { selectedItem = item }
                 }
             }
+            .padding(isCompact ? 16 : 24)
         }
-        .listStyle(.insetGrouped)
     }
 }
 
-private struct WorkListRow: View {
-    @Environment(AgentBoardAppModel.self) private var appModel
+private struct WorkCardNeu: View {
     let item: WorkItem
     let onTap: () -> Void
 
     var body: some View {
         Button(action: onTap) {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .top) {
                     Text(item.issueReference)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(NeuPalette.accentCyan)
 
                     Spacer(minLength: 8)
 
                     HStack(spacing: 6) {
-                        WorkStatusPill(state: item.status)
-                        PriorityPill(priority: item.priority)
+                        WorkStatusNeu(state: item.status)
+                        PriorityNeu(priority: item.priority)
                     }
                 }
 
                 Text(item.title)
-                    .font(.body)
-                    .foregroundStyle(.primary)
+                    .font(.body.weight(.medium))
+                    .foregroundStyle(NeuPalette.textPrimary)
+                    .lineLimit(2)
                     .multilineTextAlignment(.leading)
 
                 if !item.bodySummary.isEmpty {
                     Text(item.bodySummary)
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(NeuPalette.textSecondary)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
                 }
 
                 HStack {
-                    Text(item.assignees.isEmpty ? "Unassigned" : item.assignees.joined(separator: ", "))
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
+                    HStack(spacing: -8) {
+                        if item.assignees.isEmpty {
+                            Circle()
+                                .fill(NeuPalette.background)
+                                .frame(width: 24, height: 24)
+                                .overlay(Image(systemName: "person").font(.system(size: 10))
+                                    .foregroundStyle(NeuPalette.textSecondary))
+                        } else {
+                            ForEach(Array(item.assignees.prefix(3).enumerated()), id: \.offset) { index, assignee in
+                                Circle()
+                                    .fill(NeuPalette.surface)
+                                    .frame(width: 24, height: 24)
+                                    .overlay(
+                                        Text(String(assignee.prefix(1).uppercased()))
+                                            .font(.system(size: 10, weight: .bold))
+                                            .foregroundStyle(NeuPalette.textPrimary)
+                                    )
+                                    .overlay(Circle().stroke(NeuPalette.background, lineWidth: 2))
+                                    .zIndex(Double(3 - index))
+                            }
+                        }
+                    }
+
                     Spacer()
                     Text(item.updatedAt, style: .relative)
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
+                        .font(.caption2)
+                        .foregroundStyle(NeuPalette.textSecondary)
                 }
             }
-            .padding(.vertical, 4)
+            .padding(20)
+            .neuExtruded(cornerRadius: 24, elevation: 8)
         }
         .buttonStyle(.plain)
-        .contextMenu {
-            ForEach(WorkState.allCases) { state in
-                Button(state.title) {
-                    Task { await appModel.workStore.updateStatus(for: item, to: state) }
-                }
-            }
-        }
     }
 }
 
-private struct WorkCard: View {
-    @Environment(AgentBoardAppModel.self) private var appModel
-    let item: WorkItem
-    let onTap: () -> Void
-
+struct WorkStatusNeu: View {
+    let state: WorkState
     var body: some View {
-        Button(action: onTap) {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(alignment: .top) {
-                    Text(item.issueReference)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
+        Circle()
+            .fill(state == .done ? NeuPalette.accentCyan : state == .inProgress ? NeuPalette
+                .accentOrange : state == .blocked ? .red : NeuPalette.textSecondary)
+            .frame(width: 10, height: 10)
+    }
+}
 
-                    Spacer(minLength: 8)
-
-                    Menu {
-                        ForEach(WorkState.allCases) { state in
-                            Button(state.title) {
-                                Task { await appModel.workStore.updateStatus(for: item, to: state) }
-                            }
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                            .font(.title3)
-                            .foregroundStyle(.tertiary)
-                    }
-                }
-
-                Text(item.title)
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-                    .multilineTextAlignment(.leading)
-
-                if !item.bodySummary.isEmpty {
-                    Text(item.bodySummary)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
-                }
-
-                HStack(spacing: 8) {
-                    WorkStatusPill(state: item.status)
-                    PriorityPill(priority: item.priority)
-                }
-
-                HStack {
-                    Text(item.assignees.isEmpty ? "Unassigned" : item.assignees.joined(separator: ", "))
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                    Spacer()
-                    Text(item.updatedAt, style: .relative)
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                }
-            }
-            .padding(16)
-            .background(Color(.systemBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 10))
-            .shadow(color: Color.black.opacity(0.05), radius: 2, y: 1)
-        }
-        .buttonStyle(.plain)
+struct PriorityNeu: View {
+    let priority: WorkPriority
+    var body: some View {
+        Image(systemName: "flag.fill")
+            .font(.system(size: 10))
+            .foregroundStyle(priority == .critical ? .red : priority == .high ? NeuPalette.accentOrange : NeuPalette
+                .textSecondary)
     }
 }

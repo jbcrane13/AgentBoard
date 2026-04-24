@@ -14,89 +14,57 @@ struct ChatScreen: View {
     var body: some View {
         @Bindable var chatStore = appModel.chatStore
 
-        VStack(spacing: 0) {
-            if !chatStore.conversations.isEmpty {
-                conversationRail
-                    .padding(.vertical, 8)
-                    .background(Color(.systemGroupedBackground))
-                Divider()
-            }
+        ZStack {
+            NeuBackground()
 
-            messageList
-                .background(Color(.systemBackground))
+            VStack(spacing: 0) {
+                header
+                    .padding(.horizontal, isCompact ? 16 : 24)
+                    .padding(.top, isCompact ? 16 : 24)
+                    .padding(.bottom, 16)
 
-            Divider()
-            composeArea
-                .background(Color(.secondarySystemBackground))
-        }
-        .navigationTitle("Hermes AI")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                connectionChip
-            }
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    appModel.chatStore.startNewConversation()
-                } label: {
-                    Image(systemName: "square.and.pencil")
+                if !chatStore.conversations.isEmpty {
+                    conversationRail
+                        .padding(.vertical, 8)
                 }
-            }
-            ToolbarItem(placement: .topBarTrailing) {
-                modelPickerMenu
+
+                messageList
+
+                composeArea
             }
         }
+        .navigationBarHidden(true)
     }
 
-    private var connectionChip: some View {
-        HStack(spacing: 4) {
-            Circle()
-                .fill(chipTint(for: appModel.chatStore.connectionState))
-                .frame(width: 8, height: 8)
-            Text(appModel.chatStore.connectionState.title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-    }
-
-    private var modelPickerMenu: some View {
-        Menu {
-            ForEach(appModel.chatStore.availableModels, id: \.self) { model in
-                Button {
-                    appModel.settingsStore.hermesModelID = model
-                    Task { await appModel.chatStore.refreshModels() }
-                } label: {
-                    HStack {
-                        Text(model)
-                        if model == appModel.settingsStore.hermesModelID {
-                            Image(systemName: "checkmark")
-                        }
-                    }
-                }
+    private var header: some View {
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("HERMES AI")
+                    .font(.caption.weight(.bold))
+                    .tracking(2)
+                    .foregroundStyle(NeuPalette.accentCyan)
+                Text("Live Link")
+                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .foregroundStyle(NeuPalette.textPrimary)
             }
-        } label: {
-            HStack(spacing: 4) {
-                Text(appModel.settingsStore.hermesModelID.trimmedOrNil ?? "model")
-                    .font(.caption)
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(.caption2)
+            Spacer()
+            Button {
+                appModel.chatStore.startNewConversation()
+            } label: {
+                Image(systemName: "square.and.pencil")
             }
-            .foregroundStyle(.secondary)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(Color(.secondarySystemBackground))
-            .clipShape(Capsule())
+            .buttonStyle(NeuButtonTarget(isAccent: false))
         }
     }
 
     private var conversationRail: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
+            HStack(spacing: 16) {
                 ForEach(appModel.chatStore.conversations) { conversation in
                     conversationRailItem(conversation)
                 }
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, isCompact ? 16 : 24)
         }
     }
 
@@ -109,6 +77,7 @@ struct ChatScreen: View {
                     TextField("Name", text: $editingTitle)
                         .textFieldStyle(.plain)
                         .font(.subheadline)
+                        .foregroundStyle(NeuPalette.textPrimary)
                         .frame(width: 120)
                         .onSubmit {
                             appModel.chatStore.renameConversation(id: conversation.id, title: editingTitle)
@@ -120,26 +89,28 @@ struct ChatScreen: View {
                         editingConversationID = nil
                     } label: {
                         Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(.green)
+                            .foregroundStyle(NeuPalette.accentCyan)
                     }
                     .buttonStyle(.plain)
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(Color(.systemFill))
-                .clipShape(Capsule())
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .neuRecessed(cornerRadius: 20, depth: 4)
             } else {
                 Button {
                     appModel.chatStore.selectConversation(conversation.id)
                 } label: {
                     Text(conversation.title)
-                        .font(.subheadline)
+                        .font(.subheadline.weight(isSelected ? .bold : .medium))
                         .lineLimit(1)
-                        .foregroundStyle(isSelected ? Color.white : Color.primary)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(isSelected ? Color.blue : Color(.tertiarySystemFill))
-                        .clipShape(Capsule())
+                        .foregroundStyle(isSelected ? NeuPalette.accentCyan : NeuPalette.textSecondary)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .modifier(isSelected ? NeuExtrudedModifier(cornerRadius: 20, elevation: 6) :
+                            NeuExtrudedModifier(
+                                cornerRadius: 20,
+                                elevation: 2
+                            ))
                 }
                 .buttonStyle(.plain)
                 .contextMenu {
@@ -163,28 +134,29 @@ struct ChatScreen: View {
         ScrollViewReader { proxy in
             ScrollView {
                 if appModel.chatStore.messages.isEmpty {
-                    VStack(spacing: 12) {
+                    VStack(spacing: 16) {
                         Image(systemName: "sparkles")
-                            .font(.largeTitle)
-                            .foregroundStyle(.tertiary)
+                            .font(.system(size: 48, weight: .thin))
+                            .foregroundStyle(NeuPalette.accentCyan)
                         Text("Start a conversation")
-                            .font(.headline)
+                            .font(.title3.weight(.bold))
+                            .foregroundStyle(NeuPalette.textPrimary)
                         Text("Your messages stream live from the Hermes gateway and are saved locally.")
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(NeuPalette.textSecondary)
                             .multilineTextAlignment(.center)
                     }
-                    .frame(maxWidth: .infinity)
                     .padding(40)
-                    .padding(.top, 40)
+                    .neuExtruded(cornerRadius: 32, elevation: 12)
+                    .padding(32)
                 } else {
-                    LazyVStack(spacing: 16) {
+                    LazyVStack(spacing: 24) {
                         ForEach(appModel.chatStore.messages) { message in
-                            ChatBubble(message: message)
+                            NeuChatBubble(message: message)
                                 .id(message.id)
                         }
                     }
-                    .padding(16)
+                    .padding(isCompact ? 16 : 24)
                 }
             }
             .onChange(of: appModel.chatStore.messages.count) {
@@ -193,64 +165,61 @@ struct ChatScreen: View {
                 }
             }
         }
-        .refreshable {
-            await appModel.chatStore.refreshConnection()
-        }
     }
 
     private var composeArea: some View {
         @Bindable var chatStore = appModel.chatStore
 
-        return VStack(spacing: 8) {
+        return VStack(spacing: 0) {
             if let err = chatStore.errorMessage {
                 Text(err)
-                    .font(.caption)
+                    .font(.caption.weight(.bold))
                     .foregroundStyle(.red)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, isCompact ? 16 : 24)
+                    .padding(.bottom, 8)
             } else if let status = chatStore.statusMessage {
                 Text(status)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(NeuPalette.textSecondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, isCompact ? 16 : 24)
+                    .padding(.bottom, 8)
             }
 
-            HStack(alignment: .bottom, spacing: 12) {
-                TextField("Message Hermes...", text: $chatStore.draft, axis: .vertical)
-                    .lineLimit(1 ... 8)
-                    .padding(10)
-                    .background(Color(.systemBackground))
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(Color(.separator), lineWidth: 0.5)
-                    )
+            HStack(alignment: .bottom, spacing: 16) {
+                ZStack(alignment: .topLeading) {
+                    if chatStore.draft.isEmpty {
+                        Text("Message Hermes...")
+                            .foregroundStyle(NeuPalette.textSecondary)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 14)
+                    }
+                    TextEditor(text: $chatStore.draft)
+                        .scrollContentBackground(.hidden)
+                        .foregroundStyle(NeuPalette.textPrimary)
+                        .frame(minHeight: 48, maxHeight: 120)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                }
+                .neuRecessed(cornerRadius: 16, depth: 6)
 
                 Button {
                     Task { await chatStore.sendDraft() }
                 } label: {
-                    Image(systemName: chatStore.isStreaming ? "stop.circle.fill" : "arrow.up.circle.fill")
-                        .font(.system(size: 32))
-                        .foregroundStyle(chatStore.isStreaming ? Color
-                            .red : (chatStore.draft.isEmpty ? Color(.tertiaryLabel) : Color.blue))
+                    Image(systemName: chatStore.isStreaming ? "stop.fill" : "paperplane.fill")
+                        .font(.system(size: 20))
                 }
+                .buttonStyle(NeuButtonTarget(isAccent: !chatStore.draft.isEmpty && !chatStore.isStreaming))
                 .disabled(chatStore.draft.trimmedOrNil == nil && !chatStore.isStreaming)
             }
-        }
-        .padding(12)
-        .padding(.bottom, 8)
-    }
-
-    private func chipTint(for state: ChatConnectionState) -> Color {
-        switch state {
-        case .connected: Color.green
-        case .connecting, .reconnecting: Color.orange
-        case .failed: Color.red
-        case .disconnected: Color.gray
+            .padding(isCompact ? 16 : 24)
+            .background(NeuPalette.surface.ignoresSafeArea(edges: .bottom))
         }
     }
 }
 
-private struct ChatBubble: View {
+private struct NeuChatBubble: View {
     let message: ConversationMessage
 
     var body: some View {
@@ -266,31 +235,52 @@ private struct ChatBubble: View {
     }
 
     private var bubble: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 Text(message.role == .assistant ? "Hermes" : "You")
-                    .font(.caption2.weight(.medium))
-                    .foregroundStyle(.secondary)
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(message.role == .assistant ? NeuPalette.accentCyan : NeuPalette.accentOrange)
+                    .tracking(1)
 
                 if message.isStreaming {
                     ProgressView()
                         .controlSize(.mini)
+                        .tint(NeuPalette.accentCyan)
                 }
             }
 
             if message.isStreaming, message.content.isEmpty {
-                Text("...")
-                    .foregroundStyle(.secondary)
+                Text("typing...")
+                    .foregroundStyle(NeuPalette.textSecondary)
             } else {
                 MarkdownText(content: message.content)
-                    .foregroundStyle(message.role == .assistant ? Color.primary : Color.white)
+                    .foregroundStyle(NeuPalette.textPrimary)
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(message.role == .assistant ? Color(.secondarySystemBackground) : Color.blue)
+        .padding(16)
+        .modifier(
+            message.role == .assistant
+                ? AnyViewModifier(NeuExtrudedModifier(cornerRadius: 20, elevation: 8))
+                : AnyViewModifier(NeuRecessedModifier(cornerRadius: 20, depth: 6))
         )
+    }
+}
+
+/// Helper to bridge ViewModifier types
+struct AnyViewModifier: ViewModifier {
+    let modifier: Any
+
+    init<M: ViewModifier>(_ modifier: M) {
+        self.modifier = modifier
+    }
+
+    func body(content: Content) -> some View {
+        if let neuromod = modifier as? NeuExtrudedModifier {
+            content.modifier(neuromod)
+        } else if let neuromod = modifier as? NeuRecessedModifier {
+            content.modifier(neuromod)
+        } else {
+            content
+        }
     }
 }
