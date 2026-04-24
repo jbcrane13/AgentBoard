@@ -93,14 +93,22 @@ actor HermesChatService {
         let request = try makeChatRequest(message: message, history: history, model: model)
 
         return AsyncThrowingStream { continuation in
-            Task {
+            let producerTask = Task {
                 do {
+                    try Task.checkCancellation()
                     let (bytes, response) = try await session.bytes(for: request)
                     try await self.validateStreamingResponse(response: response, bytes: bytes)
+                    try Task.checkCancellation()
                     try await self.consumeStream(bytes: bytes, continuation: continuation)
+                } catch is CancellationError {
+                    continuation.finish()
                 } catch {
                     continuation.finish(throwing: error)
                 }
+            }
+
+            continuation.onTermination = { _ in
+                producerTask.cancel()
             }
         }
     }
