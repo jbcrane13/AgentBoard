@@ -14,81 +14,80 @@ struct CreateIssueSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                BoardBackground()
+                NeuBackground()
+
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
-                        BoardSurface {
-                            VStack(alignment: .leading, spacing: 14) {
-                                BoardSectionTitle("New GitHub Issue")
+                    VStack(alignment: .leading, spacing: 24) {
+                        VStack(alignment: .leading, spacing: 20) {
+                            Text("NEW ISSUE")
+                                .font(.caption.weight(.bold))
+                                .tracking(1)
+                                .foregroundStyle(NeuPalette.textSecondary)
 
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text("Repository").font(.headline).foregroundStyle(.white)
-                                    Picker("Repository", selection: $selectedRepository) {
-                                        Text("Select…").tag(ConfiguredRepository?.none)
-                                        ForEach(appModel.settingsStore.repositories) { repo in
-                                            Text(repo.fullName).tag(Optional(repo))
-                                        }
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Repository").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                                Picker("Repository", selection: $selectedRepository) {
+                                    Text("Select…").tag(ConfiguredRepository?.none)
+                                    ForEach(appModel.settingsStore.repositories) { repo in
+                                        Text(repo.fullName).tag(Optional(repo))
                                     }
-                                    .pickerStyle(.menu)
-                                    .foregroundStyle(.white)
-                                    .padding(.horizontal, 16)
-                                    .padding(.vertical, 12)
-                                    .background(RoundedRectangle(cornerRadius: 16).fill(Color.black.opacity(0.22)))
                                 }
+                                .pickerStyle(.menu)
+                                .tint(NeuPalette.accentCyan)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 12)
+                                .neuRecessed(cornerRadius: 16, depth: 6)
+                            }
 
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text("Title").font(.headline).foregroundStyle(.white)
-                                    TextField("Issue title", text: $title)
-                                        .fieldStyle()
-                                }
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Title").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                                NeuTextField(placeholder: "Issue title", text: $title)
+                            }
 
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text("Description").font(.headline).foregroundStyle(.white)
-                                    TextEditor(text: $issueBody)
-                                        .scrollContentBackground(.hidden)
-                                        .frame(minHeight: 120)
-                                        .padding(10)
-                                        .background(RoundedRectangle(cornerRadius: 16).fill(Color.black.opacity(0.22)))
-                                        .overlay(RoundedRectangle(cornerRadius: 16).stroke(
-                                            Color.white.opacity(0.08),
-                                            lineWidth: 1
-                                        ))
-                                        .foregroundStyle(.white)
-                                }
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Description").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                                TextEditor(text: $issueBody)
+                                    .scrollContentBackground(.hidden)
+                                    .frame(minHeight: 120)
+                                    .padding(12)
+                                    .neuRecessed(cornerRadius: 16, depth: 6)
+                                    .foregroundStyle(NeuPalette.textPrimary)
+                            }
 
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text("Labels (comma-separated)").font(.headline).foregroundStyle(.white)
-                                    TextField("bug, priority:p1", text: $labels)
-                                        .fieldStyle()
-                                }
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Labels (comma-separated)").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                                NeuTextField(placeholder: "bug, enhancement", text: $labels)
                             }
                         }
+                        .padding(24)
+                        .neuExtruded(cornerRadius: 24, elevation: 8)
 
-                        if let error = appModel.workStore.errorMessage {
+                        if isCreating {
+                            ProgressView("Creating…")
+                                .foregroundStyle(NeuPalette.textPrimary)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                        } else if let error = appModel.workStore.errorMessage {
                             Text(error)
-                                .font(.footnote)
+                                .font(.footnote.weight(.medium))
                                 .foregroundStyle(.red)
-                                .padding(.horizontal, 4)
+                                .frame(maxWidth: .infinity, alignment: .center)
                         }
                     }
                     .padding(24)
                 }
             }
             .navigationTitle("New Issue")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
-                        .foregroundStyle(.white)
+                        .foregroundStyle(NeuPalette.textPrimary)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Create") { create() }
-                        .buttonStyle(.borderedProminent)
-                        .tint(.blue)
-                        .disabled(
-                            selectedRepository == nil ||
-                                title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
-                                isCreating
-                        )
+                        .buttonStyle(NeuButtonTarget(isAccent: true))
+                        .disabled(isCreating || title.trimmedOrNil == nil || selectedRepository == nil)
                 }
             }
         }
@@ -97,31 +96,21 @@ struct CreateIssueSheet: View {
     private func create() {
         guard let repo = selectedRepository else { return }
         isCreating = true
-        let parsed = labels
-            .split(separator: ",")
-            .map { $0.trimmingCharacters(in: .whitespaces) }
+
+        let parsedLabels = labels.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
+
         Task {
             await appModel.workStore.createIssue(
                 repository: repo,
                 title: title.trimmingCharacters(in: .whitespacesAndNewlines),
                 body: issueBody.trimmingCharacters(in: .whitespacesAndNewlines),
-                labels: parsed
+                labels: parsedLabels
             )
             isCreating = false
             if appModel.workStore.errorMessage == nil {
                 dismiss()
             }
         }
-    }
-}
-
-private extension View {
-    func fieldStyle() -> some View {
-        padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(RoundedRectangle(cornerRadius: 16).fill(Color.black.opacity(0.22)))
-            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.white.opacity(0.08), lineWidth: 1))
-            .foregroundStyle(.white)
     }
 }

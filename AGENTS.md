@@ -100,9 +100,9 @@ The active product is the Hermes-first SwiftUI rebuild.
 - GitHub Issues power work tracking
 - AgentBoard companion powers agent tasks, sessions, and live runtime state
 
-### Local networking requirement
+### Networking requirement
 
-Both app targets intentionally keep `NSAllowsLocalNetworking = YES` in their Info.plists because Hermes and the companion service commonly run on loopback during development.
+Both app targets intentionally allow insecure development networking in their Info.plists because Hermes and the companion service may run on loopback or plain-HTTP LAN/Tailscale addresses during development.
 
 ### Project management
 

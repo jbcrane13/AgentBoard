@@ -7,210 +7,228 @@ struct TaskDetailSheet: View {
 
     let task: AgentTask
 
+    @State private var isEditing = false
     @State private var editTitle = ""
+    @State private var editAssignedAgent = ""
+    @State private var editNote = ""
     @State private var editStatus: AgentTaskState = .backlog
     @State private var editPriority: WorkPriority = .medium
-    @State private var editAgent = ""
-    @State private var editNote = ""
-    @State private var editSessionID: String?
-    @State private var isSaving = false
-    @State private var showDeleteConfirm = false
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                BoardBackground()
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
-                        editForm
-                        workItemCard
-                        if isSaving {
-                            ProgressView("Saving…")
-                                .foregroundStyle(.white)
-                                .frame(maxWidth: .infinity, alignment: .center)
+            ZStack(alignment: .top) {
+                NeuBackground()
+
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 24) {
+                        if isEditing {
+                            editForm
+                        } else {
+                            readView
                         }
-                        deleteButton
                     }
                     .padding(24)
                 }
             }
-            .navigationTitle(task.workItem.issueReference)
+            .navigationTitle("Task Details")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                        .foregroundStyle(.white)
+                    Button("Close") { dismiss() }
+                        .foregroundStyle(NeuPalette.textPrimary)
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { save() }
-                        .buttonStyle(.borderedProminent)
-                        .tint(.blue)
-                        .disabled(isSaving || editTitle.trimmedOrNil == nil)
-                }
-            }
-            .alert("Delete Task", isPresented: $showDeleteConfirm) {
-                Button("Delete", role: .destructive) {
-                    Task {
-                        await appModel.agentsStore.deleteTask(id: task.id)
-                        dismiss()
+                ToolbarItem(placement: .primaryAction) {
+                    if isEditing {
+                        Button("Save") { save() }
+                            .buttonStyle(NeuButtonTarget(isAccent: true))
+                            .disabled(editTitle.trimmedOrNil == nil)
+                    } else {
+                        Button("Edit") { beginEditing() }
+                            .buttonStyle(NeuButtonTarget(isAccent: false))
                     }
                 }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("Are you sure you want to delete \"\(task.title)\"? This cannot be undone.")
             }
         }
-        .onAppear { populate() }
+    }
+
+    private var readView: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(alignment: .top) {
+                    Text(task.workItem.issueReference)
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(NeuPalette.accentCyan)
+                    Spacer()
+                    PriorityNeu(priority: task.priority)
+                }
+
+                Text(task.title)
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(NeuPalette.textPrimary)
+                    .multilineTextAlignment(.leading)
+
+                HStack(spacing: 8) {
+                    Text(task.status.title.uppercased())
+                        .font(.caption2.weight(.bold))
+                        .tracking(1)
+                        .foregroundStyle(NeuPalette.textSecondary)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .neuRecessed(cornerRadius: 12, depth: 3)
+
+                    HStack(spacing: 6) {
+                        Image(systemName: "person.fill").font(.system(size: 10))
+                        Text(task.assignedAgent).font(.caption.weight(.bold))
+                    }
+                    .foregroundStyle(NeuPalette.accentOrange)
+                }
+            }
+            .padding(24)
+            .neuExtruded(cornerRadius: 24, elevation: 8)
+
+            if !task.note.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("NOTE")
+                        .font(.caption.weight(.bold))
+                        .tracking(1)
+                        .foregroundStyle(NeuPalette.textSecondary)
+                    Text(task.note)
+                        .font(.body)
+                        .foregroundStyle(NeuPalette.textPrimary)
+                        .multilineTextAlignment(.leading)
+                }
+                .padding(24)
+                .neuExtruded(cornerRadius: 24, elevation: 8)
+            }
+
+            if let sessionID = task.sessionID {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("ACTIVE SESSION")
+                        .font(.caption.weight(.bold))
+                        .tracking(1)
+                        .foregroundStyle(NeuPalette.textSecondary)
+                    HStack(spacing: 8) {
+                        Image(systemName: "bolt.horizontal.fill")
+                            .foregroundStyle(NeuPalette.accentCyan)
+                        Text(sessionID)
+                            .font(.caption.monospaced())
+                            .foregroundStyle(NeuPalette.textSecondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+                }
+                .padding(24)
+                .neuExtruded(cornerRadius: 24, elevation: 8)
+            }
+
+            VStack(alignment: .leading, spacing: 16) {
+                Text("TIMELINE")
+                    .font(.caption.weight(.bold))
+                    .tracking(1)
+                    .foregroundStyle(NeuPalette.textSecondary)
+
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Created")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(NeuPalette.textSecondary)
+                        Text(task.createdAt, style: .relative)
+                            .font(.body.weight(.medium))
+                            .foregroundStyle(NeuPalette.textPrimary)
+                    }
+                    Spacer()
+                    VStack(alignment: .trailing, spacing: 4) {
+                        Text("Updated")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(NeuPalette.textSecondary)
+                        Text(task.updatedAt, style: .relative)
+                            .font(.body.weight(.medium))
+                            .foregroundStyle(NeuPalette.textPrimary)
+                    }
+                }
+            }
+            .padding(24)
+            .neuExtruded(cornerRadius: 24, elevation: 8)
+        }
     }
 
     private var editForm: some View {
-        BoardSurface {
-            VStack(alignment: .leading, spacing: 14) {
-                BoardSectionTitle("Edit Task")
+        VStack(alignment: .leading, spacing: 24) {
+            VStack(alignment: .leading, spacing: 20) {
+                Text("EDIT TASK")
+                    .font(.caption.weight(.bold))
+                    .tracking(1)
+                    .foregroundStyle(NeuPalette.textSecondary)
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Title").font(.headline).foregroundStyle(.white)
-                    TextField("Task title", text: $editTitle)
-                        .taskFieldStyle()
+                    Text("Title").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                    NeuTextField(placeholder: "Task title", text: $editTitle)
                 }
 
-                statusAndPriorityRow
-
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Assigned Agent").font(.headline).foregroundStyle(.white)
-                    TextField("agent name", text: $editAgent)
-                        .taskFieldStyle()
+                    Text("Assigned agent").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                    NeuTextField(placeholder: "Agent Name", text: $editAssignedAgent)
                 }
 
-                sessionPicker
-
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Notes").font(.headline).foregroundStyle(.white)
+                    Text("Notes").font(.headline).foregroundStyle(NeuPalette.textPrimary)
                     TextEditor(text: $editNote)
                         .scrollContentBackground(.hidden)
                         .frame(minHeight: 100)
-                        .padding(10)
-                        .background(RoundedRectangle(cornerRadius: 16).fill(Color.black.opacity(0.22)))
-                        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.white.opacity(0.08), lineWidth: 1))
-                        .foregroundStyle(.white)
+                        .padding(12)
+                        .neuRecessed(cornerRadius: 16, depth: 6)
+                        .foregroundStyle(NeuPalette.textPrimary)
                 }
-            }
-        }
-    }
 
-    private var statusAndPriorityRow: some View {
-        HStack(spacing: 16) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Status").font(.headline).foregroundStyle(.white)
-                Picker("Status", selection: $editStatus) {
-                    ForEach(AgentTaskState.allCases) { state in
-                        Text(state.title).tag(state)
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Status").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                    Picker("Status", selection: $editStatus) {
+                        ForEach(AgentTaskState.allCases) { state in
+                            Text(state.title).tag(state)
+                        }
                     }
+                    .pickerStyle(.segmented)
+                    .tint(NeuPalette.accentCyan)
                 }
-                .pickerStyle(.menu)
-                .foregroundStyle(.white)
-                .pickerBackground()
-            }
 
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Priority").font(.headline).foregroundStyle(.white)
-                Picker("Priority", selection: $editPriority) {
-                    ForEach(WorkPriority.allCases) { prio in
-                        Text(prio.title).tag(prio)
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Priority").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                    Picker("Priority", selection: $editPriority) {
+                        ForEach(WorkPriority.allCases) { prio in
+                            Text(prio.title).tag(prio)
+                        }
                     }
-                }
-                .pickerStyle(.menu)
-                .foregroundStyle(.white)
-                .pickerBackground()
-            }
-        }
-    }
-
-    private var sessionPicker: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Link Session").font(.headline).foregroundStyle(.white)
-            Picker("Session", selection: $editSessionID) {
-                Text("None").tag(String?.none)
-                ForEach(appModel.sessionsStore.sessions) { session in
-                    Text("\(session.source) — \(session.status.title)")
-                        .tag(Optional(session.id))
+                    .pickerStyle(.segmented)
+                    .tint(NeuPalette.accentOrange)
                 }
             }
-            .pickerStyle(.menu)
-            .foregroundStyle(.white)
-            .pickerBackground()
+            .padding(24)
+            .neuExtruded(cornerRadius: 24, elevation: 8)
         }
     }
 
-    private var workItemCard: some View {
-        BoardSurface {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Work Item")
-                    .font(.headline)
-                    .foregroundStyle(.white)
-                HStack {
-                    Text(task.workItem.issueReference)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.orange)
-                    Spacer()
-                    Text(task.createdAt, style: .relative)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-        }
-    }
-
-    private var deleteButton: some View {
-        Button(role: .destructive) {
-            showDeleteConfirm = true
-        } label: {
-            Label("Delete Task", systemImage: "trash")
-                .frame(maxWidth: .infinity)
-        }
-        .buttonStyle(.bordered)
-        .tint(.red)
-        .padding(.top, 4)
-    }
-
-    private func populate() {
+    private func beginEditing() {
         editTitle = task.title
+        editAssignedAgent = task.assignedAgent
+        editNote = task.note
         editStatus = task.status
         editPriority = task.priority
-        editAgent = task.assignedAgent
-        editNote = task.note
-        editSessionID = task.sessionID
+        isEditing = true
     }
 
     private func save() {
-        isSaving = true
         let patch = AgentTaskPatch(
-            title: editTitle.trimmedOrNil,
+            title: editTitle.trimmedOrNil ?? task.title,
             status: editStatus,
             priority: editPriority,
-            assignedAgent: editAgent.trimmedOrNil,
-            sessionID: editSessionID,
-            note: editNote.trimmedOrNil
+            assignedAgent: editAssignedAgent.trimmedOrNil ?? "Codex",
+            note: editNote.trimmed,
         )
+
         Task {
             await appModel.agentsStore.updateTask(id: task.id, patch: patch)
-            isSaving = false
+            isEditing = false
             dismiss()
         }
-    }
-}
-
-private extension View {
-    func taskFieldStyle() -> some View {
-        padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(RoundedRectangle(cornerRadius: 16).fill(Color.black.opacity(0.22)))
-            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.white.opacity(0.08), lineWidth: 1))
-            .foregroundStyle(.white)
-    }
-
-    func pickerBackground() -> some View {
-        padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .background(RoundedRectangle(cornerRadius: 14).fill(Color.black.opacity(0.22)))
     }
 }

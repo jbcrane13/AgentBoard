@@ -7,210 +7,196 @@ struct SessionDetailSheet: View {
 
     let session: AgentSession
 
-    @State private var output: String?
-    @State private var isLoadingOutput = false
-    @State private var showStopConfirm = false
-    @State private var isActing = false
-
-    private var isControllable: Bool {
-        session.status == .running || session.status == .idle
-    }
+    @State private var selectedTab = 0
+    @State private var finalOutput: String?
+    @State private var isRefreshing = false
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                BoardBackground()
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
-                        metadataCard
-                        outputCard
-                        if isControllable {
-                            controlCard
-                        }
+            ZStack(alignment: .top) {
+                NeuBackground()
+
+                VStack(spacing: 0) {
+                    headerCard
+                        .padding(24)
+
+                    Picker("Mode", selection: $selectedTab) {
+                        Text("Overview").tag(0)
+                        Text("Output Logs").tag(1)
                     }
-                    .padding(24)
+                    .pickerStyle(.segmented)
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 24)
+
+                    if selectedTab == 0 {
+                        overviewTab
+                    } else {
+                        logsTab
+                    }
                 }
             }
-            .navigationTitle(session.source)
+            .navigationTitle("Session \(session.id.prefix(8))")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close") { dismiss() }
-                        .foregroundStyle(.white)
+                        .foregroundStyle(NeuPalette.textPrimary)
                 }
                 ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        Task { await loadOutput() }
-                    } label: {
-                        Label("Refresh Output", systemImage: "arrow.clockwise")
-                    }
-                    .foregroundStyle(.white)
-                    .disabled(isLoadingOutput)
-                }
-            }
-            .alert("Stop Session", isPresented: $showStopConfirm) {
-                Button("Stop", role: .destructive) {
-                    Task {
-                        isActing = true
-                        await appModel.sessionsStore.stopSession(id: session.id)
-                        isActing = false
-                        dismiss()
-                    }
-                }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("Send a stop signal to \"\(session.source)\"? The session will be terminated.")
-            }
-        }
-        .task { await loadOutput() }
-    }
-
-    private var metadataCard: some View {
-        BoardSurface {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    SessionStatusPill(status: session.status)
-                    Spacer()
-                    if let pid = session.pid {
-                        BoardChip(label: "PID \(pid)", systemImage: "cpu", tint: .secondary)
-                    }
-                }
-
-                Text(session.source)
-                    .font(.title2.weight(.bold))
-                    .foregroundStyle(.white)
-
-                if let model = session.model {
-                    Label(model, systemImage: "cpu")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                }
-
-                if let tmux = session.tmuxSession {
-                    Label(tmux, systemImage: "terminal")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-
-                if let linkedTask = appModel.agentsStore.tasks.first(where: { $0.sessionID == session.id }) {
-                    Label(linkedTask.title, systemImage: "checkmark.circle")
-                        .font(.subheadline)
-                        .foregroundStyle(.orange)
-                }
-
-                if let workItem = session.workItem {
-                    Label(workItem.issueReference, systemImage: "square.grid.2x2")
-                        .font(.subheadline)
-                        .foregroundStyle(.blue)
-                }
-
-                Divider().overlay(Color.white.opacity(0.1))
-
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Started")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                        Text(session.startedAt, style: .relative)
-                            .foregroundStyle(.white)
-                    }
-                    Spacer()
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Last Seen")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                        Text(session.lastSeenAt, style: .relative)
-                            .foregroundStyle(.white)
-                    }
-                }
-            }
-        }
-    }
-
-    private var outputCard: some View {
-        BoardSurface {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text("Terminal Output")
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                    Spacer()
-                    if isLoadingOutput {
-                        ProgressView()
-                            .controlSize(.small)
-                            .tint(.orange)
-                    }
-                }
-
-                if let output, !output.isEmpty {
-                    ScrollView {
-                        Text(output)
-                            .font(.system(.caption, design: .monospaced))
-                            .foregroundStyle(.green)
-                            .textSelection(.enabled)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(12)
-                    }
-                    .frame(maxHeight: 320)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(Color.black.opacity(0.36))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .stroke(Color.white.opacity(0.06), lineWidth: 1)
-                    )
-                } else if !isLoadingOutput {
-                    Text("No output captured. The companion service may need tmux enabled.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .padding(.top, 4)
-                }
-            }
-        }
-    }
-
-    private var controlCard: some View {
-        BoardSurface {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Controls")
-                    .font(.headline)
-                    .foregroundStyle(.white)
-
-                HStack(spacing: 12) {
-                    Button {
-                        Task {
-                            isActing = true
-                            await appModel.sessionsStore.nudgeSession(id: session.id)
-                            isActing = false
+                    Menu {
+                        if session.status == .running {
+                            Button("Stop Session", role: .destructive) {
+                                Task {
+                                    await appModel.sessionsStore.stopSession(id: session.id)
+                                    dismiss()
+                                }
+                            }
                         }
                     } label: {
-                        Label("Nudge", systemImage: "hand.tap")
-                            .frame(maxWidth: .infinity)
+                        Image(systemName: "ellipsis.circle")
+                            .foregroundStyle(NeuPalette.textPrimary)
                     }
-                    .buttonStyle(.bordered)
-                    .tint(.blue)
-                    .disabled(isActing)
-
-                    Button {
-                        showStopConfirm = true
-                    } label: {
-                        Label("Stop", systemImage: "stop.circle")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.red)
-                    .disabled(isActing)
                 }
             }
         }
     }
 
-    private func loadOutput() async {
-        isLoadingOutput = true
-        output = await appModel.sessionsStore.fetchOutput(sessionID: session.id)
-        if output == nil {
-            output = session.lastOutput
+    private var headerCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                SessionStatusNeu(status: session.status)
+                Spacer()
+                if let pid = session.pid {
+                    HStack(spacing: 6) {
+                        Image(systemName: "cpu")
+                            .font(.caption)
+                        Text("PID \(pid)")
+                            .font(.caption.monospaced())
+                    }
+                    .foregroundStyle(NeuPalette.textSecondary)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(session.source)
+                    .font(.title2.weight(.bold))
+                    .foregroundStyle(NeuPalette.textPrimary)
+
+                if let model = session.model {
+                    Text(model)
+                        .font(.body.weight(.medium))
+                        .foregroundStyle(NeuPalette.accentOrange)
+                }
+            }
         }
-        isLoadingOutput = false
+        .padding(24)
+        .neuExtruded(cornerRadius: 24, elevation: 8)
+    }
+
+    private var overviewTab: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 24) {
+                if session.linkedTaskID != nil || session.workItem != nil {
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("LINKS")
+                            .font(.caption.weight(.bold))
+                            .tracking(1)
+                            .foregroundStyle(NeuPalette.textSecondary)
+
+                        if let taskID = session.linkedTaskID {
+                            HStack(spacing: 12) {
+                                Image(systemName: "list.clipboard")
+                                    .font(.headline)
+                                Text("Task \(taskID)")
+                                    .font(.headline)
+                            }
+                            .foregroundStyle(NeuPalette.accentCyan)
+                        }
+
+                        if let workItem = session.workItem {
+                            HStack(spacing: 12) {
+                                Image(systemName: "number")
+                                    .font(.headline)
+                                Text(workItem.issueReference)
+                                    .font(.headline)
+                            }
+                            .foregroundStyle(NeuPalette.accentCyan)
+                        }
+                    }
+                    .padding(24)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .neuExtruded(cornerRadius: 24, elevation: 8)
+                }
+
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("TIMELINE")
+                        .font(.caption.weight(.bold))
+                        .tracking(1)
+                        .foregroundStyle(NeuPalette.textSecondary)
+
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Started")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(NeuPalette.textSecondary)
+                            Text(session.startedAt, style: .relative)
+                                .font(.body.weight(.medium))
+                                .foregroundStyle(NeuPalette.textPrimary)
+                        }
+                        Spacer()
+                        VStack(alignment: .trailing, spacing: 4) {
+                            Text("Last Seen")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(NeuPalette.textSecondary)
+                            Text(session.lastSeenAt, style: .relative)
+                                .font(.body.weight(.medium))
+                                .foregroundStyle(NeuPalette.textPrimary)
+                        }
+                    }
+                }
+                .padding(24)
+                .neuExtruded(cornerRadius: 24, elevation: 8)
+            }
+            .padding(.horizontal, 24)
+        }
+    }
+
+    private var logsTab: some View {
+        VStack(spacing: 0) {
+            ScrollView(showsIndicators: false) {
+                LazyVStack(alignment: .leading, spacing: 8) {
+                    if isRefreshing && finalOutput == nil {
+                        ProgressView().padding()
+                    } else if let out = finalOutput, !out.isEmpty {
+                        Text(out)
+                            .font(.caption.monospaced())
+                            .foregroundStyle(NeuPalette.textPrimary)
+                            .padding(16)
+                    } else {
+                        Text("No logs available")
+                            .foregroundStyle(NeuPalette.textSecondary)
+                            .padding()
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .neuRecessed(cornerRadius: 16, depth: 6)
+        .padding(.horizontal, 24)
+        .padding(.bottom, 24)
+        .task {
+            await fetchOutput()
+        }
+    }
+
+    private func fetchOutput() async {
+        isRefreshing = true
+        let output = await appModel.sessionsStore.fetchOutput(sessionID: session.id)
+        if output == nil {
+            finalOutput = session.lastOutput
+        } else {
+            finalOutput = output
+        }
+        isRefreshing = false
     }
 }

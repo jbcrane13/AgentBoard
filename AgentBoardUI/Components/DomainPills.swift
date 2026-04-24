@@ -11,9 +11,9 @@ struct WorkStatusPill: View {
     private var tint: Color {
         switch state {
         case .open: .blue
-        case .inProgress: .orange
+        case .inProgress: NeuPalette.accentOrange
         case .blocked: .red
-        case .done: .green
+        case .done: NeuPalette.accentCyan
         }
     }
 
@@ -52,7 +52,7 @@ struct AgentHealthPill: View {
         switch health {
         case .online: .green
         case .idle: .blue
-        case .warning: .orange
+        case .warning: NeuPalette.accentOrange
         case .offline: .red
         }
     }
@@ -69,7 +69,7 @@ struct SessionStatusPill: View {
         switch status {
         case .running: .green
         case .idle: .blue
-        case .stopped: .orange
+        case .stopped: NeuPalette.accentOrange
         case .error: .red
         }
     }

@@ -52,6 +52,7 @@ targets:
       properties:
         NSHumanReadableCopyright: "Copyright © 2026 Blake Crane. All rights reserved."
         NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
           NSAllowsLocalNetworking: true
     preBuildScripts:
       - script: |
@@ -100,6 +101,7 @@ targets:
         CFBundleDisplayName: AgentBoard
         NSHumanReadableCopyright: "Copyright © 2026 Blake Crane. All rights reserved."
         NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
           NSAllowsLocalNetworking: true
         UILaunchScreen: {}
     preBuildScripts:

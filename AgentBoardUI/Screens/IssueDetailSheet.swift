@@ -18,7 +18,7 @@ struct IssueDetailSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                BoardBackground()
+                NeuBackground()
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
                         if isEditing {
@@ -31,21 +31,20 @@ struct IssueDetailSheet: View {
                 }
             }
             .navigationTitle(item.issueReference)
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close") { dismiss() }
-                        .foregroundStyle(.white)
+                        .foregroundStyle(NeuPalette.textPrimary)
                 }
                 ToolbarItem(placement: .primaryAction) {
                     if isEditing {
                         Button("Save") { save() }
-                            .buttonStyle(.borderedProminent)
-                            .tint(.blue)
+                            .buttonStyle(NeuButtonTarget(isAccent: true))
                             .disabled(isSaving || editTitle.trimmedOrNil == nil)
                     } else {
                         Button("Edit") { beginEditing() }
-                            .buttonStyle(.bordered)
-                            .tint(.white)
+                            .buttonStyle(NeuButtonTarget(isAccent: false))
                     }
                 }
             }
@@ -53,28 +52,29 @@ struct IssueDetailSheet: View {
     }
 
     private var readView: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            BoardSurface {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text(item.title)
-                        .font(.title2.weight(.bold))
-                        .foregroundStyle(.white)
-                    HStack(spacing: 8) {
-                        WorkStatusPill(state: item.status)
-                        PriorityPill(priority: item.priority)
-                    }
-                    if !item.assignees.isEmpty {
-                        Label(item.assignees.joined(separator: ", "), systemImage: "person.fill")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                    if let milestone = item.milestone {
-                        Label(milestone.title, systemImage: "flag")
-                            .font(.subheadline)
-                            .foregroundStyle(.orange)
-                    }
+        VStack(alignment: .leading, spacing: 24) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text(item.title)
+                    .font(.title2.weight(.bold))
+                    .foregroundStyle(NeuPalette.textPrimary)
+                HStack(spacing: 8) {
+                    WorkStatusPill(state: item.status)
+                    PriorityPill(priority: item.priority)
+                }
+                if !item.assignees.isEmpty {
+                    Label(item.assignees.joined(separator: ", "), systemImage: "person.fill")
+                        .font(.subheadline)
+                        .foregroundStyle(NeuPalette.textSecondary)
+                }
+                if let milestone = item.milestone {
+                    Label(milestone.title, systemImage: "flag")
+                        .font(.subheadline)
+                        .foregroundStyle(NeuPalette.accentOrange)
                 }
             }
+            .padding(24)
+            .neuExtruded(cornerRadius: 24, elevation: 8)
+
             descriptionCard
             labelsCard
             timelineCard
@@ -84,121 +84,115 @@ struct IssueDetailSheet: View {
     @ViewBuilder
     private var descriptionCard: some View {
         if !item.bodySummary.isEmpty {
-            BoardSurface {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Description")
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                    Text(item.bodySummary)
-                        .font(.body)
-                        .foregroundStyle(.secondary)
-                        .textSelection(.enabled)
-                }
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Description")
+                    .font(.headline)
+                    .foregroundStyle(NeuPalette.textPrimary)
+                Text(item.bodySummary)
+                    .font(.body)
+                    .foregroundStyle(NeuPalette.textSecondary)
+                    .textSelection(.enabled)
             }
+            .padding(24)
+            .neuExtruded(cornerRadius: 24, elevation: 8)
         }
     }
 
     @ViewBuilder
     private var labelsCard: some View {
         if !item.labels.isEmpty {
-            BoardSurface {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Labels")
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                    FlowLayout(spacing: 8) {
-                        ForEach(item.labels, id: \.self) { label in
-                            Text(label)
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 5)
-                                .background(
-                                    Capsule().fill(.blue.opacity(0.28))
-                                )
-                        }
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Labels")
+                    .font(.headline)
+                    .foregroundStyle(NeuPalette.textPrimary)
+                FlowLayout(spacing: 8) {
+                    ForEach(item.labels, id: \.self) { label in
+                        Text(label)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(NeuPalette.accentCyan)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .neuRecessed(cornerRadius: 12, depth: 3)
                     }
                 }
             }
+            .padding(24)
+            .neuExtruded(cornerRadius: 24, elevation: 8)
         }
     }
 
     private var timelineCard: some View {
-        BoardSurface {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Timeline")
-                    .font(.headline)
-                    .foregroundStyle(.white)
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Created")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                        Text(item.createdAt, style: .relative)
-                            .foregroundStyle(.white)
-                    }
-                    Spacer()
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Updated")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                        Text(item.updatedAt, style: .relative)
-                            .foregroundStyle(.white)
-                    }
-                }
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Created")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(NeuPalette.textSecondary)
+                Text(item.createdAt, style: .relative)
+                    .foregroundStyle(NeuPalette.textPrimary)
+            }
+            Spacer()
+            VStack(alignment: .trailing, spacing: 4) {
+                Text("Updated")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(NeuPalette.textSecondary)
+                Text(item.updatedAt, style: .relative)
+                    .foregroundStyle(NeuPalette.textPrimary)
             }
         }
+        .padding(24)
+        .neuExtruded(cornerRadius: 24, elevation: 8)
     }
 
     private var editForm: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            BoardSurface {
-                VStack(alignment: .leading, spacing: 14) {
-                    BoardSectionTitle("Edit Issue")
+        VStack(alignment: .leading, spacing: 24) {
+            VStack(alignment: .leading, spacing: 20) {
+                Text("EDIT ISSUE")
+                    .font(.caption.weight(.bold))
+                    .tracking(1)
+                    .foregroundStyle(NeuPalette.textSecondary)
 
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Title").font(.headline).foregroundStyle(.white)
-                        TextField("Issue title", text: $editTitle)
-                            .boardFieldStyle()
-                    }
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Title").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                    NeuTextField(placeholder: "Issue title", text: $editTitle)
+                }
 
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Description").font(.headline).foregroundStyle(.white)
-                        TextEditor(text: $editBody)
-                            .scrollContentBackground(.hidden)
-                            .frame(minHeight: 100)
-                            .padding(10)
-                            .background(RoundedRectangle(cornerRadius: 16).fill(Color.black.opacity(0.22)))
-                            .foregroundStyle(.white)
-                    }
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Description").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                    TextEditor(text: $editBody)
+                        .scrollContentBackground(.hidden)
+                        .frame(minHeight: 100)
+                        .padding(12)
+                        .neuRecessed(cornerRadius: 16, depth: 6)
+                        .foregroundStyle(NeuPalette.textPrimary)
+                }
 
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Labels (comma-separated)").font(.headline).foregroundStyle(.white)
-                        TextField("bug, enhancement, priority:p1", text: $editLabels)
-                            .boardFieldStyle()
-                    }
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Labels").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                    NeuTextField(placeholder: "bug, priority:p1", text: $editLabels)
+                }
 
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Assignees (comma-separated)").font(.headline).foregroundStyle(.white)
-                        TextField("alice, bob", text: $editAssignees)
-                            .boardFieldStyle()
-                    }
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Assignees").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                    NeuTextField(placeholder: "alice, bob", text: $editAssignees)
+                }
 
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Status").font(.headline).foregroundStyle(.white)
-                        Picker("Status", selection: $editState) {
-                            ForEach(WorkState.allCases) { state in
-                                Text(state.title).tag(state)
-                            }
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Status").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                    Picker("Status", selection: $editState) {
+                        ForEach(WorkState.allCases) { state in
+                            Text(state.title).tag(state)
                         }
-                        .pickerStyle(.segmented)
                     }
+                    .pickerStyle(.segmented)
+                    .tint(NeuPalette.accentCyan)
                 }
             }
+            .padding(24)
+            .neuExtruded(cornerRadius: 24, elevation: 8)
 
             if isSaving {
                 ProgressView("Saving…")
-                    .foregroundStyle(.white)
+                    .foregroundStyle(NeuPalette.textPrimary)
                     .frame(maxWidth: .infinity, alignment: .center)
             }
         }
@@ -274,15 +268,5 @@ private struct FlowLayout: Layout {
             x += size.width + spacing
             rowHeight = max(rowHeight, size.height)
         }
-    }
-}
-
-private extension View {
-    func boardFieldStyle() -> some View {
-        padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(RoundedRectangle(cornerRadius: 16).fill(Color.black.opacity(0.22)))
-            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.white.opacity(0.08), lineWidth: 1))
-            .foregroundStyle(.white)
     }
 }
