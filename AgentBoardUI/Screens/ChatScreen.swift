@@ -3,6 +3,8 @@ import SwiftUI
 
 struct ChatScreen: View {
     @Environment(AgentBoardAppModel.self) private var appModel
+    @State private var editingConversationID: UUID?
+    @State private var editingTitle = ""
 
     var body: some View {
         @Bindable var chatStore = appModel.chatStore
@@ -10,88 +12,42 @@ struct ChatScreen: View {
         ZStack {
             BoardBackground()
 
-            VStack(alignment: .leading, spacing: 18) {
-                header
+            VStack(alignment: .leading, spacing: 0) {
+                VStack(alignment: .leading, spacing: 14) {
+                    header
 
-                if !chatStore.conversations.isEmpty {
-                    conversationRail
-                }
-
-                BoardSurface {
-                    if chatStore.messages.isEmpty {
-                        EmptyStateCard(
-                            title: "Start the Hermes conversation",
-                            message:
-                            "The new chat surface is shared across macOS and iOS, streams assistant output in place, and keeps local history in SwiftData.",
-                            systemImage: "sparkles"
-                        )
-                    } else {
-                        ScrollView {
-                            LazyVStack(alignment: .leading, spacing: 14) {
-                                ForEach(chatStore.messages) { message in
-                                    ChatBubble(message: message)
-                                }
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        }
+                    if !chatStore.conversations.isEmpty {
+                        conversationRail
                     }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(.horizontal, 24)
+                .padding(.top, 24)
+                .padding(.bottom, 12)
 
-                BoardSurface {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Prompt")
-                            .font(.headline)
-                            .foregroundStyle(.white)
+                messageList
+                    .padding(.horizontal, 24)
 
-                        TextEditor(text: $chatStore.draft)
-                            .scrollContentBackground(.hidden)
-                            .frame(minHeight: 120)
-                            .padding(10)
-                            .background(
-                                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                    .fill(Color.black.opacity(0.22))
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
-                            )
-                            .foregroundStyle(.white)
-
-                        HStack {
-                            Text(chatStore.errorMessage ?? chatStore
-                                .statusMessage ?? "Hermes-first streaming is ready.")
-                                .font(.footnote)
-                                .foregroundStyle(chatStore.errorMessage == nil ? BoardPalette.paper
-                                    .opacity(0.75) : BoardPalette.coral)
-
-                            Spacer()
-
-                            Button("Send") {
-                                Task {
-                                    await chatStore.sendDraft()
-                                }
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .tint(BoardPalette.coral)
-                            .disabled(chatStore.draft.trimmedOrNil == nil || chatStore.isStreaming)
-                        }
-                    }
-                }
+                composeArea
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 16)
             }
-            .padding(24)
         }
+        .navigationTitle("Chat")
     }
 
     private var header: some View {
         HStack(alignment: .top) {
-            BoardHeader(
-                eyebrow: "Hermes Chat",
-                title: "A fresh client for gateway-native conversations",
-                subtitle: "Streaming, reconnect state, and conversation history all live in the new shared core instead of the legacy AppState."
-            )
+            VStack(alignment: .leading, spacing: 6) {
+                Text("CHAT".uppercased())
+                    .font(.caption.weight(.semibold))
+                    .tracking(2)
+                    .foregroundStyle(BoardPalette.gold)
+                Text("Hermes AI")
+                    .font(.system(size: 28, weight: .bold, design: .serif))
+                    .foregroundStyle(.white)
+            }
 
-            Spacer(minLength: 20)
+            Spacer(minLength: 16)
 
             VStack(alignment: .trailing, spacing: 10) {
                 HStack(spacing: 8) {
@@ -100,14 +56,11 @@ struct ChatScreen: View {
                         systemImage: "dot.radiowaves.left.and.right",
                         tint: chipTint(for: appModel.chatStore.connectionState)
                     )
-                    BoardChip(
-                        label: appModel.settingsStore.hermesModelID.trimmedOrNil ?? "hermes-agent",
-                        systemImage: "cpu",
-                        tint: BoardPalette.gold
-                    )
+
+                    modelPickerMenu
                 }
 
-                HStack(spacing: 10) {
+                HStack(spacing: 8) {
                     Button("Refresh") {
                         Task {
                             await appModel.chatStore.refreshConnection()
@@ -117,7 +70,7 @@ struct ChatScreen: View {
                     .buttonStyle(.bordered)
                     .tint(.white)
 
-                    Button("New Conversation") {
+                    Button("New") {
                         appModel.chatStore.startNewConversation()
                     }
                     .buttonStyle(.borderedProminent)
@@ -127,39 +80,188 @@ struct ChatScreen: View {
         }
     }
 
+    private var modelPickerMenu: some View {
+        Menu {
+            ForEach(appModel.chatStore.availableModels, id: \.self) { model in
+                Button {
+                    appModel.settingsStore.hermesModelID = model
+                    Task { await appModel.chatStore.refreshModels() }
+                } label: {
+                    HStack {
+                        Text(model)
+                        if model == appModel.settingsStore.hermesModelID {
+                            Image(systemName: "checkmark")
+                        }
+                    }
+                }
+            }
+        } label: {
+            BoardChip(
+                label: appModel.settingsStore.hermesModelID.trimmedOrNil ?? "model",
+                systemImage: "cpu",
+                tint: BoardPalette.gold
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
     private var conversationRail: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
                 ForEach(appModel.chatStore.conversations) { conversation in
-                    Button {
-                        appModel.chatStore.selectConversation(conversation.id)
-                    } label: {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(conversation.title)
-                                .font(.headline)
-                                .lineLimit(1)
-                                .foregroundStyle(.white)
+                    conversationRailItem(conversation)
+                }
+            }
+        }
+    }
 
-                            Text(conversation.updatedAt, style: .relative)
-                                .font(.caption)
-                                .foregroundStyle(BoardPalette.paper.opacity(0.7))
+    private func conversationRailItem(_ conversation: ChatConversation) -> some View {
+        let isSelected = conversation.id == appModel.chatStore.selectedConversationID
+
+        return Group {
+            if editingConversationID == conversation.id {
+                HStack(spacing: 6) {
+                    TextField("Name", text: $editingTitle)
+                        .textFieldStyle(.plain)
+                        .foregroundStyle(.white)
+                        .font(.headline)
+                        .frame(width: 160)
+                        .onSubmit {
+                            appModel.chatStore.renameConversation(id: conversation.id, title: editingTitle)
+                            editingConversationID = nil
                         }
-                        .frame(width: 220, alignment: .leading)
-                        .padding(14)
-                        .background(
-                            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                                .fill(
-                                    conversation.id == appModel.chatStore.selectedConversationID
-                                        ? BoardPalette.cobalt.opacity(0.32)
-                                        : Color.white.opacity(0.08)
-                                )
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                                .stroke(Color.white.opacity(0.08), lineWidth: 1)
-                        )
+                    Button {
+                        appModel.chatStore.renameConversation(id: conversation.id, title: editingTitle)
+                        editingConversationID = nil
+                    } label: {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(BoardPalette.mint)
                     }
                     .buttonStyle(.plain)
+                }
+                .frame(width: 220, alignment: .leading)
+                .padding(14)
+                .background(
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .fill(BoardPalette.cobalt.opacity(0.32))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .stroke(BoardPalette.cobalt.opacity(0.5), lineWidth: 1)
+                )
+            } else {
+                Button {
+                    appModel.chatStore.selectConversation(conversation.id)
+                } label: {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(conversation.title)
+                            .font(.headline)
+                            .lineLimit(1)
+                            .foregroundStyle(.white)
+                        Text(conversation.updatedAt, style: .relative)
+                            .font(.caption)
+                            .foregroundStyle(BoardPalette.paper.opacity(0.7))
+                    }
+                    .frame(width: 220, alignment: .leading)
+                    .padding(14)
+                    .background(
+                        RoundedRectangle(cornerRadius: 22, style: .continuous)
+                            .fill(isSelected ? BoardPalette.cobalt.opacity(0.32) : Color.white.opacity(0.08))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 22, style: .continuous)
+                            .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
+                .contextMenu {
+                    Button {
+                        editingTitle = conversation.title
+                        editingConversationID = conversation.id
+                    } label: {
+                        Label("Rename", systemImage: "pencil")
+                    }
+                    Button(role: .destructive) {
+                        appModel.chatStore.deleteConversation(id: conversation.id)
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                }
+            }
+        }
+    }
+
+    private var messageList: some View {
+        BoardSurface {
+            if appModel.chatStore.messages.isEmpty {
+                EmptyStateCard(
+                    title: "Start a conversation",
+                    message: "Your messages stream live from the Hermes gateway and are saved locally.",
+                    systemImage: "sparkles"
+                )
+            } else {
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 14) {
+                            ForEach(appModel.chatStore.messages) { message in
+                                ChatBubble(message: message)
+                                    .id(message.id)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.bottom, 4)
+                    }
+                    .refreshable {
+                        await appModel.chatStore.refreshConnection()
+                    }
+                    .onChange(of: appModel.chatStore.messages.count) {
+                        if let last = appModel.chatStore.messages.last {
+                            withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
+                        }
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var composeArea: some View {
+        @Bindable var chatStore = appModel.chatStore
+
+        return BoardSurface {
+            VStack(alignment: .leading, spacing: 10) {
+                if let err = chatStore.errorMessage {
+                    Text(err)
+                        .font(.footnote)
+                        .foregroundStyle(BoardPalette.coral)
+                } else if let status = chatStore.statusMessage {
+                    Text(status)
+                        .font(.footnote)
+                        .foregroundStyle(BoardPalette.paper.opacity(0.75))
+                }
+
+                TextEditor(text: $chatStore.draft)
+                    .scrollContentBackground(.hidden)
+                    .frame(minHeight: 80, maxHeight: 160)
+                    .padding(10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(Color.black.opacity(0.22))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                    )
+                    .foregroundStyle(.white)
+
+                HStack {
+                    Spacer()
+                    Button(chatStore.isStreaming ? "Stop" : "Send") {
+                        Task { await chatStore.sendDraft() }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(chatStore.isStreaming ? BoardPalette.coral : BoardPalette.cobalt)
+                    .disabled(chatStore.draft.trimmedOrNil == nil && !chatStore.isStreaming)
                 }
             }
         }
@@ -179,7 +281,7 @@ private struct ChatBubble: View {
     let message: ConversationMessage
 
     var body: some View {
-        HStack {
+        HStack(alignment: .top) {
             if message.role == .assistant {
                 bubble
                 Spacer(minLength: 48)
@@ -204,20 +306,26 @@ private struct ChatBubble: View {
                 }
             }
 
-            Text(message.content.isEmpty && message.isStreaming ? "Streaming response..." : message.content)
-                .textSelection(.enabled)
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            if message.isStreaming && message.content.isEmpty {
+                Text("Streaming response…")
+                    .foregroundStyle(BoardPalette.paper.opacity(0.6))
+            } else {
+                MarkdownText(content: message.content)
+            }
         }
         .padding(16)
         .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(message.role == .assistant ? Color.white.opacity(0.09) : BoardPalette.coral.opacity(0.28))
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(
+                    message.role == .assistant
+                        ? Color.white.opacity(0.09)
+                        : BoardPalette.coral.opacity(0.28)
+                )
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .stroke(Color.white.opacity(0.08), lineWidth: 1)
         )
-        .frame(maxWidth: 720, alignment: .leading)
+        .frame(maxWidth: 680, alignment: .leading)
     }
 }

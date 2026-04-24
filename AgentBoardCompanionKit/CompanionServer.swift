@@ -294,8 +294,61 @@ public final class CompanionServer: @unchecked Sendable {
                 try sendJSON(task, over: connection)
                 await broker.publish(CompanionEvent(kind: .tasksChanged))
 
+            case let ("DELETE", components)
+                where components.count == 3 &&
+                components[0] == "v1" &&
+                components[1] == "tasks":
+                let id = components[2]
+                try await store.deleteTask(id: id)
+                try sendJSON(["ok": true], over: connection)
+                await broker.publish(CompanionEvent(kind: .tasksChanged))
+
             case ("GET", ["v1", "sessions"]):
                 try sendJSON(await store.listSessions(), over: connection)
+
+            case let ("GET", components)
+                where components.count == 4 &&
+                components[0] == "v1" &&
+                components[1] == "sessions" &&
+                components[3] == "output":
+                let sessionID = components[2]
+                let sessions = try await store.listSessions()
+                if let session = sessions.first(where: { $0.id == sessionID }) {
+                    let output = await probe.captureOutput(for: session) ?? session.lastOutput ?? ""
+                    try sendJSON(["output": output], over: connection)
+                } else {
+                    try sendJSON(["output": ""], over: connection)
+                }
+
+            case let ("POST", components)
+                where components.count == 4 &&
+                components[0] == "v1" &&
+                components[1] == "sessions" &&
+                components[3] == "nudge":
+                let sessionID = components[2]
+                let sessions = try await store.listSessions()
+                if let session = sessions.first(where: { $0.id == sessionID }) {
+                    let ok = await probe.nudge(session: session)
+                    try sendJSON(["ok": ok], over: connection)
+                } else {
+                    try sendJSON(["ok": false], over: connection)
+                }
+                await broker.publish(CompanionEvent(kind: .sessionsChanged))
+
+            case let ("POST", components)
+                where components.count == 4 &&
+                components[0] == "v1" &&
+                components[1] == "sessions" &&
+                components[3] == "stop":
+                let sessionID = components[2]
+                let sessions = try await store.listSessions()
+                if let session = sessions.first(where: { $0.id == sessionID }) {
+                    let ok = await probe.stop(session: session)
+                    try sendJSON(["ok": ok], over: connection)
+                } else {
+                    try sendJSON(["ok": false], over: connection)
+                }
+                await broker.publish(CompanionEvent(kind: .sessionsChanged))
 
             case ("GET", ["v1", "agents"]):
                 try sendJSON(await store.listAgents(), over: connection)

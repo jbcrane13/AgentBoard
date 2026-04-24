@@ -108,6 +108,19 @@ public actor CompanionSQLiteStore {
             );
             """
         )
+
+        runMigrations()
+    }
+
+    private func runMigrations() {
+        let sessionMigrations = [
+            "ALTER TABLE sessions ADD COLUMN pid INTEGER;",
+            "ALTER TABLE sessions ADD COLUMN tmux_session TEXT;",
+            "ALTER TABLE sessions ADD COLUMN last_output TEXT;"
+        ]
+        for sql in sessionMigrations {
+            try? execute(sql)
+        }
     }
 
     public func listTasks() throws -> [AgentTask] {
@@ -194,6 +207,15 @@ public actor CompanionSQLiteStore {
         return current
     }
 
+    public func deleteTask(id: String) throws {
+        let statement = try prepare("DELETE FROM agent_tasks WHERE id = ?;")
+        defer { sqlite3_finalize(statement) }
+        bind(id, to: 1, in: statement)
+        guard sqlite3_step(statement) == SQLITE_DONE else {
+            throw StoreError.stepFailed(Self.sqliteMessage(handle.raw))
+        }
+    }
+
     public func replaceSessions(_ sessions: [AgentSession]) throws {
         try execute("DELETE FROM sessions;")
 
@@ -202,9 +224,9 @@ public actor CompanionSQLiteStore {
                 """
                 INSERT INTO sessions (
                     id, source, status, linked_task_id, repo_owner, repo_name, issue_number,
-                    model, started_at, last_seen_at
+                    model, started_at, last_seen_at, pid, tmux_session, last_output
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
                 """
             )
             defer { sqlite3_finalize(statement) }
@@ -215,10 +237,21 @@ public actor CompanionSQLiteStore {
             bind(session.linkedTaskID, to: 4, in: statement)
             bind(session.workItem?.repository.owner, to: 5, in: statement)
             bind(session.workItem?.repository.name, to: 6, in: statement)
-            sqlite3_bind_int(statement, 7, Int32(session.workItem?.issueNumber ?? 0))
+            if let issueNumber = session.workItem?.issueNumber {
+                sqlite3_bind_int(statement, 7, Int32(issueNumber))
+            } else {
+                sqlite3_bind_null(statement, 7)
+            }
             bind(session.model, to: 8, in: statement)
             sqlite3_bind_double(statement, 9, session.startedAt.timeIntervalSince1970)
             sqlite3_bind_double(statement, 10, session.lastSeenAt.timeIntervalSince1970)
+            if let pid = session.pid {
+                sqlite3_bind_int(statement, 11, Int32(pid))
+            } else {
+                sqlite3_bind_null(statement, 11)
+            }
+            bind(session.tmuxSession, to: 12, in: statement)
+            bind(session.lastOutput, to: 13, in: statement)
 
             guard sqlite3_step(statement) == SQLITE_DONE else {
                 throw StoreError.stepFailed(Self.sqliteMessage(handle.raw))
@@ -230,7 +263,7 @@ public actor CompanionSQLiteStore {
         let statement = try prepare(
             """
             SELECT id, source, status, linked_task_id, repo_owner, repo_name, issue_number,
-                   model, started_at, last_seen_at
+                   model, started_at, last_seen_at, pid, tmux_session, last_output
             FROM sessions
             ORDER BY last_seen_at DESC;
             """
@@ -242,6 +275,7 @@ public actor CompanionSQLiteStore {
             let issueNumber = sqlite3_column_type(statement, 6) == SQLITE_NULL ? nil : int(statement, index: 6)
             let owner = nullableString(statement, index: 4)
             let name = nullableString(statement, index: 5)
+            let pid = sqlite3_column_type(statement, 10) == SQLITE_NULL ? nil : int(statement, index: 10)
 
             sessions.append(
                 AgentSession(
@@ -258,7 +292,10 @@ public actor CompanionSQLiteStore {
                     }(),
                     model: nullableString(statement, index: 7),
                     startedAt: date(statement, index: 8),
-                    lastSeenAt: date(statement, index: 9)
+                    lastSeenAt: date(statement, index: 9),
+                    pid: pid,
+                    tmuxSession: nullableString(statement, index: 11),
+                    lastOutput: nullableString(statement, index: 12)
                 )
             )
         }

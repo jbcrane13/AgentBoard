@@ -115,6 +115,30 @@ public actor GitHubWorkService {
         }
     }
 
+    public func createIssue(
+        repository: ConfiguredRepository,
+        title: String,
+        body: String,
+        labels: [String]
+    ) async throws -> WorkItem {
+        guard let token, !token.isEmpty else {
+            throw ServiceError.missingConfiguration
+        }
+
+        let url = try buildURL(repository: repository, endpoint: "issues")
+        var request = authorizedRequest(url: url, token: token)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let payload: [String: Any] = ["title": title, "body": body, "labels": labels]
+        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+
+        let (data, response) = try await session.data(for: request)
+        try validateResponse(response, data: data)
+        let issue = try JSONDecoder().decode(RawIssue.self, from: data)
+        return map(issue: issue, repository: repository)
+    }
+
     public func updateIssue(
         repository: ConfiguredRepository,
         issueNumber: Int,

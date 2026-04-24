@@ -150,6 +150,7 @@ struct SettingsScreen: View {
                 .padding(24)
             }
         }
+        .navigationTitle("Settings")
     }
 }
 

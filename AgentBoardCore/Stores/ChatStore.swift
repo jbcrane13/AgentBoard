@@ -70,6 +70,33 @@ public final class ChatStore {
         selectedConversationID = id
     }
 
+    public func renameConversation(id: UUID, title: String) {
+        guard var conversation = conversations.first(where: { $0.id == id }) else { return }
+        conversation.title = title
+        conversation.updatedAt = .now
+        upsert(conversation)
+        persist(conversationID: id)
+    }
+
+    public func deleteConversation(id: UUID) {
+        conversations.removeAll { $0.id == id }
+        messagesByConversationID.removeValue(forKey: id)
+
+        if selectedConversationID == id {
+            selectedConversationID = conversations.first?.id
+        }
+
+        do {
+            try cache.deleteConversation(id: id)
+        } catch {
+            logger.error("Failed to delete conversation from cache: \(error.localizedDescription, privacy: .public)")
+        }
+
+        if conversations.isEmpty {
+            startNewConversation()
+        }
+    }
+
     public func refreshConnection() async {
         errorMessage = nil
         statusMessage = nil

@@ -97,6 +97,37 @@ public actor CompanionClient {
         try await send(path: "v1/tasks/\(id)", method: "PATCH", payload: patch)
     }
 
+    public func deleteTask(id: String) async throws {
+        var request = makeRequest(path: "v1/tasks/\(id)")
+        request.httpMethod = "DELETE"
+        let (data, response) = try await session.data(for: request)
+        try validate(response: response, data: data)
+    }
+
+    public func stopSession(id: String) async throws {
+        var request = makeRequest(path: "v1/sessions/\(id)/stop")
+        request.httpMethod = "POST"
+        let (data, response) = try await session.data(for: request)
+        try validate(response: response, data: data)
+    }
+
+    public func nudgeSession(id: String) async throws {
+        var request = makeRequest(path: "v1/sessions/\(id)/nudge")
+        request.httpMethod = "POST"
+        let (data, response) = try await session.data(for: request)
+        try validate(response: response, data: data)
+    }
+
+    public func fetchSessionOutput(id: String) async throws -> String? {
+        let (data, response) = try await session.data(for: makeRequest(path: "v1/sessions/\(id)/output"))
+        try validate(response: response, data: data)
+        guard let payload = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let output = payload["output"] as? String else {
+            return nil
+        }
+        return output.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : output
+    }
+
     public func events() async throws -> AsyncThrowingStream<CompanionEvent, Error> {
         var request = makeRequest(path: "v1/events")
         request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
