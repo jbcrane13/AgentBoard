@@ -178,9 +178,6 @@ struct WorkScreen: View {
                 }
             }
         }
-        .refreshable {
-            await appModel.workStore.refresh()
-        }
     }
 }
 
@@ -190,61 +187,60 @@ private struct WorkCard: View {
     let onTap: () -> Void
 
     var body: some View {
-        Button(action: onTap) {
-            BoardSurface {
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack(alignment: .top) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(item.issueReference)
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(BoardPalette.gold)
-                            Text(item.title)
-                                .font(.headline)
-                                .foregroundStyle(.white)
-                                .multilineTextAlignment(.leading)
-                        }
-
-                        Spacer(minLength: 8)
-
-                        Menu {
-                            ForEach(WorkState.allCases) { state in
-                                Button(state.title) {
-                                    Task { await appModel.workStore.updateStatus(for: item, to: state) }
-                                }
-                            }
-                        } label: {
-                            Image(systemName: "ellipsis.circle")
-                                .font(.title3)
-                                .foregroundStyle(.white.opacity(0.8))
-                        }
-                        .buttonStyle(.plain)
-                    }
-
-                    if !item.bodySummary.isEmpty {
-                        Text(item.bodySummary)
-                            .font(.subheadline)
-                            .foregroundStyle(BoardPalette.paper.opacity(0.78))
-                            .lineLimit(2)
+        BoardSurface {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(item.issueReference)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(BoardPalette.gold)
+                        Text(item.title)
+                            .font(.headline)
+                            .foregroundStyle(.white)
                             .multilineTextAlignment(.leading)
                     }
 
-                    HStack(spacing: 8) {
-                        WorkStatusPill(state: item.status)
-                        PriorityPill(priority: item.priority)
-                    }
+                    Spacer(minLength: 8)
 
-                    HStack {
-                        Text(item.assignees.isEmpty ? "Unassigned" : item.assignees.joined(separator: ", "))
-                            .font(.caption)
-                            .foregroundStyle(BoardPalette.paper.opacity(0.68))
-                        Spacer()
-                        Text(item.updatedAt, style: .relative)
-                            .font(.caption)
-                            .foregroundStyle(BoardPalette.paper.opacity(0.68))
+                    Menu {
+                        ForEach(WorkState.allCases) { state in
+                            Button(state.title) {
+                                Task { await appModel.workStore.updateStatus(for: item, to: state) }
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                            .font(.title3)
+                            .foregroundStyle(.white.opacity(0.8))
                     }
+                    .buttonStyle(.plain)
+                }
+
+                if !item.bodySummary.isEmpty {
+                    Text(item.bodySummary)
+                        .font(.subheadline)
+                        .foregroundStyle(BoardPalette.paper.opacity(0.78))
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                }
+
+                HStack(spacing: 8) {
+                    WorkStatusPill(state: item.status)
+                    PriorityPill(priority: item.priority)
+                }
+
+                HStack {
+                    Text(item.assignees.isEmpty ? "Unassigned" : item.assignees.joined(separator: ", "))
+                        .font(.caption)
+                        .foregroundStyle(BoardPalette.paper.opacity(0.68))
+                    Spacer()
+                    Text(item.updatedAt, style: .relative)
+                        .font(.caption)
+                        .foregroundStyle(BoardPalette.paper.opacity(0.68))
                 }
             }
         }
-        .buttonStyle(.plain)
+        .contentShape(Rectangle())
+        .onTapGesture { onTap() }
     }
 }

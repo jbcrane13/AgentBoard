@@ -321,18 +321,7 @@ public final class CompanionServer: @unchecked Sendable {
                 try sendJSON(await store.listAgents(), over: connection)
 
             case ("GET", ["v1", "events"]):
-                let subscriber = SSESubscriber(connection: connection)
-                connection.stateUpdateHandler = { [weak self] state in
-                    switch state {
-                    case .cancelled, .failed:
-                        Task { await self?.broker.unregister(id: subscriber.id) }
-                    default:
-                        break
-                    }
-                }
-                sendSSEHeaders(over: connection)
-                await broker.register(subscriber)
-                subscriber.send(event: CompanionEvent(kind: .snapshotRefreshed))
+                await registerSSESubscriber(over: connection)
 
             default:
                 send(
@@ -359,6 +348,21 @@ public final class CompanionServer: @unchecked Sendable {
         }
     }
 
+    private func registerSSESubscriber(over connection: NWConnection) async {
+        let subscriber = SSESubscriber(connection: connection)
+        connection.stateUpdateHandler = { [weak self] state in
+            switch state {
+            case .cancelled, .failed:
+                Task { await self?.broker.unregister(id: subscriber.id) }
+            default:
+                break
+            }
+        }
+        sendSSEHeaders(over: connection)
+        await broker.register(subscriber)
+        subscriber.send(event: CompanionEvent(kind: .snapshotRefreshed))
+    }
+
     private func handleSessionAction(
         method: String,
         sessionID: String,
@@ -370,8 +374,11 @@ public final class CompanionServer: @unchecked Sendable {
         switch (method, action) {
         case ("GET", "output"):
             let output: String
-            if let session { output = await probe.captureOutput(for: session) ?? session.lastOutput ?? "" }
-            else { output = "" }
+            if let session {
+                output = await probe.captureOutput(for: session) ?? session.lastOutput ?? ""
+            } else {
+                output = ""
+            }
             try sendJSON(["output": output], over: connection)
         case ("POST", "nudge"):
             let ok: Bool

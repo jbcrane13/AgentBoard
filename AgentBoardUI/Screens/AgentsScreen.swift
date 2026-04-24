@@ -240,63 +240,62 @@ private struct AgentTaskCard: View {
     @State private var showDeleteConfirm = false
 
     var body: some View {
-        Button(action: onTap) {
-            BoardSurface {
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack(alignment: .top) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(task.workItem.issueReference)
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(BoardPalette.gold)
-                            Text(task.title)
-                                .font(.headline)
-                                .foregroundStyle(.white)
-                                .multilineTextAlignment(.leading)
-                        }
-                        Spacer(minLength: 8)
-
-                        Menu {
-                            Button("Edit") { onTap() }
-                            Divider()
-                            Button("Delete", role: .destructive) {
-                                showDeleteConfirm = true
-                            }
-                        } label: {
-                            Image(systemName: "ellipsis.circle")
-                                .font(.title3)
-                                .foregroundStyle(.white.opacity(0.8))
-                        }
-                        .buttonStyle(.plain)
-                    }
-
-                    if !task.note.isEmpty {
-                        Text(task.note)
-                            .font(.subheadline)
-                            .foregroundStyle(BoardPalette.paper.opacity(0.78))
-                            .lineLimit(2)
+        BoardSurface {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(task.workItem.issueReference)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(BoardPalette.gold)
+                        Text(task.title)
+                            .font(.headline)
+                            .foregroundStyle(.white)
                             .multilineTextAlignment(.leading)
                     }
+                    Spacer(minLength: 8)
 
-                    HStack(spacing: 8) {
-                        PriorityPill(priority: task.priority)
-                        BoardChip(label: task.assignedAgent, systemImage: "person.fill", tint: BoardPalette.gold)
+                    Menu {
+                        Button("Edit") { onTap() }
+                        Divider()
+                        Button("Delete", role: .destructive) {
+                            showDeleteConfirm = true
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                            .font(.title3)
+                            .foregroundStyle(.white.opacity(0.8))
                     }
-
-                    if let sessionID = task.sessionID {
-                        Text(sessionID)
-                            .font(.caption)
-                            .foregroundStyle(BoardPalette.paper.opacity(0.5))
-                            .lineLimit(1)
-                    }
-
-                    Text(task.updatedAt, style: .relative)
-                        .font(.caption)
-                        .foregroundStyle(BoardPalette.paper.opacity(0.68))
-                        .frame(maxWidth: .infinity, alignment: .trailing)
+                    .buttonStyle(.plain)
                 }
+
+                if !task.note.isEmpty {
+                    Text(task.note)
+                        .font(.subheadline)
+                        .foregroundStyle(BoardPalette.paper.opacity(0.78))
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                }
+
+                HStack(spacing: 8) {
+                    PriorityPill(priority: task.priority)
+                    BoardChip(label: task.assignedAgent, systemImage: "person.fill", tint: BoardPalette.gold)
+                }
+
+                if let sessionID = task.sessionID {
+                    Text(sessionID)
+                        .font(.caption)
+                        .foregroundStyle(BoardPalette.paper.opacity(0.5))
+                        .lineLimit(1)
+                }
+
+                Text(task.updatedAt, style: .relative)
+                    .font(.caption)
+                    .foregroundStyle(BoardPalette.paper.opacity(0.68))
+                    .frame(maxWidth: .infinity, alignment: .trailing)
             }
         }
-        .buttonStyle(.plain)
+        .contentShape(Rectangle())
+        .onTapGesture { onTap() }
         .alert("Delete Task", isPresented: $showDeleteConfirm) {
             Button("Delete", role: .destructive) {
                 Task { await appModel.agentsStore.deleteTask(id: task.id) }
@@ -307,4 +306,3 @@ private struct AgentTaskCard: View {
         }
     }
 }
-

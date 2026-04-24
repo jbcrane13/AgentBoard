@@ -99,6 +99,8 @@ public final class WorkStore {
         body: String,
         labels: [String] = []
     ) async {
+        errorMessage = nil
+        statusMessage = nil
         guard settingsStore.isGitHubConfigured else {
             errorMessage = "Connect GitHub before creating issues."
             return
@@ -116,6 +118,7 @@ public final class WorkStore {
             )
             upsert(item)
             try cache.replaceWorkItems(items)
+            errorMessage = nil
             statusMessage = "Created \(item.issueReference)."
         } catch {
             logger.error("Failed to create issue: \(error.localizedDescription, privacy: .public)")
@@ -131,6 +134,8 @@ public final class WorkStore {
         assignees: [String]? = nil,
         state: WorkState? = nil
     ) async {
+        errorMessage = nil
+        statusMessage = nil
         guard settingsStore.isGitHubConfigured else {
             errorMessage = "Connect GitHub before updating issues."
             return

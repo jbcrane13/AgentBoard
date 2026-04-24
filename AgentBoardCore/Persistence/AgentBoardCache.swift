@@ -156,6 +156,7 @@ private final class CachedSessionRecord {
     var lastSeenAt: Date
     var pid: Int?
     var tmuxSession: String?
+    var tmuxPaneID: String?
     var lastOutput: String?
 
     init(
@@ -171,6 +172,7 @@ private final class CachedSessionRecord {
         lastSeenAt: Date,
         pid: Int? = nil,
         tmuxSession: String? = nil,
+        tmuxPaneID: String? = nil,
         lastOutput: String? = nil
     ) {
         self.id = id
@@ -185,6 +187,7 @@ private final class CachedSessionRecord {
         self.lastSeenAt = lastSeenAt
         self.pid = pid
         self.tmuxSession = tmuxSession
+        self.tmuxPaneID = tmuxPaneID
         self.lastOutput = lastOutput
     }
 }
@@ -449,6 +452,7 @@ public final class AgentBoardCache {
                 lastSeenAt: record.lastSeenAt,
                 pid: record.pid,
                 tmuxSession: record.tmuxSession,
+                tmuxPaneID: record.tmuxPaneID,
                 lastOutput: record.lastOutput
             )
         }
@@ -471,6 +475,7 @@ public final class AgentBoardCache {
                     lastSeenAt: session.lastSeenAt,
                     pid: session.pid,
                     tmuxSession: session.tmuxSession,
+                    tmuxPaneID: session.tmuxPaneID,
                     lastOutput: session.lastOutput
                 )
             )

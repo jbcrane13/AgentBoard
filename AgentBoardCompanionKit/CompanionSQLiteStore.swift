@@ -116,6 +116,7 @@ public actor CompanionSQLiteStore {
         let sessionMigrations = [
             "ALTER TABLE sessions ADD COLUMN pid INTEGER;",
             "ALTER TABLE sessions ADD COLUMN tmux_session TEXT;",
+            "ALTER TABLE sessions ADD COLUMN tmux_pane_id TEXT;",
             "ALTER TABLE sessions ADD COLUMN last_output TEXT;"
         ]
         for sql in sessionMigrations {
@@ -224,9 +225,9 @@ public actor CompanionSQLiteStore {
                 """
                 INSERT INTO sessions (
                     id, source, status, linked_task_id, repo_owner, repo_name, issue_number,
-                    model, started_at, last_seen_at, pid, tmux_session, last_output
+                    model, started_at, last_seen_at, pid, tmux_session, tmux_pane_id, last_output
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
                 """
             )
             defer { sqlite3_finalize(statement) }
@@ -251,7 +252,8 @@ public actor CompanionSQLiteStore {
                 sqlite3_bind_null(statement, 11)
             }
             bind(session.tmuxSession, to: 12, in: statement)
-            bind(session.lastOutput, to: 13, in: statement)
+            bind(session.tmuxPaneID, to: 13, in: statement)
+            bind(session.lastOutput, to: 14, in: statement)
 
             guard sqlite3_step(statement) == SQLITE_DONE else {
                 throw StoreError.stepFailed(Self.sqliteMessage(handle.raw))
@@ -263,7 +265,7 @@ public actor CompanionSQLiteStore {
         let statement = try prepare(
             """
             SELECT id, source, status, linked_task_id, repo_owner, repo_name, issue_number,
-                   model, started_at, last_seen_at, pid, tmux_session, last_output
+                   model, started_at, last_seen_at, pid, tmux_session, tmux_pane_id, last_output
             FROM sessions
             ORDER BY last_seen_at DESC;
             """
@@ -295,7 +297,8 @@ public actor CompanionSQLiteStore {
                     lastSeenAt: date(statement, index: 9),
                     pid: pid,
                     tmuxSession: nullableString(statement, index: 11),
-                    lastOutput: nullableString(statement, index: 12)
+                    tmuxPaneID: nullableString(statement, index: 12),
+                    lastOutput: nullableString(statement, index: 13)
                 )
             )
         }

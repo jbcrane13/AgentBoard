@@ -109,6 +109,10 @@ public actor CompanionClient {
         request.httpMethod = "POST"
         let (data, response) = try await session.data(for: request)
         try validate(response: response, data: data)
+        if let payload = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let ok = payload["ok"] as? Bool, !ok {
+            throw URLError(.badServerResponse)
+        }
     }
 
     public func nudgeSession(id: String) async throws {
@@ -116,6 +120,10 @@ public actor CompanionClient {
         request.httpMethod = "POST"
         let (data, response) = try await session.data(for: request)
         try validate(response: response, data: data)
+        if let payload = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let ok = payload["ok"] as? Bool, !ok {
+            throw URLError(.badServerResponse)
+        }
     }
 
     public func fetchSessionOutput(id: String) async throws -> String? {

@@ -33,9 +33,6 @@ struct SessionsScreen: View {
                             }
                         }
                     }
-                    .refreshable {
-                        await appModel.sessionsStore.refresh()
-                    }
                 }
             }
             .padding(24)

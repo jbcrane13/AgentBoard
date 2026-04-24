@@ -276,4 +276,3 @@ private extension View {
             .foregroundStyle(.white)
     }
 }
-

@@ -114,6 +114,7 @@ public final class SessionsStore {
             return try await companionClient.fetchSessionOutput(id: sessionID)
         } catch {
             logger.error("Failed to fetch session output: \(error.localizedDescription, privacy: .public)")
+            errorMessage = error.localizedDescription
             return nil
         }
     }

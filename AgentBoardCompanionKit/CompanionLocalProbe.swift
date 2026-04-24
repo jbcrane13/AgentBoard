@@ -64,6 +64,7 @@ public actor CompanionLocalProbe {
             lastSeenAt: now,
             pid: process.pid,
             tmuxSession: matchedPane?.sessionName,
+            tmuxPaneID: matchedPane?.paneID,
             lastOutput: output
         )
     }
@@ -137,16 +138,16 @@ public actor CompanionLocalProbe {
     }
 
     public func captureOutput(for session: AgentSession) -> String? {
-        if let tmuxSession = session.tmuxSession {
-            return shell("/usr/bin/tmux", ["capture-pane", "-t", tmuxSession, "-p", "-S", "-200"])
-                .flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0 }
-        }
-        return nil
+        let target = session.tmuxPaneID ?? session.tmuxSession
+        guard let target else { return nil }
+        return shell("/usr/bin/env", ["tmux", "capture-pane", "-t", target, "-p", "-S", "-200"])
+            .flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0 }
     }
 
     public func nudge(session: AgentSession) -> Bool {
-        if let tmuxSession = session.tmuxSession {
-            return shell("/usr/bin/tmux", ["send-keys", "-t", tmuxSession, "", "Enter"]) != nil
+        let target = session.tmuxPaneID ?? session.tmuxSession
+        if let target {
+            return shell("/usr/bin/env", ["tmux", "send-keys", "-t", target, "", "Enter"]) != nil
         }
         if let pid = session.pid {
             return kill(Int32(pid), SIGCONT) == 0
@@ -156,7 +157,7 @@ public actor CompanionLocalProbe {
 
     public func stop(session: AgentSession) -> Bool {
         if let tmuxSession = session.tmuxSession {
-            return shell("/usr/bin/tmux", ["kill-session", "-t", tmuxSession]) != nil
+            return shell("/usr/bin/env", ["tmux", "kill-session", "-t", tmuxSession]) != nil
         }
         if let pid = session.pid {
             return kill(Int32(pid), SIGTERM) == 0
@@ -172,8 +173,8 @@ public actor CompanionLocalProbe {
 
     private func listTmuxPanes() -> [TmuxPane] {
         guard let output = shell(
-            "/usr/bin/tmux",
-            ["list-panes", "-a", "-F", "#{pane_pid} #{session_name} #{pane_id}"]
+            "/usr/bin/env",
+            ["tmux", "list-panes", "-a", "-F", "#{pane_pid} #{session_name} #{pane_id}"]
         ) else {
             return []
         }
@@ -195,7 +196,7 @@ public actor CompanionLocalProbe {
     }
 
     private func capturePane(paneID: String) -> String? {
-        shell("/usr/bin/tmux", ["capture-pane", "-t", paneID, "-p", "-S", "-200"])
+        shell("/usr/bin/env", ["tmux", "capture-pane", "-t", paneID, "-p", "-S", "-200"])
             .flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0 }
     }
 
