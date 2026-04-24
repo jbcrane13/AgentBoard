@@ -38,7 +38,7 @@ struct WorkScreen: View {
                             ?? "Connect a GitHub token and repository in Settings.",
                         systemImage: "tray"
                     )
-                } else if !isCompact && layoutMode == .board {
+                } else if !isCompact, layoutMode == .board {
                     boardLayout
                 } else {
                     listLayout
@@ -72,7 +72,6 @@ struct WorkScreen: View {
         }
     }
 
-    @ViewBuilder
     private var header: some View {
         ViewThatFits(in: .horizontal) {
             HStack(alignment: .top, spacing: 16) {

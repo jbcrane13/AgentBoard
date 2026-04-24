@@ -30,7 +30,7 @@ struct AgentsScreen: View {
             VStack(alignment: .leading, spacing: isCompact ? 12 : 18) {
                 header
 
-                if appModel.agentsStore.tasks.isEmpty && appModel.agentsStore.summaries.isEmpty {
+                if appModel.agentsStore.tasks.isEmpty, appModel.agentsStore.summaries.isEmpty {
                     EmptyStateCard(
                         title: "No agent activity yet",
                         message: appModel.agentsStore.statusMessage
@@ -39,7 +39,7 @@ struct AgentsScreen: View {
                         systemImage: "person.3.sequence"
                     )
                 } else {
-                    if !appModel.agentsStore.summaries.isEmpty && !isCompact {
+                    if !appModel.agentsStore.summaries.isEmpty, !isCompact {
                         agentSummaryRail
                     }
                     if isCompact {
@@ -65,7 +65,6 @@ struct AgentsScreen: View {
         }
     }
 
-    @ViewBuilder
     private var header: some View {
         ViewThatFits(in: .horizontal) {
             HStack(alignment: .top, spacing: 16) {
@@ -92,15 +91,6 @@ struct AgentsScreen: View {
         }
     }
 
-                Spacer(minLength: 20)
-
-                HStack(spacing: 8) {
-                    Button("Refresh") {
-                        Task { await appModel.agentsStore.refresh() }
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(.white)
-                    .accessibilityIdentifier("agents_button_refresh")
     private var headerControls: some View {
         HStack(spacing: 8) {
             Button("Refresh") {
@@ -108,6 +98,7 @@ struct AgentsScreen: View {
             }
             .buttonStyle(.bordered)
             .tint(.white)
+            .accessibilityIdentifier("agents_button_refresh")
 
             Button("New Task") {
                 assignedAgent = appModel.agentsStore.summaries.first?.name ?? "Codex"
@@ -121,6 +112,7 @@ struct AgentsScreen: View {
             .buttonStyle(.borderedProminent)
             .tint(BoardPalette.coral)
             .disabled(appModel.workStore.items.isEmpty)
+            .accessibilityIdentifier("agents_button_new_task")
         }
     }
 

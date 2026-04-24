@@ -40,7 +40,6 @@ struct ChatScreen: View {
         .navigationTitle("Chat")
     }
 
-    @ViewBuilder
     private var header: some View {
         ViewThatFits(in: .horizontal) {
             HStack(alignment: .top, spacing: 16) {
@@ -335,7 +334,7 @@ private struct ChatBubble: View {
                 }
             }
 
-            if message.isStreaming && message.content.isEmpty {
+            if message.isStreaming, message.content.isEmpty {
                 Text("Streaming response…")
                     .foregroundStyle(BoardPalette.paper.opacity(0.6))
             } else {
