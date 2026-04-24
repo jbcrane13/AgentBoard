@@ -110,6 +110,152 @@ targets:
         SWIFT_VERSION: "6.0"
     dependencies:
       - target: AgentBoard
+  AgentBoardCore:
+    type: framework
+    supportedDestinations: [macOS, iOS]
+    sources:
+      - path: Modern/AgentBoardCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.agentboard.AgentBoardCore
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_STRICT_CONCURRENCY: complete
+        SWIFT_VERSION: "6.0"
+        MACOSX_DEPLOYMENT_TARGET: "26.0"
+        IPHONEOS_DEPLOYMENT_TARGET: "26.0"
+  AgentBoardCompanionKit:
+    type: framework
+    platform: macOS
+    sources:
+      - path: Modern/AgentBoardCompanionKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.agentboard.AgentBoardCompanionKit
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_STRICT_CONCURRENCY: complete
+        SWIFT_VERSION: "6.0"
+        MACOSX_DEPLOYMENT_TARGET: "26.0"
+    dependencies:
+      - target: AgentBoardCore
+  AgentBoardDesktop:
+    type: application
+    platform: macOS
+    info:
+      path: Modern/AgentBoardDesktop/Info.plist
+      properties:
+        NSHumanReadableCopyright: "Copyright © 2026 Blake Crane. All rights reserved."
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+    preBuildScripts:
+      - script: |
+          if which swiftlint > /dev/null; then
+            swiftlint lint
+          else
+            echo "warning: SwiftLint not installed — run: brew install swiftlint"
+          fi
+        name: SwiftLint
+        inputFiles: []
+        outputFiles: []
+    sources:
+      - path: Modern/AgentBoardDesktop
+      - path: Modern/AgentBoardUI
+    resources:
+      - path: AgentBoard/Resources/Assets.xcassets
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.agentboard.AgentBoardDesktop
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: 1
+        SWIFT_STRICT_CONCURRENCY: complete
+        SWIFT_VERSION: "6.0"
+        MACOSX_DEPLOYMENT_TARGET: "26.0"
+        ENABLE_APP_SANDBOX: NO
+        CODE_SIGN_ENTITLEMENTS: AgentBoard/AgentBoard.entitlements
+        CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION: YES
+      configs:
+        Debug:
+          SWIFT_OPTIMIZATION_LEVEL: "-Onone"
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: "DEBUG $(inherited)"
+          CODE_SIGN_IDENTITY: "Apple Development"
+          DEVELOPMENT_TEAM: "32XZRDTGK3"
+        Release:
+          SWIFT_COMPILATION_MODE: wholemodule
+          CODE_SIGN_IDENTITY: "Apple Development"
+          DEVELOPMENT_TEAM: "32XZRDTGK3"
+    dependencies:
+      - target: AgentBoardCore
+    entitlements:
+      path: AgentBoard/AgentBoard.entitlements
+  AgentBoardMobile:
+    type: application
+    platform: iOS
+    info:
+      path: Modern/AgentBoardMobile/Info.plist
+      properties:
+        NSHumanReadableCopyright: "Copyright © 2026 Blake Crane. All rights reserved."
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+        UILaunchScreen: {}
+    preBuildScripts:
+      - script: |
+          if which swiftlint > /dev/null; then
+            swiftlint lint
+          else
+            echo "warning: SwiftLint not installed — run: brew install swiftlint"
+          fi
+        name: SwiftLint
+        inputFiles: []
+        outputFiles: []
+    sources:
+      - path: Modern/AgentBoardMobile
+      - path: Modern/AgentBoardUI
+    resources:
+      - path: AgentBoard/Resources/Assets.xcassets
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.agentboard.AgentBoardMobile
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: 1
+        SWIFT_STRICT_CONCURRENCY: complete
+        SWIFT_VERSION: "6.0"
+        IPHONEOS_DEPLOYMENT_TARGET: "26.0"
+      configs:
+        Debug:
+          SWIFT_OPTIMIZATION_LEVEL: "-Onone"
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: "DEBUG $(inherited)"
+          CODE_SIGN_IDENTITY: "Apple Development"
+          DEVELOPMENT_TEAM: "32XZRDTGK3"
+        Release:
+          SWIFT_COMPILATION_MODE: wholemodule
+          CODE_SIGN_IDENTITY: "Apple Development"
+          DEVELOPMENT_TEAM: "32XZRDTGK3"
+    dependencies:
+      - target: AgentBoardCore
+  AgentBoardCompanion:
+    type: tool
+    platform: macOS
+    sources:
+      - path: Modern/AgentBoardCompanion
+    settings:
+      base:
+        SWIFT_STRICT_CONCURRENCY: complete
+        SWIFT_VERSION: "6.0"
+        MACOSX_DEPLOYMENT_TARGET: "26.0"
+    dependencies:
+      - target: AgentBoardCompanionKit
+  AgentBoardModernTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: Modern/AgentBoardModernTests
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_VERSION: "6.0"
+        MACOSX_DEPLOYMENT_TARGET: "26.0"
+    dependencies:
+      - target: AgentBoardCore
+      - target: AgentBoardCompanionKit
 
 schemes:
   AgentBoard:
@@ -129,3 +275,25 @@ schemes:
         - name: AgentBoardUITests
           parallelizable: true
           randomExecutionOrder: true
+  AgentBoardDesktop:
+    build:
+      targets:
+        AgentBoardDesktop: all
+        AgentBoardModernTests: [test]
+    test:
+      gatherCoverageData: true
+      coverageTargets:
+        - AgentBoardCore
+        - AgentBoardCompanionKit
+      targets:
+        - name: AgentBoardModernTests
+          parallelizable: true
+          randomExecutionOrder: true
+  AgentBoardMobile:
+    build:
+      targets:
+        AgentBoardMobile: all
+  AgentBoardCompanion:
+    build:
+      targets:
+        AgentBoardCompanion: all
