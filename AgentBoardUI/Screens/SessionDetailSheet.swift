@@ -71,7 +71,7 @@ struct SessionDetailSheet: View {
                     SessionStatusPill(status: session.status)
                     Spacer()
                     if let pid = session.pid {
-                        BoardChip(label: "PID \(pid)", systemImage: "cpu", tint: BoardPalette.paper.opacity(0.6))
+                        BoardChip(label: "PID \(pid)", systemImage: "cpu", tint: .secondary)
                     }
                 }
 
@@ -82,25 +82,25 @@ struct SessionDetailSheet: View {
                 if let model = session.model {
                     Label(model, systemImage: "cpu")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(BoardPalette.paper.opacity(0.82))
+                        .foregroundStyle(.secondary)
                 }
 
                 if let tmux = session.tmuxSession {
                     Label(tmux, systemImage: "terminal")
                         .font(.subheadline)
-                        .foregroundStyle(BoardPalette.paper.opacity(0.72))
+                        .foregroundStyle(.secondary)
                 }
 
                 if let linkedTask = appModel.agentsStore.tasks.first(where: { $0.sessionID == session.id }) {
                     Label(linkedTask.title, systemImage: "checkmark.circle")
                         .font(.subheadline)
-                        .foregroundStyle(BoardPalette.gold)
+                        .foregroundStyle(.orange)
                 }
 
                 if let workItem = session.workItem {
                     Label(workItem.issueReference, systemImage: "square.grid.2x2")
                         .font(.subheadline)
-                        .foregroundStyle(BoardPalette.cobalt)
+                        .foregroundStyle(.blue)
                 }
 
                 Divider().overlay(Color.white.opacity(0.1))
@@ -109,7 +109,7 @@ struct SessionDetailSheet: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Started")
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(BoardPalette.paper.opacity(0.6))
+                            .foregroundStyle(.secondary)
                         Text(session.startedAt, style: .relative)
                             .foregroundStyle(.white)
                     }
@@ -117,7 +117,7 @@ struct SessionDetailSheet: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Last Seen")
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(BoardPalette.paper.opacity(0.6))
+                            .foregroundStyle(.secondary)
                         Text(session.lastSeenAt, style: .relative)
                             .foregroundStyle(.white)
                     }
@@ -137,7 +137,7 @@ struct SessionDetailSheet: View {
                     if isLoadingOutput {
                         ProgressView()
                             .controlSize(.small)
-                            .tint(BoardPalette.gold)
+                            .tint(.orange)
                     }
                 }
 
@@ -145,7 +145,7 @@ struct SessionDetailSheet: View {
                     ScrollView {
                         Text(output)
                             .font(.system(.caption, design: .monospaced))
-                            .foregroundStyle(BoardPalette.mint)
+                            .foregroundStyle(.green)
                             .textSelection(.enabled)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(12)
@@ -162,7 +162,7 @@ struct SessionDetailSheet: View {
                 } else if !isLoadingOutput {
                     Text("No output captured. The companion service may need tmux enabled.")
                         .font(.subheadline)
-                        .foregroundStyle(BoardPalette.paper.opacity(0.55))
+                        .foregroundStyle(.secondary)
                         .padding(.top, 4)
                 }
             }
@@ -188,7 +188,7 @@ struct SessionDetailSheet: View {
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
-                    .tint(BoardPalette.cobalt)
+                    .tint(.blue)
                     .disabled(isActing)
 
                     Button {
@@ -198,7 +198,7 @@ struct SessionDetailSheet: View {
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
-                    .tint(BoardPalette.coral)
+                    .tint(.red)
                     .disabled(isActing)
                 }
             }

@@ -43,7 +43,7 @@ struct TaskDetailSheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") { save() }
                         .buttonStyle(.borderedProminent)
-                        .tint(BoardPalette.cobalt)
+                        .tint(.blue)
                         .disabled(isSaving || editTitle.trimmedOrNil == nil)
                 }
             }
@@ -129,7 +129,7 @@ struct TaskDetailSheet: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Link Session").font(.headline).foregroundStyle(.white)
             Picker("Session", selection: $editSessionID) {
-                Text("None").tag(Optional<String>.none)
+                Text("None").tag(String?.none)
                 ForEach(appModel.sessionsStore.sessions) { session in
                     Text("\(session.source) — \(session.status.title)")
                         .tag(Optional(session.id))
@@ -150,11 +150,11 @@ struct TaskDetailSheet: View {
                 HStack {
                     Text(task.workItem.issueReference)
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(BoardPalette.gold)
+                        .foregroundStyle(.orange)
                     Spacer()
                     Text(task.createdAt, style: .relative)
                         .font(.caption)
-                        .foregroundStyle(BoardPalette.paper.opacity(0.6))
+                        .foregroundStyle(.secondary)
                 }
             }
         }
@@ -168,7 +168,7 @@ struct TaskDetailSheet: View {
                 .frame(maxWidth: .infinity)
         }
         .buttonStyle(.bordered)
-        .tint(BoardPalette.coral)
+        .tint(.red)
         .padding(.top, 4)
     }
 

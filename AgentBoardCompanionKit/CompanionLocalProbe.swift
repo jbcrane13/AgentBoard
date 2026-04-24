@@ -83,7 +83,8 @@ public actor CompanionLocalProbe {
             .filter { !$0.isEmpty }
             .map { makeSummary(agentName: $0, sessions: sessions, tasks: tasks, now: now, machineName: machineName) }
             .sorted {
-                if $0.activeSessionCount != $1.activeSessionCount { return $0.activeSessionCount > $1.activeSessionCount }
+                if $0.activeSessionCount != $1
+                    .activeSessionCount { return $0.activeSessionCount > $1.activeSessionCount }
                 return $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
             }
     }

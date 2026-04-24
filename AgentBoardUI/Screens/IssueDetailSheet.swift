@@ -40,7 +40,7 @@ struct IssueDetailSheet: View {
                     if isEditing {
                         Button("Save") { save() }
                             .buttonStyle(.borderedProminent)
-                            .tint(BoardPalette.cobalt)
+                            .tint(.blue)
                             .disabled(isSaving || editTitle.trimmedOrNil == nil)
                     } else {
                         Button("Edit") { beginEditing() }
@@ -66,12 +66,12 @@ struct IssueDetailSheet: View {
                     if !item.assignees.isEmpty {
                         Label(item.assignees.joined(separator: ", "), systemImage: "person.fill")
                             .font(.subheadline)
-                            .foregroundStyle(BoardPalette.paper.opacity(0.82))
+                            .foregroundStyle(.secondary)
                     }
                     if let milestone = item.milestone {
                         Label(milestone.title, systemImage: "flag")
                             .font(.subheadline)
-                            .foregroundStyle(BoardPalette.gold)
+                            .foregroundStyle(.orange)
                     }
                 }
             }
@@ -91,7 +91,7 @@ struct IssueDetailSheet: View {
                         .foregroundStyle(.white)
                     Text(item.bodySummary)
                         .font(.body)
-                        .foregroundStyle(BoardPalette.paper.opacity(0.82))
+                        .foregroundStyle(.secondary)
                         .textSelection(.enabled)
                 }
             }
@@ -114,7 +114,7 @@ struct IssueDetailSheet: View {
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 5)
                                 .background(
-                                    Capsule().fill(BoardPalette.cobalt.opacity(0.28))
+                                    Capsule().fill(.blue.opacity(0.28))
                                 )
                         }
                     }
@@ -133,7 +133,7 @@ struct IssueDetailSheet: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Created")
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(BoardPalette.paper.opacity(0.6))
+                            .foregroundStyle(.secondary)
                         Text(item.createdAt, style: .relative)
                             .foregroundStyle(.white)
                     }
@@ -141,7 +141,7 @@ struct IssueDetailSheet: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Updated")
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(BoardPalette.paper.opacity(0.6))
+                            .foregroundStyle(.secondary)
                         Text(item.updatedAt, style: .relative)
                             .foregroundStyle(.white)
                     }
@@ -215,8 +215,10 @@ struct IssueDetailSheet: View {
 
     private func save() {
         isSaving = true
-        let labels = editLabels.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
-        let assignees = editAssignees.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+        let labels = editLabels.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+        let assignees = editAssignees.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
         Task {
             await appModel.workStore.updateIssue(
                 item,
@@ -256,7 +258,7 @@ private struct FlowLayout: Layout {
         return CGSize(width: width, height: height)
     }
 
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache _: inout ()) {
+    func placeSubviews(in bounds: CGRect, proposal _: ProposedViewSize, subviews: Subviews, cache _: inout ()) {
         var x = bounds.minX
         var y = bounds.minY
         var rowHeight: CGFloat = 0

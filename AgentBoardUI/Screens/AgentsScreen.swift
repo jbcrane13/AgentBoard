@@ -24,36 +24,43 @@ struct AgentsScreen: View {
     }
 
     var body: some View {
-        ZStack {
-            BoardBackground()
-
-            VStack(alignment: .leading, spacing: isCompact ? 12 : 18) {
-                header
-
-                if appModel.agentsStore.tasks.isEmpty, appModel.agentsStore.summaries.isEmpty {
-                    EmptyStateCard(
-                        title: "No agent activity yet",
-                        message: appModel.agentsStore.statusMessage
-                            ??
-                            "Start the companion service and point Settings at it to watch tasks and live execution state.",
-                        systemImage: "person.3.sequence"
-                    )
+        Group {
+            if appModel.agentsStore.tasks.isEmpty, appModel.agentsStore.summaries.isEmpty {
+                EmptyStateCard(
+                    title: "No agent activity yet",
+                    message: appModel.agentsStore.statusMessage
+                        ??
+                        "Start the companion service and point Settings at it to watch tasks and live execution state.",
+                    systemImage: "person.3.sequence"
+                )
+            } else {
+                if isCompact {
+                    compactTaskList
                 } else {
-                    if !appModel.agentsStore.summaries.isEmpty, !isCompact {
-                        agentSummaryRail
-                    }
-                    if isCompact {
-                        compactTaskList
-                    } else {
-                        kanbanBoard
-                    }
+                    kanbanBoard
                 }
             }
-            .padding(isCompact ? 16 : 24)
         }
         .navigationTitle("Agents")
         .refreshable {
             await appModel.agentsStore.refresh()
+        }
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    assignedAgent = appModel.agentsStore.summaries.first?.name ?? "Codex"
+                    selectedWorkItemID = appModel.workStore.items.first?.id
+                    taskTitle = ""
+                    note = ""
+                    status = .backlog
+                    priority = .medium
+                    isPresentingCreateSheet = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .disabled(appModel.workStore.items.isEmpty)
+                .accessibilityIdentifier("agents_button_new_task")
+            }
         }
         .sheet(item: $selectedTask) { task in
             TaskDetailSheet(task: task)
@@ -65,95 +72,13 @@ struct AgentsScreen: View {
         }
     }
 
-    private var header: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(alignment: .top, spacing: 16) {
-                headerTitle
-                Spacer(minLength: 20)
-                headerControls
-            }
-            VStack(alignment: .leading, spacing: 16) {
-                headerTitle
-                headerControls
-            }
-        }
-    }
-
-    private var headerTitle: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("AGENTS".uppercased())
-                .font(.caption.weight(.semibold))
-                .tracking(2)
-                .foregroundStyle(BoardPalette.gold)
-            Text("Task Board")
-                .font(.system(size: 28, weight: .bold, design: .serif))
-                .foregroundStyle(.white)
-        }
-    }
-
-    private var headerControls: some View {
-        HStack(spacing: 8) {
-            Button("Refresh") {
-                Task { await appModel.agentsStore.refresh() }
-            }
-            .buttonStyle(.bordered)
-            .tint(.white)
-            .accessibilityIdentifier("agents_button_refresh")
-
-            Button("New Task") {
-                assignedAgent = appModel.agentsStore.summaries.first?.name ?? "Codex"
-                selectedWorkItemID = appModel.workStore.items.first?.id
-                taskTitle = ""
-                note = ""
-                status = .backlog
-                priority = .medium
-                isPresentingCreateSheet = true
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(BoardPalette.coral)
-            .disabled(appModel.workStore.items.isEmpty)
-            .accessibilityIdentifier("agents_button_new_task")
-        }
-    }
-
-    private var agentSummaryRail: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 12) {
-                ForEach(appModel.agentsStore.summaries) { summary in
-                    BoardSurface {
-                        VStack(alignment: .leading, spacing: 10) {
-                            HStack {
-                                Text(summary.name)
-                                    .font(.headline)
-                                    .foregroundStyle(.white)
-                                Spacer()
-                                AgentHealthPill(health: summary.health)
-                            }
-                            Text(summary.recentActivity)
-                                .font(.caption)
-                                .foregroundStyle(BoardPalette.paper.opacity(0.78))
-                                .lineLimit(2)
-                            HStack(spacing: 8) {
-                                Label("\(summary.activeTaskCount)", systemImage: "checkmark.circle")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(BoardPalette.mint)
-                                Label("\(summary.activeSessionCount)", systemImage: "bolt.horizontal.circle")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(BoardPalette.cobalt)
-                            }
-                        }
-                        .frame(width: 240, alignment: .topLeading)
-                    }
-                }
-            }
-        }
-    }
-
     private var kanbanBoard: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(alignment: .top, spacing: 16) {
-                ForEach(groupedTasks, id: \.state) { column in
-                    BoardSurface {
+        VStack(spacing: 0) {
+            agentSummaryRail
+                .padding()
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(alignment: .top, spacing: 20) {
+                    ForEach(groupedTasks, id: \.state) { column in
                         VStack(alignment: .leading, spacing: 12) {
                             HStack {
                                 Text(column.state.title)
@@ -162,56 +87,101 @@ struct AgentsScreen: View {
                                 Spacer()
                                 Text("\(column.tasks.count)")
                                     .font(.headline)
-                                    .foregroundStyle(.white)
+                                    .foregroundStyle(.secondary)
                             }
 
                             if column.tasks.isEmpty {
                                 Text("None")
                                     .font(.subheadline)
-                                    .foregroundStyle(BoardPalette.paper.opacity(0.45))
+                                    .foregroundStyle(.tertiary)
                                     .frame(maxWidth: .infinity, alignment: .center)
                                     .padding(.vertical, 12)
                             } else {
-                                ForEach(column.tasks) { task in
-                                    AgentTaskCard(task: task) {
-                                        selectedTask = task
+                                ScrollView {
+                                    LazyVStack(spacing: 12) {
+                                        ForEach(column.tasks) { task in
+                                            TaskCard(task: task) {
+                                                selectedTask = task
+                                            }
+                                        }
                                     }
                                 }
                             }
                         }
-                        .frame(width: 300, alignment: .topLeading)
+                        .frame(width: 320, alignment: .topLeading)
+                        .padding(16)
+                        .background(Color(.secondarySystemBackground))
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
                     }
                 }
+                .padding(20)
             }
-            .padding(.trailing, 4)
+            .background(Color(.systemGroupedBackground))
         }
     }
 
     private var compactTaskList: some View {
-        ScrollView {
-            LazyVStack(spacing: 0) {
-                ForEach(AgentTaskState.allCases) { state in
-                    let tasks = appModel.agentsStore.tasks.filter { $0.status == state }
-                    if !tasks.isEmpty {
+        List {
+            if !appModel.agentsStore.summaries.isEmpty {
+                Section("Active Agents") {
+                    ForEach(appModel.agentsStore.summaries) { summary in
+                        AgentSummaryRow(summary: summary)
+                    }
+                }
+            }
+
+            ForEach(AgentTaskState.allCases) { state in
+                let tasks = appModel.agentsStore.tasks.filter { $0.status == state }
+                if !tasks.isEmpty {
+                    Section {
+                        ForEach(tasks) { task in
+                            TaskListRow(task: task) { selectedTask = task }
+                                .accessibilityIdentifier("agents_cell_task_\(task.id)")
+                        }
+                    } header: {
                         HStack {
                             Text(state.title)
-                                .font(.caption.weight(.semibold))
                                 .foregroundStyle(columnTint(for: state))
                             Spacer()
                             Text("\(tasks.count)")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.white.opacity(0.6))
-                        }
-                        .padding(.horizontal, 4)
-                        .padding(.top, 16)
-                        .padding(.bottom, 6)
-
-                        ForEach(tasks) { task in
-                            AgentTaskCard(task: task) { selectedTask = task }
-                                .padding(.bottom, 8)
-                                .accessibilityIdentifier("agents_cell_task_\(task.id)")
+                                .foregroundStyle(.secondary)
                         }
                     }
+                }
+            }
+        }
+        .listStyle(.insetGrouped)
+    }
+
+    private var agentSummaryRail: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 16) {
+                ForEach(appModel.agentsStore.summaries) { summary in
+                    HStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text(summary.name).font(.headline)
+                                Spacer()
+                                AgentHealthPill(health: summary.health)
+                            }
+                            Text(summary.recentActivity)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                            HStack(spacing: 8) {
+                                Label("\(summary.activeTaskCount)", systemImage: "checkmark.circle")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.green)
+                                Label("\(summary.activeSessionCount)", systemImage: "bolt.horizontal.circle")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.blue)
+                            }
+                        }
+                    }
+                    .padding(16)
+                    .frame(width: 240)
+                    .background(Color(.secondarySystemBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
                 }
             }
         }
@@ -219,44 +189,41 @@ struct AgentsScreen: View {
 
     private func columnTint(for state: AgentTaskState) -> Color {
         switch state {
-        case .backlog: BoardPalette.paper.opacity(0.78)
-        case .inProgress: BoardPalette.cobalt
-        case .blocked: BoardPalette.coral
-        case .done: BoardPalette.mint
+        case .backlog: Color.secondary
+        case .inProgress: Color.blue
+        case .blocked: Color.red
+        case .done: Color.green
         }
     }
 
     private var createTaskSheet: some View {
         NavigationStack {
-            ZStack {
-                BoardBackground()
-                Form {
-                    Section("Work Item") {
-                        Picker("Issue", selection: $selectedWorkItemID) {
-                            ForEach(appModel.workStore.items) { item in
-                                Text(item.issueReference).tag(Optional(item.id))
-                            }
+            Form {
+                Section("Work Item") {
+                    Picker("Issue", selection: $selectedWorkItemID) {
+                        ForEach(appModel.workStore.items) { item in
+                            Text(item.issueReference).tag(Optional(item.id))
                         }
-                    }
-
-                    Section("Task") {
-                        TextField("Task title", text: $taskTitle)
-                        TextField("Assigned agent", text: $assignedAgent)
-                        Picker("Status", selection: $status) {
-                            ForEach(AgentTaskState.allCases) { state in
-                                Text(state.title).tag(state)
-                            }
-                        }
-                        Picker("Priority", selection: $priority) {
-                            ForEach(WorkPriority.allCases) { prio in
-                                Text(prio.title).tag(prio)
-                            }
-                        }
-                        TextField("Notes", text: $note, axis: .vertical)
                     }
                 }
-                .scrollContentBackground(.hidden)
+
+                Section("Task Settings") {
+                    TextField("Task title", text: $taskTitle)
+                    TextField("Assigned agent", text: $assignedAgent)
+                    Picker("Status", selection: $status) {
+                        ForEach(AgentTaskState.allCases) { state in
+                            Text(state.title).tag(state)
+                        }
+                    }
+                    Picker("Priority", selection: $priority) {
+                        ForEach(WorkPriority.allCases) { prio in
+                            Text(prio.title).tag(prio)
+                        }
+                    }
+                    TextField("Notes", text: $note, axis: .vertical)
+                }
             }
+            .formStyle(.grouped)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { isPresentingCreateSheet = false }
@@ -282,81 +249,156 @@ struct AgentsScreen: View {
                 }
             }
             .navigationTitle("New Agent Task")
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
 }
 
-private struct AgentTaskCard: View {
+private struct AgentSummaryRow: View {
+    let summary: AgentSummary
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(summary.name).font(.headline)
+                Spacer()
+                AgentHealthPill(health: summary.health)
+            }
+            Text(summary.recentActivity)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+            HStack(spacing: 12) {
+                Label("\(summary.activeTaskCount) Tasks", systemImage: "checkmark.circle")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.green)
+                Label("\(summary.activeSessionCount) Sessions", systemImage: "bolt.horizontal.circle")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.blue)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+private struct TaskListRow: View {
     @Environment(AgentBoardAppModel.self) private var appModel
     let task: AgentTask
     let onTap: () -> Void
-
     @State private var showDeleteConfirm = false
 
     var body: some View {
-        BoardSurface {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(task.workItem.issueReference)
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(BoardPalette.gold)
-                        Text(task.title)
-                            .font(.headline)
-                            .foregroundStyle(.white)
-                            .multilineTextAlignment(.leading)
-                    }
-                    Spacer(minLength: 8)
-
-                    Menu {
-                        Button("Edit") { onTap() }
-                        Divider()
-                        Button("Delete", role: .destructive) {
-                            showDeleteConfirm = true
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                            .font(.title3)
-                            .foregroundStyle(.white.opacity(0.8))
-                    }
-                    .buttonStyle(.plain)
+        Button(action: onTap) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text(task.workItem.issueReference)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    PriorityPill(priority: task.priority)
                 }
+
+                Text(task.title)
+                    .font(.body)
+                    .foregroundStyle(.primary)
 
                 if !task.note.isEmpty {
                     Text(task.note)
                         .font(.subheadline)
-                        .foregroundStyle(BoardPalette.paper.opacity(0.78))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+
+                HStack {
+                    BoardChip(label: task.assignedAgent, systemImage: "person.fill", tint: .orange)
+                    Spacer()
+                    if let sessionID = task.sessionID {
+                        Text(sessionID)
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                            .frame(maxWidth: 100)
+                    }
+                }
+            }
+            .padding(.vertical, 4)
+        }
+        .contextMenu {
+            Button(role: .destructive) { showDeleteConfirm = true } label: { Label("Delete", systemImage: "trash") }
+        }
+        .alert("Delete Task", isPresented: $showDeleteConfirm) {
+            Button("Delete", role: .destructive) { Task { await appModel.agentsStore.deleteTask(id: task.id) } }
+            Button("Cancel", role: .cancel) {}
+        }
+    }
+}
+
+private struct TaskCard: View {
+    @Environment(AgentBoardAppModel.self) private var appModel
+    let task: AgentTask
+    let onTap: () -> Void
+    @State private var showDeleteConfirm = false
+
+    var body: some View {
+        Button(action: onTap) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .top) {
+                    Text(task.workItem.issueReference)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Menu {
+                        Button("Edit") { onTap() }
+                        Divider()
+                        Button("Delete", role: .destructive) { showDeleteConfirm = true }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                            .font(.title3)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+
+                Text(task.title)
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                    .multilineTextAlignment(.leading)
+
+                if !task.note.isEmpty {
+                    Text(task.note)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
                 }
 
                 HStack(spacing: 8) {
                     PriorityPill(priority: task.priority)
-                    BoardChip(label: task.assignedAgent, systemImage: "person.fill", tint: BoardPalette.gold)
+                    BoardChip(label: task.assignedAgent, systemImage: "person.fill", tint: .orange)
                 }
 
-                if let sessionID = task.sessionID {
-                    Text(sessionID)
+                HStack {
+                    if let sessionID = task.sessionID {
+                        Text(sessionID)
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                            .lineLimit(1)
+                    }
+                    Spacer()
+                    Text(task.updatedAt, style: .relative)
                         .font(.caption)
-                        .foregroundStyle(BoardPalette.paper.opacity(0.5))
-                        .lineLimit(1)
+                        .foregroundStyle(.tertiary)
                 }
-
-                Text(task.updatedAt, style: .relative)
-                    .font(.caption)
-                    .foregroundStyle(BoardPalette.paper.opacity(0.68))
-                    .frame(maxWidth: .infinity, alignment: .trailing)
             }
+            .padding(16)
+            .background(Color(.systemBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .shadow(color: Color.black.opacity(0.05), radius: 2, y: 1)
         }
-        .contentShape(Rectangle())
-        .onTapGesture { onTap() }
+        .buttonStyle(.plain)
         .alert("Delete Task", isPresented: $showDeleteConfirm) {
-            Button("Delete", role: .destructive) {
-                Task { await appModel.agentsStore.deleteTask(id: task.id) }
-            }
+            Button("Delete", role: .destructive) { Task { await appModel.agentsStore.deleteTask(id: task.id) } }
             Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Are you sure you want to delete \"\(task.title)\"?")
         }
     }
 }

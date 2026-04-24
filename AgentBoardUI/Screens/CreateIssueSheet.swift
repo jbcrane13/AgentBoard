@@ -24,7 +24,7 @@ struct CreateIssueSheet: View {
                                 VStack(alignment: .leading, spacing: 6) {
                                     Text("Repository").font(.headline).foregroundStyle(.white)
                                     Picker("Repository", selection: $selectedRepository) {
-                                        Text("Select…").tag(Optional<ConfiguredRepository>.none)
+                                        Text("Select…").tag(ConfiguredRepository?.none)
                                         ForEach(appModel.settingsStore.repositories) { repo in
                                             Text(repo.fullName).tag(Optional(repo))
                                         }
@@ -49,7 +49,10 @@ struct CreateIssueSheet: View {
                                         .frame(minHeight: 120)
                                         .padding(10)
                                         .background(RoundedRectangle(cornerRadius: 16).fill(Color.black.opacity(0.22)))
-                                        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.white.opacity(0.08), lineWidth: 1))
+                                        .overlay(RoundedRectangle(cornerRadius: 16).stroke(
+                                            Color.white.opacity(0.08),
+                                            lineWidth: 1
+                                        ))
                                         .foregroundStyle(.white)
                                 }
 
@@ -64,7 +67,7 @@ struct CreateIssueSheet: View {
                         if let error = appModel.workStore.errorMessage {
                             Text(error)
                                 .font(.footnote)
-                                .foregroundStyle(BoardPalette.coral)
+                                .foregroundStyle(.red)
                                 .padding(.horizontal, 4)
                         }
                     }
@@ -80,7 +83,7 @@ struct CreateIssueSheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Create") { create() }
                         .buttonStyle(.borderedProminent)
-                        .tint(BoardPalette.cobalt)
+                        .tint(.blue)
                         .disabled(
                             selectedRepository == nil ||
                                 title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||

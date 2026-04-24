@@ -34,7 +34,7 @@ struct MarkdownText: View {
                         ScrollView(.horizontal, showsIndicators: false) {
                             Text(code)
                                 .font(.system(.footnote, design: .monospaced))
-                                .foregroundStyle(BoardPalette.mint)
+                                .foregroundStyle(.green)
                                 .textSelection(.enabled)
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 8)

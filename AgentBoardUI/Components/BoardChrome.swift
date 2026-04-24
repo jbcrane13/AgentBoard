@@ -1,11 +1,5 @@
 import SwiftUI
 
-private enum BoardChromePalette {
-    static let paper = Color(red: 0.96, green: 0.95, blue: 0.92)
-    static let gold = Color(red: 0.86, green: 0.63, blue: 0.22)
-    static let cobalt = Color(red: 0.29, green: 0.47, blue: 0.90)
-}
-
 struct BoardSurface<Content: View>: View {
     private let content: Content
 
@@ -15,25 +9,9 @@ struct BoardSurface<Content: View>: View {
 
     var body: some View {
         content
-            .padding(20)
-            .background(
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                BoardChromePalette.paper.opacity(0.12),
-                                BoardChromePalette.paper.opacity(0.06)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .stroke(Color.white.opacity(0.12), lineWidth: 1)
-            )
-            .shadow(color: .black.opacity(0.16), radius: 18, x: 0, y: 12)
+            .padding(16)
+            .background(Color(.secondarySystemBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 }
 
@@ -43,49 +21,43 @@ struct BoardHeader: View {
     let subtitle: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 4) {
             Text(eyebrow.uppercased())
-                .font(.caption.weight(.semibold))
-                .tracking(2)
-                .foregroundStyle(BoardChromePalette.gold)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.secondary)
+                .tracking(1.5)
 
             Text(title)
-                .font(.system(size: 32, weight: .bold, design: .serif))
-                .foregroundStyle(.white)
+                .font(.title2.weight(.bold))
+                .foregroundStyle(.primary)
 
             Text(subtitle)
-                .font(.body)
-                .foregroundStyle(BoardChromePalette.paper.opacity(0.82))
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
+        .padding(.vertical, 8)
     }
 }
 
 struct BoardChip: View {
     let label: String
     let systemImage: String
-    var tint: Color = BoardChromePalette.cobalt
+    var tint: Color = .blue
 
     var body: some View {
-        Label {
+        HStack(spacing: 4) {
+            Image(systemName: systemImage)
             Text(label)
                 .lineLimit(1)
                 .truncationMode(.middle)
-        } icon: {
-            Image(systemName: systemImage)
         }
-        .font(.caption.weight(.semibold))
-        .foregroundStyle(.white)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(
-            Capsule(style: .continuous)
-                .fill(tint.opacity(0.22))
-        )
-        .overlay(
-            Capsule(style: .continuous)
-                .stroke(tint.opacity(0.36), lineWidth: 1)
-        )
+        .font(.caption.weight(.medium))
+        .foregroundStyle(tint)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(tint.opacity(0.12))
+        .clipShape(Capsule())
     }
 }
 
@@ -99,17 +71,18 @@ struct BoardSectionTitle: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 2) {
             Text(title)
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(.white)
+                .font(.headline)
+                .foregroundStyle(.primary)
 
             if let subtitle {
                 Text(subtitle)
-                    .font(.subheadline)
-                    .foregroundStyle(BoardChromePalette.paper.opacity(0.75))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
+        .padding(.vertical, 8)
     }
 }
 
@@ -119,23 +92,22 @@ struct EmptyStateCard: View {
     let systemImage: String
 
     var body: some View {
-        BoardSurface {
-            VStack(spacing: 14) {
-                Image(systemName: systemImage)
-                    .font(.system(size: 28, weight: .medium))
-                    .foregroundStyle(BoardChromePalette.gold)
+        VStack(spacing: 12) {
+            Image(systemName: systemImage)
+                .font(.system(size: 32))
+                .foregroundStyle(.tertiary)
 
-                Text(title)
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(.white)
+            Text(title)
+                .font(.headline)
+                .foregroundStyle(.primary)
 
-                Text(message)
-                    .font(.body)
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(BoardChromePalette.paper.opacity(0.78))
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 22)
+            Text(message)
+                .font(.subheadline)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 24)
         }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 40)
     }
 }

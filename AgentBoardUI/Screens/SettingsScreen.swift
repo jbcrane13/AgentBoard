@@ -14,200 +14,102 @@ struct SettingsScreen: View {
     var body: some View {
         @Bindable var settingsStore = appModel.settingsStore
 
-        ZStack {
-            BoardBackground()
-            ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    if !isCompact {
-                        BoardHeader(
-                            eyebrow: "Settings",
-                            title: "Current Apple stack, minimal legacy baggage",
-                            subtitle: "Hermes, GitHub, and the companion service are all configured independently so the app stays modular and modern."
-                        )
-                    }
-                    BoardSurface {
-                        VStack(alignment: .leading, spacing: 14) {
-                            BoardSectionTitle("Hermes Gateway", subtitle: "Chat lives here and nowhere else.")
-                            TextField("Gateway URL", text: $settingsStore.hermesGatewayURL)
-                                .boardFieldStyle()
-                                .accessibilityIdentifier("settings_textfield_hermes_gateway_url")
-                            TextField("Preferred model", text: $settingsStore.hermesModelID)
-                                .boardFieldStyle()
-                                .accessibilityIdentifier("settings_textfield_hermes_model_id")
-                            SecureField("API key (optional)", text: $settingsStore.hermesAPIKey)
-                                .boardFieldStyle()
-                                .accessibilityIdentifier("settings_securefield_hermes_api_key")
-                        }
-                    }
-                    githubSection
-                    companionSection
-                    statusSection
-                }
-                .padding(isCompact ? 16 : 24)
+        Form {
+            Section {
+                TextField("Gateway URL", text: $settingsStore.hermesGatewayURL)
+                    .accessibilityIdentifier("settings_textfield_hermes_gateway_url")
+                TextField("Preferred model", text: $settingsStore.hermesModelID)
+                    .accessibilityIdentifier("settings_textfield_hermes_model_id")
+                SecureField("API key (optional)", text: $settingsStore.hermesAPIKey)
+                    .accessibilityIdentifier("settings_securefield_hermes_api_key")
+            } header: {
+                Text("Hermes Gateway")
+            } footer: {
+                Text("Chat lives here and nowhere else.")
             }
-        }
-        .navigationTitle("Settings")
-        .accessibilityIdentifier("screen_settings")
-    }
 
-    private var githubSection: some View {
-        @Bindable var settingsStore = appModel.settingsStore
-        return BoardSurface {
-            VStack(alignment: .leading, spacing: 14) {
-                BoardSectionTitle("GitHub Issues", subtitle: "Tickets are the canonical work source.")
+            Section {
                 SecureField("GitHub token", text: $settingsStore.githubToken)
-                    .boardFieldStyle()
-                ViewThatFits(in: .horizontal) {
-                    repositoryInputRow(settingsStore: settingsStore)
-                    VStack(alignment: .leading, spacing: 10) {
-                        TextField("Owner", text: $repositoryOwner)
-                            .boardFieldStyle()
-                        TextField("Repo", text: $repositoryName)
-                            .boardFieldStyle()
-                        addRepositoryButton(settingsStore: settingsStore)
-                    }
-                }
-                if settingsStore.repositories.isEmpty {
-                    Text("No repositories connected yet.")
-                        .font(.subheadline)
-                        .foregroundStyle(BoardPalette.paper.opacity(0.72))
-                } else {
+
+                if !settingsStore.repositories.isEmpty {
                     ForEach(settingsStore.repositories) { repository in
                         HStack {
-                            Text(repository.fullName).foregroundStyle(.white)
+                            Text(repository.fullName)
                             Spacer()
-                            Button("Remove") { settingsStore.removeRepository(repository) }
-                                .buttonStyle(.bordered)
-                                .accessibilityIdentifier("settings_button_remove_repository_\(repository.id)")
+                            Button(role: .destructive) {
+                                settingsStore.removeRepository(repository)
+                            } label: {
+                                Image(systemName: "trash")
+                            }
+                            .buttonStyle(.borderless)
+                            .accessibilityIdentifier("settings_button_remove_repository_\(repository.id)")
                         }
-                        .padding(12)
-                        .background(
-                            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .fill(Color.black.opacity(0.2))
-                        )
                     }
                 }
-            }
-        }
-    }
 
-    private var companionSection: some View {
-        @Bindable var settingsStore = appModel.settingsStore
-        return BoardSurface {
-            VStack(alignment: .leading, spacing: 14) {
-                BoardSectionTitle(
-                    "Companion Service",
-                    subtitle: "Tasks, sessions, and live events come from this process."
-                )
+                HStack {
+                    TextField("Owner", text: $repositoryOwner)
+                    Divider()
+                    TextField("Repo", text: $repositoryName)
+                    Button("Add") {
+                        settingsStore.addRepository(owner: repositoryOwner, name: repositoryName)
+                        repositoryOwner = ""
+                        repositoryName = ""
+                    }
+                    .disabled(repositoryOwner.isEmpty || repositoryName.isEmpty)
+                }
+            } header: {
+                Text("GitHub Issues")
+            } footer: {
+                Text("Tickets are the canonical work source.")
+            }
+
+            Section {
                 TextField("Companion URL", text: $settingsStore.companionURL)
-                    .boardFieldStyle()
                     .accessibilityIdentifier("settings_textfield_companion_url")
                 SecureField("Companion token", text: $settingsStore.companionToken)
-                    .boardFieldStyle()
                     .accessibilityIdentifier("settings_securefield_companion_token")
+
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Auto refresh interval")
-                        .font(.headline)
-                        .foregroundStyle(.white)
                     HStack {
-                        Slider(value: $settingsStore.autoRefreshInterval, in: 15 ... 120, step: 15)
-                            .tint(BoardPalette.gold)
-                            .accessibilityIdentifier("settings_slider_auto_refresh_interval")
+                        Text("Auto refresh")
+                        Spacer()
                         Text("\(Int(settingsStore.autoRefreshInterval))s")
-                            .foregroundStyle(BoardPalette.paper.opacity(0.78))
-                            .frame(width: 52)
+                            .foregroundStyle(.secondary)
+                    }
+                    Slider(value: $settingsStore.autoRefreshInterval, in: 15 ... 120, step: 15)
+                        .accessibilityIdentifier("settings_slider_auto_refresh_interval")
+                }
+                .padding(.vertical, 4)
+            } header: {
+                Text("Companion Service")
+            } footer: {
+                Text("Tasks, sessions, and live events come from this process.")
+            }
+
+            Section {
+                Button("Save and Refresh") {
+                    Task { await appModel.saveSettingsAndReconnect() }
+                }
+
+                Button("Refresh Hermes") {
+                    Task {
+                        await appModel.chatStore.refreshConnection()
+                        await appModel.chatStore.refreshModels()
                     }
                 }
-            }
-        }
-    }
+                .tint(.secondary)
 
-    private var statusSection: some View {
-        BoardSurface {
-            VStack(alignment: .leading, spacing: 12) {
-                Text(
-                    appModel.settingsStore.errorMessage
-                        ?? appModel.settingsStore.statusMessage
-                        ?? appModel.statusMessage
-                        ?? "The new architecture is ready for both platforms."
-                )
-                .font(.subheadline)
-                .foregroundStyle(appModel.settingsStore.errorMessage == nil
-                    ? BoardPalette.paper.opacity(0.78) : BoardPalette.coral)
-                ViewThatFits(in: .horizontal) {
-                    statusButtons
-                    statusButtonsCompact
+                if let message = appModel.settingsStore.errorMessage ?? appModel.settingsStore.statusMessage ?? appModel
+                    .statusMessage {
+                    Text(message)
+                        .font(.footnote)
+                        .foregroundStyle(appModel.settingsStore.errorMessage == nil ? Color.secondary : Color.red)
                 }
             }
         }
-    }
-
-    private func repositoryInputRow(settingsStore: SettingsStore) -> some View {
-        HStack(spacing: 10) {
-            TextField("Owner", text: $repositoryOwner)
-                .boardFieldStyle()
-            TextField("Repo", text: $repositoryName)
-                .boardFieldStyle()
-            addRepositoryButton(settingsStore: settingsStore)
-        }
-    }
-
-    private func addRepositoryButton(settingsStore: SettingsStore) -> some View {
-        Button("Add") {
-            settingsStore.addRepository(owner: repositoryOwner, name: repositoryName)
-            repositoryOwner = ""
-            repositoryName = ""
-        }
-        .buttonStyle(.borderedProminent)
-        .tint(BoardPalette.cobalt)
-    }
-
-    private var statusButtons: some View {
-        HStack(spacing: 10) {
-            saveAndRefreshButton
-            refreshHermesButton
-        }
-    }
-
-    private var statusButtonsCompact: some View {
-        VStack(alignment: .center, spacing: 10) {
-            saveAndRefreshButton
-            refreshHermesButton
-        }
-    }
-
-    private var saveAndRefreshButton: some View {
-        Button("Save and Refresh") {
-            Task { await appModel.saveSettingsAndReconnect() }
-        }
-        .buttonStyle(.borderedProminent)
-        .tint(BoardPalette.coral)
-    }
-
-    private var refreshHermesButton: some View {
-        Button("Refresh Hermes") {
-            Task {
-                await appModel.chatStore.refreshConnection()
-                await appModel.chatStore.refreshModels()
-            }
-        }
-        .buttonStyle(.bordered)
-        .tint(.white)
-    }
-}
-
-private extension View {
-    func boardFieldStyle() -> some View {
-        padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(Color.black.opacity(0.22))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
-            )
-            .foregroundStyle(.white)
+        .formStyle(.grouped)
+        .navigationTitle("Settings")
+        .accessibilityIdentifier("screen_settings")
     }
 }

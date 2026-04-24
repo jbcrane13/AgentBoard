@@ -10,10 +10,10 @@ struct WorkStatusPill: View {
 
     private var tint: Color {
         switch state {
-        case .open: BoardPalette.cobalt
-        case .inProgress: BoardPalette.gold
-        case .blocked: BoardPalette.rose
-        case .done: BoardPalette.mint
+        case .open: .blue
+        case .inProgress: .orange
+        case .blocked: .red
+        case .done: .green
         }
     }
 
@@ -35,8 +35,8 @@ struct PriorityPill: View {
             label: priority.title,
             systemImage: "flag.fill",
             tint: priority == .critical
-                ? BoardPalette.rose
-                : priority == .high ? BoardPalette.coral : BoardPalette.cobalt
+                ? .red
+                : priority == .high ? .red : .blue
         )
     }
 }
@@ -50,10 +50,10 @@ struct AgentHealthPill: View {
 
     private var tint: Color {
         switch health {
-        case .online: BoardPalette.mint
-        case .idle: BoardPalette.cobalt
-        case .warning: BoardPalette.gold
-        case .offline: BoardPalette.rose
+        case .online: .green
+        case .idle: .blue
+        case .warning: .orange
+        case .offline: .red
         }
     }
 }
@@ -67,10 +67,10 @@ struct SessionStatusPill: View {
 
     private var tint: Color {
         switch status {
-        case .running: BoardPalette.mint
-        case .idle: BoardPalette.cobalt
-        case .stopped: BoardPalette.gold
-        case .error: BoardPalette.rose
+        case .running: .green
+        case .idle: .blue
+        case .stopped: .orange
+        case .error: .red
         }
     }
 }

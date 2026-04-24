@@ -23,33 +23,45 @@ struct WorkScreen: View {
     }
 
     var body: some View {
-        ZStack {
-            BoardBackground()
-
-            VStack(alignment: .leading, spacing: isCompact ? 12 : 14) {
-                header
-
-                filterBar
-
-                if filteredItems.isEmpty {
-                    EmptyStateCard(
-                        title: "No work items",
-                        message: appModel.workStore.statusMessage
-                            ?? "Connect a GitHub token and repository in Settings.",
-                        systemImage: "tray"
-                    )
-                } else if !isCompact, layoutMode == .board {
-                    boardLayout
-                } else {
-                    listLayout
-                }
+        Group {
+            if filteredItems.isEmpty {
+                EmptyStateCard(
+                    title: "No work items",
+                    message: appModel.workStore.statusMessage ?? "Connect a GitHub token and repository in Settings.",
+                    systemImage: "tray"
+                )
+            } else if !isCompact, layoutMode == .board {
+                boardLayout
+            } else {
+                listLayout
             }
-            .padding(isCompact ? 16 : 24)
         }
         .navigationTitle("Work")
         .refreshable {
             await appModel.workStore.refresh()
         }
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    isPresentingCreate = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .disabled(!appModel.settingsStore.isGitHubConfigured)
+            }
+            ToolbarItem(placement: .topBarLeading) {
+                if !isCompact {
+                    Picker("Layout", selection: $layoutMode) {
+                        ForEach(WorkLayoutMode.allCases) { mode in
+                            Image(systemName: mode == .board ? "square.grid.2x2" : "list.bullet")
+                                .tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
+            }
+        }
+        .searchable(text: Bindable(appModel.workStore).searchText, prompt: "Search issues, labels…")
         .sheet(item: $selectedItem) { item in
             IssueDetailSheet(item: item)
                 .environment(appModel)
@@ -72,154 +84,129 @@ struct WorkScreen: View {
         }
     }
 
-    private var header: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(alignment: .top, spacing: 16) {
-                headerTitle
-                Spacer(minLength: 16)
-                headerControls
-            }
-            VStack(alignment: .leading, spacing: 16) {
-                headerTitle
-                headerControls
-            }
-        }
-    }
-
-    private var headerTitle: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("WORK".uppercased())
-                .font(.caption.weight(.semibold))
-                .tracking(2)
-                .foregroundStyle(BoardPalette.gold)
-            Text("GitHub Issues")
-                .font(.system(size: 28, weight: .bold, design: .serif))
-                .foregroundStyle(.white)
-        }
-    }
-
-    private var headerControls: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Picker("Layout", selection: $layoutMode) {
-                ForEach(WorkLayoutMode.allCases) { mode in
-                    Image(systemName: mode == .board ? "square.grid.2x2" : "list.bullet")
-                        .tag(mode)
-                }
-            }
-            .pickerStyle(.segmented)
-            .frame(maxWidth: 100)
-
-            HStack(spacing: 8) {
-                Button("Refresh") {
-                    Task { await appModel.workStore.refresh() }
-                }
-                .buttonStyle(.bordered)
-                .tint(.white)
-
-                Button("New Issue") {
-                    isPresentingCreate = true
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(BoardPalette.cobalt)
-                .disabled(!appModel.settingsStore.isGitHubConfigured)
-            }
-        }
-    }
-
-    private var filterBar: some View {
-        BoardSurface {
-            ViewThatFits(in: .horizontal) {
-                filterBarContent
-                VStack(alignment: .leading, spacing: 12) {
-                    filterSearchField
-
-                    HStack(spacing: 12) {
-                        filterRepositoryPicker
-                        Spacer()
-                        filterCount
+    private var filterRepositoryPicker: some View {
+        Group {
+            if appModel.settingsStore.repositories.count > 1 {
+                Picker("Repo", selection: $selectedRepo) {
+                    Text("All repos").tag("all")
+                    ForEach(appModel.settingsStore.repositories) { repo in
+                        Text(repo.shortName).tag(repo.fullName)
                     }
                 }
             }
         }
-    }
-
-    private var filterBarContent: some View {
-        HStack(spacing: 12) {
-            filterSearchField
-            filterRepositoryPicker
-            filterCount
-        }
-    }
-
-    private var filterSearchField: some View {
-        TextField("Search issues, labels, references…", text: Bindable(appModel.workStore).searchText)
-            .textFieldStyle(.plain)
-            .foregroundStyle(.white)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .background(RoundedRectangle(cornerRadius: 14).fill(Color.black.opacity(0.24)))
-    }
-
-    @ViewBuilder
-    private var filterRepositoryPicker: some View {
-        if appModel.settingsStore.repositories.count > 1 {
-            Picker("Repo", selection: $selectedRepo) {
-                Text("All repos").tag("all")
-                ForEach(appModel.settingsStore.repositories) { repo in
-                    Text(repo.shortName).tag(repo.fullName)
-                }
-            }
-            .pickerStyle(.menu)
-            .foregroundStyle(.white)
-            .tint(.white)
-        }
-    }
-
-    private var filterCount: some View {
-        Text("\(filteredItems.count)")
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(BoardPalette.paper.opacity(0.78))
     }
 
     private var boardLayout: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(alignment: .top, spacing: 16) {
+            HStack(alignment: .top, spacing: 20) {
                 ForEach(groupedFilteredItems, id: \.state) { column in
-                    BoardSurface {
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack {
-                                WorkStatusPill(state: column.state)
-                                Spacer()
-                                Text("\(column.items.count)")
-                                    .font(.headline)
-                                    .foregroundStyle(.white)
-                            }
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            WorkStatusPill(state: column.state)
+                            Spacer()
+                            Text("\(column.items.count)")
+                                .font(.headline)
+                                .foregroundStyle(.secondary)
+                        }
 
-                            if column.items.isEmpty {
-                                Text("None")
-                                    .font(.subheadline)
-                                    .foregroundStyle(BoardPalette.paper.opacity(0.45))
-                                    .frame(maxWidth: .infinity, alignment: .center)
-                                    .padding(.vertical, 12)
-                            } else {
-                                ForEach(column.items) { item in
-                                    WorkCard(item: item) { selectedItem = item }
+                        if column.items.isEmpty {
+                            Text("None")
+                                .font(.subheadline)
+                                .foregroundStyle(.tertiary)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                                .padding(.vertical, 12)
+                        } else {
+                            ScrollView {
+                                LazyVStack(spacing: 12) {
+                                    ForEach(column.items) { item in
+                                        WorkCard(item: item) { selectedItem = item }
+                                    }
                                 }
                             }
                         }
-                        .frame(width: 300, alignment: .topLeading)
                     }
+                    .frame(width: 320, alignment: .topLeading)
+                    .padding(16)
+                    .background(Color(.secondarySystemBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
                 }
             }
-            .padding(.trailing, 4)
+            .padding(20)
         }
+        .background(Color(.systemGroupedBackground))
     }
 
     private var listLayout: some View {
-        ScrollView {
-            LazyVStack(spacing: 12) {
+        List {
+            Section {
                 ForEach(filteredItems) { item in
-                    WorkCard(item: item) { selectedItem = item }
+                    WorkListRow(item: item) { selectedItem = item }
+                }
+            } header: {
+                HStack {
+                    filterRepositoryPicker
+                        .textCase(nil)
+                    Spacer()
+                    Text("\(filteredItems.count) items").textCase(nil)
+                }
+            }
+        }
+        .listStyle(.insetGrouped)
+    }
+}
+
+private struct WorkListRow: View {
+    @Environment(AgentBoardAppModel.self) private var appModel
+    let item: WorkItem
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .top) {
+                    Text(item.issueReference)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+
+                    Spacer(minLength: 8)
+
+                    HStack(spacing: 6) {
+                        WorkStatusPill(state: item.status)
+                        PriorityPill(priority: item.priority)
+                    }
+                }
+
+                Text(item.title)
+                    .font(.body)
+                    .foregroundStyle(.primary)
+                    .multilineTextAlignment(.leading)
+
+                if !item.bodySummary.isEmpty {
+                    Text(item.bodySummary)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                }
+
+                HStack {
+                    Text(item.assignees.isEmpty ? "Unassigned" : item.assignees.joined(separator: ", "))
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                    Spacer()
+                    Text(item.updatedAt, style: .relative)
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            .padding(.vertical, 4)
+        }
+        .buttonStyle(.plain)
+        .contextMenu {
+            ForEach(WorkState.allCases) { state in
+                Button(state.title) {
+                    Task { await appModel.workStore.updateStatus(for: item, to: state) }
                 }
             }
         }
@@ -232,18 +219,12 @@ private struct WorkCard: View {
     let onTap: () -> Void
 
     var body: some View {
-        BoardSurface {
+        Button(action: onTap) {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(item.issueReference)
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(BoardPalette.gold)
-                        Text(item.title)
-                            .font(.headline)
-                            .foregroundStyle(.white)
-                            .multilineTextAlignment(.leading)
-                    }
+                    Text(item.issueReference)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
 
                     Spacer(minLength: 8)
 
@@ -256,15 +237,19 @@ private struct WorkCard: View {
                     } label: {
                         Image(systemName: "ellipsis.circle")
                             .font(.title3)
-                            .foregroundStyle(.white.opacity(0.8))
+                            .foregroundStyle(.tertiary)
                     }
-                    .buttonStyle(.plain)
                 }
+
+                Text(item.title)
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                    .multilineTextAlignment(.leading)
 
                 if !item.bodySummary.isEmpty {
                     Text(item.bodySummary)
                         .font(.subheadline)
-                        .foregroundStyle(BoardPalette.paper.opacity(0.78))
+                        .foregroundStyle(.secondary)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
                 }
@@ -277,15 +262,18 @@ private struct WorkCard: View {
                 HStack {
                     Text(item.assignees.isEmpty ? "Unassigned" : item.assignees.joined(separator: ", "))
                         .font(.caption)
-                        .foregroundStyle(BoardPalette.paper.opacity(0.68))
+                        .foregroundStyle(.tertiary)
                     Spacer()
                     Text(item.updatedAt, style: .relative)
                         .font(.caption)
-                        .foregroundStyle(BoardPalette.paper.opacity(0.68))
+                        .foregroundStyle(.tertiary)
                 }
             }
+            .padding(16)
+            .background(Color(.systemBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .shadow(color: Color.black.opacity(0.05), radius: 2, y: 1)
         }
-        .contentShape(Rectangle())
-        .onTapGesture { onTap() }
+        .buttonStyle(.plain)
     }
 }
