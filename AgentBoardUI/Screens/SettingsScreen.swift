@@ -57,41 +57,14 @@ struct SettingsScreen: View {
                 BoardSectionTitle("GitHub Issues", subtitle: "Tickets are the canonical work source.")
                 SecureField("GitHub token", text: $settingsStore.githubToken)
                     .boardFieldStyle()
-                    .accessibilityIdentifier("settings_securefield_github_token")
-                if isCompact {
-                    VStack(spacing: 8) {
+                ViewThatFits(in: .horizontal) {
+                    repositoryInputRow(settingsStore: settingsStore)
+                    VStack(alignment: .leading, spacing: 10) {
                         TextField("Owner", text: $repositoryOwner)
                             .boardFieldStyle()
-                            .accessibilityIdentifier("settings_textfield_repo_owner")
                         TextField("Repo", text: $repositoryName)
                             .boardFieldStyle()
-                            .accessibilityIdentifier("settings_textfield_repo_name")
-                        Button("Add Repository") {
-                            settingsStore.addRepository(owner: repositoryOwner, name: repositoryName)
-                            repositoryOwner = ""
-                            repositoryName = ""
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(BoardPalette.cobalt)
-                        .frame(maxWidth: .infinity)
-                        .accessibilityIdentifier("settings_button_add_repository")
-                    }
-                } else {
-                    HStack(spacing: 10) {
-                        TextField("Owner", text: $repositoryOwner)
-                            .boardFieldStyle()
-                            .accessibilityIdentifier("settings_textfield_repo_owner")
-                        TextField("Repo", text: $repositoryName)
-                            .boardFieldStyle()
-                            .accessibilityIdentifier("settings_textfield_repo_name")
-                        Button("Add") {
-                            settingsStore.addRepository(owner: repositoryOwner, name: repositoryName)
-                            repositoryOwner = ""
-                            repositoryName = ""
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(BoardPalette.cobalt)
-                        .accessibilityIdentifier("settings_button_add_repository")
+                        addRepositoryButton(settingsStore: settingsStore)
                     }
                 }
                 if settingsStore.repositories.isEmpty {
@@ -159,29 +132,67 @@ struct SettingsScreen: View {
                         ?? "The new architecture is ready for both platforms."
                 )
                 .font(.subheadline)
-                .foregroundStyle(
-                    appModel.settingsStore.errorMessage == nil
-                        ? BoardPalette.paper.opacity(0.78) : BoardPalette.coral
-                )
-                HStack(spacing: 10) {
-                    Button("Save and Refresh") {
-                        Task { await appModel.saveSettingsAndReconnect() }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(BoardPalette.coral)
-                    .accessibilityIdentifier("settings_button_save_and_refresh")
-                    Button("Refresh Hermes") {
-                        Task {
-                            await appModel.chatStore.refreshConnection()
-                            await appModel.chatStore.refreshModels()
-                        }
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(.white)
-                    .accessibilityIdentifier("settings_button_refresh_hermes")
+                .foregroundStyle(appModel.settingsStore.errorMessage == nil
+                    ? BoardPalette.paper.opacity(0.78) : BoardPalette.coral)
+                ViewThatFits(in: .horizontal) {
+                    statusButtons
+                    statusButtonsCompact
                 }
             }
         }
+    }
+
+    private func repositoryInputRow(settingsStore: SettingsStore) -> some View {
+        HStack(spacing: 10) {
+            TextField("Owner", text: $repositoryOwner)
+                .boardFieldStyle()
+            TextField("Repo", text: $repositoryName)
+                .boardFieldStyle()
+            addRepositoryButton(settingsStore: settingsStore)
+        }
+    }
+
+    private func addRepositoryButton(settingsStore: SettingsStore) -> some View {
+        Button("Add") {
+            settingsStore.addRepository(owner: repositoryOwner, name: repositoryName)
+            repositoryOwner = ""
+            repositoryName = ""
+        }
+        .buttonStyle(.borderedProminent)
+        .tint(BoardPalette.cobalt)
+    }
+
+    private var statusButtons: some View {
+        HStack(spacing: 10) {
+            saveAndRefreshButton
+            refreshHermesButton
+        }
+    }
+
+    private var statusButtonsCompact: some View {
+        VStack(alignment: .center, spacing: 10) {
+            saveAndRefreshButton
+            refreshHermesButton
+        }
+    }
+
+    private var saveAndRefreshButton: some View {
+        Button("Save and Refresh") {
+            Task { await appModel.saveSettingsAndReconnect() }
+        }
+        .buttonStyle(.borderedProminent)
+        .tint(BoardPalette.coral)
+    }
+
+    private var refreshHermesButton: some View {
+        Button("Refresh Hermes") {
+            Task {
+                await appModel.chatStore.refreshConnection()
+                await appModel.chatStore.refreshModels()
+            }
+        }
+        .buttonStyle(.bordered)
+        .tint(.white)
     }
 }
 

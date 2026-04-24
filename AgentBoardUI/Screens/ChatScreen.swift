@@ -42,78 +42,70 @@ struct ChatScreen: View {
 
     @ViewBuilder
     private var header: some View {
-        if isCompact {
-            HStack(alignment: .center, spacing: 10) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("CHAT".uppercased())
-                        .font(.caption.weight(.semibold))
-                        .tracking(2)
-                        .foregroundStyle(BoardPalette.gold)
-                    Text("Hermes AI")
-                        .font(.title2.bold())
-                        .foregroundStyle(.white)
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .top, spacing: 16) {
+                headerTitle
+                Spacer(minLength: 16)
+                headerControls
+            }
+            VStack(alignment: .leading, spacing: 16) {
+                headerTitle
+                headerControls
+            }
+        }
+    }
+
+    private var headerTitle: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("CHAT".uppercased())
+                .font(.caption.weight(.semibold))
+                .tracking(2)
+                .foregroundStyle(BoardPalette.gold)
+            Text("Hermes AI")
+                .font(.system(size: 28, weight: .bold, design: .serif))
+                .foregroundStyle(.white)
+        }
+    }
+
+    private var headerControls: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 8) {
+                    connectionChip
+                    modelPickerMenu
                 }
-                Spacer()
-                BoardChip(
-                    label: appModel.chatStore.connectionState.title,
-                    systemImage: "dot.radiowaves.left.and.right",
-                    tint: chipTint(for: appModel.chatStore.connectionState)
-                )
-                Button {
+                VStack(alignment: .leading, spacing: 8) {
+                    connectionChip
+                    modelPickerMenu
+                }
+            }
+
+            HStack(spacing: 8) {
+                Button("Refresh") {
+                    Task {
+                        await appModel.chatStore.refreshConnection()
+                        await appModel.chatStore.refreshModels()
+                    }
+                }
+                .buttonStyle(.bordered)
+                .tint(.white)
+
+                Button("New") {
                     appModel.chatStore.startNewConversation()
-                } label: {
-                    Image(systemName: "plus")
-                        .fontWeight(.semibold)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(BoardPalette.cobalt)
-                .accessibilityIdentifier("chat_button_new_conversation")
-            }
-        } else {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("CHAT".uppercased())
-                        .font(.caption.weight(.semibold))
-                        .tracking(2)
-                        .foregroundStyle(BoardPalette.gold)
-                    Text("Hermes AI")
-                        .font(.system(size: 28, weight: .bold, design: .serif))
-                        .foregroundStyle(.white)
-                }
-
-                Spacer(minLength: 16)
-
-                VStack(alignment: .trailing, spacing: 10) {
-                    HStack(spacing: 8) {
-                        BoardChip(
-                            label: appModel.chatStore.connectionState.title,
-                            systemImage: "dot.radiowaves.left.and.right",
-                            tint: chipTint(for: appModel.chatStore.connectionState)
-                        )
-                        modelPickerMenu
-                    }
-
-                    HStack(spacing: 8) {
-                        Button("Refresh") {
-                            Task {
-                                await appModel.chatStore.refreshConnection()
-                                await appModel.chatStore.refreshModels()
-                            }
-                        }
-                        .buttonStyle(.bordered)
-                        .tint(.white)
-                        .accessibilityIdentifier("chat_button_refresh")
-
-                        Button("New") {
-                            appModel.chatStore.startNewConversation()
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(BoardPalette.cobalt)
-                        .accessibilityIdentifier("chat_button_new_conversation")
-                    }
-                }
             }
         }
+    }
+
+    private var connectionChip: some View {
+        BoardChip(
+            label: appModel.chatStore.connectionState.title,
+            systemImage: "dot.radiowaves.left.and.right",
+            tint: chipTint(for: appModel.chatStore.connectionState)
+        )
+        .layoutPriority(1)
     }
 
     private var modelPickerMenu: some View {
@@ -137,6 +129,7 @@ struct ChatScreen: View {
                 systemImage: "cpu",
                 tint: BoardPalette.gold
             )
+            .frame(maxWidth: 180, alignment: .leading)
         }
         .buttonStyle(.plain)
     }

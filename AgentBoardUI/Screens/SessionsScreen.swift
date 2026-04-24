@@ -48,25 +48,37 @@ struct SessionsScreen: View {
     }
 
     private var header: some View {
-        HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("SESSIONS".uppercased())
-                    .font(.caption.weight(.semibold))
-                    .tracking(2)
-                    .foregroundStyle(BoardPalette.gold)
-                Text("Runtime")
-                    .font(.system(size: 28, weight: .bold, design: .serif))
-                    .foregroundStyle(.white)
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .top, spacing: 16) {
+                headerTitle
+                Spacer(minLength: 20)
+                refreshButton
             }
-
-            Spacer(minLength: 20)
-
-            Button("Refresh") {
-                Task { await appModel.sessionsStore.refresh() }
+            VStack(alignment: .leading, spacing: 16) {
+                headerTitle
+                refreshButton
             }
-            .buttonStyle(.borderedProminent)
-            .tint(BoardPalette.cobalt)
         }
+    }
+
+    private var headerTitle: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("SESSIONS".uppercased())
+                .font(.caption.weight(.semibold))
+                .tracking(2)
+                .foregroundStyle(BoardPalette.gold)
+            Text("Runtime")
+                .font(.system(size: 28, weight: .bold, design: .serif))
+                .foregroundStyle(.white)
+        }
+    }
+
+    private var refreshButton: some View {
+        Button("Refresh") {
+            Task { await appModel.sessionsStore.refresh() }
+        }
+        .buttonStyle(.borderedProminent)
+        .tint(BoardPalette.cobalt)
     }
 
     private func sessionCard(_ session: AgentSession) -> some View {

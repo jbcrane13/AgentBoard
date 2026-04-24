@@ -74,102 +74,112 @@ struct WorkScreen: View {
 
     @ViewBuilder
     private var header: some View {
-        if isCompact {
-            HStack(alignment: .center) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("WORK".uppercased())
-                        .font(.caption.weight(.semibold))
-                        .tracking(2)
-                        .foregroundStyle(BoardPalette.gold)
-                    Text("GitHub Issues")
-                        .font(.title2.bold())
-                        .foregroundStyle(.white)
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .top, spacing: 16) {
+                headerTitle
+                Spacer(minLength: 16)
+                headerControls
+            }
+            VStack(alignment: .leading, spacing: 16) {
+                headerTitle
+                headerControls
+            }
+        }
+    }
+
+    private var headerTitle: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("WORK".uppercased())
+                .font(.caption.weight(.semibold))
+                .tracking(2)
+                .foregroundStyle(BoardPalette.gold)
+            Text("GitHub Issues")
+                .font(.system(size: 28, weight: .bold, design: .serif))
+                .foregroundStyle(.white)
+        }
+    }
+
+    private var headerControls: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Picker("Layout", selection: $layoutMode) {
+                ForEach(WorkLayoutMode.allCases) { mode in
+                    Image(systemName: mode == .board ? "square.grid.2x2" : "list.bullet")
+                        .tag(mode)
                 }
-                Spacer()
-                Button {
+            }
+            .pickerStyle(.segmented)
+            .frame(maxWidth: 100)
+
+            HStack(spacing: 8) {
+                Button("Refresh") {
+                    Task { await appModel.workStore.refresh() }
+                }
+                .buttonStyle(.bordered)
+                .tint(.white)
+
+                Button("New Issue") {
                     isPresentingCreate = true
-                } label: {
-                    Image(systemName: "plus")
-                        .fontWeight(.semibold)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(BoardPalette.cobalt)
                 .disabled(!appModel.settingsStore.isGitHubConfigured)
-                .accessibilityIdentifier("work_button_new_issue")
-            }
-        } else {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("WORK".uppercased())
-                        .font(.caption.weight(.semibold))
-                        .tracking(2)
-                        .foregroundStyle(BoardPalette.gold)
-                    Text("GitHub Issues")
-                        .font(.system(size: 28, weight: .bold, design: .serif))
-                        .foregroundStyle(.white)
-                }
-
-                Spacer(minLength: 16)
-
-                VStack(alignment: .trailing, spacing: 10) {
-                    Picker("Layout", selection: $layoutMode) {
-                        ForEach(WorkLayoutMode.allCases) { mode in
-                            Image(systemName: mode == .board ? "square.grid.2x2" : "list.bullet")
-                                .tag(mode)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .frame(maxWidth: 100)
-                    .accessibilityIdentifier("work_picker_layout")
-
-                    HStack(spacing: 8) {
-                        Button("Refresh") {
-                            Task { await appModel.workStore.refresh() }
-                        }
-                        .buttonStyle(.bordered)
-                        .tint(.white)
-                        .accessibilityIdentifier("work_button_refresh")
-
-                        Button("New Issue") {
-                            isPresentingCreate = true
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(BoardPalette.cobalt)
-                        .disabled(!appModel.settingsStore.isGitHubConfigured)
-                        .accessibilityIdentifier("work_button_new_issue")
-                    }
-                }
             }
         }
     }
 
     private var filterBar: some View {
         BoardSurface {
-            HStack(spacing: 12) {
-                TextField("Search issues, labels, references…", text: Bindable(appModel.workStore).searchText)
-                    .textFieldStyle(.plain)
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .background(RoundedRectangle(cornerRadius: 14).fill(Color.black.opacity(0.24)))
+            ViewThatFits(in: .horizontal) {
+                filterBarContent
+                VStack(alignment: .leading, spacing: 12) {
+                    filterSearchField
 
-                if appModel.settingsStore.repositories.count > 1 {
-                    Picker("Repo", selection: $selectedRepo) {
-                        Text("All repos").tag("all")
-                        ForEach(appModel.settingsStore.repositories) { repo in
-                            Text(repo.shortName).tag(repo.fullName)
-                        }
+                    HStack(spacing: 12) {
+                        filterRepositoryPicker
+                        Spacer()
+                        filterCount
                     }
-                    .pickerStyle(.menu)
-                    .foregroundStyle(.white)
-                    .tint(.white)
                 }
-
-                Text("\(filteredItems.count)")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(BoardPalette.paper.opacity(0.78))
             }
         }
+    }
+
+    private var filterBarContent: some View {
+        HStack(spacing: 12) {
+            filterSearchField
+            filterRepositoryPicker
+            filterCount
+        }
+    }
+
+    private var filterSearchField: some View {
+        TextField("Search issues, labels, references…", text: Bindable(appModel.workStore).searchText)
+            .textFieldStyle(.plain)
+            .foregroundStyle(.white)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(RoundedRectangle(cornerRadius: 14).fill(Color.black.opacity(0.24)))
+    }
+
+    @ViewBuilder
+    private var filterRepositoryPicker: some View {
+        if appModel.settingsStore.repositories.count > 1 {
+            Picker("Repo", selection: $selectedRepo) {
+                Text("All repos").tag("all")
+                ForEach(appModel.settingsStore.repositories) { repo in
+                    Text(repo.shortName).tag(repo.fullName)
+                }
+            }
+            .pickerStyle(.menu)
+            .foregroundStyle(.white)
+            .tint(.white)
+        }
+    }
+
+    private var filterCount: some View {
+        Text("\(filteredItems.count)")
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(BoardPalette.paper.opacity(0.78))
     }
 
     private var boardLayout: some View {
