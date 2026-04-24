@@ -18,6 +18,7 @@ public actor CompanionClient {
         case invalidBaseURL
         case invalidResponse
         case httpError(statusCode: Int, body: String)
+        case operationFailed(String)
 
         public var errorDescription: String? {
             switch self {
@@ -31,6 +32,8 @@ public actor CompanionClient {
                     return "Companion service returned HTTP \(statusCode)."
                 }
                 return "Companion service returned HTTP \(statusCode): \(trimmed.prefix(220))"
+            case let .operationFailed(message):
+                return message
             }
         }
     }
@@ -109,9 +112,12 @@ public actor CompanionClient {
         request.httpMethod = "POST"
         let (data, response) = try await session.data(for: request)
         try validate(response: response, data: data)
-        if let payload = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-           let ok = payload["ok"] as? Bool, !ok {
-            throw URLError(.badServerResponse)
+        guard let payload = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let ok = payload["ok"] as? Bool else {
+            throw ClientError.invalidResponse
+        }
+        if !ok {
+            throw ClientError.operationFailed("Failed to stop session — the session may no longer be running.")
         }
     }
 
@@ -120,9 +126,12 @@ public actor CompanionClient {
         request.httpMethod = "POST"
         let (data, response) = try await session.data(for: request)
         try validate(response: response, data: data)
-        if let payload = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-           let ok = payload["ok"] as? Bool, !ok {
-            throw URLError(.badServerResponse)
+        guard let payload = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let ok = payload["ok"] as? Bool else {
+            throw ClientError.invalidResponse
+        }
+        if !ok {
+            throw ClientError.operationFailed("Failed to nudge session — the session may no longer be running.")
         }
     }
 
