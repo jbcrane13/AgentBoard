@@ -7,7 +7,7 @@ struct CreateIssueSheet: View {
 
     @State private var selectedRepository: ConfiguredRepository?
     @State private var title = ""
-    @State private var body = ""
+    @State private var issueBody = ""
     @State private var labels = ""
     @State private var isCreating = false
 
@@ -44,7 +44,7 @@ struct CreateIssueSheet: View {
 
                                 VStack(alignment: .leading, spacing: 6) {
                                     Text("Description").font(.headline).foregroundStyle(.white)
-                                    TextEditor(text: $body)
+                                    TextEditor(text: $issueBody)
                                         .scrollContentBackground(.hidden)
                                         .frame(minHeight: 120)
                                         .padding(10)
@@ -102,7 +102,7 @@ struct CreateIssueSheet: View {
             await appModel.workStore.createIssue(
                 repository: repo,
                 title: title.trimmingCharacters(in: .whitespacesAndNewlines),
-                body: body.trimmingCharacters(in: .whitespacesAndNewlines),
+                body: issueBody.trimmingCharacters(in: .whitespacesAndNewlines),
                 labels: parsed
             )
             isCreating = false
