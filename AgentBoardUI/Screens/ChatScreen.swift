@@ -4,6 +4,7 @@ import SwiftUI
 struct ChatScreen: View {
     @Environment(AgentBoardAppModel.self) private var appModel
     @Environment(\.horizontalSizeClass) private var hSizeClass
+    @FocusState private var isTextFieldFocused: Bool
     @State private var editingConversationID: UUID?
     @State private var editingTitle = ""
 
@@ -25,13 +26,14 @@ struct ChatScreen: View {
 
                 if !chatStore.conversations.isEmpty {
                     conversationRail
-                        .padding(.vertical, 8)
+                        .padding(.bottom, 4)
                 }
 
                 messageList
-
-                composeArea
             }
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            composeArea
         }
         .navigationBarHidden(true)
     }
@@ -65,6 +67,7 @@ struct ChatScreen: View {
                 }
             }
             .padding(.horizontal, isCompact ? 16 : 24)
+            .padding(.vertical, 12)
         }
     }
 
@@ -164,6 +167,10 @@ struct ChatScreen: View {
                     withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
                 }
             }
+            .onTapGesture {
+                // Dismiss keyboard when tapping surface
+                isTextFieldFocused = false
+            }
         }
     }
 
@@ -175,47 +182,54 @@ struct ChatScreen: View {
                 Text(err)
                     .font(.caption.weight(.bold))
                     .foregroundStyle(.red)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, isCompact ? 16 : 24)
+                    .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.bottom, 8)
             } else if let status = chatStore.statusMessage {
                 Text(status)
                     .font(.caption)
                     .foregroundStyle(NeuPalette.textSecondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, isCompact ? 16 : 24)
+                    .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.bottom, 8)
             }
 
-            HStack(alignment: .bottom, spacing: 16) {
-                ZStack(alignment: .topLeading) {
-                    if chatStore.draft.isEmpty {
-                        Text("Message Hermes...")
-                            .foregroundStyle(NeuPalette.textSecondary)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 14)
-                    }
-                    TextEditor(text: $chatStore.draft)
-                        .scrollContentBackground(.hidden)
-                        .foregroundStyle(NeuPalette.textPrimary)
-                        .frame(minHeight: 48, maxHeight: 120)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                }
-                .neuRecessed(cornerRadius: 16, depth: 6)
+            ZStack(alignment: .bottomTrailing) {
+                TextField("Message Hermes...", text: $chatStore.draft, axis: .vertical)
+                    .lineLimit(1 ... 8)
+                    .focused($isTextFieldFocused)
+                    .foregroundStyle(NeuPalette.textPrimary)
+                    .padding(.leading, 24) // Centered inner text by giving symmetrical layout but offset...
+                    .padding(.trailing, 64) // Provide a large trailing gap for the absolute positioned button
+                    .padding(.vertical, 20) // Thicker track
 
                 Button {
                     Task { await chatStore.sendDraft() }
                 } label: {
                     Image(systemName: chatStore.isStreaming ? "stop.fill" : "paperplane.fill")
-                        .font(.system(size: 20))
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(chatStore
+                            .isStreaming ? .white :
+                            (chatStore.draft.isEmpty ? NeuPalette.textSecondary : NeuPalette.background))
+                        .frame(width: 44, height: 44)
+                        .background(
+                            Circle()
+                                .fill(chatStore
+                                    .isStreaming ? .red :
+                                    (chatStore.draft.isEmpty ? NeuPalette.surface : NeuPalette.accentCyan))
+                        )
                 }
-                .buttonStyle(NeuButtonTarget(isAccent: !chatStore.draft.isEmpty && !chatStore.isStreaming))
                 .disabled(chatStore.draft.trimmedOrNil == nil && !chatStore.isStreaming)
+                .padding(8) // Sits neatly in the corner of the recessed shape
             }
-            .padding(isCompact ? 16 : 24)
-            .background(NeuPalette.surface.ignoresSafeArea(edges: .bottom))
+            .neuRecessed(cornerRadius: 32, depth: 6)
+            .padding(.horizontal, isCompact ? 16 : 24)
+            .padding(.top, 12)
+            .padding(.bottom, 16)
         }
+        .background(NeuPalette.background.ignoresSafeArea(edges: .bottom))
+        .background(
+            // Extra layer trick to prevent safeAreaInset from clipping weirdly against keyboards
+            NeuPalette.background.shadow(color: NeuPalette.shadowDark, radius: 10, y: -4)
+        )
     }
 }
 
@@ -257,16 +271,15 @@ private struct NeuChatBubble: View {
                     .foregroundStyle(NeuPalette.textPrimary)
             }
         }
-        .padding(16)
+        .padding(20)
         .modifier(
             message.role == .assistant
-                ? AnyViewModifier(NeuExtrudedModifier(cornerRadius: 20, elevation: 8))
-                : AnyViewModifier(NeuRecessedModifier(cornerRadius: 20, depth: 6))
+                ? AnyViewModifier(NeuExtrudedModifier(cornerRadius: 24, elevation: 8))
+                : AnyViewModifier(NeuRecessedModifier(cornerRadius: 24, depth: 6))
         )
     }
 }
 
-/// Helper to bridge ViewModifier types
 struct AnyViewModifier: ViewModifier {
     let modifier: Any
 

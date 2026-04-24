@@ -5,50 +5,62 @@ struct SessionsScreen: View {
     @Environment(AgentBoardAppModel.self) private var appModel
     @Environment(\.horizontalSizeClass) private var hSizeClass
     @State private var selectedSession: AgentSession?
-    private let columns = [GridItem(.adaptive(minimum: 300), spacing: 16)]
+    private let columns = [GridItem(.adaptive(minimum: 300), spacing: 24)]
 
     private var isCompact: Bool {
         hSizeClass == .compact
     }
 
     var body: some View {
-        Group {
-            if appModel.sessionsStore.sessions.isEmpty {
-                EmptyStateCard(
-                    title: "No sessions yet",
-                    message: appModel.sessionsStore
-                        .statusMessage ?? "Once the companion sees agent processes, their live state will appear here.",
-                    systemImage: "bolt.horizontal.circle"
-                )
-            } else if isCompact {
-                List {
-                    ForEach(appModel.sessionsStore.sessions) { session in
-                        Button {
-                            selectedSession = session
-                        } label: {
-                            sessionRow(session)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .listStyle(.insetGrouped)
-            } else {
-                ScrollView {
-                    LazyVGrid(columns: columns, spacing: 16) {
-                        ForEach(appModel.sessionsStore.sessions) { session in
-                            Button {
-                                selectedSession = session
-                            } label: {
-                                sessionCard(session)
+        ZStack {
+            NeuBackground()
+
+            VStack(spacing: 0) {
+                header
+                    .padding(isCompact ? 16 : 24)
+                    .padding(.bottom, 8)
+
+                if appModel.sessionsStore.sessions.isEmpty {
+                    EmptyStateCard(
+                        title: "No sessions yet",
+                        message: appModel.sessionsStore
+                            .statusMessage ??
+                            "Once the companion sees agent processes, their live state will appear here.",
+                        systemImage: "bolt.horizontal.circle"
+                    )
+                    .padding(isCompact ? 16 : 24)
+                } else if isCompact {
+                    ScrollView(showsIndicators: false) {
+                        LazyVStack(spacing: 20) {
+                            ForEach(appModel.sessionsStore.sessions) { session in
+                                Button {
+                                    selectedSession = session
+                                } label: {
+                                    SessionCardNeu(session: session)
+                                }
+                                .buttonStyle(.plain)
                             }
                         }
+                        .padding(isCompact ? 16 : 24)
                     }
-                    .padding(20)
+                } else {
+                    ScrollView(showsIndicators: false) {
+                        LazyVGrid(columns: columns, spacing: 24) {
+                            ForEach(appModel.sessionsStore.sessions) { session in
+                                Button {
+                                    selectedSession = session
+                                } label: {
+                                    SessionCardNeu(session: session)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(24)
+                    }
                 }
-                .background(Color(.systemGroupedBackground))
             }
         }
-        .navigationTitle("Sessions")
+        .navigationBarHidden(true)
         .refreshable {
             await appModel.sessionsStore.refresh()
         }
@@ -58,125 +70,128 @@ struct SessionsScreen: View {
         }
     }
 
-    private func sessionRow(_ session: AgentSession) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                SessionStatusPill(status: session.status)
-                Spacer()
-                if let pid = session.pid {
-                    Text("PID \(pid)")
-                        .font(.caption.monospaced())
-                        .foregroundStyle(.secondary)
-                } else {
-                    Text(session.id)
-                        .font(.caption.monospaced())
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                        .frame(maxWidth: 80)
-                }
+    private var header: some View {
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("SESSIONS")
+                    .font(.caption.weight(.bold))
+                    .tracking(2)
+                    .foregroundStyle(NeuPalette.accentCyan)
+                Text("Runtime Engine")
+                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .foregroundStyle(NeuPalette.textPrimary)
             }
-
-            Text(session.source)
-                .font(.headline)
-                .foregroundStyle(.primary)
-
-            if let model = session.model {
-                Text(model)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+            Spacer()
+            Button {
+                Task { await appModel.sessionsStore.refresh() }
+            } label: {
+                Image(systemName: "arrow.clockwise")
             }
-
-            HStack {
-                if let taskID = session.linkedTaskID {
-                    Text("Task \(taskID)")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                }
-
-                if let workItem = session.workItem {
-                    Text(workItem.issueReference)
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                }
-
-                Spacer()
-
-                Text(session.lastSeenAt, style: .relative)
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-            }
+            .buttonStyle(NeuButtonTarget(isAccent: false))
         }
-        .padding(.vertical, 4)
     }
+}
 
-    private func sessionCard(_ session: AgentSession) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
+private struct SessionCardNeu: View {
+    let session: AgentSession
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
             HStack {
-                SessionStatusPill(status: session.status)
+                SessionStatusNeu(status: session.status)
                 Spacer()
                 if let pid = session.pid {
                     Text("PID \(pid)")
                         .font(.caption.monospaced())
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(NeuPalette.textSecondary)
                 } else {
                     Text(session.id)
                         .font(.caption.monospaced())
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(NeuPalette.textSecondary)
                         .lineLimit(1)
                         .truncationMode(.middle)
                         .frame(width: 80)
                 }
             }
 
-            Text(session.source)
-                .font(.headline)
-                .foregroundStyle(.primary)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(session.source)
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(NeuPalette.textPrimary)
 
-            if let model = session.model {
-                Text(model)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                if let model = session.model {
+                    Text(model)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(NeuPalette.accentOrange)
+                }
             }
 
-            if let taskID = session.linkedTaskID {
-                Text("Task \(taskID)")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
+            if session.linkedTaskID != nil || session.workItem != nil {
+                VStack(alignment: .leading, spacing: 6) {
+                    if let taskID = session.linkedTaskID {
+                        HStack(spacing: 8) {
+                            Image(systemName: "list.clipboard")
+                                .font(.caption)
+                            Text("Task \(taskID)")
+                                .font(.subheadline)
+                        }
+                        .foregroundStyle(NeuPalette.textSecondary)
+                    }
 
-            if let workItem = session.workItem {
-                Text(workItem.issueReference)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    if let workItem = session.workItem {
+                        HStack(spacing: 8) {
+                            Image(systemName: "number")
+                                .font(.caption)
+                            Text(workItem.issueReference)
+                                .font(.subheadline)
+                        }
+                        .foregroundStyle(NeuPalette.textSecondary)
+                    }
+                }
+                .padding(12)
+                .neuRecessed(cornerRadius: 12, depth: 3)
             }
-
-            Divider()
 
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Started")
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(.tertiary)
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(NeuPalette.textSecondary)
                     Text(session.startedAt, style: .relative)
-                        .font(.subheadline)
-                        .foregroundStyle(.primary)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(NeuPalette.textPrimary)
                 }
                 Spacer()
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .trailing, spacing: 4) {
                     Text("Last Seen")
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(.tertiary)
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(NeuPalette.textSecondary)
                     Text(session.lastSeenAt, style: .relative)
-                        .font(.subheadline)
-                        .foregroundStyle(.primary)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(NeuPalette.textPrimary)
                 }
             }
         }
-        .padding(16)
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 10))
-        .shadow(color: Color.black.opacity(0.05), radius: 2, y: 1)
-        .contentShape(Rectangle())
+        .padding(20)
+        .neuExtruded(cornerRadius: 24, elevation: 8)
+    }
+}
+
+struct SessionStatusNeu: View {
+    let status: AgentSessionStatus
+    var body: some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(status == .running ? NeuPalette.accentCyan : status == .stopped ? NeuPalette
+                    .accentOrange : status == .error ? .red : NeuPalette.textSecondary)
+                .frame(width: 8, height: 8)
+            Text(status.title.uppercased())
+                .font(.caption2.weight(.bold))
+                .tracking(1)
+                .foregroundStyle(NeuPalette.textSecondary)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .neuRecessed(cornerRadius: 12, depth: 3)
     }
 }
