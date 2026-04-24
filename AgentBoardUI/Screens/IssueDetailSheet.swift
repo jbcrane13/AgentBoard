@@ -59,18 +59,15 @@ struct IssueDetailSheet: View {
                     Text(item.title)
                         .font(.title2.weight(.bold))
                         .foregroundStyle(.white)
-
                     HStack(spacing: 8) {
                         WorkStatusPill(state: item.status)
                         PriorityPill(priority: item.priority)
                     }
-
                     if !item.assignees.isEmpty {
                         Label(item.assignees.joined(separator: ", "), systemImage: "person.fill")
                             .font(.subheadline)
                             .foregroundStyle(BoardPalette.paper.opacity(0.82))
                     }
-
                     if let milestone = item.milestone {
                         Label(milestone.title, systemImage: "flag")
                             .font(.subheadline)
@@ -78,64 +75,75 @@ struct IssueDetailSheet: View {
                     }
                 }
             }
+            descriptionCard
+            labelsCard
+            timelineCard
+        }
+    }
 
-            if !item.bodySummary.isEmpty {
-                BoardSurface {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Description")
-                            .font(.headline)
-                            .foregroundStyle(.white)
-                        Text(item.bodySummary)
-                            .font(.body)
-                            .foregroundStyle(BoardPalette.paper.opacity(0.82))
-                            .textSelection(.enabled)
-                    }
-                }
-            }
-
-            if !item.labels.isEmpty {
-                BoardSurface {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Labels")
-                            .font(.headline)
-                            .foregroundStyle(.white)
-                        FlowLayout(spacing: 8) {
-                            ForEach(item.labels, id: \.self) { label in
-                                Text(label)
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(.white)
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 5)
-                                    .background(
-                                        Capsule().fill(BoardPalette.cobalt.opacity(0.28))
-                                    )
-                            }
-                        }
-                    }
-                }
-            }
-
+    @ViewBuilder
+    private var descriptionCard: some View {
+        if !item.bodySummary.isEmpty {
             BoardSurface {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Timeline")
+                    Text("Description")
                         .font(.headline)
                         .foregroundStyle(.white)
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Created")
+                    Text(item.bodySummary)
+                        .font(.body)
+                        .foregroundStyle(BoardPalette.paper.opacity(0.82))
+                        .textSelection(.enabled)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var labelsCard: some View {
+        if !item.labels.isEmpty {
+            BoardSurface {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Labels")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                    FlowLayout(spacing: 8) {
+                        ForEach(item.labels, id: \.self) { label in
+                            Text(label)
                                 .font(.caption.weight(.semibold))
-                                .foregroundStyle(BoardPalette.paper.opacity(0.6))
-                            Text(item.createdAt, style: .relative)
                                 .foregroundStyle(.white)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
+                                .background(
+                                    Capsule().fill(BoardPalette.cobalt.opacity(0.28))
+                                )
                         }
-                        Spacer()
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Updated")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(BoardPalette.paper.opacity(0.6))
-                            Text(item.updatedAt, style: .relative)
-                                .foregroundStyle(.white)
-                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private var timelineCard: some View {
+        BoardSurface {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Timeline")
+                    .font(.headline)
+                    .foregroundStyle(.white)
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Created")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(BoardPalette.paper.opacity(0.6))
+                        Text(item.createdAt, style: .relative)
+                            .foregroundStyle(.white)
+                    }
+                    Spacer()
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Updated")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(BoardPalette.paper.opacity(0.6))
+                        Text(item.updatedAt, style: .relative)
+                            .foregroundStyle(.white)
                     }
                 }
             }
