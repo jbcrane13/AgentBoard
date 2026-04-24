@@ -15,25 +15,29 @@ struct ChatScreen: View {
     var body: some View {
         @Bindable var chatStore = appModel.chatStore
 
-        ZStack {
+        ZStack(alignment: .top) {
             NeuBackground()
 
             VStack(spacing: 0) {
+                // Main Header pinned at the top
                 header
                     .padding(.horizontal, isCompact ? 16 : 24)
                     .padding(.top, isCompact ? 16 : 24)
                     .padding(.bottom, 16)
+                    .background(NeuPalette.background.ignoresSafeArea())
 
                 if !chatStore.conversations.isEmpty {
                     conversationRail
                         .padding(.bottom, 4)
+                        .background(NeuPalette.background)
                 }
 
+                // The shrinking center body
                 messageList
+
+                // The pinned base
+                composeArea
             }
-        }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            composeArea
         }
         .navigationBarHidden(true)
     }
@@ -168,7 +172,6 @@ struct ChatScreen: View {
                 }
             }
             .onTapGesture {
-                // Dismiss keyboard when tapping surface
                 isTextFieldFocused = false
             }
         }
@@ -193,13 +196,20 @@ struct ChatScreen: View {
             }
 
             ZStack(alignment: .bottomTrailing) {
-                TextField("Message Hermes...", text: $chatStore.draft, axis: .vertical)
-                    .lineLimit(1 ... 8)
+                // Centering the text inside the bounds natively
+                TextField("", text: $chatStore.draft, axis: .vertical)
+                    .lineLimit(1 ... 6)
                     .focused($isTextFieldFocused)
                     .foregroundStyle(NeuPalette.textPrimary)
-                    .padding(.leading, 24) // Centered inner text by giving symmetrical layout but offset...
-                    .padding(.trailing, 64) // Provide a large trailing gap for the absolute positioned button
-                    .padding(.vertical, 20) // Thicker track
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 64) // Large margins side-to-side ensures clear bounding away from Send button
+                    .padding(.vertical, 24)
+                    .overlay(
+                        Text("Message Hermes...")
+                            .foregroundStyle(NeuPalette.textSecondary)
+                            .opacity(chatStore.draft.isEmpty ? 1 : 0)
+                            .allowsHitTesting(false)
+                    )
 
                 Button {
                     Task { await chatStore.sendDraft() }
@@ -209,7 +219,7 @@ struct ChatScreen: View {
                         .foregroundStyle(chatStore
                             .isStreaming ? .white :
                             (chatStore.draft.isEmpty ? NeuPalette.textSecondary : NeuPalette.background))
-                        .frame(width: 44, height: 44)
+                        .frame(width: 48, height: 48) // More robust tap target
                         .background(
                             Circle()
                                 .fill(chatStore
@@ -218,17 +228,17 @@ struct ChatScreen: View {
                         )
                 }
                 .disabled(chatStore.draft.trimmedOrNil == nil && !chatStore.isStreaming)
-                .padding(8) // Sits neatly in the corner of the recessed shape
+                .padding(12) // Exactly inset into the bottom corner
             }
-            .neuRecessed(cornerRadius: 32, depth: 6)
-            .padding(.horizontal, isCompact ? 16 : 24)
-            .padding(.top, 12)
-            .padding(.bottom, 16)
+            .neuRecessed(cornerRadius: 36, depth: 6)
         }
-        .background(NeuPalette.background.ignoresSafeArea(edges: .bottom))
+        .padding(.horizontal, isCompact ? 16 : 24)
+        .padding(.top, 12)
+        .padding(.bottom, 16)
         .background(
-            // Extra layer trick to prevent safeAreaInset from clipping weirdly against keyboards
-            NeuPalette.background.shadow(color: NeuPalette.shadowDark, radius: 10, y: -4)
+            NeuPalette.background
+                .ignoresSafeArea(edges: .bottom)
+                .shadow(color: NeuPalette.shadowDark, radius: 10, y: -4)
         )
     }
 }
