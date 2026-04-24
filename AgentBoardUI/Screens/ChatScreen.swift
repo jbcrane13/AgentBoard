@@ -3,8 +3,13 @@ import SwiftUI
 
 struct ChatScreen: View {
     @Environment(AgentBoardAppModel.self) private var appModel
+    @Environment(\.horizontalSizeClass) private var hSizeClass
     @State private var editingConversationID: UUID?
     @State private var editingTitle = ""
+
+    private var isCompact: Bool {
+        hSizeClass == .compact
+    }
 
     var body: some View {
         @Bindable var chatStore = appModel.chatStore
@@ -13,68 +18,99 @@ struct ChatScreen: View {
             BoardBackground()
 
             VStack(alignment: .leading, spacing: 0) {
-                VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: isCompact ? 10 : 14) {
                     header
 
                     if !chatStore.conversations.isEmpty {
                         conversationRail
                     }
                 }
-                .padding(.horizontal, 24)
-                .padding(.top, 24)
+                .padding(.horizontal, isCompact ? 16 : 24)
+                .padding(.top, isCompact ? 16 : 24)
                 .padding(.bottom, 12)
 
                 messageList
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, isCompact ? 16 : 24)
 
                 composeArea
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, isCompact ? 16 : 24)
                     .padding(.bottom, 16)
             }
         }
         .navigationTitle("Chat")
     }
 
+    @ViewBuilder
     private var header: some View {
-        HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("CHAT".uppercased())
-                    .font(.caption.weight(.semibold))
-                    .tracking(2)
-                    .foregroundStyle(BoardPalette.gold)
-                Text("Hermes AI")
-                    .font(.system(size: 28, weight: .bold, design: .serif))
-                    .foregroundStyle(.white)
+        if isCompact {
+            HStack(alignment: .center, spacing: 10) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("CHAT".uppercased())
+                        .font(.caption.weight(.semibold))
+                        .tracking(2)
+                        .foregroundStyle(BoardPalette.gold)
+                    Text("Hermes AI")
+                        .font(.title2.bold())
+                        .foregroundStyle(.white)
+                }
+                Spacer()
+                BoardChip(
+                    label: appModel.chatStore.connectionState.title,
+                    systemImage: "dot.radiowaves.left.and.right",
+                    tint: chipTint(for: appModel.chatStore.connectionState)
+                )
+                Button {
+                    appModel.chatStore.startNewConversation()
+                } label: {
+                    Image(systemName: "plus")
+                        .fontWeight(.semibold)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(BoardPalette.cobalt)
+                .accessibilityIdentifier("chat_button_new_conversation")
             }
-
-            Spacer(minLength: 16)
-
-            VStack(alignment: .trailing, spacing: 10) {
-                HStack(spacing: 8) {
-                    BoardChip(
-                        label: appModel.chatStore.connectionState.title,
-                        systemImage: "dot.radiowaves.left.and.right",
-                        tint: chipTint(for: appModel.chatStore.connectionState)
-                    )
-
-                    modelPickerMenu
+        } else {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("CHAT".uppercased())
+                        .font(.caption.weight(.semibold))
+                        .tracking(2)
+                        .foregroundStyle(BoardPalette.gold)
+                    Text("Hermes AI")
+                        .font(.system(size: 28, weight: .bold, design: .serif))
+                        .foregroundStyle(.white)
                 }
 
-                HStack(spacing: 8) {
-                    Button("Refresh") {
-                        Task {
-                            await appModel.chatStore.refreshConnection()
-                            await appModel.chatStore.refreshModels()
-                        }
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(.white)
+                Spacer(minLength: 16)
 
-                    Button("New") {
-                        appModel.chatStore.startNewConversation()
+                VStack(alignment: .trailing, spacing: 10) {
+                    HStack(spacing: 8) {
+                        BoardChip(
+                            label: appModel.chatStore.connectionState.title,
+                            systemImage: "dot.radiowaves.left.and.right",
+                            tint: chipTint(for: appModel.chatStore.connectionState)
+                        )
+                        modelPickerMenu
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(BoardPalette.cobalt)
+
+                    HStack(spacing: 8) {
+                        Button("Refresh") {
+                            Task {
+                                await appModel.chatStore.refreshConnection()
+                                await appModel.chatStore.refreshModels()
+                            }
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(.white)
+                        .accessibilityIdentifier("chat_button_refresh")
+
+                        Button("New") {
+                            appModel.chatStore.startNewConversation()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(BoardPalette.cobalt)
+                        .accessibilityIdentifier("chat_button_new_conversation")
+                    }
                 }
             }
         }

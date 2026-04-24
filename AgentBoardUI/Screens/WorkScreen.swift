@@ -5,21 +5,28 @@ private enum WorkLayoutMode: String, CaseIterable, Identifiable {
     case board
     case list
 
-    var id: String { rawValue }
+    var id: String {
+        rawValue
+    }
 }
 
 struct WorkScreen: View {
     @Environment(AgentBoardAppModel.self) private var appModel
+    @Environment(\.horizontalSizeClass) private var hSizeClass
     @State private var layoutMode: WorkLayoutMode = .board
     @State private var selectedItem: WorkItem?
     @State private var isPresentingCreate = false
     @State private var selectedRepo: String = "all"
 
+    private var isCompact: Bool {
+        hSizeClass == .compact
+    }
+
     var body: some View {
         ZStack {
             BoardBackground()
 
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: isCompact ? 12 : 14) {
                 header
 
                 filterBar
@@ -31,13 +38,13 @@ struct WorkScreen: View {
                             ?? "Connect a GitHub token and repository in Settings.",
                         systemImage: "tray"
                     )
-                } else if layoutMode == .board {
+                } else if !isCompact && layoutMode == .board {
                     boardLayout
                 } else {
                     listLayout
                 }
             }
-            .padding(24)
+            .padding(isCompact ? 16 : 24)
         }
         .navigationTitle("Work")
         .refreshable {
@@ -65,43 +72,72 @@ struct WorkScreen: View {
         }
     }
 
+    @ViewBuilder
     private var header: some View {
-        HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("WORK".uppercased())
-                    .font(.caption.weight(.semibold))
-                    .tracking(2)
-                    .foregroundStyle(BoardPalette.gold)
-                Text("GitHub Issues")
-                    .font(.system(size: 28, weight: .bold, design: .serif))
-                    .foregroundStyle(.white)
-            }
-
-            Spacer(minLength: 16)
-
-            VStack(alignment: .trailing, spacing: 10) {
-                Picker("Layout", selection: $layoutMode) {
-                    ForEach(WorkLayoutMode.allCases) { mode in
-                        Image(systemName: mode == .board ? "square.grid.2x2" : "list.bullet")
-                            .tag(mode)
-                    }
+        if isCompact {
+            HStack(alignment: .center) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("WORK".uppercased())
+                        .font(.caption.weight(.semibold))
+                        .tracking(2)
+                        .foregroundStyle(BoardPalette.gold)
+                    Text("GitHub Issues")
+                        .font(.title2.bold())
+                        .foregroundStyle(.white)
                 }
-                .pickerStyle(.segmented)
-                .frame(maxWidth: 100)
+                Spacer()
+                Button {
+                    isPresentingCreate = true
+                } label: {
+                    Image(systemName: "plus")
+                        .fontWeight(.semibold)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(BoardPalette.cobalt)
+                .disabled(!appModel.settingsStore.isGitHubConfigured)
+                .accessibilityIdentifier("work_button_new_issue")
+            }
+        } else {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("WORK".uppercased())
+                        .font(.caption.weight(.semibold))
+                        .tracking(2)
+                        .foregroundStyle(BoardPalette.gold)
+                    Text("GitHub Issues")
+                        .font(.system(size: 28, weight: .bold, design: .serif))
+                        .foregroundStyle(.white)
+                }
 
-                HStack(spacing: 8) {
-                    Button("Refresh") {
-                        Task { await appModel.workStore.refresh() }
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(.white)
+                Spacer(minLength: 16)
 
-                    Button("New Issue") {
-                        isPresentingCreate = true
+                VStack(alignment: .trailing, spacing: 10) {
+                    Picker("Layout", selection: $layoutMode) {
+                        ForEach(WorkLayoutMode.allCases) { mode in
+                            Image(systemName: mode == .board ? "square.grid.2x2" : "list.bullet")
+                                .tag(mode)
+                        }
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(BoardPalette.cobalt)
-                    .disabled(!appModel.settingsStore.isGitHubConfigured)
+                    .pickerStyle(.segmented)
+                    .frame(maxWidth: 100)
+                    .accessibilityIdentifier("work_picker_layout")
+
+                    HStack(spacing: 8) {
+                        Button("Refresh") {
+                            Task { await appModel.workStore.refresh() }
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(.white)
+                        .accessibilityIdentifier("work_button_refresh")
+
+                        Button("New Issue") {
+                            isPresentingCreate = true
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(BoardPalette.cobalt)
+                        .disabled(!appModel.settingsStore.isGitHubConfigured)
+                        .accessibilityIdentifier("work_button_new_issue")
+                    }
                 }
             }
         }

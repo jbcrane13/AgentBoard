@@ -3,6 +3,7 @@ import SwiftUI
 
 struct AgentsScreen: View {
     @Environment(AgentBoardAppModel.self) private var appModel
+    @Environment(\.horizontalSizeClass) private var hSizeClass
     @State private var isPresentingCreateSheet = false
     @State private var selectedTask: AgentTask?
     @State private var selectedWorkItemID: String?
@@ -18,28 +19,37 @@ struct AgentsScreen: View {
         }
     }
 
+    private var isCompact: Bool {
+        hSizeClass == .compact
+    }
+
     var body: some View {
         ZStack {
             BoardBackground()
 
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: isCompact ? 12 : 18) {
                 header
 
                 if appModel.agentsStore.tasks.isEmpty && appModel.agentsStore.summaries.isEmpty {
                     EmptyStateCard(
                         title: "No agent activity yet",
                         message: appModel.agentsStore.statusMessage
-                            ?? "Start the companion service and point Settings at it to watch tasks and live execution state.",
+                            ??
+                            "Start the companion service and point Settings at it to watch tasks and live execution state.",
                         systemImage: "person.3.sequence"
                     )
                 } else {
-                    if !appModel.agentsStore.summaries.isEmpty {
+                    if !appModel.agentsStore.summaries.isEmpty && !isCompact {
                         agentSummaryRail
                     }
-                    kanbanBoard
+                    if isCompact {
+                        compactTaskList
+                    } else {
+                        kanbanBoard
+                    }
                 }
             }
-            .padding(24)
+            .padding(isCompact ? 16 : 24)
         }
         .navigationTitle("Agents")
         .refreshable {
@@ -55,28 +65,21 @@ struct AgentsScreen: View {
         }
     }
 
+    @ViewBuilder
     private var header: some View {
-        HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("AGENTS".uppercased())
-                    .font(.caption.weight(.semibold))
-                    .tracking(2)
-                    .foregroundStyle(BoardPalette.gold)
-                Text("Task Board")
-                    .font(.system(size: 28, weight: .bold, design: .serif))
-                    .foregroundStyle(.white)
-            }
-
-            Spacer(minLength: 20)
-
-            HStack(spacing: 8) {
-                Button("Refresh") {
-                    Task { await appModel.agentsStore.refresh() }
+        if isCompact {
+            HStack(alignment: .center) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("AGENTS".uppercased())
+                        .font(.caption.weight(.semibold))
+                        .tracking(2)
+                        .foregroundStyle(BoardPalette.gold)
+                    Text("Task Board")
+                        .font(.title2.bold())
+                        .foregroundStyle(.white)
                 }
-                .buttonStyle(.bordered)
-                .tint(.white)
-
-                Button("New Task") {
+                Spacer()
+                Button {
                     assignedAgent = appModel.agentsStore.summaries.first?.name ?? "Codex"
                     selectedWorkItemID = appModel.workStore.items.first?.id
                     taskTitle = ""
@@ -84,10 +87,51 @@ struct AgentsScreen: View {
                     status = .backlog
                     priority = .medium
                     isPresentingCreateSheet = true
+                } label: {
+                    Image(systemName: "plus")
+                        .fontWeight(.semibold)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(BoardPalette.coral)
                 .disabled(appModel.workStore.items.isEmpty)
+                .accessibilityIdentifier("agents_button_new_task")
+            }
+        } else {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("AGENTS".uppercased())
+                        .font(.caption.weight(.semibold))
+                        .tracking(2)
+                        .foregroundStyle(BoardPalette.gold)
+                    Text("Task Board")
+                        .font(.system(size: 28, weight: .bold, design: .serif))
+                        .foregroundStyle(.white)
+                }
+
+                Spacer(minLength: 20)
+
+                HStack(spacing: 8) {
+                    Button("Refresh") {
+                        Task { await appModel.agentsStore.refresh() }
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.white)
+                    .accessibilityIdentifier("agents_button_refresh")
+
+                    Button("New Task") {
+                        assignedAgent = appModel.agentsStore.summaries.first?.name ?? "Codex"
+                        selectedWorkItemID = appModel.workStore.items.first?.id
+                        taskTitle = ""
+                        note = ""
+                        status = .backlog
+                        priority = .medium
+                        isPresentingCreateSheet = true
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(BoardPalette.coral)
+                    .disabled(appModel.workStore.items.isEmpty)
+                    .accessibilityIdentifier("agents_button_new_task")
+                }
             }
         }
     }
@@ -160,6 +204,36 @@ struct AgentsScreen: View {
                 }
             }
             .padding(.trailing, 4)
+        }
+    }
+
+    private var compactTaskList: some View {
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                ForEach(AgentTaskState.allCases) { state in
+                    let tasks = appModel.agentsStore.tasks.filter { $0.status == state }
+                    if !tasks.isEmpty {
+                        HStack {
+                            Text(state.title)
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(columnTint(for: state))
+                            Spacer()
+                            Text("\(tasks.count)")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.white.opacity(0.6))
+                        }
+                        .padding(.horizontal, 4)
+                        .padding(.top, 16)
+                        .padding(.bottom, 6)
+
+                        ForEach(tasks) { task in
+                            AgentTaskCard(task: task) { selectedTask = task }
+                                .padding(.bottom, 8)
+                                .accessibilityIdentifier("agents_cell_task_\(task.id)")
+                        }
+                    }
+                }
+            }
         }
     }
 
