@@ -46,18 +46,15 @@ struct SettingsScreen: View {
                 BoardSectionTitle("GitHub Issues", subtitle: "Tickets are the canonical work source.")
                 SecureField("GitHub token", text: $settingsStore.githubToken)
                     .boardFieldStyle()
-                HStack(spacing: 10) {
-                    TextField("Owner", text: $repositoryOwner)
-                        .boardFieldStyle()
-                    TextField("Repo", text: $repositoryName)
-                        .boardFieldStyle()
-                    Button("Add") {
-                        settingsStore.addRepository(owner: repositoryOwner, name: repositoryName)
-                        repositoryOwner = ""
-                        repositoryName = ""
+                ViewThatFits(in: .horizontal) {
+                    repositoryInputRow(settingsStore: settingsStore)
+                    VStack(alignment: .leading, spacing: 10) {
+                        TextField("Owner", text: $repositoryOwner)
+                            .boardFieldStyle()
+                        TextField("Repo", text: $repositoryName)
+                            .boardFieldStyle()
+                        addRepositoryButton(settingsStore: settingsStore)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(BoardPalette.cobalt)
                 }
                 if settingsStore.repositories.isEmpty {
                     Text("No repositories connected yet.")
@@ -120,23 +117,65 @@ struct SettingsScreen: View {
                 .font(.subheadline)
                 .foregroundStyle(appModel.settingsStore.errorMessage == nil
                     ? BoardPalette.paper.opacity(0.78) : BoardPalette.coral)
-                HStack(spacing: 10) {
-                    Button("Save and Refresh") {
-                        Task { await appModel.saveSettingsAndReconnect() }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(BoardPalette.coral)
-                    Button("Refresh Hermes") {
-                        Task {
-                            await appModel.chatStore.refreshConnection()
-                            await appModel.chatStore.refreshModels()
-                        }
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(.white)
+                ViewThatFits(in: .horizontal) {
+                    statusButtons
+                    statusButtonsCompact
                 }
             }
         }
+    }
+
+    private func repositoryInputRow(settingsStore: SettingsStore) -> some View {
+        HStack(spacing: 10) {
+            TextField("Owner", text: $repositoryOwner)
+                .boardFieldStyle()
+            TextField("Repo", text: $repositoryName)
+                .boardFieldStyle()
+            addRepositoryButton(settingsStore: settingsStore)
+        }
+    }
+
+    private func addRepositoryButton(settingsStore: SettingsStore) -> some View {
+        Button("Add") {
+            settingsStore.addRepository(owner: repositoryOwner, name: repositoryName)
+            repositoryOwner = ""
+            repositoryName = ""
+        }
+        .buttonStyle(.borderedProminent)
+        .tint(BoardPalette.cobalt)
+    }
+
+    private var statusButtons: some View {
+        HStack(spacing: 10) {
+            saveAndRefreshButton
+            refreshHermesButton
+        }
+    }
+
+    private var statusButtonsCompact: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            saveAndRefreshButton
+            refreshHermesButton
+        }
+    }
+
+    private var saveAndRefreshButton: some View {
+        Button("Save and Refresh") {
+            Task { await appModel.saveSettingsAndReconnect() }
+        }
+        .buttonStyle(.borderedProminent)
+        .tint(BoardPalette.coral)
+    }
+
+    private var refreshHermesButton: some View {
+        Button("Refresh Hermes") {
+            Task {
+                await appModel.chatStore.refreshConnection()
+                await appModel.chatStore.refreshModels()
+            }
+        }
+        .buttonStyle(.bordered)
+        .tint(.white)
     }
 }
 

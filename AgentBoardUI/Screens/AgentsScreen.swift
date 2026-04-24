@@ -56,39 +56,51 @@ struct AgentsScreen: View {
     }
 
     private var header: some View {
-        HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("AGENTS".uppercased())
-                    .font(.caption.weight(.semibold))
-                    .tracking(2)
-                    .foregroundStyle(BoardPalette.gold)
-                Text("Task Board")
-                    .font(.system(size: 28, weight: .bold, design: .serif))
-                    .foregroundStyle(.white)
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .top, spacing: 16) {
+                headerTitle
+                Spacer(minLength: 20)
+                headerControls
             }
-
-            Spacer(minLength: 20)
-
-            HStack(spacing: 8) {
-                Button("Refresh") {
-                    Task { await appModel.agentsStore.refresh() }
-                }
-                .buttonStyle(.bordered)
-                .tint(.white)
-
-                Button("New Task") {
-                    assignedAgent = appModel.agentsStore.summaries.first?.name ?? "Codex"
-                    selectedWorkItemID = appModel.workStore.items.first?.id
-                    taskTitle = ""
-                    note = ""
-                    status = .backlog
-                    priority = .medium
-                    isPresentingCreateSheet = true
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(BoardPalette.coral)
-                .disabled(appModel.workStore.items.isEmpty)
+            VStack(alignment: .leading, spacing: 16) {
+                headerTitle
+                headerControls
             }
+        }
+    }
+
+    private var headerTitle: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("AGENTS".uppercased())
+                .font(.caption.weight(.semibold))
+                .tracking(2)
+                .foregroundStyle(BoardPalette.gold)
+            Text("Task Board")
+                .font(.system(size: 28, weight: .bold, design: .serif))
+                .foregroundStyle(.white)
+        }
+    }
+
+    private var headerControls: some View {
+        HStack(spacing: 8) {
+            Button("Refresh") {
+                Task { await appModel.agentsStore.refresh() }
+            }
+            .buttonStyle(.bordered)
+            .tint(.white)
+
+            Button("New Task") {
+                assignedAgent = appModel.agentsStore.summaries.first?.name ?? "Codex"
+                selectedWorkItemID = appModel.workStore.items.first?.id
+                taskTitle = ""
+                note = ""
+                status = .backlog
+                priority = .medium
+                isPresentingCreateSheet = true
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(BoardPalette.coral)
+            .disabled(appModel.workStore.items.isEmpty)
         }
     }
 

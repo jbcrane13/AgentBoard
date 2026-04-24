@@ -61,7 +61,13 @@ struct BoardChip: View {
     var tint: Color = BoardPalette.cobalt
 
     var body: some View {
-        Label(label, systemImage: systemImage)
+        Label {
+            Text(label)
+                .lineLimit(1)
+                .truncationMode(.middle)
+        } icon: {
+            Image(systemName: systemImage)
+        }
             .font(.caption.weight(.semibold))
             .foregroundStyle(.white)
             .padding(.horizontal, 12)
