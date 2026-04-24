@@ -71,8 +71,11 @@ public final class ChatStore {
     }
 
     public func renameConversation(id: UUID, title: String) {
-        guard var conversation = conversations.first(where: { $0.id == id }) else { return }
-        conversation.title = title
+        guard
+            var conversation = conversations.first(where: { $0.id == id }),
+            let trimmedTitle = title.trimmedOrNil
+        else { return }
+        conversation.title = trimmedTitle
         conversation.updatedAt = .now
         upsert(conversation)
         persist(conversationID: id)
