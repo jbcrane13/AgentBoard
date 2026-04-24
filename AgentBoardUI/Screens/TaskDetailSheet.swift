@@ -12,7 +12,7 @@ struct TaskDetailSheet: View {
     @State private var editPriority: WorkPriority = .medium
     @State private var editAgent = ""
     @State private var editNote = ""
-    @State private var editSessionID: String? = nil
+    @State private var editSessionID: String?
     @State private var isSaving = false
     @State private var showDeleteConfirm = false
 
@@ -22,113 +22,14 @@ struct TaskDetailSheet: View {
                 BoardBackground()
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
-                        BoardSurface {
-                            VStack(alignment: .leading, spacing: 14) {
-                                BoardSectionTitle("Edit Task")
-
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text("Title").font(.headline).foregroundStyle(.white)
-                                    TextField("Task title", text: $editTitle)
-                                        .taskFieldStyle()
-                                }
-
-                                HStack(spacing: 16) {
-                                    VStack(alignment: .leading, spacing: 6) {
-                                        Text("Status").font(.headline).foregroundStyle(.white)
-                                        Picker("Status", selection: $editStatus) {
-                                            ForEach(AgentTaskState.allCases) { state in
-                                                Text(state.title).tag(state)
-                                            }
-                                        }
-                                        .pickerStyle(.menu)
-                                        .foregroundStyle(.white)
-                                        .padding(.horizontal, 14)
-                                        .padding(.vertical, 10)
-                                        .background(RoundedRectangle(cornerRadius: 14).fill(Color.black.opacity(0.22)))
-                                    }
-
-                                    VStack(alignment: .leading, spacing: 6) {
-                                        Text("Priority").font(.headline).foregroundStyle(.white)
-                                        Picker("Priority", selection: $editPriority) {
-                                            ForEach(WorkPriority.allCases) { p in
-                                                Text(p.title).tag(p)
-                                            }
-                                        }
-                                        .pickerStyle(.menu)
-                                        .foregroundStyle(.white)
-                                        .padding(.horizontal, 14)
-                                        .padding(.vertical, 10)
-                                        .background(RoundedRectangle(cornerRadius: 14).fill(Color.black.opacity(0.22)))
-                                    }
-                                }
-
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text("Assigned Agent").font(.headline).foregroundStyle(.white)
-                                    TextField("agent name", text: $editAgent)
-                                        .taskFieldStyle()
-                                }
-
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text("Link Session").font(.headline).foregroundStyle(.white)
-                                    Picker("Session", selection: $editSessionID) {
-                                        Text("None").tag(Optional<String>.none)
-                                        ForEach(appModel.sessionsStore.sessions) { session in
-                                            Text("\(session.source) — \(session.status.title)")
-                                                .tag(Optional(session.id))
-                                        }
-                                    }
-                                    .pickerStyle(.menu)
-                                    .foregroundStyle(.white)
-                                    .padding(.horizontal, 14)
-                                    .padding(.vertical, 10)
-                                    .background(RoundedRectangle(cornerRadius: 14).fill(Color.black.opacity(0.22)))
-                                }
-
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text("Notes").font(.headline).foregroundStyle(.white)
-                                    TextEditor(text: $editNote)
-                                        .scrollContentBackground(.hidden)
-                                        .frame(minHeight: 100)
-                                        .padding(10)
-                                        .background(RoundedRectangle(cornerRadius: 16).fill(Color.black.opacity(0.22)))
-                                        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.white.opacity(0.08), lineWidth: 1))
-                                        .foregroundStyle(.white)
-                                }
-                            }
-                        }
-
-                        BoardSurface {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Work Item")
-                                    .font(.headline)
-                                    .foregroundStyle(.white)
-                                HStack {
-                                    Text(task.workItem.issueReference)
-                                        .font(.subheadline.weight(.semibold))
-                                        .foregroundStyle(BoardPalette.gold)
-                                    Spacer()
-                                    Text(task.createdAt, style: .relative)
-                                        .font(.caption)
-                                        .foregroundStyle(BoardPalette.paper.opacity(0.6))
-                                }
-                            }
-                        }
-
+                        editForm
+                        workItemCard
                         if isSaving {
                             ProgressView("Saving…")
                                 .foregroundStyle(.white)
                                 .frame(maxWidth: .infinity, alignment: .center)
                         }
-
-                        Button(role: .destructive) {
-                            showDeleteConfirm = true
-                        } label: {
-                            Label("Delete Task", systemImage: "trash")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.bordered)
-                        .tint(BoardPalette.coral)
-                        .padding(.top, 4)
+                        deleteButton
                     }
                     .padding(24)
                 }
@@ -159,6 +60,116 @@ struct TaskDetailSheet: View {
             }
         }
         .onAppear { populate() }
+    }
+
+    private var editForm: some View {
+        BoardSurface {
+            VStack(alignment: .leading, spacing: 14) {
+                BoardSectionTitle("Edit Task")
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Title").font(.headline).foregroundStyle(.white)
+                    TextField("Task title", text: $editTitle)
+                        .taskFieldStyle()
+                }
+
+                statusAndPriorityRow
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Assigned Agent").font(.headline).foregroundStyle(.white)
+                    TextField("agent name", text: $editAgent)
+                        .taskFieldStyle()
+                }
+
+                sessionPicker
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Notes").font(.headline).foregroundStyle(.white)
+                    TextEditor(text: $editNote)
+                        .scrollContentBackground(.hidden)
+                        .frame(minHeight: 100)
+                        .padding(10)
+                        .background(RoundedRectangle(cornerRadius: 16).fill(Color.black.opacity(0.22)))
+                        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.white.opacity(0.08), lineWidth: 1))
+                        .foregroundStyle(.white)
+                }
+            }
+        }
+    }
+
+    private var statusAndPriorityRow: some View {
+        HStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Status").font(.headline).foregroundStyle(.white)
+                Picker("Status", selection: $editStatus) {
+                    ForEach(AgentTaskState.allCases) { state in
+                        Text(state.title).tag(state)
+                    }
+                }
+                .pickerStyle(.menu)
+                .foregroundStyle(.white)
+                .pickerBackground()
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Priority").font(.headline).foregroundStyle(.white)
+                Picker("Priority", selection: $editPriority) {
+                    ForEach(WorkPriority.allCases) { prio in
+                        Text(prio.title).tag(prio)
+                    }
+                }
+                .pickerStyle(.menu)
+                .foregroundStyle(.white)
+                .pickerBackground()
+            }
+        }
+    }
+
+    private var sessionPicker: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Link Session").font(.headline).foregroundStyle(.white)
+            Picker("Session", selection: $editSessionID) {
+                Text("None").tag(Optional<String>.none)
+                ForEach(appModel.sessionsStore.sessions) { session in
+                    Text("\(session.source) — \(session.status.title)")
+                        .tag(Optional(session.id))
+                }
+            }
+            .pickerStyle(.menu)
+            .foregroundStyle(.white)
+            .pickerBackground()
+        }
+    }
+
+    private var workItemCard: some View {
+        BoardSurface {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Work Item")
+                    .font(.headline)
+                    .foregroundStyle(.white)
+                HStack {
+                    Text(task.workItem.issueReference)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(BoardPalette.gold)
+                    Spacer()
+                    Text(task.createdAt, style: .relative)
+                        .font(.caption)
+                        .foregroundStyle(BoardPalette.paper.opacity(0.6))
+                }
+            }
+        }
+    }
+
+    private var deleteButton: some View {
+        Button(role: .destructive) {
+            showDeleteConfirm = true
+        } label: {
+            Label("Delete Task", systemImage: "trash")
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.bordered)
+        .tint(BoardPalette.coral)
+        .padding(.top, 4)
     }
 
     private func populate() {
@@ -196,5 +207,10 @@ private extension View {
             .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.white.opacity(0.08), lineWidth: 1))
             .foregroundStyle(.white)
     }
-}
 
+    func pickerBackground() -> some View {
+        padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(RoundedRectangle(cornerRadius: 14).fill(Color.black.opacity(0.22)))
+    }
+}

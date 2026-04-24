@@ -29,95 +29,111 @@ public actor CompanionLocalProbe {
     public func snapshot(tasks: [AgentTask]) -> CompanionProbeSnapshot {
         let now = Date()
         let machineName = Host.current().localizedName ?? "Local Machine"
-        let processes = runningProcesses()
         let tmuxPanes = listTmuxPanes()
-
-        let sessions = processes.compactMap { process -> AgentSession? in
-            guard let signature = signatures.first(where: { process.commandLine.contains($0.keyword) }) else {
-                return nil
-            }
-
-            let linkedTask = tasks.first {
-                $0.sessionID == "proc-\(process.pid)" ||
-                    $0.assignedAgent.compare(signature.name, options: .caseInsensitive) == .orderedSame
-            }
-
-            let matchedPane = tmuxPanes.first { $0.pid == process.pid }
-            let output = matchedPane.flatMap { capturePane(paneID: $0.paneID) }
-
-            return AgentSession(
-                id: "proc-\(process.pid)",
-                source: machineName,
-                status: .running,
-                linkedTaskID: linkedTask?.id,
-                workItem: linkedTask?.workItem,
-                model: linkedTask == nil ? nil : "hermes-agent",
-                startedAt: now,
-                lastSeenAt: now,
-                pid: process.pid,
-                tmuxSession: matchedPane?.sessionName,
-                lastOutput: output
-            )
+        let sessions = runningProcesses().compactMap {
+            makeSession(process: $0, tasks: tasks, tmuxPanes: tmuxPanes, now: now, machineName: machineName)
         }
+        let summaries = makeSummaries(sessions: sessions, tasks: tasks, now: now, machineName: machineName)
+        return CompanionProbeSnapshot(sessions: sessions, agents: summaries)
+    }
 
+    private func makeSession(
+        process: (pid: Int, commandLine: String),
+        tasks: [AgentTask],
+        tmuxPanes: [TmuxPane],
+        now: Date,
+        machineName: String
+    ) -> AgentSession? {
+        guard let signature = signatures.first(where: { process.commandLine.contains($0.keyword) }) else {
+            return nil
+        }
+        let linkedTask = tasks.first {
+            $0.sessionID == "proc-\(process.pid)" ||
+                $0.assignedAgent.compare(signature.name, options: .caseInsensitive) == .orderedSame
+        }
+        let matchedPane = tmuxPanes.first { $0.pid == process.pid }
+        let output = matchedPane.flatMap { capturePane(paneID: $0.paneID) }
+        return AgentSession(
+            id: "proc-\(process.pid)",
+            source: machineName,
+            status: .running,
+            linkedTaskID: linkedTask?.id,
+            workItem: linkedTask?.workItem,
+            model: linkedTask == nil ? nil : "hermes-agent",
+            startedAt: now,
+            lastSeenAt: now,
+            pid: process.pid,
+            tmuxSession: matchedPane?.sessionName,
+            lastOutput: output
+        )
+    }
+
+    private func makeSummaries(
+        sessions: [AgentSession],
+        tasks: [AgentTask],
+        now: Date,
+        machineName: String
+    ) -> [AgentSummary] {
         let agentNames = Set(
             sessions.map { inferredAgentName(from: $0.linkedTaskID, tasks: tasks, fallback: $0.id) } +
                 tasks.map(\.assignedAgent)
         )
-
-        let summaries = agentNames
+        return agentNames
             .filter { !$0.isEmpty }
-            .map { agentName -> AgentSummary in
-                let activeTasks = tasks.filter {
-                    $0.assignedAgent.compare(agentName, options: .caseInsensitive) == .orderedSame &&
-                        $0.status != .done
-                }
-                let activeSessions = sessions.filter { session in
-                    if let linkedTaskID = session.linkedTaskID,
-                       let task = tasks.first(where: { $0.id == linkedTaskID }) {
-                        return task.assignedAgent.compare(agentName, options: .caseInsensitive) == .orderedSame
-                    }
-                    return session.id.lowercased().contains(agentName.lowercased())
-                }
-
-                let health: AgentHealthStatus = if !activeSessions.isEmpty {
-                    .online
-                } else if !activeTasks.isEmpty {
-                    .idle
-                } else {
-                    .offline
-                }
-
-                let activity: String
-                if !activeSessions.isEmpty {
-                    activity =
-                        "\(activeSessions.count) live process\(activeSessions.count == 1 ? "" : "es") running on \(machineName)."
-                } else if !activeTasks.isEmpty {
-                    activity = "\(activeTasks.count) task\(activeTasks.count == 1 ? "" : "s") queued."
-                } else {
-                    activity = "No live processes detected."
-                }
-
-                return AgentSummary(
-                    id: agentName
-                        .lowercased()
-                        .replacingOccurrences(of: " ", with: "-"),
-                    name: agentName,
-                    health: health,
-                    activeTaskCount: activeTasks.count,
-                    activeSessionCount: activeSessions.count,
-                    recentActivity: activity,
-                    updatedAt: now
-                )
+            .map { makeSummary(agentName: $0, sessions: sessions, tasks: tasks, now: now, machineName: machineName) }
+            .sorted {
+                if $0.activeSessionCount != $1.activeSessionCount { return $0.activeSessionCount > $1.activeSessionCount }
+                return $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
             }
-            .sorted { lhs, rhs in
-                if lhs.activeSessionCount != rhs.activeSessionCount {
-                    return lhs.activeSessionCount > rhs.activeSessionCount
-                }
-                return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
-            }
+    }
 
-        return CompanionProbeSnapshot(sessions: sessions, agents: summaries)
+    private func makeSummary(
+        agentName: String,
+        sessions: [AgentSession],
+        tasks: [AgentTask],
+        now: Date,
+        machineName: String
+    ) -> AgentSummary {
+        let activeTasks = tasks.filter {
+            $0.assignedAgent.compare(agentName, options: .caseInsensitive) == .orderedSame && $0.status != .done
+        }
+        let activeSessions = sessions.filter { sessionMatchesAgent($0, agentName: agentName, tasks: tasks) }
+        let health = agentHealth(sessions: activeSessions, tasks: activeTasks)
+        return AgentSummary(
+            id: agentName.lowercased().replacingOccurrences(of: " ", with: "-"),
+            name: agentName,
+            health: health,
+            activeTaskCount: activeTasks.count,
+            activeSessionCount: activeSessions.count,
+            recentActivity: agentActivity(sessions: activeSessions, tasks: activeTasks, machineName: machineName),
+            updatedAt: now
+        )
+    }
+
+    private func sessionMatchesAgent(_ session: AgentSession, agentName: String, tasks: [AgentTask]) -> Bool {
+        if let linkedTaskID = session.linkedTaskID,
+           let task = tasks.first(where: { $0.id == linkedTaskID }) {
+            return task.assignedAgent.compare(agentName, options: .caseInsensitive) == .orderedSame
+        }
+        return session.id.lowercased().contains(agentName.lowercased())
+    }
+
+    private func agentHealth(sessions: [AgentSession], tasks: [AgentTask]) -> AgentHealthStatus {
+        if !sessions.isEmpty { return .online }
+        if !tasks.isEmpty { return .idle }
+        return .offline
+    }
+
+    private func agentActivity(sessions: [AgentSession], tasks: [AgentTask], machineName: String) -> String {
+        if !sessions.isEmpty {
+            let count = sessions.count
+            return "\(count) live process\(count == 1 ? "" : "es") running on \(machineName)."
+        }
+        if !tasks.isEmpty {
+            let count = tasks.count
+            return "\(count) task\(count == 1 ? "" : "s") queued."
+        }
+        return "No live processes detected."
     }
 
     public func captureOutput(for session: AgentSession) -> String? {

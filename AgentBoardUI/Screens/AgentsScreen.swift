@@ -194,8 +194,8 @@ struct AgentsScreen: View {
                             }
                         }
                         Picker("Priority", selection: $priority) {
-                            ForEach(WorkPriority.allCases) { p in
-                                Text(p.title).tag(p)
+                            ForEach(WorkPriority.allCases) { prio in
+                                Text(prio.title).tag(prio)
                             }
                         }
                         TextField("Notes", text: $note, axis: .vertical)
