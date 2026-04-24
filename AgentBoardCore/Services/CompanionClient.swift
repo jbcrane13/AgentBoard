@@ -18,6 +18,7 @@ public actor CompanionClient {
         case invalidBaseURL
         case invalidResponse
         case httpError(statusCode: Int, body: String)
+        case operationFailed(String)
 
         public var errorDescription: String? {
             switch self {
@@ -31,6 +32,8 @@ public actor CompanionClient {
                     return "Companion service returned HTTP \(statusCode)."
                 }
                 return "Companion service returned HTTP \(statusCode): \(trimmed.prefix(220))"
+            case let .operationFailed(message):
+                return message
             }
         }
     }
@@ -95,6 +98,51 @@ public actor CompanionClient {
 
     public func updateTask(id: String, patch: AgentTaskPatch) async throws -> AgentTask {
         try await send(path: "v1/tasks/\(id)", method: "PATCH", payload: patch)
+    }
+
+    public func deleteTask(id: String) async throws {
+        var request = makeRequest(path: "v1/tasks/\(id)")
+        request.httpMethod = "DELETE"
+        let (data, response) = try await session.data(for: request)
+        try validate(response: response, data: data)
+    }
+
+    public func stopSession(id: String) async throws {
+        var request = makeRequest(path: "v1/sessions/\(id)/stop")
+        request.httpMethod = "POST"
+        let (data, response) = try await session.data(for: request)
+        try validate(response: response, data: data)
+        guard let payload = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let ok = payload["ok"] as? Bool else {
+            throw ClientError.invalidResponse
+        }
+        if !ok {
+            throw ClientError.operationFailed("Failed to stop session — the session may no longer be running.")
+        }
+    }
+
+    public func nudgeSession(id: String) async throws {
+        var request = makeRequest(path: "v1/sessions/\(id)/nudge")
+        request.httpMethod = "POST"
+        let (data, response) = try await session.data(for: request)
+        try validate(response: response, data: data)
+        guard let payload = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let ok = payload["ok"] as? Bool else {
+            throw ClientError.invalidResponse
+        }
+        if !ok {
+            throw ClientError.operationFailed("Failed to nudge session — the session may no longer be running.")
+        }
+    }
+
+    public func fetchSessionOutput(id: String) async throws -> String? {
+        let (data, response) = try await session.data(for: makeRequest(path: "v1/sessions/\(id)/output"))
+        try validate(response: response, data: data)
+        guard let payload = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let output = payload["output"] as? String else {
+            return nil
+        }
+        return output.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : output
     }
 
     public func events() async throws -> AsyncThrowingStream<CompanionEvent, Error> {

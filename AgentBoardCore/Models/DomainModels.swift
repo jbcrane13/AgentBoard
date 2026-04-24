@@ -367,6 +367,10 @@ public struct AgentSession: Codable, Hashable, Identifiable, Sendable {
     public var model: String?
     public var startedAt: Date
     public var lastSeenAt: Date
+    public var pid: Int?
+    public var tmuxSession: String?
+    public var tmuxPaneID: String?
+    public var lastOutput: String?
 
     public init(
         id: String,
@@ -376,7 +380,11 @@ public struct AgentSession: Codable, Hashable, Identifiable, Sendable {
         workItem: WorkReference? = nil,
         model: String? = nil,
         startedAt: Date = .now,
-        lastSeenAt: Date = .now
+        lastSeenAt: Date = .now,
+        pid: Int? = nil,
+        tmuxSession: String? = nil,
+        tmuxPaneID: String? = nil,
+        lastOutput: String? = nil
     ) {
         self.id = id
         self.source = source
@@ -386,6 +394,10 @@ public struct AgentSession: Codable, Hashable, Identifiable, Sendable {
         self.model = model
         self.startedAt = startedAt
         self.lastSeenAt = lastSeenAt
+        self.pid = pid
+        self.tmuxSession = tmuxSession
+        self.tmuxPaneID = tmuxPaneID
+        self.lastOutput = lastOutput
     }
 }
 

@@ -269,62 +269,8 @@ public final class CompanionServer: @unchecked Sendable {
             )
             return
         }
-
         do {
-            switch (request.method, request.pathComponents) {
-            case ("GET", ["health"]):
-                try sendJSON(["status": "ok"], over: connection)
-
-            case ("GET", ["v1", "tasks"]):
-                try sendJSON(await store.listTasks(), over: connection)
-
-            case ("POST", ["v1", "tasks"]):
-                let draft = try decoder.decode(AgentTaskDraft.self, from: request.body)
-                let task = try await store.createTask(draft)
-                try sendJSON(task, over: connection)
-                await broker.publish(CompanionEvent(kind: .tasksChanged))
-
-            case let ("PATCH", components)
-                where components.count == 3 &&
-                components[0] == "v1" &&
-                components[1] == "tasks":
-                let id = components[2]
-                let patch = try decoder.decode(AgentTaskPatch.self, from: request.body)
-                let task = try await store.updateTask(id: id, patch: patch)
-                try sendJSON(task, over: connection)
-                await broker.publish(CompanionEvent(kind: .tasksChanged))
-
-            case ("GET", ["v1", "sessions"]):
-                try sendJSON(await store.listSessions(), over: connection)
-
-            case ("GET", ["v1", "agents"]):
-                try sendJSON(await store.listAgents(), over: connection)
-
-            case ("GET", ["v1", "events"]):
-                let subscriber = SSESubscriber(connection: connection)
-                connection.stateUpdateHandler = { [weak self] state in
-                    switch state {
-                    case .cancelled, .failed:
-                        Task { await self?.broker.unregister(id: subscriber.id) }
-                    default:
-                        break
-                    }
-                }
-                sendSSEHeaders(over: connection)
-                await broker.register(subscriber)
-                subscriber.send(event: CompanionEvent(kind: .snapshotRefreshed))
-
-            default:
-                send(
-                    response: HTTPResponse(
-                        statusCode: 404,
-                        reason: "Not Found",
-                        headers: ["Content-Type": "application/json"],
-                        body: Data(#"{"error":"not_found"}"#.utf8)
-                    ),
-                    over: connection
-                )
-            }
+            try await route(request: request, over: connection)
         } catch {
             logger.error("Companion request failed: \(error.localizedDescription, privacy: .public)")
             send(
@@ -336,6 +282,119 @@ public final class CompanionServer: @unchecked Sendable {
                 ),
                 over: connection
             )
+        }
+    }
+
+    private func route(request: HTTPRequest, over connection: NWConnection) async throws {
+        switch (request.method, request.pathComponents) {
+        case ("GET", ["health"]):
+            try sendJSON(["status": "ok"], over: connection)
+
+        case ("GET", ["v1", "tasks"]):
+            try sendJSON(await store.listTasks(), over: connection)
+
+        case ("POST", ["v1", "tasks"]):
+            let draft = try decoder.decode(AgentTaskDraft.self, from: request.body)
+            let task = try await store.createTask(draft)
+            try sendJSON(task, over: connection)
+            await broker.publish(CompanionEvent(kind: .tasksChanged))
+
+        case let ("PATCH", components)
+            where components.count == 3 &&
+            components[0] == "v1" &&
+            components[1] == "tasks":
+            let id = components[2]
+            let patch = try decoder.decode(AgentTaskPatch.self, from: request.body)
+            let task = try await store.updateTask(id: id, patch: patch)
+            try sendJSON(task, over: connection)
+            await broker.publish(CompanionEvent(kind: .tasksChanged))
+
+        case let ("DELETE", components)
+            where components.count == 3 &&
+            components[0] == "v1" &&
+            components[1] == "tasks":
+            let id = components[2]
+            try await store.deleteTask(id: id)
+            try sendJSON(["ok": true], over: connection)
+            await broker.publish(CompanionEvent(kind: .tasksChanged))
+
+        case ("GET", ["v1", "sessions"]):
+            try sendJSON(await store.listSessions(), over: connection)
+
+        case let (method, components)
+            where components.count == 4 &&
+            components[0] == "v1" &&
+            components[1] == "sessions":
+            try await handleSessionAction(
+                method: method,
+                sessionID: components[2],
+                action: components[3],
+                over: connection
+            )
+
+        case ("GET", ["v1", "agents"]):
+            try sendJSON(await store.listAgents(), over: connection)
+
+        case ("GET", ["v1", "events"]):
+            await registerSSESubscriber(over: connection)
+
+        default:
+            send(
+                response: HTTPResponse(
+                    statusCode: 404,
+                    reason: "Not Found",
+                    headers: ["Content-Type": "application/json"],
+                    body: Data(#"{"error":"not_found"}"#.utf8)
+                ),
+                over: connection
+            )
+        }
+    }
+
+    private func registerSSESubscriber(over connection: NWConnection) async {
+        let subscriber = SSESubscriber(connection: connection)
+        connection.stateUpdateHandler = { [weak self] state in
+            switch state {
+            case .cancelled, .failed:
+                Task { await self?.broker.unregister(id: subscriber.id) }
+            default:
+                break
+            }
+        }
+        sendSSEHeaders(over: connection)
+        await broker.register(subscriber)
+        subscriber.send(event: CompanionEvent(kind: .snapshotRefreshed))
+    }
+
+    private func handleSessionAction(
+        method: String,
+        sessionID: String,
+        action: String,
+        over connection: NWConnection
+    ) async throws {
+        let sessions = try await store.listSessions()
+        let session = sessions.first { $0.id == sessionID }
+        switch (method, action) {
+        case ("GET", "output"):
+            let output: String
+            if let session {
+                output = await probe.captureOutput(for: session) ?? session.lastOutput ?? ""
+            } else {
+                output = ""
+            }
+            try sendJSON(["output": output], over: connection)
+        case ("POST", "nudge"):
+            let ok: Bool
+            if let session { ok = await probe.nudge(session: session) } else { ok = false }
+            try sendJSON(["ok": ok], over: connection)
+            await broker.publish(CompanionEvent(kind: .sessionsChanged))
+        case ("POST", "stop"):
+            let ok: Bool
+            if let session { ok = await probe.stop(session: session) } else { ok = false }
+            try sendJSON(["ok": ok], over: connection)
+            await broker.publish(CompanionEvent(kind: .sessionsChanged))
+        default:
+            try sendJSON(["error": "not_found"], over: connection)
         }
     }
 

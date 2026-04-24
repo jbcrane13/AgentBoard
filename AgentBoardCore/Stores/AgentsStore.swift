@@ -119,6 +119,19 @@ public final class AgentsStore {
         }
     }
 
+    public func deleteTask(id: String) async {
+        do {
+            try await configureCompanion()
+            try await companionClient.deleteTask(id: id)
+            tasks.removeAll { $0.id == id }
+            try cache.replaceTasks(tasks)
+            statusMessage = "Task deleted."
+        } catch {
+            logger.error("Failed to delete task: \(error.localizedDescription, privacy: .public)")
+            errorMessage = error.localizedDescription
+        }
+    }
+
     public func handle(event: CompanionEventKind) async {
         switch event {
         case .tasksChanged, .agentsChanged, .snapshotRefreshed:

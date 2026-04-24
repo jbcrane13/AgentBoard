@@ -93,6 +93,79 @@ public final class WorkStore {
         isLoading = false
     }
 
+    public func createIssue(
+        repository: ConfiguredRepository,
+        title: String,
+        body: String,
+        labels: [String] = []
+    ) async {
+        errorMessage = nil
+        statusMessage = nil
+        guard settingsStore.isGitHubConfigured else {
+            errorMessage = "Connect GitHub before creating issues."
+            return
+        }
+        await service.configure(
+            repositories: settingsStore.repositories,
+            token: settingsStore.githubToken.trimmedOrNil
+        )
+        do {
+            let item = try await service.createIssue(
+                repository: repository,
+                title: title,
+                body: body,
+                labels: labels
+            )
+            upsert(item)
+            try cache.replaceWorkItems(items)
+            errorMessage = nil
+            statusMessage = "Created \(item.issueReference)."
+        } catch {
+            logger.error("Failed to create issue: \(error.localizedDescription, privacy: .public)")
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    public func updateIssue(
+        _ item: WorkItem,
+        title: String? = nil,
+        body: String? = nil,
+        labels: [String]? = nil,
+        assignees: [String]? = nil,
+        state: WorkState? = nil
+    ) async {
+        errorMessage = nil
+        statusMessage = nil
+        guard settingsStore.isGitHubConfigured else {
+            errorMessage = "Connect GitHub before updating issues."
+            return
+        }
+        await service.configure(
+            repositories: settingsStore.repositories,
+            token: settingsStore.githubToken.trimmedOrNil
+        )
+        let patch = GitHubIssuePatch(
+            title: title,
+            body: body,
+            labels: labels,
+            assignees: assignees,
+            state: state
+        )
+        do {
+            let updated = try await service.updateIssue(
+                repository: item.repository,
+                issueNumber: item.issueNumber,
+                patch: patch
+            )
+            upsert(updated)
+            try cache.replaceWorkItems(items)
+            statusMessage = "Updated \(updated.issueReference)."
+        } catch {
+            logger.error("Failed to update issue: \(error.localizedDescription, privacy: .public)")
+            errorMessage = error.localizedDescription
+        }
+    }
+
     public func updateStatus(for item: WorkItem, to state: WorkState) async {
         guard settingsStore.isGitHubConfigured else {
             errorMessage = "Connect GitHub before updating work items."

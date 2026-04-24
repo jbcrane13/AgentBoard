@@ -154,6 +154,10 @@ private final class CachedSessionRecord {
     var model: String?
     var startedAt: Date
     var lastSeenAt: Date
+    var pid: Int?
+    var tmuxSession: String?
+    var tmuxPaneID: String?
+    var lastOutput: String?
 
     init(
         id: String,
@@ -165,7 +169,11 @@ private final class CachedSessionRecord {
         issueNumber: Int?,
         model: String?,
         startedAt: Date,
-        lastSeenAt: Date
+        lastSeenAt: Date,
+        pid: Int? = nil,
+        tmuxSession: String? = nil,
+        tmuxPaneID: String? = nil,
+        lastOutput: String? = nil
     ) {
         self.id = id
         self.source = source
@@ -177,6 +185,10 @@ private final class CachedSessionRecord {
         self.model = model
         self.startedAt = startedAt
         self.lastSeenAt = lastSeenAt
+        self.pid = pid
+        self.tmuxSession = tmuxSession
+        self.tmuxPaneID = tmuxPaneID
+        self.lastOutput = lastOutput
     }
 }
 
@@ -437,7 +449,11 @@ public final class AgentBoardCache {
                 }(),
                 model: record.model,
                 startedAt: record.startedAt,
-                lastSeenAt: record.lastSeenAt
+                lastSeenAt: record.lastSeenAt,
+                pid: record.pid,
+                tmuxSession: record.tmuxSession,
+                tmuxPaneID: record.tmuxPaneID,
+                lastOutput: record.lastOutput
             )
         }
     }
@@ -456,10 +472,31 @@ public final class AgentBoardCache {
                     issueNumber: session.workItem?.issueNumber,
                     model: session.model,
                     startedAt: session.startedAt,
-                    lastSeenAt: session.lastSeenAt
+                    lastSeenAt: session.lastSeenAt,
+                    pid: session.pid,
+                    tmuxSession: session.tmuxSession,
+                    tmuxPaneID: session.tmuxPaneID,
+                    lastOutput: session.lastOutput
                 )
             )
         }
+        try context.save()
+    }
+
+    public func deleteConversation(id: UUID) throws {
+        let records = try context.fetch(
+            FetchDescriptor<CachedConversationRecord>(
+                predicate: #Predicate { $0.id == id }
+            )
+        )
+        records.forEach(context.delete)
+
+        let messages = try context.fetch(
+            FetchDescriptor<CachedMessageRecord>(
+                predicate: #Predicate { $0.conversationID == id }
+            )
+        )
+        messages.forEach(context.delete)
         try context.save()
     }
 
