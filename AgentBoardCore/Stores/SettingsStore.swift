@@ -133,7 +133,8 @@ public final class SettingsStore {
             return
         }
 
-        if let existingIndex = hermesProfiles.firstIndex(where: { $0.name.localizedCaseInsensitiveCompare(trimmedName) == .orderedSame }) {
+        if let existingIndex = hermesProfiles
+            .firstIndex(where: { $0.name.localizedCaseInsensitiveCompare(trimmedName) == .orderedSame }) {
             hermesProfiles[existingIndex].gatewayURL = gatewayURL
             hermesProfiles[existingIndex].modelID = hermesModelID.trimmedOrNil
             selectedHermesProfileID = hermesProfiles[existingIndex].id

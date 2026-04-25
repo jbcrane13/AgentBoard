@@ -10,7 +10,9 @@ private enum ChatStoreError: LocalizedError {
         switch self {
         case let .hermesEndpointMatchesCompanion(endpoint):
             return """
-            Chat is pointed at the companion service at \(endpoint). Companion handles tasks and sessions; set this profile's \
+            Chat is pointed at the companion service at \(
+                endpoint
+            ). Companion handles tasks and sessions; set this profile's \
             Hermes Gateway URL to that profile's API server port.
             """
         case let .hermesLocalEndpointUsesHTTPS(endpoint):

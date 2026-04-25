@@ -1,19 +1,19 @@
 import SwiftUI
 
 #if os(iOS)
-import UIKit
+    import UIKit
 #endif
 
 enum AgentBoardKeyboard {
     @MainActor
     static func dismiss() {
         #if os(iOS)
-        UIApplication.shared.sendAction(
-            #selector(UIResponder.resignFirstResponder),
-            to: nil,
-            from: nil,
-            for: nil
-        )
+            UIApplication.shared.sendAction(
+                #selector(UIResponder.resignFirstResponder),
+                to: nil,
+                from: nil,
+                for: nil
+            )
         #endif
     }
 }
@@ -22,25 +22,25 @@ extension View {
     @ViewBuilder
     func agentBoardKeyboardDismissToolbar() -> some View {
         #if os(iOS)
-        toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button("Done") {
-                    AgentBoardKeyboard.dismiss()
+            toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") {
+                        AgentBoardKeyboard.dismiss()
+                    }
                 }
             }
-        }
         #else
-        self
+            self
         #endif
     }
 
     @ViewBuilder
     func agentBoardScrollDismissesKeyboard() -> some View {
         #if os(iOS)
-        scrollDismissesKeyboard(.interactively)
+            scrollDismissesKeyboard(.interactively)
         #else
-        self
+            self
         #endif
     }
 }

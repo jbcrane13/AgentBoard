@@ -61,7 +61,8 @@ struct SettingsScreen: View {
                                                     Button("Use") {
                                                         settingsStore.selectHermesProfile(id: profile.id)
                                                     }
-                                                    .buttonStyle(NeuButtonTarget(isAccent: settingsStore.selectedHermesProfileID == profile.id))
+                                                    .buttonStyle(NeuButtonTarget(isAccent: settingsStore
+                                                            .selectedHermesProfileID == profile.id))
 
                                                     Button(role: .destructive) {
                                                         settingsStore.removeHermesProfile(profile)

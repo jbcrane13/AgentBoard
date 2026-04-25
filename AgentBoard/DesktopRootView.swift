@@ -22,9 +22,9 @@ private enum DesktopTab: String, CaseIterable, Identifiable {
 
     var systemImage: String {
         switch self {
-        case .work: "square.grid.2x2"
-        case .agents: "person.3.sequence"
-        case .sessions: "bolt.horizontal.circle"
+        case .work: "layout.3.columns"
+        case .agents: "person.3.sequence.fill"
+        case .sessions: "bolt.horizontal.circle.fill"
         case .settings: "slider.horizontal.3"
         }
     }
@@ -41,7 +41,7 @@ struct DesktopRootView: View {
                 .navigationSplitViewColumnWidth(min: 196, ideal: 220, max: 260)
         } content: {
             centerPanel
-                .navigationSplitViewColumnWidth(min: 400, ideal: 640)
+                .navigationSplitViewColumnWidth(min: 600, ideal: 800)
         } detail: {
             ChatScreen()
                 .navigationSplitViewColumnWidth(min: 300, ideal: 380, max: 480)
@@ -57,52 +57,101 @@ struct DesktopRootView: View {
                 } label: {
                     Label("Refresh", systemImage: "arrow.clockwise")
                 }
+                .buttonStyle(NeuButtonTarget(isAccent: false))
                 .accessibilityIdentifier("desktop_button_refresh")
             }
         }
+        .background(NeuBackground())
     }
 
     // MARK: - Sidebar
 
     private var sidebar: some View {
-        List(selection: $activeTab) {
-            Section("Views") {
-                ForEach(DesktopTab.allCases) { tab in
-                    Label(tab.title, systemImage: tab.systemImage)
-                        .tag(tab)
-                        .accessibilityIdentifier("desktop_sidebar_tab_\(tab.rawValue)")
-                }
-            }
+        ZStack {
+            NeuBackground()
 
-            Section("Projects") {
-                if appModel.settingsStore.repositories.isEmpty {
-                    Text("No repositories — add in Settings")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                } else {
-                    ForEach(appModel.settingsStore.repositories) { repo in
-                        Label(repo.shortName, systemImage: "folder")
-                            .font(.subheadline)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("VIEWS")
+                            .font(.caption.weight(.bold))
+                            .tracking(1)
+                            .foregroundStyle(NeuPalette.textSecondary)
+                            .padding(.horizontal, 8)
+
+                        ForEach(DesktopTab.allCases) { tab in
+                            Button {
+                                activeTab = tab
+                            } label: {
+                                HStack {
+                                    Image(systemName: tab.systemImage)
+                                        .frame(width: 24)
+                                    Text(tab.title)
+                                        .font(.subheadline.weight(.medium))
+                                    Spacer()
+                                }
+                                .foregroundStyle(activeTab == tab ? NeuPalette.accentCyan : NeuPalette.textSecondary)
+                                .padding(12)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(activeTab == tab ? Color.white.opacity(0.05) : Color.clear)
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("desktop_sidebar_tab_\(tab.rawValue)")
+                        }
+                    }
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("PROJECTS")
+                            .font(.caption.weight(.bold))
+                            .tracking(1)
+                            .foregroundStyle(NeuPalette.textSecondary)
+                            .padding(.horizontal, 8)
+
+                        if appModel.settingsStore.repositories.isEmpty {
+                            Text("No repositories")
+                                .font(.caption)
+                                .foregroundStyle(NeuPalette.textSecondary)
+                                .padding(.horizontal, 8)
+                        } else {
+                            ForEach(appModel.settingsStore.repositories) { repo in
+                                HStack {
+                                    Image(systemName: "folder.fill")
+                                        .foregroundStyle(NeuPalette.accentOrange)
+                                    Text(repo.shortName)
+                                        .font(.subheadline)
+                                        .foregroundStyle(NeuPalette.textPrimary)
+                                    Spacer()
+                                }
+                                .padding(12)
+                            }
+                        }
+                    }
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("SESSIONS")
+                            .font(.caption.weight(.bold))
+                            .tracking(1)
+                            .foregroundStyle(NeuPalette.textSecondary)
+                            .padding(.horizontal, 8)
+
+                        if appModel.sessionsStore.sessions.isEmpty {
+                            Text("No active sessions")
+                                .font(.caption)
+                                .foregroundStyle(NeuPalette.textSecondary)
+                                .padding(.horizontal, 8)
+                        } else {
+                            ForEach(appModel.sessionsStore.sessions) { session in
+                                sessionRow(session)
+                            }
+                        }
                     }
                 }
-            }
-
-            Section("Sessions") {
-                if appModel.sessionsStore.sessions.isEmpty {
-                    Text("No active sessions")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                } else {
-                    ForEach(appModel.sessionsStore.sessions) { session in
-                        sessionRow(session)
-                    }
-                }
+                .padding(16)
             }
         }
-        .listStyle(.sidebar)
         .navigationTitle("AgentBoard")
-        .scrollContentBackground(.hidden)
-        .accessibilityIdentifier("screen_desktop_sidebar")
     }
 
     private func sessionRow(_ session: AgentSession) -> some View {
@@ -113,23 +162,26 @@ struct DesktopRootView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(session.source)
                     .font(.subheadline)
+                    .foregroundStyle(NeuPalette.textPrimary)
                     .lineLimit(1)
                 if let item = session.workItem {
                     Text(item.issueReference)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(NeuPalette.textSecondary)
                 }
             }
+            Spacer()
         }
+        .padding(12)
         .accessibilityIdentifier("desktop_sidebar_session_\(session.id)")
     }
 
     private func sessionStatusColor(_ status: AgentSessionStatus) -> Color {
         switch status {
-        case .running: BoardPalette.mint
-        case .idle: BoardPalette.gold
-        case .stopped: .secondary
-        case .error: BoardPalette.coral
+        case .running: .green
+        case .idle: .blue
+        case .stopped: NeuPalette.textSecondary
+        case .error: .red
         }
     }
 
@@ -157,17 +209,20 @@ struct DesktopRootView: View {
                 .fill(connectionDotColor)
                 .frame(width: 8, height: 8)
             Text(appModel.chatStore.connectionState.title)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(NeuPalette.textSecondary)
         }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .neuRecessed(cornerRadius: 12, depth: 3)
     }
 
     private var connectionDotColor: Color {
         switch appModel.chatStore.connectionState {
-        case .connected: BoardPalette.mint
-        case .connecting, .reconnecting: BoardPalette.gold
-        case .failed: BoardPalette.coral
-        case .disconnected: BoardPalette.cobalt
+        case .connected: .green
+        case .connecting, .reconnecting: NeuPalette.accentOrange
+        case .failed: .red
+        case .disconnected: NeuPalette.textSecondary
         }
     }
 }

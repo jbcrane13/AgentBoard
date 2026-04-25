@@ -34,7 +34,9 @@ public actor HermesGatewayClient {
                 return "Hermes returned a successful response, but no assistant text was found."
             case let .transportError(url, message):
                 return """
-                Could not reach Hermes at \(url): \(message). Check that the profile gateway is running, reachable from \
+                Could not reach Hermes at \(url): \(
+                    message
+                ). Check that the profile gateway is running, reachable from \
                 this device, and using the right HTTP URL/port.
                 """
             case let .httpError(statusCode, body):

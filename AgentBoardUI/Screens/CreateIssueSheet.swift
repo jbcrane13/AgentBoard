@@ -65,7 +65,8 @@ struct CreateIssueSheet: View {
                             }
 
                             VStack(alignment: .leading, spacing: 6) {
-                                Text("Assignees (comma-separated)").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                                Text("Assignees (comma-separated)").font(.headline)
+                                    .foregroundStyle(NeuPalette.textPrimary)
                                 NeuTextField(placeholder: "alice, bob", text: $assignees)
                             }
 

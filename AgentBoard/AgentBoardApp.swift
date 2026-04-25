@@ -28,6 +28,9 @@ struct AgentBoardApp: App {
         let ats = Bundle.main.object(forInfoDictionaryKey: "NSAppTransportSecurity")
             .map { "\($0)" } ?? "missing"
 
-        logger.info("AgentBoard runtime bundle=\(bundleID, privacy: .public) executable=\(executablePath, privacy: .public) ATS=\(ats, privacy: .public)")
+        logger
+            .info(
+                "AgentBoard runtime bundle=\(bundleID, privacy: .public) executable=\(executablePath, privacy: .public) ATS=\(ats, privacy: .public)"
+            )
     }
 }

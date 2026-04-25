@@ -15,9 +15,9 @@ public struct BoardBackground: View {
     public init() {}
     public var body: some View {
         #if os(macOS)
-        Color(nsColor: .windowBackgroundColor).ignoresSafeArea()
+            Color(nsColor: .windowBackgroundColor).ignoresSafeArea()
         #else
-        Color(uiColor: .systemGroupedBackground).ignoresSafeArea()
+            Color(uiColor: .systemGroupedBackground).ignoresSafeArea()
         #endif
     }
 }
@@ -25,9 +25,9 @@ public struct BoardBackground: View {
 extension Color {
     static var agentBoardSurface: Color {
         #if os(macOS)
-        Color(nsColor: .controlBackgroundColor)
+            Color(nsColor: .controlBackgroundColor)
         #else
-        Color(uiColor: .secondarySystemBackground)
+            Color(uiColor: .secondarySystemBackground)
         #endif
     }
 }
@@ -36,27 +36,27 @@ extension View {
     @ViewBuilder
     func agentBoardNavigationBarHidden(_ hidden: Bool) -> some View {
         #if os(macOS)
-        self
+            self
         #else
-        navigationBarHidden(hidden)
+            navigationBarHidden(hidden)
         #endif
     }
 
     @ViewBuilder
     func agentBoardNavigationBarTitleInline() -> some View {
         #if os(macOS)
-        self
+            self
         #else
-        navigationBarTitleDisplayMode(.inline)
+            navigationBarTitleDisplayMode(.inline)
         #endif
     }
 
     @ViewBuilder
     func agentBoardTextInputAutocapitalizationNever() -> some View {
         #if os(macOS)
-        self
+            self
         #else
-        textInputAutocapitalization(.never)
+            textInputAutocapitalization(.never)
         #endif
     }
 }
