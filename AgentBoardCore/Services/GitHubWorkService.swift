@@ -5,6 +5,7 @@ public struct GitHubIssuePatch: Sendable {
     public var body: String?
     public var labels: [String]?
     public var assignees: [String]?
+    public var milestone: Int?
     public var state: WorkState?
 
     public init(
@@ -12,12 +13,14 @@ public struct GitHubIssuePatch: Sendable {
         body: String? = nil,
         labels: [String]? = nil,
         assignees: [String]? = nil,
+        milestone: Int? = nil,
         state: WorkState? = nil
     ) {
         self.title = title
         self.body = body
         self.labels = labels
         self.assignees = assignees
+        self.milestone = milestone
         self.state = state
     }
 }
@@ -119,7 +122,9 @@ public actor GitHubWorkService {
         repository: ConfiguredRepository,
         title: String,
         body: String,
-        labels: [String]
+        labels: [String],
+        assignees: [String],
+        milestone: Int?
     ) async throws -> WorkItem {
         guard let token, !token.isEmpty else {
             throw ServiceError.missingConfiguration
@@ -130,7 +135,15 @@ public actor GitHubWorkService {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        let payload: [String: Any] = ["title": title, "body": body, "labels": labels]
+        var payload: [String: Any] = [
+            "title": title,
+            "body": body,
+            "labels": labels,
+            "assignees": assignees
+        ]
+        if let milestone {
+            payload["milestone"] = milestone
+        }
         request.httpBody = try JSONSerialization.data(withJSONObject: payload)
 
         let (data, response) = try await session.data(for: request)
@@ -158,6 +171,7 @@ public actor GitHubWorkService {
         if let body = patch.body { payload["body"] = body }
         if let labels = patch.labels { payload["labels"] = labels }
         if let assignees = patch.assignees { payload["assignees"] = assignees }
+        if let milestone = patch.milestone { payload["milestone"] = milestone }
         if let state = patch.state { payload["state"] = state.githubState }
         request.httpBody = try JSONSerialization.data(withJSONObject: payload)
 

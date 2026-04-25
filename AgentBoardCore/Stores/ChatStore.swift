@@ -2,6 +2,26 @@ import Foundation
 import Observation
 import os
 
+private enum ChatStoreError: LocalizedError {
+    case hermesEndpointMatchesCompanion(String)
+    case hermesLocalEndpointUsesHTTPS(String)
+
+    var errorDescription: String? {
+        switch self {
+        case let .hermesEndpointMatchesCompanion(endpoint):
+            return """
+            Chat is pointed at the companion service at \(endpoint). Companion handles tasks and sessions; set this profile's \
+            Hermes Gateway URL to that profile's API server port.
+            """
+        case let .hermesLocalEndpointUsesHTTPS(endpoint):
+            return """
+            Hermes Gateway URL is using HTTPS at \(endpoint), but Hermes' API server is HTTP by default. Use \
+            http://<host>:<profile-port>, or put a TLS proxy in front of Hermes.
+            """
+        }
+    }
+}
+
 @MainActor
 @Observable
 public final class ChatStore {
@@ -100,6 +120,21 @@ public final class ChatStore {
         }
     }
 
+    public func selectModel(_ modelID: String) {
+        guard let trimmedModelID = modelID.trimmedOrNil else { return }
+        settingsStore.hermesModelID = trimmedModelID
+
+        if var conversation = selectedConversation {
+            conversation.modelID = trimmedModelID
+            conversation.updatedAt = .now
+            upsert(conversation)
+            persist(conversationID: conversation.id)
+        }
+
+        statusMessage = "Using \(trimmedModelID)."
+        errorMessage = nil
+    }
+
     public func refreshConnection() async {
         errorMessage = nil
         statusMessage = nil
@@ -134,6 +169,36 @@ public final class ChatStore {
                 availableModels = [settingsStore.hermesModelID.trimmedOrNil ?? "hermes-agent"]
             }
             errorMessage = error.localizedDescription
+        }
+    }
+
+    public func diagnoseConnection() async {
+        errorMessage = nil
+        statusMessage = "Checking Hermes health..."
+        connectionState = .connecting
+
+        do {
+            try await configureClient()
+            let config = await hermesClient.currentConfiguration()
+            let isHealthy = try await hermesClient.healthCheck()
+            guard isHealthy else {
+                connectionState = .failed
+                errorMessage = "Hermes responded at \(config.baseURL), but /health did not return OK."
+                return
+            }
+
+            statusMessage = "Health OK. Checking model list..."
+            let models = try await hermesClient.fetchModels()
+            availableModels = models.isEmpty
+                ? [settingsStore.hermesModelID.trimmedOrNil ?? "hermes-agent"]
+                : models.sortedCaseInsensitive()
+            connectionState = .connected
+            statusMessage = "Hermes OK at \(config.baseURL). Models: \(availableModels.joined(separator: ", "))."
+        } catch {
+            logger.error("Hermes diagnostics failed: \(error.localizedDescription, privacy: .public)")
+            connectionState = .failed
+            errorMessage = error.localizedDescription
+            statusMessage = nil
         }
     }
 
@@ -211,11 +276,68 @@ public final class ChatStore {
     }
 
     private func configureClient() async throws {
+        try validateHermesEndpoint()
+
         try await hermesClient.configure(
             baseURL: settingsStore.hermesGatewayURL,
             apiKey: settingsStore.hermesAPIKey.trimmedOrNil,
             preferredModelID: settingsStore.hermesModelID.trimmedOrNil
         )
+    }
+
+    private func validateHermesEndpoint() throws {
+        try validateHermesScheme()
+
+        guard let hermesEndpoint = Self.normalizedEndpoint(settingsStore.hermesGatewayURL),
+              let companionEndpoint = Self.normalizedEndpoint(settingsStore.companionURL),
+              hermesEndpoint == companionEndpoint else {
+            return
+        }
+
+        throw ChatStoreError.hermesEndpointMatchesCompanion(settingsStore.hermesGatewayURL)
+    }
+
+    private func validateHermesScheme() throws {
+        guard let url = URL(string: settingsStore.hermesGatewayURL.trimmingCharacters(in: .whitespacesAndNewlines)),
+              url.scheme?.lowercased() == "https",
+              let host = url.host,
+              Self.isLocalOrPrivateHost(host) else {
+            return
+        }
+
+        throw ChatStoreError.hermesLocalEndpointUsesHTTPS(settingsStore.hermesGatewayURL)
+    }
+
+    private static func normalizedEndpoint(_ rawValue: String) -> String? {
+        guard let url = URL(string: rawValue.trimmingCharacters(in: .whitespacesAndNewlines)),
+              let scheme = url.scheme?.lowercased(),
+              let host = url.host?.lowercased()
+        else { return nil }
+
+        let defaultPort = scheme == "https" ? 443 : 80
+        let port = url.port ?? defaultPort
+        return "\(scheme)://\(host):\(port)"
+    }
+
+    private static func isLocalOrPrivateHost(_ host: String) -> Bool {
+        let normalizedHost = host.lowercased()
+        if ["localhost", "::1"].contains(normalizedHost) || normalizedHost.hasPrefix("127.") {
+            return true
+        }
+
+        let octets = normalizedHost.split(separator: ".").compactMap { Int($0) }
+        guard octets.count == 4 else { return false }
+
+        if octets[0] == 10 || octets[0] == 127 || octets[0] == 192 && octets[1] == 168 {
+            return true
+        }
+
+        if octets[0] == 172, (16 ... 31).contains(octets[1]) {
+            return true
+        }
+
+        // Tailscale and other CGNAT-style private overlays live in 100.64.0.0/10.
+        return octets[0] == 100 && (64 ... 127).contains(octets[1])
     }
 
     private func loadCachedConversations() {

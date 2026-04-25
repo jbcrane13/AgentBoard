@@ -36,7 +36,7 @@ struct SessionDetailSheet: View {
                 }
             }
             .navigationTitle("Session \(session.id.prefix(8))")
-            .navigationBarTitleDisplayMode(.inline)
+            .agentBoardNavigationBarTitleInline()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close") { dismiss() }

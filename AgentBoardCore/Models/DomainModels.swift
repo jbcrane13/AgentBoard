@@ -47,6 +47,25 @@ public struct ChatConversation: Codable, Hashable, Identifiable, Sendable {
     }
 }
 
+public struct HermesProfile: Codable, Hashable, Identifiable, Sendable {
+    public let id: String
+    public var name: String
+    public var gatewayURL: String
+    public var modelID: String?
+
+    public init(
+        id: String = UUID().uuidString.lowercased(),
+        name: String,
+        gatewayURL: String,
+        modelID: String? = nil
+    ) {
+        self.id = id
+        self.name = name
+        self.gatewayURL = gatewayURL
+        self.modelID = modelID
+    }
+}
+
 public struct ConversationMessage: Codable, Hashable, Identifiable, Sendable {
     public let id: UUID
     public let conversationID: UUID
@@ -470,6 +489,8 @@ public struct CompanionEvent: Codable, Hashable, Identifiable, Sendable {
 public struct AgentBoardSettings: Codable, Hashable, Sendable {
     public var hermesGatewayURL: String
     public var hermesModelID: String?
+    public var hermesProfiles: [HermesProfile]?
+    public var selectedHermesProfileID: String?
     public var companionURL: String
     public var repositories: [ConfiguredRepository]
     public var autoRefreshInterval: TimeInterval
@@ -477,12 +498,16 @@ public struct AgentBoardSettings: Codable, Hashable, Sendable {
     public init(
         hermesGatewayURL: String = "http://127.0.0.1:8642",
         hermesModelID: String? = "hermes-agent",
+        hermesProfiles: [HermesProfile]? = nil,
+        selectedHermesProfileID: String? = nil,
         companionURL: String = "http://127.0.0.1:8742",
         repositories: [ConfiguredRepository] = [],
         autoRefreshInterval: TimeInterval = 30
     ) {
         self.hermesGatewayURL = hermesGatewayURL
         self.hermesModelID = hermesModelID
+        self.hermesProfiles = hermesProfiles
+        self.selectedHermesProfileID = selectedHermesProfileID
         self.companionURL = companionURL
         self.repositories = repositories
         self.autoRefreshInterval = autoRefreshInterval

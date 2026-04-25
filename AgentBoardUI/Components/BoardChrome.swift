@@ -10,7 +10,7 @@ struct BoardSurface<Content: View>: View {
     var body: some View {
         content
             .padding(16)
-            .background(Color(.secondarySystemBackground))
+            .background(BoardPalette.surface)
             .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 }

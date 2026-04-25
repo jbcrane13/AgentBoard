@@ -13,6 +13,8 @@ struct IssueDetailSheet: View {
     @State private var editLabels = ""
     @State private var editAssignees = ""
     @State private var editState: WorkState = .open
+    @State private var editPriority: WorkPriority = .medium
+    @State private var editMilestone = ""
     @State private var isSaving = false
 
     var body: some View {
@@ -31,7 +33,7 @@ struct IssueDetailSheet: View {
                 }
             }
             .navigationTitle(item.issueReference)
-            .navigationBarTitleDisplayMode(.inline)
+            .agentBoardNavigationBarTitleInline()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close") { dismiss() }
@@ -186,6 +188,22 @@ struct IssueDetailSheet: View {
                     .pickerStyle(.segmented)
                     .tint(NeuPalette.accentCyan)
                 }
+
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Priority").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                    Picker("Priority", selection: $editPriority) {
+                        ForEach(WorkPriority.allCases) { priority in
+                            Text(priority.title).tag(priority)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .tint(NeuPalette.accentOrange)
+                }
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Milestone Number").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                    NeuTextField(placeholder: "Optional milestone number", text: $editMilestone)
+                }
             }
             .padding(24)
             .neuExtruded(cornerRadius: 24, elevation: 8)
@@ -204,6 +222,8 @@ struct IssueDetailSheet: View {
         editLabels = item.labels.joined(separator: ", ")
         editAssignees = item.assignees.joined(separator: ", ")
         editState = item.status
+        editPriority = item.priority
+        editMilestone = item.milestone.map { String($0.number) } ?? ""
         isEditing = true
     }
 
@@ -211,15 +231,19 @@ struct IssueDetailSheet: View {
         isSaving = true
         let labels = editLabels.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
+            .filter { !$0.lowercased().hasPrefix("status:") && !$0.lowercased().hasPrefix("priority:") }
+        let mergedLabels = Array(Set(labels + [editState.labelValue, editPriority.labelValue])).sorted()
         let assignees = editAssignees.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
+        let milestone = Int(editMilestone.trimmingCharacters(in: .whitespacesAndNewlines))
         Task {
             await appModel.workStore.updateIssue(
                 item,
                 title: editTitle.trimmedOrNil,
                 body: editBody.trimmedOrNil,
-                labels: labels,
+                labels: mergedLabels,
                 assignees: assignees,
+                milestone: milestone,
                 state: editState
             )
             isSaving = false

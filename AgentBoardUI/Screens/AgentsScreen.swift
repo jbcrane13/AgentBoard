@@ -50,7 +50,7 @@ struct AgentsScreen: View {
                 }
             }
         }
-        .navigationBarHidden(true)
+        .agentBoardNavigationBarHidden(true)
         .refreshable {
             await appModel.agentsStore.refresh()
         }
@@ -277,7 +277,7 @@ struct AgentsScreen: View {
                 }
             }
             .navigationTitle("New Agent Task")
-            .navigationBarTitleDisplayMode(.inline)
+            .agentBoardNavigationBarTitleInline()
         }
     }
 }

@@ -6,6 +6,7 @@ struct SettingsScreen: View {
     @Environment(\.horizontalSizeClass) private var hSizeClass
     @State private var repositoryOwner = ""
     @State private var repositoryName = ""
+    @State private var hermesProfileName = ""
 
     private var isCompact: Bool {
         hSizeClass == .compact
@@ -35,6 +36,62 @@ struct SettingsScreen: View {
                                 NeuTextField(placeholder: "Gateway URL", text: $settingsStore.hermesGatewayURL)
                                 NeuTextField(placeholder: "Preferred model", text: $settingsStore.hermesModelID)
                                 NeuSecureField(placeholder: "API key (optional)", text: $settingsStore.hermesAPIKey)
+
+                                VStack(alignment: .leading, spacing: 12) {
+                                    Text("Saved Profiles")
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(NeuPalette.textPrimary)
+
+                                    if !settingsStore.hermesProfiles.isEmpty {
+                                        VStack(spacing: 12) {
+                                            ForEach(settingsStore.hermesProfiles) { profile in
+                                                HStack(spacing: 12) {
+                                                    VStack(alignment: .leading, spacing: 4) {
+                                                        Text(profile.name)
+                                                            .font(.subheadline.weight(.medium))
+                                                            .foregroundStyle(NeuPalette.textPrimary)
+                                                        Text(profile.gatewayURL)
+                                                            .font(.caption)
+                                                            .foregroundStyle(NeuPalette.textSecondary)
+                                                            .lineLimit(1)
+                                                    }
+
+                                                    Spacer()
+
+                                                    Button("Use") {
+                                                        settingsStore.selectHermesProfile(id: profile.id)
+                                                    }
+                                                    .buttonStyle(NeuButtonTarget(isAccent: settingsStore.selectedHermesProfileID == profile.id))
+
+                                                    Button(role: .destructive) {
+                                                        settingsStore.removeHermesProfile(profile)
+                                                    } label: {
+                                                        Image(systemName: "trash.fill")
+                                                            .foregroundStyle(.red)
+                                                            .padding(10)
+                                                    }
+                                                    .background(Circle().fill(NeuPalette.background))
+                                                    .buttonStyle(.plain)
+                                                }
+                                                .padding(.horizontal, 16)
+                                                .padding(.vertical, 10)
+                                                .neuRecessed(cornerRadius: 16, depth: 4)
+                                            }
+                                        }
+                                    }
+
+                                    HStack(spacing: 12) {
+                                        NeuTextField(placeholder: "Profile name", text: $hermesProfileName)
+                                        Button("Save Current") {
+                                            settingsStore.saveCurrentHermesProfile(named: hermesProfileName)
+                                            if settingsStore.errorMessage == nil {
+                                                hermesProfileName = ""
+                                            }
+                                        }
+                                        .buttonStyle(NeuButtonTarget(isAccent: !hermesProfileName.isEmpty))
+                                        .disabled(hermesProfileName.isEmpty)
+                                    }
+                                }
                             }
                             .padding(24)
                             .neuExtruded(cornerRadius: 24, elevation: 8)
@@ -137,12 +194,20 @@ struct SettingsScreen: View {
                             }
                             .buttonStyle(NeuButtonTarget(isAccent: false))
 
+                            Button("Diagnose Hermes") {
+                                Task {
+                                    await appModel.chatStore.diagnoseConnection()
+                                }
+                            }
+                            .buttonStyle(NeuButtonTarget(isAccent: false))
+
                             if let message = appModel.settingsStore.errorMessage ?? appModel.settingsStore
+                                .statusMessage ?? appModel.chatStore.errorMessage ?? appModel.chatStore
                                 .statusMessage ?? appModel.statusMessage {
                                 Text(message)
                                     .font(.footnote.weight(.medium))
-                                    .foregroundStyle(appModel.settingsStore.errorMessage == nil ? NeuPalette
-                                        .textSecondary : .red)
+                                    .foregroundStyle(appModel.settingsStore.errorMessage == nil &&
+                                        appModel.chatStore.errorMessage == nil ? NeuPalette.textSecondary : .red)
                                     .multilineTextAlignment(.center)
                                     .padding(.top, 8)
                             }
@@ -155,7 +220,8 @@ struct SettingsScreen: View {
                 }
             }
         }
-        .navigationBarHidden(true)
+        .agentBoardNavigationBarHidden(true)
+        .agentBoardKeyboardDismissToolbar()
     }
 
     private var header: some View {
@@ -191,7 +257,7 @@ struct NeuTextField: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 16)
                 .autocorrectionDisabled()
-                .textInputAutocapitalization(.never)
+                .agentBoardTextInputAutocapitalizationNever()
         }
         .neuRecessed(cornerRadius: 16, depth: 6)
     }
@@ -214,7 +280,7 @@ struct NeuSecureField: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 16)
                 .autocorrectionDisabled()
-                .textInputAutocapitalization(.never)
+                .agentBoardTextInputAutocapitalizationNever()
         }
         .neuRecessed(cornerRadius: 16, depth: 6)
     }

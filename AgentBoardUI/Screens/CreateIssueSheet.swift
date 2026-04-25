@@ -9,6 +9,10 @@ struct CreateIssueSheet: View {
     @State private var title = ""
     @State private var issueBody = ""
     @State private var labels = ""
+    @State private var assignees = ""
+    @State private var selectedPriority: WorkPriority = .medium
+    @State private var selectedStatus: WorkState = .open
+    @State private var milestoneNumber = ""
     @State private var isCreating = false
 
     var body: some View {
@@ -59,6 +63,38 @@ struct CreateIssueSheet: View {
                                 Text("Labels (comma-separated)").font(.headline).foregroundStyle(NeuPalette.textPrimary)
                                 NeuTextField(placeholder: "bug, enhancement", text: $labels)
                             }
+
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Assignees (comma-separated)").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                                NeuTextField(placeholder: "alice, bob", text: $assignees)
+                            }
+
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Priority").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                                Picker("Priority", selection: $selectedPriority) {
+                                    ForEach(WorkPriority.allCases) { priority in
+                                        Text(priority.title).tag(priority)
+                                    }
+                                }
+                                .pickerStyle(.segmented)
+                                .tint(NeuPalette.accentOrange)
+                            }
+
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Status").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                                Picker("Status", selection: $selectedStatus) {
+                                    ForEach(WorkState.allCases) { state in
+                                        Text(state.title).tag(state)
+                                    }
+                                }
+                                .pickerStyle(.segmented)
+                                .tint(NeuPalette.accentCyan)
+                            }
+
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Milestone Number").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                                NeuTextField(placeholder: "Optional milestone number", text: $milestoneNumber)
+                            }
                         }
                         .padding(24)
                         .neuExtruded(cornerRadius: 24, elevation: 8)
@@ -78,7 +114,7 @@ struct CreateIssueSheet: View {
                 }
             }
             .navigationTitle("New Issue")
-            .navigationBarTitleDisplayMode(.inline)
+            .agentBoardNavigationBarTitleInline()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -99,13 +135,19 @@ struct CreateIssueSheet: View {
 
         let parsedLabels = labels.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
+        let parsedAssignees = assignees.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+        let mergedLabels = Array(Set(parsedLabels + [selectedPriority.labelValue, selectedStatus.labelValue])).sorted()
+        let milestone = Int(milestoneNumber.trimmingCharacters(in: .whitespacesAndNewlines))
 
         Task {
             await appModel.workStore.createIssue(
                 repository: repo,
                 title: title.trimmingCharacters(in: .whitespacesAndNewlines),
                 body: issueBody.trimmingCharacters(in: .whitespacesAndNewlines),
-                labels: parsedLabels
+                labels: mergedLabels,
+                assignees: parsedAssignees,
+                milestone: milestone
             )
             isCreating = false
             if appModel.workStore.errorMessage == nil {

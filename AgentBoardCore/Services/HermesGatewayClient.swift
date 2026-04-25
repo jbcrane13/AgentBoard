@@ -20,6 +20,8 @@ public actor HermesGatewayClient {
     public enum ClientError: LocalizedError, Equatable {
         case invalidGatewayURL
         case invalidResponse
+        case emptyAssistantResponse
+        case transportError(url: String, message: String)
         case httpError(statusCode: Int, body: String)
 
         public var errorDescription: String? {
@@ -28,6 +30,13 @@ public actor HermesGatewayClient {
                 return "Invalid Hermes gateway URL."
             case .invalidResponse:
                 return "Invalid response from Hermes gateway."
+            case .emptyAssistantResponse:
+                return "Hermes returned a successful response, but no assistant text was found."
+            case let .transportError(url, message):
+                return """
+                Could not reach Hermes at \(url): \(message). Check that the profile gateway is running, reachable from \
+                this device, and using the right HTTP URL/port.
+                """
             case let .httpError(statusCode, body):
                 let trimmed = body.trimmingCharacters(in: .whitespacesAndNewlines)
                 if trimmed.isEmpty {
@@ -74,7 +83,7 @@ public actor HermesGatewayClient {
         request.timeoutInterval = 5
         setAuth(&request)
 
-        let (_, response) = try await session.data(for: request)
+        let (_, response) = try await data(for: request)
         return (response as? HTTPURLResponse)?.statusCode == 200
     }
 
@@ -83,7 +92,7 @@ public actor HermesGatewayClient {
         request.timeoutInterval = 10
         setAuth(&request)
 
-        let (data, response) = try await session.data(for: request)
+        let (data, response) = try await data(for: request)
         try validate(response: response, fallbackBody: data)
 
         guard let payload = try JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -111,10 +120,28 @@ public actor HermesGatewayClient {
                     try await self.validateStreamingResponse(response: response, bytes: bytes)
                     try await self.consumeStream(bytes: bytes, continuation: continuation)
                 } catch {
-                    continuation.finish(throwing: error)
+                    continuation.finish(throwing: Self.enrichedTransportError(error, requestURL: request.url))
                 }
             }
         }
+    }
+
+    private func data(for request: URLRequest) async throws -> (Data, URLResponse) {
+        do {
+            return try await session.data(for: request)
+        } catch {
+            throw Self.enrichedTransportError(error, requestURL: request.url)
+        }
+    }
+
+    private static func enrichedTransportError(_ error: Error, requestURL: URL?) -> Error {
+        let nsError = error as NSError
+        guard nsError.domain == NSURLErrorDomain else { return error }
+
+        return ClientError.transportError(
+            url: requestURL?.absoluteString ?? "the configured Hermes endpoint",
+            message: error.localizedDescription
+        )
     }
 
     private func makeChatRequest(
@@ -142,12 +169,23 @@ public actor HermesGatewayClient {
         bytes: URLSession.AsyncBytes,
         continuation: AsyncThrowingStream<String, Error>.Continuation
     ) async throws {
+        var sawServerSentEvent = false
+        var fallbackBodyLines: [String] = []
+        var didYieldContent = false
+
         for try await line in bytes.lines {
             guard !Task.isCancelled else {
                 throw CancellationError()
             }
 
-            guard line.hasPrefix("data: ") else { continue }
+            guard line.hasPrefix("data: ") else {
+                if !line.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    fallbackBodyLines.append(line)
+                }
+                continue
+            }
+
+            sawServerSentEvent = true
             let rawData = String(line.dropFirst(6))
 
             if rawData == "[DONE]" {
@@ -168,14 +206,65 @@ public actor HermesGatewayClient {
                 return
             }
 
-            if let delta = firstChoice["delta"] as? [String: Any],
-               let content = delta["content"] as? String,
-               !content.isEmpty {
+            if let content = Self.extractAssistantContent(from: firstChoice), !content.isEmpty {
+                didYieldContent = true
                 continuation.yield(content)
             }
         }
 
+        if !sawServerSentEvent {
+            let fallbackBody = fallbackBodyLines.joined(separator: "\n")
+            if let content = try Self.extractFallbackAssistantContent(from: fallbackBody), !content.isEmpty {
+                didYieldContent = true
+                continuation.yield(content)
+            }
+        }
+
+        if !didYieldContent {
+            throw ClientError.emptyAssistantResponse
+        }
+
         continuation.finish()
+    }
+
+    private static func extractFallbackAssistantContent(from body: String) throws -> String? {
+        guard let data = body.data(using: .utf8), !data.isEmpty else { return nil }
+        guard let payload = try JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
+
+        if let choices = payload["choices"] as? [[String: Any]],
+           let firstChoice = choices.first,
+           let content = extractAssistantContent(from: firstChoice) {
+            return content
+        }
+
+        if let content = payload["content"] as? String {
+            return content
+        }
+
+        if let message = payload["message"] as? [String: Any],
+           let content = message["content"] as? String {
+            return content
+        }
+
+        return nil
+    }
+
+    private static func extractAssistantContent(from choice: [String: Any]) -> String? {
+        if let delta = choice["delta"] as? [String: Any],
+           let content = delta["content"] as? String {
+            return content
+        }
+
+        if let message = choice["message"] as? [String: Any],
+           let content = message["content"] as? String {
+            return content
+        }
+
+        if let text = choice["text"] as? String {
+            return text
+        }
+
+        return nil
     }
 
     private func validateStreamingResponse(

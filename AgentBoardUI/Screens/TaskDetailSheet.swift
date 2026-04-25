@@ -31,7 +31,7 @@ struct TaskDetailSheet: View {
                 }
             }
             .navigationTitle("Task Details")
-            .navigationBarTitleDisplayMode(.inline)
+            .agentBoardNavigationBarTitleInline()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close") { dismiss() }

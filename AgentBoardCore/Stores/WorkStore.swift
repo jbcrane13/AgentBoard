@@ -97,7 +97,9 @@ public final class WorkStore {
         repository: ConfiguredRepository,
         title: String,
         body: String,
-        labels: [String] = []
+        labels: [String] = [],
+        assignees: [String] = [],
+        milestone: Int? = nil
     ) async {
         errorMessage = nil
         statusMessage = nil
@@ -114,7 +116,9 @@ public final class WorkStore {
                 repository: repository,
                 title: title,
                 body: body,
-                labels: labels
+                labels: labels,
+                assignees: assignees,
+                milestone: milestone
             )
             upsert(item)
             try cache.replaceWorkItems(items)
@@ -132,6 +136,7 @@ public final class WorkStore {
         body: String? = nil,
         labels: [String]? = nil,
         assignees: [String]? = nil,
+        milestone: Int? = nil,
         state: WorkState? = nil
     ) async {
         errorMessage = nil
@@ -149,6 +154,7 @@ public final class WorkStore {
             body: body,
             labels: labels,
             assignees: assignees,
+            milestone: milestone,
             state: state
         )
         do {

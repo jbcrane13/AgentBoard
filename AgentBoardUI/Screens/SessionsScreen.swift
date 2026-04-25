@@ -60,7 +60,7 @@ struct SessionsScreen: View {
                 }
             }
         }
-        .navigationBarHidden(true)
+        .agentBoardNavigationBarHidden(true)
         .refreshable {
             await appModel.sessionsStore.refresh()
         }

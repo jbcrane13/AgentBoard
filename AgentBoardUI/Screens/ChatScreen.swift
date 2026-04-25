@@ -39,7 +39,8 @@ struct ChatScreen: View {
                 composeArea
             }
         }
-        .navigationBarHidden(true)
+        .agentBoardNavigationBarHidden(true)
+        .agentBoardKeyboardDismissToolbar()
     }
 
     private var header: some View {
@@ -54,13 +55,161 @@ struct ChatScreen: View {
                     .foregroundStyle(NeuPalette.textPrimary)
             }
             Spacer()
-            Button {
-                appModel.chatStore.startNewConversation()
-            } label: {
-                Image(systemName: "square.and.pencil")
+            VStack(alignment: .trailing, spacing: 10) {
+                HStack(spacing: 10) {
+                    Menu {
+                        ForEach(appModel.chatStore.conversations) { conversation in
+                            Button {
+                                appModel.chatStore.selectConversation(conversation.id)
+                            } label: {
+                                Label(
+                                    conversation.title,
+                                    systemImage: conversation.id == appModel.chatStore.selectedConversationID
+                                        ? "checkmark.circle.fill" : "bubble.left"
+                                )
+                            }
+                        }
+
+                        Divider()
+
+                        Button {
+                            appModel.chatStore.startNewConversation()
+                        } label: {
+                            Label("New Session", systemImage: "square.and.pencil")
+                        }
+                    } label: {
+                        headerCapsule(
+                            title: "Session",
+                            value: appModel.chatStore.selectedConversation?.title ?? "New Conversation",
+                            systemImage: "bubble.left.and.bubble.right.fill"
+                        )
+                    }
+                    .buttonStyle(.plain)
+
+                    Menu {
+                        ForEach(appModel.settingsStore.availableHermesProfiles) { profile in
+                            Button {
+                                Task {
+                                    if profile.id != "current" {
+                                        appModel.settingsStore.selectHermesProfile(id: profile.id)
+                                    }
+                                    await appModel.chatStore.refreshConnection()
+                                    await appModel.chatStore.refreshModels()
+                                }
+                            } label: {
+                                Label(
+                                    profile.name,
+                                    systemImage: appModel.settingsStore.selectedHermesProfileID == profile.id
+                                        ? "checkmark.circle.fill" : "network"
+                                )
+                            }
+                        }
+                    } label: {
+                        headerCapsule(
+                            title: "Profile",
+                            value: appModel.settingsStore.activeHermesProfile?.name ?? portLabel,
+                            systemImage: "server.rack"
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                HStack(spacing: 10) {
+                    Menu {
+                        ForEach(appModel.chatStore.availableModels, id: \.self) { model in
+                            Button {
+                                appModel.chatStore.selectModel(model)
+                            } label: {
+                                Label(
+                                    model,
+                                    systemImage: model == appModel.settingsStore.hermesModelID
+                                        ? "checkmark.circle.fill" : "person.crop.rectangle.stack"
+                                )
+                            }
+                        }
+                    } label: {
+                        headerCapsule(
+                            title: "Model",
+                            value: appModel.settingsStore.hermesModelID,
+                            systemImage: "cpu.fill"
+                        )
+                    }
+                    .buttonStyle(.plain)
+
+                    statusCapsule
+
+                    Button {
+                        Task {
+                            await appModel.chatStore.refreshConnection()
+                            await appModel.chatStore.refreshModels()
+                        }
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                    .buttonStyle(NeuButtonTarget(isAccent: false))
+                }
             }
-            .buttonStyle(NeuButtonTarget(isAccent: false))
         }
+    }
+
+    private var statusCapsule: some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(connectionTint)
+                .frame(width: 10, height: 10)
+            Text(appModel.chatStore.connectionState.title.uppercased())
+                .font(.caption.weight(.bold))
+                .tracking(1)
+                .foregroundStyle(NeuPalette.textSecondary)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .neuRecessed(cornerRadius: 18, depth: 4)
+    }
+
+    private func headerCapsule(title: String, value: String, systemImage: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: systemImage)
+                .foregroundStyle(NeuPalette.accentCyan)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title.uppercased())
+                    .font(.caption2.weight(.bold))
+                    .tracking(1)
+                    .foregroundStyle(NeuPalette.textSecondary)
+                Text(value)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(NeuPalette.textPrimary)
+                    .lineLimit(1)
+            }
+            Image(systemName: "chevron.down")
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(NeuPalette.textSecondary)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .frame(maxWidth: 220, alignment: .leading)
+        .neuExtruded(cornerRadius: 18, elevation: 4)
+    }
+
+    private var connectionTint: Color {
+        switch appModel.chatStore.connectionState {
+        case .connected:
+            NeuPalette.accentCyan
+        case .connecting, .reconnecting:
+            NeuPalette.accentOrange
+        case .failed:
+            .red
+        case .disconnected:
+            NeuPalette.textSecondary
+        }
+    }
+
+    private var portLabel: String {
+        if let url = URL(string: appModel.settingsStore.hermesGatewayURL),
+           let port = url.port {
+            return "Port \(port)"
+        }
+        return "Current"
     }
 
     private var conversationRail: some View {
@@ -173,7 +322,9 @@ struct ChatScreen: View {
             }
             .onTapGesture {
                 isTextFieldFocused = false
+                AgentBoardKeyboard.dismiss()
             }
+            .agentBoardScrollDismissesKeyboard()
         }
     }
 
@@ -212,6 +363,8 @@ struct ChatScreen: View {
                     )
 
                 Button {
+                    isTextFieldFocused = false
+                    AgentBoardKeyboard.dismiss()
                     Task { await chatStore.sendDraft() }
                 } label: {
                     Image(systemName: chatStore.isStreaming ? "stop.fill" : "paperplane.fill")
