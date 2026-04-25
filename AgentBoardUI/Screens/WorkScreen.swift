@@ -13,13 +13,25 @@ private enum WorkLayoutMode: String, CaseIterable, Identifiable {
 struct WorkScreen: View {
     @Environment(AgentBoardAppModel.self) private var appModel
     @Environment(\.horizontalSizeClass) private var hSizeClass
-    @State private var layoutMode: WorkLayoutMode = .list
+    @State private var layoutMode: WorkLayoutMode = .board
     @State private var selectedItem: WorkItem?
     @State private var isPresentingCreate = false
     @State private var selectedRepo: String = "all"
 
     private var isCompact: Bool {
-        hSizeClass == .compact
+        #if os(macOS)
+            return false // macOS should be the wide Board by default, regardless of internal window size class quirks
+        #else
+            return hSizeClass == .compact
+        #endif
+    }
+
+    private var isMac: Bool {
+        #if os(macOS)
+            return true
+        #else
+            return false
+        #endif
     }
 
     var body: some View {
@@ -40,14 +52,14 @@ struct WorkScreen: View {
                         systemImage: "tray"
                     )
                     .padding(isCompact ? 16 : 24)
-                } else if !isCompact, layoutMode == .board {
+                } else if isMac || (!isCompact && layoutMode == .board) {
                     boardLayout
                 } else {
                     listLayout
                 }
             }
         }
-        .agentBoardNavigationBarHidden(true)
+        .navigationBarHidden(true)
         .refreshable {
             await appModel.workStore.refresh()
         }
@@ -108,7 +120,7 @@ struct WorkScreen: View {
     }
 
     private var boardLayout: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
+        ScrollView(.horizontal, showsIndicators: true) {
             HStack(alignment: .top, spacing: 24) {
                 ForEach(groupedFilteredItems, id: \.state) { column in
                     VStack(alignment: .leading, spacing: 16) {
@@ -118,6 +130,9 @@ struct WorkScreen: View {
                                 .tracking(1)
                                 .foregroundStyle(NeuPalette.textSecondary)
                             Spacer()
+                            Text("\(column.items.count)")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(NeuPalette.textSecondary)
                         }
                         .padding(.horizontal, 4)
 
@@ -174,7 +189,7 @@ private struct WorkCardNeu: View {
 
     var body: some View {
         Button(action: onTap) {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 16) {
                 HStack(alignment: .top) {
                     Text(item.issueReference)
                         .font(.caption.weight(.bold))
