@@ -187,9 +187,18 @@ public actor GitHubWorkService {
     ) async throws -> [WorkItem] {
         do {
             return try await fetchIssuesViaAPI(for: repository, token: token)
-        } catch ServiceError.notFound, ServiceError.unauthorized {
-            // Token may be missing scopes or misconfigured — fall back to gh CLI
-            return try await fetchIssuesViaCLI(for: repository)
+        } catch let error as ServiceError {
+            switch error {
+            case .notFound, .unauthorized:
+#if os(macOS)
+                // Token may be missing scopes or misconfigured — fall back to gh CLI
+                return try await fetchIssuesViaCLI(for: repository)
+#else
+                throw error
+#endif
+            default:
+                throw error
+            }
         }
     }
 
@@ -225,6 +234,7 @@ public actor GitHubWorkService {
             .map { map(issue: $0, repository: repository) }
     }
 
+#if os(macOS)
     private func fetchIssuesViaCLI(
         for repository: ConfiguredRepository
     ) async throws -> [WorkItem] {
@@ -255,6 +265,7 @@ public actor GitHubWorkService {
         let issues = try JSONDecoder().decode([RawIssue].self, from: data)
         return issues.map { map(issue: $0, repository: repository) }
     }
+#endif
 
     private func map(issue: RawIssue, repository: ConfiguredRepository) -> WorkItem {
         let labels = issue.labels.map(\.name)

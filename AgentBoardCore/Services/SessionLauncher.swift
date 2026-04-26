@@ -217,6 +217,7 @@ public final class SessionLauncher {
     // MARK: - tmux Launch
 
     private func writePRD(repo: String, path: String, content: String) throws {
+#if os(macOS)
         let home = FileManager.default.homeDirectoryForCurrentUser
         let projectDir = home.appendingPathComponent("Projects").appendingPathComponent(repo)
         let prdDir = projectDir.appendingPathComponent("docs")
@@ -225,6 +226,9 @@ public final class SessionLauncher {
 
         let prdFile = prdDir.appendingPathComponent(URL(fileURLWithPath: path).lastPathComponent)
         try content.write(to: prdFile, atomically: true, encoding: .utf8)
+#else
+        throw LaunchError.unsupportedPlatform
+#endif
     }
 
     private func launchTmuxSession(
@@ -233,6 +237,7 @@ public final class SessionLauncher {
         preset: ExecutionPreset,
         prdPath: String
     ) async throws {
+#if os(macOS)
         let home = FileManager.default.homeDirectoryForCurrentUser
         let projectDir = home.appendingPathComponent("Projects").appendingPathComponent(repo).path
         let socket = home.appendingPathComponent(".tmux/sock").path
@@ -259,11 +264,15 @@ public final class SessionLauncher {
             let output = String(data: data, encoding: .utf8) ?? "unknown error"
             throw LaunchError.tmuxFailed(output)
         }
+#else
+        throw LaunchError.unsupportedPlatform
+#endif
     }
 
     // MARK: - Monitoring
 
     public func checkSession(_ session: ActiveSession) async -> ActiveSession.SessionStatus {
+#if os(macOS)
         let home = FileManager.default.homeDirectoryForCurrentUser
         let socket = home.appendingPathComponent(".tmux/sock").path
 
@@ -282,16 +291,21 @@ public final class SessionLauncher {
         } catch {
             return .failed
         }
+#else
+        return .failed
+#endif
     }
 
     // MARK: - Errors
 
     enum LaunchError: LocalizedError {
         case tmuxFailed(String)
+        case unsupportedPlatform
 
         var errorDescription: String? {
             switch self {
             case let .tmuxFailed(msg): return "tmux launch failed: \(msg)"
+            case .unsupportedPlatform: return "Session launching is only supported on macOS."
             }
         }
     }
