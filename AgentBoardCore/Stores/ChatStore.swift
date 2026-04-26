@@ -40,6 +40,7 @@ public final class ChatStore {
     public var draft = ""
     public var statusMessage: String?
     public var errorMessage: String?
+    public var pendingAttachments: [ChatAttachment] = []
 
     private var messagesByConversationID: [UUID: [ConversationMessage]] = [:]
     private var didBootstrap = false
@@ -137,6 +138,20 @@ public final class ChatStore {
         errorMessage = nil
     }
 
+    // MARK: - Attachment Management
+
+    public func addAttachment(_ attachment: ChatAttachment) {
+        pendingAttachments.append(attachment)
+    }
+
+    public func removeAttachment(id: String) {
+        pendingAttachments.removeAll { $0.id == id }
+    }
+
+    public func clearAttachments() {
+        pendingAttachments.removeAll()
+    }
+
     public func refreshConnection() async {
         errorMessage = nil
         statusMessage = nil
@@ -206,9 +221,12 @@ public final class ChatStore {
 
     public func sendDraft() async {
         let trimmed = draft.trimmed
-        guard !trimmed.isEmpty, let conversationID = selectedConversationID else { return }
+        let attachmentsToSend = pendingAttachments
+        guard !trimmed.isEmpty || !attachmentsToSend.isEmpty,
+              let conversationID = selectedConversationID else { return }
 
         draft = ""
+        pendingAttachments = []
         errorMessage = nil
         statusMessage = nil
 
@@ -218,7 +236,8 @@ public final class ChatStore {
         let userMessage = ConversationMessage(
             conversationID: conversationID,
             role: .user,
-            content: trimmed
+            content: trimmed,
+            attachments: attachmentsToSend
         )
         var assistantMessage = ConversationMessage(
             conversationID: conversationID,

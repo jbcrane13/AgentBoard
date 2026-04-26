@@ -7,6 +7,7 @@ struct ChatScreen: View {
     @FocusState private var isTextFieldFocused: Bool
     @State private var editingConversationID: UUID?
     @State private var editingTitle = ""
+    @State private var showAttachmentPicker = false
 
     private var isCompact: Bool {
         hSizeClass == .compact
@@ -204,6 +205,25 @@ struct ChatScreen: View {
         }
     }
 
+    private var canSend: Bool {
+        let chatStore = appModel.chatStore
+        return chatStore.isStreaming
+            || chatStore.draft.trimmedOrNil != nil
+            || !chatStore.pendingAttachments.isEmpty
+    }
+
+    private var sendButtonForeground: Color {
+        let chatStore = appModel.chatStore
+        if chatStore.isStreaming { return .white }
+        return canSend ? NeuPalette.background : NeuPalette.textSecondary
+    }
+
+    private var sendButtonBackground: Color {
+        let chatStore = appModel.chatStore
+        if chatStore.isStreaming { return .red }
+        return canSend ? NeuPalette.accentCyan : NeuPalette.surface
+    }
+
     private var portLabel: String {
         if let url = URL(string: appModel.settingsStore.hermesGatewayURL),
            let port = url.port {
@@ -346,22 +366,49 @@ struct ChatScreen: View {
                     .padding(.bottom, 8)
             }
 
+            // Attachment preview strip
+            if !chatStore.pendingAttachments.isEmpty {
+                AttachmentPreviewStrip(attachments: $chatStore.pendingAttachments)
+            }
+
             ZStack(alignment: .bottomTrailing) {
-                // Centering the text inside the bounds natively
+                // Attachment button on the left
+                HStack {
+                    Button {
+                        showAttachmentPicker = true
+                    } label: {
+                        Image(systemName: "paperclip")
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundStyle(NeuPalette.accentCyan)
+                            .frame(width: 44, height: 44)
+                    }
+                    .accessibilityIdentifier("chat_button_attach")
+                    .sheet(isPresented: $showAttachmentPicker) {
+                        AttachmentPickerSheet { attachment in
+                            chatStore.addAttachment(attachment)
+                        }
+                    }
+
+                    Spacer()
+                }
+                .padding(.leading, 8)
+
+                // Text field
                 TextField("", text: $chatStore.draft, axis: .vertical)
                     .lineLimit(1 ... 6)
                     .focused($isTextFieldFocused)
                     .foregroundStyle(NeuPalette.textPrimary)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 64) // Large margins side-to-side ensures clear bounding away from Send button
+                    .padding(.horizontal, 64)
                     .padding(.vertical, 24)
                     .overlay(
                         Text("Message Hermes...")
                             .foregroundStyle(NeuPalette.textSecondary)
-                            .opacity(chatStore.draft.isEmpty ? 1 : 0)
+                            .opacity(chatStore.draft.isEmpty && chatStore.pendingAttachments.isEmpty ? 1 : 0)
                             .allowsHitTesting(false)
                     )
 
+                // Send button
                 Button {
                     isTextFieldFocused = false
                     AgentBoardKeyboard.dismiss()
@@ -369,19 +416,13 @@ struct ChatScreen: View {
                 } label: {
                     Image(systemName: chatStore.isStreaming ? "stop.fill" : "paperplane.fill")
                         .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(chatStore
-                            .isStreaming ? .white :
-                            (chatStore.draft.isEmpty ? NeuPalette.textSecondary : NeuPalette.background))
-                        .frame(width: 48, height: 48) // More robust tap target
-                        .background(
-                            Circle()
-                                .fill(chatStore
-                                    .isStreaming ? .red :
-                                    (chatStore.draft.isEmpty ? NeuPalette.surface : NeuPalette.accentCyan))
-                        )
+                        .foregroundStyle(sendButtonForeground)
+                        .frame(width: 48, height: 48)
+                        .background(Circle().fill(sendButtonBackground))
                 }
-                .disabled(chatStore.draft.trimmedOrNil == nil && !chatStore.isStreaming)
-                .padding(12) // Exactly inset into the bottom corner
+                .disabled(!canSend)
+                .padding(12)
+                .accessibilityIdentifier("chat_button_send")
             }
             .neuRecessed(cornerRadius: 36, depth: 6)
         }
