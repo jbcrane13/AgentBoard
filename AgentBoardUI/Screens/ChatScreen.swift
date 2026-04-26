@@ -1,7 +1,6 @@
 import AgentBoardCore
 import SwiftUI
 
-// swiftlint:disable:next type_body_length
 struct ChatScreen: View {
     @Environment(AgentBoardAppModel.self) private var appModel
     @Environment(\.horizontalSizeClass) private var hSizeClass
@@ -118,28 +117,9 @@ struct ChatScreen: View {
                 }
 
                 HStack(spacing: 10) {
-                    Menu {
-                        ForEach(appModel.chatStore.availableModels, id: \.self) { model in
-                            Button {
-                                appModel.chatStore.selectModel(model)
-                            } label: {
-                                Label(
-                                    model,
-                                    systemImage: model == appModel.settingsStore.hermesModelID
-                                        ? "checkmark.circle.fill" : "person.crop.rectangle.stack"
-                                )
-                            }
-                        }
-                    } label: {
-                        headerCapsule(
-                            title: "Model",
-                            value: appModel.settingsStore.hermesModelID,
-                            systemImage: "cpu.fill"
-                        )
-                    }
-                    .buttonStyle(.plain)
-
-                    statusCapsule
+                    Circle()
+                        .fill(connectionTint)
+                        .frame(width: 8, height: 8)
 
                     Button {
                         Task {
@@ -148,26 +128,12 @@ struct ChatScreen: View {
                         }
                     } label: {
                         Image(systemName: "arrow.clockwise")
+                            .font(.caption)
                     }
                     .buttonStyle(NeuButtonTarget(isAccent: false))
                 }
             }
         }
-    }
-
-    private var statusCapsule: some View {
-        HStack(spacing: 8) {
-            Circle()
-                .fill(connectionTint)
-                .frame(width: 10, height: 10)
-            Text(appModel.chatStore.connectionState.title.uppercased())
-                .font(.caption.weight(.bold))
-                .tracking(1)
-                .foregroundStyle(NeuPalette.textSecondary)
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .neuRecessed(cornerRadius: 18, depth: 4)
     }
 
     private func headerCapsule(title: String, value: String, systemImage: String) -> some View {
