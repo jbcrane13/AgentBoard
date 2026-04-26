@@ -6,6 +6,7 @@ struct AgentsScreen: View {
     @Environment(\.horizontalSizeClass) private var hSizeClass
     @State private var isPresentingCreateSheet = false
     @State private var selectedTask: AgentTask?
+    @State private var launchTask: AgentTask?
     @State private var selectedWorkItemID: String?
     @State private var taskTitle = ""
     @State private var assignedAgent = ""
@@ -42,11 +43,7 @@ struct AgentsScreen: View {
                     )
                     .padding(isCompact ? 16 : 24)
                 } else {
-                    if isCompact {
-                        compactTaskList
-                    } else {
-                        kanbanBoard
-                    }
+                    taskList
                 }
             }
         }
@@ -61,6 +58,10 @@ struct AgentsScreen: View {
         .sheet(isPresented: $isPresentingCreateSheet) {
             createTaskSheet
                 .presentationDetents([.medium, .large])
+        }
+        .sheet(item: $launchTask) { task in
+            LaunchSessionSheet(task: task)
+                .environment(appModel)
         }
     }
 
@@ -130,76 +131,19 @@ struct AgentsScreen: View {
         }
     }
 
-    private var kanbanBoard: some View {
-        VStack(spacing: 0) {
-            agentSummaryRail
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: 24) {
-                    ForEach(groupedTasks, id: \.state) { column in
-                        VStack(alignment: .leading, spacing: 16) {
-                            HStack {
-                                Text(column.state.title.uppercased())
-                                    .font(.caption.weight(.bold))
-                                    .tracking(1)
-                                    .foregroundStyle(NeuPalette.textSecondary)
-                                Spacer()
-                                Text("\(column.tasks.count)")
-                                    .font(.caption.weight(.bold))
-                                    .foregroundStyle(NeuPalette.textSecondary)
-                            }
-                            .padding(.horizontal, 4)
-
-                            if column.tasks.isEmpty {
-                                Text("None")
-                                    .font(.subheadline)
-                                    .foregroundStyle(NeuPalette.textSecondary)
-                                    .frame(maxWidth: .infinity, alignment: .center)
-                                    .padding(.vertical, 24)
-                            } else {
-                                ScrollView(showsIndicators: false) {
-                                    LazyVStack(spacing: 16) {
-                                        ForEach(column.tasks) { task in
-                                            TaskCardNeu(task: task) {
-                                                selectedTask = task
-                                            }
-                                        }
-                                    }
-                                    .padding(.bottom, 24)
-                                }
-                            }
-                        }
-                        .frame(width: 320, alignment: .topLeading)
-                        .padding(20)
-                        .neuExtruded(cornerRadius: 32, elevation: 12)
-                    }
-                }
-                .padding(24)
-            }
-        }
-    }
-
-    private var compactTaskList: some View {
+    private var taskList: some View {
         ScrollView(showsIndicators: false) {
-            LazyVStack(spacing: 32) {
+            LazyVStack(spacing: 16) {
+                // Agent summaries at top (horizontal scroll)
                 if !appModel.agentsStore.summaries.isEmpty {
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("ACTIVE AGENTS")
-                            .font(.caption.weight(.bold))
-                            .tracking(1)
-                            .foregroundStyle(NeuPalette.textSecondary)
-                            .padding(.horizontal, 8)
-
-                        ForEach(appModel.agentsStore.summaries) { summary in
-                            AgentSummaryRowNeu(summary: summary)
-                        }
-                    }
+                    agentSummaryRail
                 }
 
+                // All tasks in a single list, grouped by status
                 ForEach(AgentTaskState.allCases) { state in
                     let tasks = appModel.agentsStore.tasks.filter { $0.status == state }
                     if !tasks.isEmpty {
-                        VStack(alignment: .leading, spacing: 16) {
+                        VStack(alignment: .leading, spacing: 12) {
                             HStack {
                                 Text(state.title.uppercased())
                                     .font(.caption.weight(.bold))
@@ -213,14 +157,18 @@ struct AgentsScreen: View {
                             .padding(.horizontal, 8)
 
                             ForEach(tasks) { task in
-                                TaskListRowNeu(task: task) { selectedTask = task }
-                                    .accessibilityIdentifier("agents_cell_task_\(task.id)")
+                                TaskListRowNeu(
+                                    task: task,
+                                    onTap: { selectedTask = task },
+                                    onLaunch: { launchTask = task }
+                                )
+                                .accessibilityIdentifier("agents_cell_task_\(task.id)")
                             }
                         }
                     }
                 }
             }
-            .padding(16)
+            .padding(24)
         }
     }
 
@@ -314,6 +262,7 @@ private struct TaskListRowNeu: View {
     @Environment(AgentBoardAppModel.self) private var appModel
     let task: AgentTask
     let onTap: () -> Void
+    var onLaunch: (() -> Void)?
     @State private var showDeleteConfirm = false
 
     var body: some View {
@@ -362,6 +311,10 @@ private struct TaskListRowNeu: View {
         }
         .buttonStyle(.plain)
         .contextMenu {
+            if let onLaunch {
+                Button { onLaunch() } label: { Label("Launch Session", systemImage: "bolt.fill") }
+                Divider()
+            }
             Button(role: .destructive) { showDeleteConfirm = true } label: { Label("Delete", systemImage: "trash") }
         }
         .alert("Delete Task", isPresented: $showDeleteConfirm) {

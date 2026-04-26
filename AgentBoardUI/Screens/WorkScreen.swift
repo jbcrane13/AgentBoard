@@ -80,7 +80,8 @@ struct WorkScreen: View {
     }
 
     private var groupedFilteredItems: [(state: WorkState, items: [WorkItem])] {
-        WorkState.allCases.map { state in
+        // Only show Open, In Progress, Done columns (skip Blocked)
+        [.open, .inProgress, .done].map { state in
             (state, filteredItems.filter { $0.status == state })
         }
     }

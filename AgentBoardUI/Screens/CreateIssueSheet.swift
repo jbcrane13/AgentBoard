@@ -8,12 +8,24 @@ struct CreateIssueSheet: View {
     @State private var selectedRepository: ConfiguredRepository?
     @State private var title = ""
     @State private var issueBody = ""
-    @State private var labels = ""
-    @State private var assignees = ""
+    @State private var selectedLabels: Set<String> = []
+    @State private var customLabel = ""
+    @State private var selectedAssignees: Set<String> = []
+    @State private var customAssignee = ""
     @State private var selectedPriority: WorkPriority = .medium
     @State private var selectedStatus: WorkState = .open
     @State private var milestoneNumber = ""
     @State private var isCreating = false
+
+    private var knownLabels: [String] {
+        let allLabels = appModel.workStore.items.flatMap { $0.labels }
+        return Array(Set(allLabels)).sorted()
+    }
+
+    private var knownAssignees: [String] {
+        let allAssignees = appModel.workStore.items.flatMap { $0.assignees }
+        return Array(Set(allAssignees)).sorted()
+    }
 
     var body: some View {
         NavigationStack {
@@ -59,15 +71,52 @@ struct CreateIssueSheet: View {
                                     .foregroundStyle(NeuPalette.textPrimary)
                             }
 
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("Labels (comma-separated)").font(.headline).foregroundStyle(NeuPalette.textPrimary)
-                                NeuTextField(placeholder: "bug, enhancement", text: $labels)
+                            // Labels — chip selector with known values
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Labels").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                                if !knownLabels.isEmpty {
+                                    FlowTagsView(items: knownLabels, selected: $selectedLabels) { label in
+                                        Text(label).font(.caption)
+                                    }
+                                }
+                                HStack(spacing: 8) {
+                                    NeuTextField(placeholder: "Add custom label…", text: $customLabel)
+                                    Button {
+                                        let trimmed = customLabel.trimmingCharacters(in: .whitespaces)
+                                        if !trimmed.isEmpty {
+                                            selectedLabels.insert(trimmed)
+                                            customLabel = ""
+                                        }
+                                    } label: {
+                                        Image(systemName: "plus")
+                                    }
+                                    .buttonStyle(NeuButtonTarget(isAccent: !customLabel.trimmed.isEmpty))
+                                    .disabled(customLabel.trimmedOrNil == nil)
+                                }
                             }
 
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("Assignees (comma-separated)").font(.headline)
-                                    .foregroundStyle(NeuPalette.textPrimary)
-                                NeuTextField(placeholder: "alice, bob", text: $assignees)
+                            // Assignees — chip selector with known values
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Assignees").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                                if !knownAssignees.isEmpty {
+                                    FlowTagsView(items: knownAssignees, selected: $selectedAssignees) { assignee in
+                                        Text(assignee).font(.caption)
+                                    }
+                                }
+                                HStack(spacing: 8) {
+                                    NeuTextField(placeholder: "Add custom assignee…", text: $customAssignee)
+                                    Button {
+                                        let trimmed = customAssignee.trimmingCharacters(in: .whitespaces)
+                                        if !trimmed.isEmpty {
+                                            selectedAssignees.insert(trimmed)
+                                            customAssignee = ""
+                                        }
+                                    } label: {
+                                        Image(systemName: "plus")
+                                    }
+                                    .buttonStyle(NeuButtonTarget(isAccent: !customAssignee.trimmed.isEmpty))
+                                    .disabled(customAssignee.trimmedOrNil == nil)
+                                }
                             }
 
                             VStack(alignment: .leading, spacing: 12) {
@@ -134,11 +183,8 @@ struct CreateIssueSheet: View {
         guard let repo = selectedRepository else { return }
         isCreating = true
 
-        let parsedLabels = labels.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
-        let parsedAssignees = assignees.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
-        let mergedLabels = Array(Set(parsedLabels + [selectedPriority.labelValue, selectedStatus.labelValue])).sorted()
+        let mergedLabels = Array(selectedLabels + [selectedPriority.labelValue, selectedStatus.labelValue]).sorted()
+        let assignees = Array(selectedAssignees)
         let milestone = Int(milestoneNumber.trimmingCharacters(in: .whitespacesAndNewlines))
 
         Task {
@@ -147,12 +193,46 @@ struct CreateIssueSheet: View {
                 title: title.trimmingCharacters(in: .whitespacesAndNewlines),
                 body: issueBody.trimmingCharacters(in: .whitespacesAndNewlines),
                 labels: mergedLabels,
-                assignees: parsedAssignees,
+                assignees: assignees,
                 milestone: milestone
             )
             isCreating = false
             if appModel.workStore.errorMessage == nil {
                 dismiss()
+            }
+        }
+    }
+}
+
+// MARK: - FlowTagsView
+
+/// A simple wrapping tag layout for selectable chips.
+private struct FlowTagsView<Item: Hashable, Content: View>: View {
+    let items: [Item]
+    @Binding var selected: Set<Item>
+    @ViewBuilder let content: (Item) -> Content
+
+    var body: some View {
+        // Use a simple LazyVGrid with flexible columns for wrapping
+        let columns = [GridItem(.adaptive(minimum: 60), spacing: 8)]
+        LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
+            ForEach(items, id: \.self) { item in
+                let isSelected = selected.contains(item)
+                Button {
+                    if isSelected {
+                        selected.remove(item)
+                    } else {
+                        selected.insert(item)
+                    }
+                } label: {
+                    content(item)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(isSelected ? NeuPalette.accentCyan : NeuPalette.surface)
+                        .foregroundStyle(isSelected ? .black : NeuPalette.textPrimary)
+                        .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
             }
         }
     }
