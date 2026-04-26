@@ -9,9 +9,11 @@
 /* Begin PBXBuildFile section */
 		00D375A5EA8AC4E04D19445A /* SessionsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33A654F28E691A722E5B4F02 /* SessionsScreen.swift */; };
 		00D4FD7D1E850E381301E79B /* BoardPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63376B7513D3E5CFE45372D6 /* BoardPalette.swift */; };
+		02A1ED4D473E2364438AEF82 /* Nuke in Frameworks */ = {isa = PBXBuildFile; productRef = AD7CA2BAC6FD5DFD28FC0BCD /* Nuke */; };
 		06B09775C2F43ADB9D2A7DDB /* CreateIssueSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 702A0D71A27F07711AF96C4A /* CreateIssueSheet.swift */; };
 		0C635EBBEF9AD782093F5594 /* BoardPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63376B7513D3E5CFE45372D6 /* BoardPalette.swift */; };
 		0CE0E873675F3D87FC974CB1 /* AttachmentUploadService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E035F81810040D898374ACEF /* AttachmentUploadService.swift */; };
+		0D4B6287FB492E255C4E927C /* Nuke in Frameworks */ = {isa = PBXBuildFile; productRef = 8E67F37D82C33338077E4371 /* Nuke */; };
 		15369C112AA2304F032D157F /* MarkdownText.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A2BE598EEDA7A998AEA8DE /* MarkdownText.swift */; };
 		18513E9340A65D8111F82D18 /* DomainPills.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A169A5D550028B6D20B397D /* DomainPills.swift */; };
 		1C711E565B9941FC998F8265 /* WorkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A06C1DAB866C77FF3A634D71 /* WorkStore.swift */; };
@@ -53,6 +55,7 @@
 		8423C4D50605F7D24E794BE9 /* Nuke in Frameworks */ = {isa = PBXBuildFile; productRef = 70D117634905A46B8129A69F /* Nuke */; };
 		87A19AEDBCBE0206D4D71EFE /* DemoFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20006E3DE0937110157F9D1 /* DemoFixtures.swift */; };
 		8E7838693E07455607245B77 /* WorkScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D876290D32059BAB65A9F02 /* WorkScreen.swift */; };
+		961E593801A91A1EE5E55F76 /* AttachmentViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD2941E5B6C18CF76C4621BB /* AttachmentViews.swift */; };
 		96C502A1BD49F2AE81F03313 /* AttachmentModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 376B52FEC631A3F6F0383459 /* AttachmentModelsTests.swift */; };
 		96EEFE83B762E77B78F99B90 /* AgentBoardCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2B26E0DCF07C395E5DA349A4 /* AgentBoardCore.framework */; };
 		A51107E477749B979572DD17 /* AttachmentModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9D42E5CA1B251EA0284E8C6 /* AttachmentModels.swift */; };
@@ -71,8 +74,11 @@
 		DD6C36042860EA2D423261EE /* SessionDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A145F7A1A70B53DF066DBD /* SessionDetailSheet.swift */; };
 		DE5629641FE81BB20A7186A9 /* MarkdownText.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A2BE598EEDA7A998AEA8DE /* MarkdownText.swift */; };
 		E1025BED622BADB001F95D4D /* CompanionSQLiteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06C0FE6A5C6D69E553E904D0 /* CompanionSQLiteStore.swift */; };
+		E1F05B25E20BE9959941A7A9 /* AttachmentViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD2941E5B6C18CF76C4621BB /* AttachmentViews.swift */; };
 		E4EEFF2D183520968ACAA803 /* ChatStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3736AF6A2D292014811DA50A /* ChatStore.swift */; };
+		EEE501D250CCB4E6D2D60418 /* NukeUI in Frameworks */ = {isa = PBXBuildFile; productRef = 28BE44876742C1F619FDD2CA /* NukeUI */; };
 		F22F4D3D2D3D20A5B3DD6B20 /* AgentBoardAppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4C9640747C8B7AE6E92BB20 /* AgentBoardAppModel.swift */; };
+		F3D458595223FE83DD26EDC5 /* NukeUI in Frameworks */ = {isa = PBXBuildFile; productRef = AA403A62FC0CC3B341A2D00B /* NukeUI */; };
 		F595A9354548F0B6A8A8F2E3 /* AgentBoardCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2B26E0DCF07C395E5DA349A4 /* AgentBoardCore.framework */; };
 		F78742DD742A458919E091C0 /* AgentBoardCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 2B26E0DCF07C395E5DA349A4 /* AgentBoardCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		FD03671AAB65C52CE827D3DA /* AgentBoardCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2B26E0DCF07C395E5DA349A4 /* AgentBoardCore.framework */; };
@@ -203,6 +209,7 @@
 		B56A44BC3ACA67014432FDD4 /* CompanionSQLiteStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompanionSQLiteStoreTests.swift; sourceTree = "<group>"; };
 		B7B2891F313F2E1804101D36 /* HermesGatewayClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HermesGatewayClient.swift; sourceTree = "<group>"; };
 		BA51DADAAAAFFE9B833D35E9 /* CompanionLocalProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompanionLocalProbe.swift; sourceTree = "<group>"; };
+		BD2941E5B6C18CF76C4621BB /* AttachmentViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentViews.swift; sourceTree = "<group>"; };
 		BE362DDE00559E2C84434C13 /* AgentsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentsScreen.swift; sourceTree = "<group>"; };
 		C9D42E5CA1B251EA0284E8C6 /* AttachmentModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentModels.swift; sourceTree = "<group>"; };
 		D4C9640747C8B7AE6E92BB20 /* AgentBoardAppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentBoardAppModel.swift; sourceTree = "<group>"; };
@@ -232,6 +239,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				F595A9354548F0B6A8A8F2E3 /* AgentBoardCore.framework in Frameworks */,
+				02A1ED4D473E2364438AEF82 /* Nuke in Frameworks */,
+				F3D458595223FE83DD26EDC5 /* NukeUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -240,6 +249,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				73E3E44246ACF7764C2B96D9 /* AgentBoardCore.framework in Frameworks */,
+				0D4B6287FB492E255C4E927C /* Nuke in Frameworks */,
+				EEE501D250CCB4E6D2D60418 /* NukeUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -428,6 +439,7 @@
 				34D736CF52ACD4E2BD9D3ADC /* BoardChrome.swift */,
 				1A169A5D550028B6D20B397D /* DomainPills.swift */,
 				A1A2BE598EEDA7A998AEA8DE /* MarkdownText.swift */,
+				CF5FFC325775B34533A9C6F1 /* Attachments */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -454,6 +466,14 @@
 				62C5AF3274822FACE4922D9A /* Theme */,
 			);
 			path = AgentBoardUI;
+			sourceTree = "<group>";
+		};
+		CF5FFC325775B34533A9C6F1 /* Attachments */ = {
+			isa = PBXGroup;
+			children = (
+				BD2941E5B6C18CF76C4621BB /* AttachmentViews.swift */,
+			);
+			path = Attachments;
 			sourceTree = "<group>";
 		};
 		DD227DDCD4A6E8BA8C4C3E36 /* AgentBoardCompanionKit */ = {
@@ -504,6 +524,8 @@
 			);
 			name = AgentBoard;
 			packageProductDependencies = (
+				8E67F37D82C33338077E4371 /* Nuke */,
+				28BE44876742C1F619FDD2CA /* NukeUI */,
 			);
 			productName = AgentBoard;
 			productReference = 351F53C221B69731A024B864 /* AgentBoard.app */;
@@ -525,6 +547,8 @@
 			);
 			name = AgentBoardMobile;
 			packageProductDependencies = (
+				AD7CA2BAC6FD5DFD28FC0BCD /* Nuke */,
+				AA403A62FC0CC3B341A2D00B /* NukeUI */,
 			);
 			productName = AgentBoardMobile;
 			productReference = 5F60733BA5BCAD5BD388E855 /* AgentBoardMobile.app */;
@@ -689,6 +713,7 @@
 			files = (
 				FD05A98C162D7CC536D93096 /* AgentBoardApp.swift in Sources */,
 				287C52CFEE7CDAF30B54A224 /* AgentsScreen.swift in Sources */,
+				E1F05B25E20BE9959941A7A9 /* AttachmentViews.swift in Sources */,
 				B51F9A6B9302EDD7F2EB1437 /* BoardChrome.swift in Sources */,
 				00D4FD7D1E850E381301E79B /* BoardPalette.swift in Sources */,
 				41487A7506D835D9946C1B9E /* ChatScreen.swift in Sources */,
@@ -757,6 +782,7 @@
 			files = (
 				6140061EE8C8004E8BB033F2 /* AgentBoardMobileApp.swift in Sources */,
 				21BD68D1C8793B9DA7441B08 /* AgentsScreen.swift in Sources */,
+				961E593801A91A1EE5E55F76 /* AttachmentViews.swift in Sources */,
 				709B1495522FEA1AABEDEC6A /* BoardChrome.swift in Sources */,
 				0C635EBBEF9AD782093F5594 /* BoardPalette.swift in Sources */,
 				6AD44EB0146CC268B39C27E1 /* ChatScreen.swift in Sources */,
@@ -1290,7 +1316,27 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		28BE44876742C1F619FDD2CA /* NukeUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D04429BB4AFEDD9352E7C3BF /* XCRemoteSwiftPackageReference "Nuke" */;
+			productName = NukeUI;
+		};
 		70D117634905A46B8129A69F /* Nuke */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D04429BB4AFEDD9352E7C3BF /* XCRemoteSwiftPackageReference "Nuke" */;
+			productName = Nuke;
+		};
+		8E67F37D82C33338077E4371 /* Nuke */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D04429BB4AFEDD9352E7C3BF /* XCRemoteSwiftPackageReference "Nuke" */;
+			productName = Nuke;
+		};
+		AA403A62FC0CC3B341A2D00B /* NukeUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D04429BB4AFEDD9352E7C3BF /* XCRemoteSwiftPackageReference "Nuke" */;
+			productName = NukeUI;
+		};
+		AD7CA2BAC6FD5DFD28FC0BCD /* Nuke */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = D04429BB4AFEDD9352E7C3BF /* XCRemoteSwiftPackageReference "Nuke" */;
 			productName = Nuke;

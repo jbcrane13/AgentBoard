@@ -97,6 +97,9 @@ targets:
           DEVELOPMENT_TEAM: "32XZRDTGK3"
     dependencies:
       - target: AgentBoardCore
+      - package: Nuke
+      - package: Nuke
+        product: NukeUI
 
   AgentBoardMobile:
     type: application
@@ -144,6 +147,9 @@ targets:
           DEVELOPMENT_TEAM: "32XZRDTGK3"
     dependencies:
       - target: AgentBoardCore
+      - package: Nuke
+      - package: Nuke
+        product: NukeUI
 
   AgentBoardCompanion:
     type: tool

@@ -433,6 +433,15 @@ private struct NeuChatBubble: View {
                 MarkdownText(content: message.content)
                     .foregroundStyle(NeuPalette.textPrimary)
             }
+
+            // Render attachments
+            if !message.attachments.isEmpty {
+                VStack(spacing: 8) {
+                    ForEach(message.attachments) { attachment in
+                        AttachmentContainerView(attachment: attachment)
+                    }
+                }
+            }
         }
         .padding(20)
         .modifier(
