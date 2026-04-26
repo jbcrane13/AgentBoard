@@ -108,12 +108,12 @@ struct AgentsScreen: View {
                         HStack(spacing: 16) {
                             HStack(spacing: 6) {
                                 Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(.green)
+                                    .foregroundStyle(NeuPalette.accentCyan)
                                 Text("\(summary.activeTaskCount)")
                             }
                             HStack(spacing: 6) {
                                 Image(systemName: "bolt.horizontal.circle.fill")
-                                    .foregroundStyle(.blue)
+                                    .foregroundStyle(NeuPalette.textSecondary)
                                 Text("\(summary.activeSessionCount)")
                             }
                         }
@@ -209,7 +209,7 @@ struct AgentsScreen: View {
                         }
                         .frame(width: columnWidth, alignment: .topLeading)
                         .padding(12)
-                        .background(NeuPalette.background.opacity(0.62))
+                        .background(NeuPalette.inset.opacity(0.58))
                         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                         .overlay {
                             RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -320,10 +320,10 @@ private struct AgentSummaryRowNeu: View {
             HStack(spacing: 20) {
                 Label("\(summary.activeTaskCount) Tasks", systemImage: "checkmark.circle.fill")
                     .font(.caption.weight(.bold))
-                    .foregroundStyle(.green)
+                    .foregroundStyle(NeuPalette.accentCyan)
                 Label("\(summary.activeSessionCount) Sessions", systemImage: "bolt.horizontal.circle.fill")
                     .font(.caption.weight(.bold))
-                    .foregroundStyle(.blue)
+                    .foregroundStyle(NeuPalette.textSecondary)
             }
         }
         .padding(20)
@@ -475,7 +475,8 @@ struct AgentHealthNeu: View {
     var body: some View {
         HStack(spacing: 6) {
             Circle()
-                .fill(health == .online ? .green : health == .idle ? .blue : health == .warning ? NeuPalette
+                .fill(health == .online ? NeuPalette.accentCyan : health == .idle ? NeuPalette
+                    .textSecondary : health == .warning ? NeuPalette
                     .accentOrange : .red)
                 .frame(width: 8, height: 8)
             Text(health.title.uppercased())
@@ -503,6 +504,6 @@ private func agentStateColor(_ state: AgentTaskState) -> Color {
     case .backlog: NeuPalette.textTertiary
     case .inProgress: NeuPalette.accentCyanBright
     case .blocked: NeuPalette.accentOrange
-    case .done: NeuPalette.accentPurple
+    case .done: NeuPalette.statusClosed
     }
 }

@@ -78,7 +78,7 @@ struct DesktopRootView: View {
                     Text("AB")
                         .font(.system(size: 11, weight: .bold, design: .monospaced))
                 }
-                .foregroundStyle(NeuPalette.background)
+                .foregroundStyle(NeuPalette.accentForeground)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 4)
                 .background(
@@ -145,7 +145,7 @@ struct DesktopRootView: View {
         ZStack {
             LinearGradient(
                 colors: [
-                    Color(red: 0.055, green: 0.075, blue: 0.125),
+                    Color(red: 0.149, green: 0.161, blue: 0.176),
                     NeuPalette.inset
                 ],
                 startPoint: .top,
@@ -287,8 +287,8 @@ struct DesktopRootView: View {
 
     private func sessionStatusColor(_ status: AgentSessionStatus) -> Color {
         switch status {
-        case .running: .green
-        case .idle: .blue
+        case .running: NeuPalette.accentCyan
+        case .idle: NeuPalette.textSecondary
         case .stopped: NeuPalette.textSecondary
         case .error: .red
         }
@@ -329,7 +329,7 @@ struct DesktopRootView: View {
 
     private var connectionDotColor: Color {
         switch appModel.chatStore.connectionState {
-        case .connected: .green
+        case .connected: NeuPalette.accentCyan
         case .connecting, .reconnecting: NeuPalette.accentOrange
         case .failed: .red
         case .disconnected: NeuPalette.textSecondary

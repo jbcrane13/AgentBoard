@@ -1,29 +1,31 @@
 import SwiftUI
 
 public enum NeuPalette {
-    public static let background = Color(red: 0.043, green: 0.059, blue: 0.090)
-    public static let surface = Color(red: 0.067, green: 0.086, blue: 0.122)
-    public static let surfaceRaised = Color(red: 0.086, green: 0.110, blue: 0.153)
-    public static let surfaceHover = Color(red: 0.110, green: 0.137, blue: 0.188)
-    public static let inset = Color(red: 0.039, green: 0.055, blue: 0.082)
+    public static let background = Color(red: 0.102, green: 0.110, blue: 0.122)
+    public static let surface = Color(red: 0.137, green: 0.149, blue: 0.161)
+    public static let surfaceRaised = Color(red: 0.169, green: 0.180, blue: 0.196)
+    public static let surfaceHover = Color(red: 0.208, green: 0.227, blue: 0.247)
+    public static let inset = Color(red: 0.086, green: 0.094, blue: 0.102)
 
     public static let accentOrange = Color(red: 0.961, green: 0.647, blue: 0.141)
-    public static let accentCyan = Color(red: 0.106, green: 0.749, blue: 0.651)
-    public static let accentCyanBright = Color(red: 0.310, green: 0.851, blue: 0.773)
+    public static let accentCyan = Color(red: 0.788, green: 0.478, blue: 0.243)
+    public static let accentCyanBright = Color(red: 0.910, green: 0.647, blue: 0.455)
     public static let accentCoral = Color(red: 1.000, green: 0.420, blue: 0.329)
-    public static let accentPurple = Color(red: 0.690, green: 0.486, blue: 1.000)
-    public static let statusBlue = Color(red: 0.306, green: 0.639, blue: 1.000)
+    public static let accentPurple = Color(red: 0.541, green: 0.502, blue: 0.537)
+    public static let statusBlue = Color(red: 0.722, green: 0.722, blue: 0.722)
+    public static let statusClosed = Color(red: 0.541, green: 0.502, blue: 0.537)
+    public static let accentForeground = Color(red: 0.165, green: 0.086, blue: 0.024)
 
-    public static let textPrimary = Color(red: 0.957, green: 0.965, blue: 0.980)
-    public static let textSecondary = Color(red: 0.761, green: 0.784, blue: 0.831)
-    public static let textTertiary = Color(red: 0.494, green: 0.522, blue: 0.584)
-    public static let textDisabled = Color(red: 0.322, green: 0.345, blue: 0.400)
+    public static let textPrimary = Color(red: 0.945, green: 0.949, blue: 0.957)
+    public static let textSecondary = Color(red: 0.765, green: 0.773, blue: 0.788)
+    public static let textTertiary = Color(red: 0.502, green: 0.518, blue: 0.541)
+    public static let textDisabled = Color(red: 0.329, green: 0.345, blue: 0.365)
     public static let borderSoft = Color.white.opacity(0.04)
     public static let border = Color.white.opacity(0.07)
     public static let borderStrong = Color.white.opacity(0.12)
 
-    public static let shadowDark = Color.black.opacity(0.50)
-    public static let shadowLight = Color.white.opacity(0.025)
+    public static let shadowDark = Color.black.opacity(0.62)
+    public static let shadowLight = Color.white.opacity(0.045)
 }
 
 public struct NeuBackground: View {
@@ -33,11 +35,12 @@ public struct NeuBackground: View {
             NeuPalette.background
             LinearGradient(
                 colors: [
-                    Color(red: 0.075, green: 0.102, blue: 0.149).opacity(0.90),
-                    NeuPalette.background.opacity(0.98)
+                    Color(red: 0.180, green: 0.196, blue: 0.212).opacity(0.90),
+                    NeuPalette.background.opacity(0.98),
+                    Color(red: 0.075, green: 0.082, blue: 0.090).opacity(0.90)
                 ],
                 startPoint: .top,
-                endPoint: .center
+                endPoint: .bottom
             )
         }
         .ignoresSafeArea()
@@ -136,7 +139,7 @@ public struct NeuButtonTarget: ButtonStyle {
     public func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.subheadline.weight(.semibold))
-            .foregroundStyle(isAccent ? NeuPalette.background : NeuPalette.textPrimary)
+            .foregroundStyle(isAccent ? NeuPalette.accentForeground : NeuPalette.textPrimary)
             .padding(.horizontal, 14)
             .padding(.vertical, 9)
             .background(

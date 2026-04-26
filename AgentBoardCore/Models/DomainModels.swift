@@ -1,5 +1,12 @@
 import Foundation
 
+public enum AgentBoardDesignHandoff {
+    public static let name = "AgentBoard Grey"
+    public static let primaryAccentHex = "#c97a3e"
+    public static let baseSurfaceHex = "#232629"
+    public static let textPrimaryHex = "#f1f2f4"
+}
+
 public struct ConfiguredRepository: Codable, Hashable, Identifiable, Sendable {
     public let owner: String
     public let name: String

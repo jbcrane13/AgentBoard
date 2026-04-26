@@ -193,7 +193,7 @@ struct WorkScreen: View {
                         }
                         .frame(width: columnWidth, alignment: .topLeading)
                         .padding(12)
-                        .background(NeuPalette.background.opacity(0.62))
+                        .background(NeuPalette.inset.opacity(0.58))
                         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                         .overlay {
                             RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -235,7 +235,7 @@ private struct WorkCardNeu: View {
 
     var body: some View {
         Button(action: onTap) {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .top) {
                     Text(item.issueReference)
                         .font(.system(size: 10.5, weight: .semibold, design: .monospaced))
@@ -296,7 +296,7 @@ private struct WorkCardNeu: View {
                 }
             }
             .padding(10)
-            .neuExtruded(cornerRadius: 14, elevation: 7)
+            .neuExtruded(cornerRadius: 14, elevation: 8)
         }
         .buttonStyle(.plain)
     }
@@ -325,7 +325,7 @@ private func workStateColor(_ state: WorkState) -> Color {
     case .open: NeuPalette.statusBlue
     case .inProgress: NeuPalette.accentOrange
     case .blocked: NeuPalette.accentCoral
-    case .done: NeuPalette.textTertiary
+    case .done: NeuPalette.statusClosed
     }
 }
 
