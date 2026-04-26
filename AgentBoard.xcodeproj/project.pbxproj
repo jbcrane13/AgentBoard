@@ -11,6 +11,7 @@
 		00D4FD7D1E850E381301E79B /* BoardPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63376B7513D3E5CFE45372D6 /* BoardPalette.swift */; };
 		06B09775C2F43ADB9D2A7DDB /* CreateIssueSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 702A0D71A27F07711AF96C4A /* CreateIssueSheet.swift */; };
 		0C635EBBEF9AD782093F5594 /* BoardPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63376B7513D3E5CFE45372D6 /* BoardPalette.swift */; };
+		0CE0E873675F3D87FC974CB1 /* AttachmentUploadService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E035F81810040D898374ACEF /* AttachmentUploadService.swift */; };
 		15369C112AA2304F032D157F /* MarkdownText.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A2BE598EEDA7A998AEA8DE /* MarkdownText.swift */; };
 		18513E9340A65D8111F82D18 /* DomainPills.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A169A5D550028B6D20B397D /* DomainPills.swift */; };
 		1C711E565B9941FC998F8265 /* WorkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A06C1DAB866C77FF3A634D71 /* WorkStore.swift */; };
@@ -49,6 +50,7 @@
 		81239439DAB83C92B81C7C96 /* AgentsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26BDC7F11FD4398428433E67 /* AgentsStore.swift */; };
 		81CAC6C9E0241A2ADE971ADC /* CompanionClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 035DCBF4EE40EE6A14CFE890 /* CompanionClient.swift */; };
 		82B58AACCD18C3D73506C751 /* AgentBoardCompanionKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DB3E71CE348AC298EB4048DE /* AgentBoardCompanionKit.framework */; };
+		8423C4D50605F7D24E794BE9 /* Nuke in Frameworks */ = {isa = PBXBuildFile; productRef = 70D117634905A46B8129A69F /* Nuke */; };
 		87A19AEDBCBE0206D4D71EFE /* DemoFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20006E3DE0937110157F9D1 /* DemoFixtures.swift */; };
 		8E7838693E07455607245B77 /* WorkScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D876290D32059BAB65A9F02 /* WorkScreen.swift */; };
 		96C502A1BD49F2AE81F03313 /* AttachmentModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 376B52FEC631A3F6F0383459 /* AttachmentModelsTests.swift */; };
@@ -207,6 +209,7 @@
 		D7A095E80382BA922486329A /* SettingsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsScreen.swift; sourceTree = "<group>"; };
 		DB3E71CE348AC298EB4048DE /* AgentBoardCompanionKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = AgentBoardCompanionKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		DBD5578CD361B8A4976B9A0A /* AgentBoardCompanion */ = {isa = PBXFileReference; includeInIndex = 0; path = AgentBoardCompanion; sourceTree = BUILT_PRODUCTS_DIR; };
+		E035F81810040D898374ACEF /* AttachmentUploadService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentUploadService.swift; sourceTree = "<group>"; };
 		E20006E3DE0937110157F9D1 /* DemoFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoFixtures.swift; sourceTree = "<group>"; };
 		E5D0E8B7659AAF04AFAA20AD /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		F6FDDFF5030B377E6973E969 /* ChatScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatScreen.swift; sourceTree = "<group>"; };
@@ -216,6 +219,14 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		068A8FD26CED9743FC6E56C7 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8423C4D50605F7D24E794BE9 /* Nuke in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		0D326533098B690337045128 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -331,6 +342,7 @@
 		6ACBB24CD79AF9F63AFC7AC3 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				E035F81810040D898374ACEF /* AttachmentUploadService.swift */,
 				035DCBF4EE40EE6A14CFE890 /* CompanionClient.swift */,
 				FFA60A5A5B633630F99A562B /* GitHubWorkService.swift */,
 				B7B2891F313F2E1804101D36 /* HermesGatewayClient.swift */,
@@ -462,6 +474,7 @@
 			buildConfigurationList = 10C8E641A539E5705C444269 /* Build configuration list for PBXNativeTarget "AgentBoardCore" */;
 			buildPhases = (
 				7E5BFA54826936011F573208 /* Sources */,
+				068A8FD26CED9743FC6E56C7 /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -469,6 +482,7 @@
 			);
 			name = AgentBoardCore;
 			packageProductDependencies = (
+				70D117634905A46B8129A69F /* Nuke */,
 			);
 			productName = AgentBoardCore;
 			productReference = 2B26E0DCF07C395E5DA349A4 /* AgentBoardCore.framework */;
@@ -601,6 +615,9 @@
 			);
 			mainGroup = 654AF2D260830ED0B2F8A39E;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				D04429BB4AFEDD9352E7C3BF /* XCRemoteSwiftPackageReference "Nuke" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 81E8705C0A4C85BE52A078CB /* Products */;
 			projectDirPath = "";
@@ -719,6 +736,7 @@
 				C03DE2AB570D615F55142A44 /* AgentBoardCache.swift in Sources */,
 				81239439DAB83C92B81C7C96 /* AgentsStore.swift in Sources */,
 				A51107E477749B979572DD17 /* AttachmentModels.swift in Sources */,
+				0CE0E873675F3D87FC974CB1 /* AttachmentUploadService.swift in Sources */,
 				E4EEFF2D183520968ACAA803 /* ChatStore.swift in Sources */,
 				81CAC6C9E0241A2ADE971ADC /* CompanionClient.swift in Sources */,
 				87A19AEDBCBE0206D4D71EFE /* DemoFixtures.swift in Sources */,
@@ -1259,6 +1277,25 @@
 			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		D04429BB4AFEDD9352E7C3BF /* XCRemoteSwiftPackageReference "Nuke" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/kean/Nuke";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		70D117634905A46B8129A69F /* Nuke */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D04429BB4AFEDD9352E7C3BF /* XCRemoteSwiftPackageReference "Nuke" */;
+			productName = Nuke;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 6CFA7F86B313B0C9467883C0 /* Project object */;
 }
