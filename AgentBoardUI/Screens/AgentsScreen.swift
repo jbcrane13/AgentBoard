@@ -108,12 +108,12 @@ struct AgentsScreen: View {
                         HStack(spacing: 16) {
                             HStack(spacing: 6) {
                                 Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(.green)
+                                    .foregroundStyle(NeuPalette.statusSuccess)
                                 Text("\(summary.activeTaskCount)")
                             }
                             HStack(spacing: 6) {
                                 Image(systemName: "bolt.horizontal.circle.fill")
-                                    .foregroundStyle(.blue)
+                                    .foregroundStyle(NeuPalette.statusIdle)
                                 Text("\(summary.activeSessionCount)")
                             }
                         }
@@ -320,10 +320,10 @@ private struct AgentSummaryRowNeu: View {
             HStack(spacing: 20) {
                 Label("\(summary.activeTaskCount) Tasks", systemImage: "checkmark.circle.fill")
                     .font(.caption.weight(.bold))
-                    .foregroundStyle(.green)
+                    .foregroundStyle(NeuPalette.statusSuccess)
                 Label("\(summary.activeSessionCount) Sessions", systemImage: "bolt.horizontal.circle.fill")
                     .font(.caption.weight(.bold))
-                    .foregroundStyle(.blue)
+                    .foregroundStyle(NeuPalette.statusIdle)
             }
         }
         .padding(20)
@@ -475,8 +475,7 @@ struct AgentHealthNeu: View {
     var body: some View {
         HStack(spacing: 6) {
             Circle()
-                .fill(health == .online ? .green : health == .idle ? .blue : health == .warning ? NeuPalette
-                    .accentOrange : .red)
+                .fill(healthColor)
                 .frame(width: 8, height: 8)
             Text(health.title.uppercased())
                 .font(.caption2.weight(.bold))
@@ -486,6 +485,15 @@ struct AgentHealthNeu: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
         .neuRecessed(cornerRadius: 12, depth: 3)
+    }
+
+    private var healthColor: Color {
+        switch health {
+        case .online: NeuPalette.statusSuccess
+        case .idle: NeuPalette.statusIdle
+        case .warning: NeuPalette.accentOrange
+        case .offline: .red
+        }
     }
 }
 
@@ -498,11 +506,12 @@ private func agentColumnTitle(_ state: AgentTaskState) -> String {
     }
 }
 
+@MainActor
 private func agentStateColor(_ state: AgentTaskState) -> Color {
     switch state {
     case .backlog: NeuPalette.textTertiary
     case .inProgress: NeuPalette.accentCyanBright
     case .blocked: NeuPalette.accentOrange
-    case .done: NeuPalette.accentPurple
+    case .done: NeuPalette.statusClosed
     }
 }

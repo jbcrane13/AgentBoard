@@ -520,6 +520,18 @@ public struct AgentBoardSettings: Codable, Hashable, Sendable {
     public var companionURL: String
     public var repositories: [ConfiguredRepository]
     public var autoRefreshInterval: TimeInterval
+    public var designTheme: AgentBoardDesignTheme
+
+    private enum CodingKeys: String, CodingKey {
+        case hermesGatewayURL
+        case hermesModelID
+        case hermesProfiles
+        case selectedHermesProfileID
+        case companionURL
+        case repositories
+        case autoRefreshInterval
+        case designTheme
+    }
 
     public init(
         hermesGatewayURL: String = "http://127.0.0.1:8642",
@@ -528,7 +540,8 @@ public struct AgentBoardSettings: Codable, Hashable, Sendable {
         selectedHermesProfileID: String? = nil,
         companionURL: String = "http://127.0.0.1:8742",
         repositories: [ConfiguredRepository] = [],
-        autoRefreshInterval: TimeInterval = 30
+        autoRefreshInterval: TimeInterval = 30,
+        designTheme: AgentBoardDesignTheme = .blue
     ) {
         self.hermesGatewayURL = hermesGatewayURL
         self.hermesModelID = hermesModelID
@@ -537,6 +550,21 @@ public struct AgentBoardSettings: Codable, Hashable, Sendable {
         self.companionURL = companionURL
         self.repositories = repositories
         self.autoRefreshInterval = autoRefreshInterval
+        self.designTheme = designTheme
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        hermesGatewayURL = try container.decodeIfPresent(String.self, forKey: .hermesGatewayURL)
+            ?? "http://127.0.0.1:8642"
+        hermesModelID = try container.decodeIfPresent(String.self, forKey: .hermesModelID)
+        hermesProfiles = try container.decodeIfPresent([HermesProfile].self, forKey: .hermesProfiles)
+        selectedHermesProfileID = try container.decodeIfPresent(String.self, forKey: .selectedHermesProfileID)
+        companionURL = try container.decodeIfPresent(String.self, forKey: .companionURL)
+            ?? "http://127.0.0.1:8742"
+        repositories = try container.decodeIfPresent([ConfiguredRepository].self, forKey: .repositories) ?? []
+        autoRefreshInterval = try container.decodeIfPresent(TimeInterval.self, forKey: .autoRefreshInterval) ?? 30
+        designTheme = try container.decodeIfPresent(AgentBoardDesignTheme.self, forKey: .designTheme) ?? .blue
     }
 }
 
@@ -553,37 +581,5 @@ public struct AgentBoardSecrets: Codable, Equatable, Sendable {
         self.hermesAPIKey = hermesAPIKey
         self.githubToken = githubToken
         self.companionToken = companionToken
-    }
-}
-
-public enum AppDestination: String, CaseIterable, Identifiable, Sendable {
-    case chat
-    case work
-    case agents
-    case sessions
-    case settings
-
-    public var id: String {
-        rawValue
-    }
-
-    public var title: String {
-        switch self {
-        case .chat: "Chat"
-        case .work: "Work"
-        case .agents: "Agents"
-        case .sessions: "Sessions"
-        case .settings: "Settings"
-        }
-    }
-
-    public var systemImage: String {
-        switch self {
-        case .chat: "bubble.left.and.bubble.right"
-        case .work: "square.grid.2x2"
-        case .agents: "person.3.sequence"
-        case .sessions: "bolt.horizontal.circle"
-        case .settings: "slider.horizontal.3"
-        }
     }
 }

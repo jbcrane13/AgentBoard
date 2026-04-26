@@ -10,10 +10,10 @@ struct WorkStatusPill: View {
 
     private var tint: Color {
         switch state {
-        case .open: .blue
+        case .open: NeuPalette.statusBlue
         case .inProgress: NeuPalette.accentOrange
         case .blocked: .red
-        case .done: NeuPalette.accentCyan
+        case .done: NeuPalette.statusClosed
         }
     }
 
@@ -36,7 +36,7 @@ struct PriorityPill: View {
             systemImage: "flag.fill",
             tint: priority == .critical
                 ? .red
-                : priority == .high ? .red : .blue
+                : priority == .high ? .red : NeuPalette.statusBlue
         )
     }
 }
@@ -50,8 +50,8 @@ struct AgentHealthPill: View {
 
     private var tint: Color {
         switch health {
-        case .online: .green
-        case .idle: .blue
+        case .online: NeuPalette.statusSuccess
+        case .idle: NeuPalette.statusIdle
         case .warning: NeuPalette.accentOrange
         case .offline: .red
         }
@@ -67,8 +67,8 @@ struct SessionStatusPill: View {
 
     private var tint: Color {
         switch status {
-        case .running: .green
-        case .idle: .blue
+        case .running: NeuPalette.statusSuccess
+        case .idle: NeuPalette.statusIdle
         case .stopped: NeuPalette.accentOrange
         case .error: .red
         }

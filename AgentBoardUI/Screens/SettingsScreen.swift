@@ -31,6 +31,7 @@ struct SettingsScreen: View {
 
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 32) {
+                        appearanceSection(settingsStore: settingsStore)
                         hermesSection(settingsStore: settingsStore)
                         githubSection(settingsStore: settingsStore)
                         companionSection(settingsStore: settingsStore)
@@ -44,6 +45,32 @@ struct SettingsScreen: View {
         }
         .agentBoardNavigationBarHidden(true)
         .agentBoardKeyboardDismissToolbar()
+    }
+
+    // MARK: - Appearance
+
+    private func appearanceSection(settingsStore: SettingsStore) -> some View {
+        @Bindable var s = settingsStore
+        return VStack(alignment: .leading, spacing: 16) {
+            sectionHeader("APPEARANCE")
+            VStack(alignment: .leading, spacing: 16) {
+                Picker("Theme", selection: $s.designTheme) {
+                    ForEach(AgentBoardDesignTheme.allCases) { theme in
+                        Text(theme.displayName).tag(theme)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .tint(NeuPalette.accentCyan)
+
+                HStack(spacing: 10) {
+                    ForEach(AgentBoardDesignTheme.allCases) { theme in
+                        SettingsThemeSwatch(theme: theme, isSelected: s.designTheme == theme)
+                    }
+                }
+            }
+            .padding(24)
+            .neuExtruded(cornerRadius: 24, elevation: 8)
+        }
     }
 
     // MARK: - Hermes Gateway
@@ -394,6 +421,42 @@ struct SettingsScreen: View {
             .tracking(1)
             .foregroundStyle(NeuPalette.textSecondary)
             .padding(.horizontal, 8)
+    }
+}
+
+private struct SettingsThemeSwatch: View {
+    let theme: AgentBoardDesignTheme
+    let isSelected: Bool
+
+    var body: some View {
+        let palette = NeuTheme.preset(theme)
+        return HStack(spacing: 10) {
+            HStack(spacing: -5) {
+                Circle()
+                    .fill(palette.background)
+                    .frame(width: 20, height: 20)
+                Circle()
+                    .fill(palette.surfaceRaised)
+                    .frame(width: 20, height: 20)
+                Circle()
+                    .fill(palette.primaryAccentBright)
+                    .frame(width: 20, height: 20)
+            }
+            Text(theme.displayName)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(isSelected ? NeuPalette.textPrimary : NeuPalette.textSecondary)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(NeuPalette.inset)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(
+                    isSelected ? palette.primaryAccentBright : NeuPalette.borderSoft,
+                    lineWidth: isSelected ? 1.5 : 1
+                )
+        }
     }
 }
 

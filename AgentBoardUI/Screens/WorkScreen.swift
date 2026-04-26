@@ -320,15 +320,17 @@ struct PriorityNeu: View {
     }
 }
 
+@MainActor
 private func workStateColor(_ state: WorkState) -> Color {
     switch state {
     case .open: NeuPalette.statusBlue
     case .inProgress: NeuPalette.accentOrange
     case .blocked: NeuPalette.accentCoral
-    case .done: NeuPalette.textTertiary
+    case .done: NeuPalette.statusClosed
     }
 }
 
+@MainActor
 private func priorityColor(_ priority: WorkPriority) -> Color {
     switch priority {
     case .critical: NeuPalette.accentCoral

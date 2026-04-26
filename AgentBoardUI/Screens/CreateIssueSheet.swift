@@ -229,7 +229,7 @@ private struct FlowTagsView<Item: Hashable, Content: View>: View {
                         .padding(.horizontal, 10)
                         .padding(.vertical, 6)
                         .background(isSelected ? NeuPalette.accentCyan : NeuPalette.surface)
-                        .foregroundStyle(isSelected ? .black : NeuPalette.textPrimary)
+                        .foregroundStyle(isSelected ? NeuPalette.accentForeground : NeuPalette.textPrimary)
                         .clipShape(Capsule())
                 }
                 .buttonStyle(.plain)
