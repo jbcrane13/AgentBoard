@@ -67,7 +67,9 @@ struct ChatScreen: View {
                             )
                         }
                     }
-                    Divider()
+                    if !appModel.chatStore.conversations.isEmpty {
+                        Divider()
+                    }
                     Button {
                         appModel.chatStore.startNewConversation()
                     } label: {
