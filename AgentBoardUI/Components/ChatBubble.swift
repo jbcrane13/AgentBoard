@@ -46,6 +46,7 @@ struct NeuChatBubble: View {
                 VStack(spacing: 8) {
                     ForEach(message.attachments) { attachment in
                         AttachmentContainerView(attachment: attachment)
+                            .attachmentContextMenu(for: attachment)
                     }
                 }
             }
