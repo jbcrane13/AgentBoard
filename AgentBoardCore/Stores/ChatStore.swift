@@ -26,6 +26,7 @@ private enum ChatStoreError: LocalizedError {
 
 @MainActor
 @Observable
+// swiftlint:disable:next type_body_length
 public final class ChatStore {
     private let logger = Logger(subsystem: "com.agentboard.modern", category: "ChatStore")
     private let hermesClient: HermesGatewayClient
@@ -247,69 +248,8 @@ public final class ChatStore {
 
         // Intercept slash commands before sending to Hermes
         if trimmed.hasPrefix("/") {
-            let result = SlashCommandHandler.handle(trimmed)
-            switch result {
-            case .newConversation:
-                draft = ""
-                pendingAttachments = []
-                startNewConversation()
-                return
-            case .clearConversation:
-                draft = ""
-                pendingAttachments = []
-                deleteConversation(id: conversationID)
-                startNewConversation()
-                return
-            case let .switchModel(modelID):
-                draft = ""
-                pendingAttachments = []
-                selectModel(modelID)
-                statusMessage = "Switched to model: \(modelID)"
-                return
-            case .showHelp:
-                draft = ""
-                pendingAttachments = []
-                appendSystemMessage(SlashCommandHandler.formatHelp(), to: conversationID)
-                return
-            case .showStatus:
-                draft = ""
-                pendingAttachments = []
-                let stateStr = switch connectionState {
-                case .connected: "Connected"
-                case .connecting: "Connecting"
-                case .disconnected: "Disconnected"
-                case .reconnecting: "Reconnecting"
-                case .failed: "Failed"
-                }
-                let status = SlashCommandHandler.formatStatus(
-                    connectionState: stateStr,
-                    model: settingsStore.hermesModelID,
-                    conversationTitle: selectedConversation?.title ?? "None",
-                    messageCount: messages.count
-                )
-                appendSystemMessage(status, to: conversationID)
-                return
-            case .showConfig:
-                draft = ""
-                pendingAttachments = []
-                let config = SlashCommandHandler.formatConfig(
-                    gatewayURL: settingsStore.hermesGatewayURL,
-                    model: settingsStore.hermesModelID,
-                    hasAPIKey: settingsStore.hermesAPIKey.trimmedOrNil != nil,
-                    repos: settingsStore.repositories.map(\.fullName)
-                )
-                appendSystemMessage(config, to: conversationID)
-                return
-            case let .handled(response):
-                draft = ""
-                pendingAttachments = []
-                appendSystemMessage(response, to: conversationID)
-                return
-            case let .unknown(command):
-                statusMessage = "Sending /\(command) to agent..."
-            case .passthrough:
-                break
-            }
+            let handled = await handleSlashCommand(trimmed, conversationID: conversationID)
+            if handled { return }
         }
 
         draft = ""
@@ -550,6 +490,73 @@ public final class ChatStore {
         }
         messages[index] = message
         messagesByConversationID[conversationID] = messages
+    }
+
+    private func handleSlashCommand(_ text: String, conversationID: UUID) async -> Bool {
+        let result = SlashCommandHandler.handle(text)
+        switch result {
+        case .newConversation:
+            draft = ""
+            pendingAttachments = []
+            startNewConversation()
+            return true
+        case .clearConversation:
+            draft = ""
+            pendingAttachments = []
+            deleteConversation(id: conversationID)
+            startNewConversation()
+            return true
+        case let .switchModel(modelID):
+            draft = ""
+            pendingAttachments = []
+            selectModel(modelID)
+            statusMessage = "Switched to model: \(modelID)"
+            return true
+        case .showHelp:
+            draft = ""
+            pendingAttachments = []
+            appendSystemMessage(SlashCommandHandler.formatHelp(), to: conversationID)
+            return true
+        case .showStatus:
+            draft = ""
+            pendingAttachments = []
+            let stateStr = switch connectionState {
+            case .connected: "Connected"
+            case .connecting: "Connecting"
+            case .disconnected: "Disconnected"
+            case .reconnecting: "Reconnecting"
+            case .failed: "Failed"
+            }
+            let status = SlashCommandHandler.formatStatus(
+                connectionState: stateStr,
+                model: settingsStore.hermesModelID,
+                conversationTitle: selectedConversation?.title ?? "None",
+                messageCount: messages.count
+            )
+            appendSystemMessage(status, to: conversationID)
+            return true
+        case .showConfig:
+            draft = ""
+            pendingAttachments = []
+            let config = SlashCommandHandler.formatConfig(
+                gatewayURL: settingsStore.hermesGatewayURL,
+                model: settingsStore.hermesModelID,
+                hasAPIKey: settingsStore.hermesAPIKey.trimmedOrNil != nil,
+                repos: settingsStore.repositories.map(\.fullName)
+            )
+            appendSystemMessage(config, to: conversationID)
+            return true
+        case let .handled(response):
+            draft = ""
+            pendingAttachments = []
+            appendSystemMessage(response, to: conversationID)
+            return true
+        case let .unknown(command):
+            statusMessage = "Sending /\(command) to agent..."
+            return false
+        case .passthrough:
+            return false
+        }
     }
 
     private func appendSystemMessage(_ content: String, to conversationID: UUID) {
