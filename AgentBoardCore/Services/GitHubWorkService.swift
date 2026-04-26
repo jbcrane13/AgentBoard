@@ -185,6 +185,18 @@ public actor GitHubWorkService {
         for repository: ConfiguredRepository,
         token: String
     ) async throws -> [WorkItem] {
+        do {
+            return try await fetchIssuesViaAPI(for: repository, token: token)
+        } catch ServiceError.notFound, ServiceError.unauthorized {
+            // Token may be missing scopes or misconfigured — fall back to gh CLI
+            return try await fetchIssuesViaCLI(for: repository)
+        }
+    }
+
+    private func fetchIssuesViaAPI(
+        for repository: ConfiguredRepository,
+        token: String
+    ) async throws -> [WorkItem] {
         var page = 1
         var allIssues: [RawIssue] = []
 
@@ -211,6 +223,37 @@ public actor GitHubWorkService {
         return allIssues
             .filter { !$0.isPullRequest }
             .map { map(issue: $0, repository: repository) }
+    }
+
+    private func fetchIssuesViaCLI(
+        for repository: ConfiguredRepository
+    ) async throws -> [WorkItem] {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/local/bin/gh")
+        process.arguments = [
+            "api", "repos/\(repository.owner)/\(repository.name)/issues",
+            "-f", "state=all",
+            "-f", "per_page=100",
+            "-q", "[.[] | select(.pull_request == null)]"
+        ]
+
+        let stdout = Pipe()
+        let stderr = Pipe()
+        process.standardOutput = stdout
+        process.standardError = stderr
+
+        try process.run()
+        process.waitUntilExit()
+
+        guard process.terminationStatus == 0 else {
+            throw ServiceError.notFound
+        }
+
+        let data = stdout.fileHandleForReading.readDataToEndOfFile()
+        guard !data.isEmpty else { return [] }
+
+        let issues = try JSONDecoder().decode([RawIssue].self, from: data)
+        return issues.map { map(issue: $0, repository: repository) }
     }
 
     private func map(issue: RawIssue, repository: ConfiguredRepository) -> WorkItem {
