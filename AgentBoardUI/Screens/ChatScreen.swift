@@ -7,6 +7,8 @@ struct ChatScreen: View {
     @FocusState private var isTextFieldFocused: Bool
     @State private var editingConversationID: UUID?
     @State private var editingTitle = ""
+    @State private var showAttachmentPicker = false
+    @StateObject private var audioRecorder = AudioRecorderService()
 
     private var isCompact: Bool {
         hSizeClass == .compact
@@ -115,28 +117,9 @@ struct ChatScreen: View {
                 }
 
                 HStack(spacing: 10) {
-                    Menu {
-                        ForEach(appModel.chatStore.availableModels, id: \.self) { model in
-                            Button {
-                                appModel.chatStore.selectModel(model)
-                            } label: {
-                                Label(
-                                    model,
-                                    systemImage: model == appModel.settingsStore.hermesModelID
-                                        ? "checkmark.circle.fill" : "person.crop.rectangle.stack"
-                                )
-                            }
-                        }
-                    } label: {
-                        headerCapsule(
-                            title: "Model",
-                            value: appModel.settingsStore.hermesModelID,
-                            systemImage: "cpu.fill"
-                        )
-                    }
-                    .buttonStyle(.plain)
-
-                    statusCapsule
+                    Circle()
+                        .fill(connectionTint)
+                        .frame(width: 8, height: 8)
 
                     Button {
                         Task {
@@ -145,26 +128,12 @@ struct ChatScreen: View {
                         }
                     } label: {
                         Image(systemName: "arrow.clockwise")
+                            .font(.caption)
                     }
                     .buttonStyle(NeuButtonTarget(isAccent: false))
                 }
             }
         }
-    }
-
-    private var statusCapsule: some View {
-        HStack(spacing: 8) {
-            Circle()
-                .fill(connectionTint)
-                .frame(width: 10, height: 10)
-            Text(appModel.chatStore.connectionState.title.uppercased())
-                .font(.caption.weight(.bold))
-                .tracking(1)
-                .foregroundStyle(NeuPalette.textSecondary)
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .neuRecessed(cornerRadius: 18, depth: 4)
     }
 
     private func headerCapsule(title: String, value: String, systemImage: String) -> some View {
@@ -202,6 +171,25 @@ struct ChatScreen: View {
         case .disconnected:
             NeuPalette.textSecondary
         }
+    }
+
+    private var canSend: Bool {
+        let chatStore = appModel.chatStore
+        return chatStore.isStreaming
+            || chatStore.draft.trimmedOrNil != nil
+            || !chatStore.pendingAttachments.isEmpty
+    }
+
+    private var sendButtonForeground: Color {
+        let chatStore = appModel.chatStore
+        if chatStore.isStreaming { return .white }
+        return canSend ? NeuPalette.background : NeuPalette.textSecondary
+    }
+
+    private var sendButtonBackground: Color {
+        let chatStore = appModel.chatStore
+        if chatStore.isStreaming { return .red }
+        return canSend ? NeuPalette.accentCyan : NeuPalette.surface
     }
 
     private var portLabel: String {
@@ -346,22 +334,58 @@ struct ChatScreen: View {
                     .padding(.bottom, 8)
             }
 
+            // Attachment preview strip
+            if !chatStore.pendingAttachments.isEmpty {
+                AttachmentPreviewStrip(attachments: $chatStore.pendingAttachments)
+            }
+
             ZStack(alignment: .bottomTrailing) {
-                // Centering the text inside the bounds natively
+                // Attachment button on the left
+                HStack {
+                    Button {
+                        showAttachmentPicker = true
+                    } label: {
+                        Image(systemName: "paperclip")
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundStyle(NeuPalette.accentCyan)
+                            .frame(width: 44, height: 44)
+                    }
+                    .accessibilityIdentifier("chat_button_attach")
+                    .sheet(isPresented: $showAttachmentPicker) {
+                        AttachmentPickerSheet { attachment in
+                            chatStore.addAttachment(attachment)
+                        }
+                    }
+
+                    // Microphone button
+                    VoiceRecordingButton(
+                        recorder: audioRecorder,
+                        onRecorded: { result in
+                            chatStore.addAttachment(result.toAttachment())
+                        },
+                        onCancel: {}
+                    )
+
+                    Spacer()
+                }
+                .padding(.leading, 8)
+
+                // Text field
                 TextField("", text: $chatStore.draft, axis: .vertical)
                     .lineLimit(1 ... 6)
                     .focused($isTextFieldFocused)
                     .foregroundStyle(NeuPalette.textPrimary)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 64) // Large margins side-to-side ensures clear bounding away from Send button
+                    .padding(.horizontal, 64)
                     .padding(.vertical, 24)
                     .overlay(
                         Text("Message Hermes...")
                             .foregroundStyle(NeuPalette.textSecondary)
-                            .opacity(chatStore.draft.isEmpty ? 1 : 0)
+                            .opacity(chatStore.draft.isEmpty && chatStore.pendingAttachments.isEmpty ? 1 : 0)
                             .allowsHitTesting(false)
                     )
 
+                // Send button
                 Button {
                     isTextFieldFocused = false
                     AgentBoardKeyboard.dismiss()
@@ -369,19 +393,13 @@ struct ChatScreen: View {
                 } label: {
                     Image(systemName: chatStore.isStreaming ? "stop.fill" : "paperplane.fill")
                         .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(chatStore
-                            .isStreaming ? .white :
-                            (chatStore.draft.isEmpty ? NeuPalette.textSecondary : NeuPalette.background))
-                        .frame(width: 48, height: 48) // More robust tap target
-                        .background(
-                            Circle()
-                                .fill(chatStore
-                                    .isStreaming ? .red :
-                                    (chatStore.draft.isEmpty ? NeuPalette.surface : NeuPalette.accentCyan))
-                        )
+                        .foregroundStyle(sendButtonForeground)
+                        .frame(width: 48, height: 48)
+                        .background(Circle().fill(sendButtonBackground))
                 }
-                .disabled(chatStore.draft.trimmedOrNil == nil && !chatStore.isStreaming)
-                .padding(12) // Exactly inset into the bottom corner
+                .disabled(!canSend)
+                .padding(12)
+                .accessibilityIdentifier("chat_button_send")
             }
             .neuRecessed(cornerRadius: 36, depth: 6)
         }
@@ -393,70 +411,5 @@ struct ChatScreen: View {
                 .ignoresSafeArea(edges: .bottom)
                 .shadow(color: NeuPalette.shadowDark, radius: 10, y: -4)
         )
-    }
-}
-
-private struct NeuChatBubble: View {
-    let message: ConversationMessage
-
-    var body: some View {
-        HStack(alignment: .top) {
-            if message.role == .assistant {
-                bubble
-                Spacer(minLength: 40)
-            } else {
-                Spacer(minLength: 40)
-                bubble
-            }
-        }
-    }
-
-    private var bubble: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Text(message.role == .assistant ? "Hermes" : "You")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(message.role == .assistant ? NeuPalette.accentCyan : NeuPalette.accentOrange)
-                    .tracking(1)
-
-                if message.isStreaming {
-                    ProgressView()
-                        .controlSize(.mini)
-                        .tint(NeuPalette.accentCyan)
-                }
-            }
-
-            if message.isStreaming, message.content.isEmpty {
-                Text("typing...")
-                    .foregroundStyle(NeuPalette.textSecondary)
-            } else {
-                MarkdownText(content: message.content)
-                    .foregroundStyle(NeuPalette.textPrimary)
-            }
-        }
-        .padding(20)
-        .modifier(
-            message.role == .assistant
-                ? AnyViewModifier(NeuExtrudedModifier(cornerRadius: 24, elevation: 8))
-                : AnyViewModifier(NeuRecessedModifier(cornerRadius: 24, depth: 6))
-        )
-    }
-}
-
-struct AnyViewModifier: ViewModifier {
-    let modifier: Any
-
-    init<M: ViewModifier>(_ modifier: M) {
-        self.modifier = modifier
-    }
-
-    func body(content: Content) -> some View {
-        if let neuromod = modifier as? NeuExtrudedModifier {
-            content.modifier(neuromod)
-        } else if let neuromod = modifier as? NeuRecessedModifier {
-            content.modifier(neuromod)
-        } else {
-            content
-        }
     }
 }
