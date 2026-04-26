@@ -15,8 +15,6 @@ struct AttachmentPickerSheet: View {
 
     #if os(iOS)
         @State private var showPhotosPicker = false
-        @State private var showFileImporter = false
-        @State private var showCameraPicker = false
         @State private var cameraAvailable = false
     #endif
 
@@ -33,7 +31,8 @@ struct AttachmentPickerSheet: View {
                         .accessibilityIdentifier("attachment_picker_photos")
 
                         Button {
-                            showFileImporter = true
+                            dismiss()
+                            presentIOSFilePicker()
                         } label: {
                             Label("Files", systemImage: "folder")
                         }
@@ -41,7 +40,8 @@ struct AttachmentPickerSheet: View {
 
                         Button {
                             if cameraAvailable {
-                                showCameraPicker = true
+                                dismiss()
+                                presentIOSCamera()
                             }
                         } label: {
                             Label(
@@ -71,41 +71,6 @@ struct AttachmentPickerSheet: View {
                         )
                         onPick(attachment)
                     }
-                }
-            }
-            .fileImporter(
-                isPresented: $showFileImporter,
-                allowedContentTypes: [.data, .image, .audio, .movie],
-                allowsMultipleSelection: true
-            ) { result in
-                if case .success(let urls) = result {
-                    dismiss()
-                    for url in urls {
-                        // Start accessing security-scoped resource for iCloud/drive files
-                        let accessing = url.startAccessingSecurityScopedResource()
-                        defer { if accessing { url.stopAccessingSecurityScopedResource() } }
-
-                        let attachment = ChatAttachment(
-                            type: .file,
-                            payload: .file(FileAttachmentPayload(
-                                localURL: url,
-                                fileName: url.lastPathComponent,
-                                fileSize: Self.fileSize(url)
-                            ))
-                        )
-                        onPick(attachment)
-                    }
-                }
-            }
-            .fullScreenCover(isPresented: $showCameraPicker) {
-                IOSCameraPicker { image in
-                    showCameraPicker = false
-                    let url = Self.saveTempImage(image)
-                    let attachment = ChatAttachment(
-                        type: .image,
-                        payload: .image(ImageAttachmentPayload(localURL: url))
-                    )
-                    onPick(attachment)
                 }
             }
             .onAppear {
@@ -145,6 +110,61 @@ struct AttachmentPickerSheet: View {
             }
         #endif
     }
+
+    // MARK: - iOS File Picker (UIKit — avoids ViewBridge crash from nested SwiftUI modals)
+
+    #if os(iOS)
+        private func presentIOSFilePicker() {
+            let picker = UIDocumentPickerViewController(
+                forOpeningContentTypes: [.data, .image, .audio, .movie],
+                asCopy: true
+            )
+            picker.allowsMultipleSelection = true
+            picker.delegate = IOSFilePickerDelegate.shared
+            IOSFilePickerDelegate.shared.onPick = { urls in
+                for url in urls {
+                    let attachment = ChatAttachment(
+                        type: .file,
+                        payload: .file(FileAttachmentPayload(
+                            localURL: url,
+                            fileName: url.lastPathComponent,
+                            fileSize: Self.fileSize(url)
+                        ))
+                    )
+                    onPick(attachment)
+                }
+            }
+            presentFromRoot(picker)
+        }
+
+        private func presentIOSCamera() {
+            let picker = UIImagePickerController()
+            picker.sourceType = .camera
+            picker.cameraCaptureMode = .photo
+            picker.delegate = IOSCameraDelegate.shared
+            IOSCameraDelegate.shared.onPick = { image in
+                let url = Self.saveTempImage(image)
+                let attachment = ChatAttachment(
+                    type: .image,
+                    payload: .image(ImageAttachmentPayload(localURL: url))
+                )
+                onPick(attachment)
+            }
+            presentFromRoot(picker)
+        }
+
+        private func presentFromRoot(_ viewController: UIViewController) {
+            guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                  let root = scene.windows.first?.rootViewController else { return }
+
+            // Find the topmost presented VC to present from
+            var topVC = root
+            while let presented = topVC.presentedViewController {
+                topVC = presented
+            }
+            topVC.present(viewController, animated: true)
+        }
+    #endif
 
     #if os(iOS)
         private static func saveTempImage(_ image: UIImage) -> URL {
@@ -206,16 +226,143 @@ struct AttachmentPickerSheet: View {
     #endif
 }
 
-// MARK: - iOS Multi-Photo Picker
+// MARK: - iOS UIKit Delegate Singletons
 
 #if os(iOS)
-    private struct MultiPhotoPicker: UIViewControllerRepresentable {
-        let onPick: ([URL]) -> Void
-        @Environment(\.dismiss) private var dismiss
+    /// Singleton delegate for UIImagePickerController (camera).
+    /// Prevents delegate deallocation and avoids nested SwiftUI modal issues.
+    private final class IOSCameraDelegate: NSObject, UIImagePickerControllerDelegate,
+        UINavigationControllerDelegate {
+        static let shared = IOSCameraDelegate()
+        var onPick: ((UIImage) -> Void)?
 
-        func makeCoordinator() -> Coordinator {
-            Coordinator(parent: self)
+        func imagePickerController(
+            _ picker: UIImagePickerController,
+            didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
+        ) {
+            picker.dismiss(animated: true)
+            if let image = info[.originalImage] as? UIImage {
+                onPick?(image)
+            }
+            onPick = nil
         }
+
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            picker.dismiss(animated: true)
+            onPick = nil
+        }
+    }
+
+    /// Singleton delegate for UIDocumentPickerViewController (file import).
+    private final class IOSFilePickerDelegate: NSObject, UIDocumentPickerDelegate {
+        static let shared = IOSFilePickerDelegate()
+        var onPick: (([URL]) -> Void)?
+
+        func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+            controller.dismiss(animated: true)
+            onPick?(urls)
+            onPick = nil
+        }
+
+        func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+            controller.dismiss(animated: true)
+            onPick = nil
+        }
+    }
+#endif
+
+// MARK: - AttachmentPreviewStrip
+
+/// Horizontal scroll of pending attachment thumbnails with remove buttons.
+struct AttachmentPreviewStrip: View {
+    @Binding var attachments: [ChatAttachment]
+
+    var body: some View {
+        if attachments.isEmpty {
+            EmptyView()
+        } else {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(Array(attachments.enumerated()), id: \.offset) { index, attachment in
+                        ZStack(alignment: .topTrailing) {
+                            attachmentThumbnail(attachment)
+                                .frame(width: 60, height: 60)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                            Button {
+                                attachments.remove(at: index)
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.caption)
+                                    .foregroundColor(.white)
+                                    .background(Circle().fill(Color.black.opacity(0.6)))
+                            }
+                            .offset(x: 4, y: -4)
+                        }
+                    }
+                }
+                .padding(.horizontal)
+            }
+            .frame(height: 70)
+        }
+    }
+
+    @ViewBuilder
+    private func attachmentThumbnail(_ attachment: ChatAttachment) -> some View {
+        switch attachment.payload {
+        case let .image(payload):
+            #if os(iOS)
+                if let data = try? Data(contentsOf: payload.localURL),
+                   let uiImage = UIImage(data: data) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } else {
+                    placeholderThumbnail(systemImage: "photo")
+                }
+            #else
+                if let data = try? Data(contentsOf: payload.localURL),
+                   let nsImage = NSImage(data: data) {
+                    Image(nsImage: nsImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } else {
+                    placeholderThumbnail(systemImage: "photo")
+                }
+            #endif
+        case let .file(payload):
+            VStack(spacing: 2) {
+                Image(systemName: "doc.fill")
+                    .font(.title3)
+                Text(payload.fileName)
+                    .font(.system(size: 8))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+            .frame(width: 60, height: 60)
+            .background(Color.gray.opacity(0.2))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        default:
+            placeholderThumbnail(systemImage: "paperclip")
+        }
+    }
+
+    private func placeholderThumbnail(systemImage: String) -> some View {
+        ZStack {
+            Color.gray.opacity(0.2)
+            Image(systemName: systemImage)
+                .foregroundColor(.secondary)
+        }
+        .frame(width: 60, height: 60)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+// MARK: - MultiPhotoPicker (PhotosUI — unchanged)
+
+#if os(iOS)
+    struct MultiPhotoPicker: UIViewControllerRepresentable {
+        let onPick: ([URL]) -> Void
 
         func makeUIViewController(context: Context) -> PHPickerViewController {
             var config = PHPickerConfiguration()
@@ -228,9 +375,8 @@ struct AttachmentPickerSheet: View {
 
         func updateUIViewController(_: PHPickerViewController, context _: Context) {}
 
-        @MainActor
-        final class PickedImageStore {
-            var urls: [URL] = []
+        func makeCoordinator() -> Coordinator {
+            Coordinator(parent: self)
         }
 
         final class Coordinator: NSObject, PHPickerViewControllerDelegate {
@@ -241,185 +387,30 @@ struct AttachmentPickerSheet: View {
             }
 
             func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
-                parent.dismiss()
-                guard !results.isEmpty else { return }
-
+                picker.dismiss(animated: true)
+                var urls: [URL] = []
+                let lock = NSLock()
                 let group = DispatchGroup()
-                let store = PickedImageStore()
-
                 for result in results where result.itemProvider.canLoadObject(ofClass: UIImage.self) {
                     group.enter()
                     result.itemProvider.loadObject(ofClass: UIImage.self) { image, _ in
                         if let uiImage = image as? UIImage {
-                            Task { @MainActor in
-                                store.urls.append(Self.saveTempImage(uiImage))
-                                group.leave()
+                            let url = FileManager.default.temporaryDirectory
+                                .appendingPathComponent("ab-\(UUID().uuidString).jpg")
+                            if let data = uiImage.jpegData(compressionQuality: 0.85) {
+                                try? data.write(to: url)
+                                lock.lock()
+                                urls.append(url)
+                                lock.unlock()
                             }
-                        } else {
-                            group.leave()
                         }
+                        group.leave()
                     }
                 }
-
-                group.notify(queue: .main) { [parent] in
-                    parent.onPick(store.urls)
+                group.notify(queue: .main) {
+                    self.parent.onPick(urls)
                 }
-            }
-
-            @MainActor
-            private static func saveTempImage(_ image: UIImage) -> URL {
-                let dir = FileManager.default.temporaryDirectory
-                let url = dir.appendingPathComponent("ab-\(UUID().uuidString).jpg")
-                if let data = image.jpegData(compressionQuality: 0.85) {
-                    try? data.write(to: url)
-                }
-                return url
-            }
-        }
-    }
-
-    // MARK: - iOS Camera Picker (fullScreenCover)
-
-    private struct IOSCameraPicker: View {
-        let onPick: (UIImage) -> Void
-
-        var body: some View {
-            CameraController(onPick: onPick)
-                .ignoresSafeArea()
-        }
-    }
-
-    private struct CameraController: UIViewControllerRepresentable {
-        let onPick: (UIImage) -> Void
-        @Environment(\.dismiss) private var dismiss
-
-        func makeCoordinator() -> Coordinator {
-            Coordinator(parent: self)
-        }
-
-        func makeUIViewController(context: Context) -> UIImagePickerController {
-            let picker = UIImagePickerController()
-            picker.sourceType = .camera
-            picker.delegate = context.coordinator
-            // Don't set cameraDevice — let iOS pick the right one for the hardware
-            return picker
-        }
-
-        func updateUIViewController(_: UIImagePickerController, context _: Context) {}
-
-        final class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-            let parent: CameraController
-
-            init(parent: CameraController) {
-                self.parent = parent
-            }
-
-            func imagePickerController(
-                _: UIImagePickerController,
-                didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
-            ) {
-                parent.dismiss()
-                if let image = info[.originalImage] as? UIImage {
-                    parent.onPick(image)
-                }
-            }
-
-            func imagePickerControllerDidCancel(_: UIImagePickerController) {
-                parent.dismiss()
             }
         }
     }
 #endif
-
-// MARK: - AttachmentPreviewStrip
-
-/// Horizontal scroll of pending attachment thumbnails with remove buttons.
-struct AttachmentPreviewStrip: View {
-    @Binding var attachments: [ChatAttachment]
-
-    var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(attachments) { attachment in
-                    AttachmentThumbnail(attachment: attachment) {
-                        attachments.removeAll { $0.id == attachment.id }
-                    }
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
-        }
-    }
-}
-
-// MARK: - AttachmentThumbnail
-
-private struct AttachmentThumbnail: View {
-    let attachment: ChatAttachment
-    let onRemove: () -> Void
-
-    var body: some View {
-        ZStack(alignment: .topTrailing) {
-            thumbnailContent
-                .frame(width: 60, height: 60)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-
-            // Remove button
-            Button(action: onRemove) {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.caption)
-                    .foregroundStyle(.white)
-                    .background(Circle().fill(.black.opacity(0.5)))
-            }
-            .offset(x: 4, y: -4)
-            .accessibilityIdentifier("attachment_preview_remove_\(attachment.id)")
-        }
-    }
-
-    @ViewBuilder
-    private var thumbnailContent: some View {
-        switch attachment.type {
-        case .image:
-            if let localURL = localURL,
-               let data = try? Data(contentsOf: localURL),
-               let image = platformImage(from: data) {
-                Image(platformImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } else {
-                placeholderIcon("photo")
-            }
-        case .video:
-            placeholderIcon("video.fill")
-        case .file:
-            placeholderIcon("doc.fill")
-        case .audio:
-            placeholderIcon("waveform")
-        case .voiceRecording:
-            placeholderIcon("mic.fill")
-        case .linkPreview:
-            placeholderIcon("link")
-        }
-    }
-
-    private var localURL: URL? {
-        attachment.payload.localURL
-    }
-
-    private func placeholderIcon(_ icon: String) -> some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 8)
-                .fill(NeuPalette.surface)
-            Image(systemName: icon)
-                .foregroundStyle(NeuPalette.accentCyan)
-        }
-    }
-
-    private func platformImage(from data: Data) -> PlatformImage? {
-        #if canImport(UIKit)
-            return UIImage(data: data)
-        #else
-            return NSImage(data: data)
-        #endif
-    }
-}

@@ -137,6 +137,8 @@ targets:
         SWIFT_STRICT_CONCURRENCY: complete
         SWIFT_VERSION: "6.0"
         IPHONEOS_DEPLOYMENT_TARGET: "26.0"
+        GENERATE_INFOPLIST_FILE: "NO"
+        INFOPLIST_FILE: AgentBoardMobile/Info.plist
       configs:
         Debug:
           SWIFT_OPTIMIZATION_LEVEL: "-Onone"
