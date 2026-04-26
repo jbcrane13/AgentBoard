@@ -73,14 +73,15 @@ public struct ConversationMessage: Codable, Hashable, Identifiable, Sendable {
     public var content: String
     public let createdAt: Date
     public var isStreaming: Bool
-
+    public var attachments: [ChatAttachment]
     public init(
         id: UUID = UUID(),
         conversationID: UUID,
         role: MessageRole,
         content: String,
         createdAt: Date = .now,
-        isStreaming: Bool = false
+        isStreaming: Bool = false,
+        attachments: [ChatAttachment] = []
     ) {
         self.id = id
         self.conversationID = conversationID
@@ -88,6 +89,22 @@ public struct ConversationMessage: Codable, Hashable, Identifiable, Sendable {
         self.content = content
         self.createdAt = createdAt
         self.isStreaming = isStreaming
+        self.attachments = attachments
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, conversationID, role, content, createdAt, isStreaming, attachments
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        conversationID = try container.decode(UUID.self, forKey: .conversationID)
+        role = try container.decode(MessageRole.self, forKey: .role)
+        content = try container.decode(String.self, forKey: .content)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        isStreaming = try container.decode(Bool.self, forKey: .isStreaming)
+        attachments = try container.decodeIfPresent([ChatAttachment].self, forKey: .attachments) ?? []
     }
 }
 

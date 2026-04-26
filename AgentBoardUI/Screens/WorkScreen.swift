@@ -59,7 +59,7 @@ struct WorkScreen: View {
                 }
             }
         }
-        .navigationBarHidden(true)
+        .agentBoardNavigationBarHidden(true)
         .refreshable {
             await appModel.workStore.refresh()
         }
