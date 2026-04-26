@@ -15,7 +15,9 @@ struct SettingsScreen: View {
     @State private var exportedFileURL: URL?
     @State private var lastImportedURL: URL?
 
-    private var isCompact: Bool { hSizeClass == .compact }
+    private var isCompact: Bool {
+        hSizeClass == .compact
+    }
 
     var body: some View {
         @Bindable var settingsStore = appModel.settingsStore
@@ -137,8 +139,8 @@ struct SettingsScreen: View {
                         repositoryOwner = ""
                         repositoryName = ""
                     } label: { Image(systemName: "plus") }
-                    .buttonStyle(NeuButtonTarget(isAccent: !(repositoryOwner.isEmpty || repositoryName.isEmpty)))
-                    .disabled(repositoryOwner.isEmpty || repositoryName.isEmpty)
+                        .buttonStyle(NeuButtonTarget(isAccent: !(repositoryOwner.isEmpty || repositoryName.isEmpty)))
+                        .disabled(repositoryOwner.isEmpty || repositoryName.isEmpty)
                 }
             }
             .padding(24)
@@ -173,7 +175,6 @@ struct SettingsScreen: View {
 
     // MARK: - Backup and Restore
 
-    @ViewBuilder
     private var backupSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             sectionHeader("BACKUP AND RESTORE")
@@ -377,13 +378,11 @@ struct SettingsScreen: View {
     private var header: some View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("SETTINGS")
-                    .font(.caption.weight(.bold))
-                    .tracking(2)
-                    .foregroundStyle(NeuPalette.accentCyan)
+                AgentBoardEyebrow(text: "SETTINGS")
                 Text("Configuration")
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .font(.system(size: 32, weight: .bold))
                     .foregroundStyle(NeuPalette.textPrimary)
+                    .tracking(-0.8)
             }
             Spacer()
         }

@@ -157,6 +157,15 @@ public enum WorkState: String, Codable, CaseIterable, Identifiable, Sendable {
         case .done: "status:done"
         }
     }
+
+    public var designColumnTitle: String {
+        switch self {
+        case .open: "OPEN"
+        case .inProgress: "IN REVIEW"
+        case .blocked: "BLOCKED"
+        case .done: "CLOSED"
+        }
+    }
 }
 
 public enum WorkPriority: String, Codable, CaseIterable, Identifiable, Sendable {

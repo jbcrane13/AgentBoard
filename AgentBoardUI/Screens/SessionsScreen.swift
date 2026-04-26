@@ -73,13 +73,11 @@ struct SessionsScreen: View {
     private var header: some View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("SESSIONS")
-                    .font(.caption.weight(.bold))
-                    .tracking(2)
-                    .foregroundStyle(NeuPalette.accentCyan)
+                AgentBoardEyebrow(text: "SESSIONS")
                 Text("Runtime Engine")
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .font(.system(size: 32, weight: .bold))
                     .foregroundStyle(NeuPalette.textPrimary)
+                    .tracking(-0.8)
             }
             Spacer()
             Button {

@@ -16,6 +16,7 @@
 		0CE0E873675F3D87FC974CB1 /* AttachmentUploadService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E035F81810040D898374ACEF /* AttachmentUploadService.swift */; };
 		0D4B6287FB492E255C4E927C /* Nuke in Frameworks */ = {isa = PBXBuildFile; productRef = 8E67F37D82C33338077E4371 /* Nuke */; };
 		0E24BCCE3258BA3081DFB21D /* VoiceViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FEBA7BFDBBBF6316B340FAA /* VoiceViews.swift */; };
+		10A2BF960BB432E046A8392E /* DesignSemanticsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19CE389F4A620817A309F601 /* DesignSemanticsTests.swift */; };
 		15369C112AA2304F032D157F /* MarkdownText.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A2BE598EEDA7A998AEA8DE /* MarkdownText.swift */; };
 		18513E9340A65D8111F82D18 /* DomainPills.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A169A5D550028B6D20B397D /* DomainPills.swift */; };
 		1C711E565B9941FC998F8265 /* WorkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A06C1DAB866C77FF3A634D71 /* WorkStore.swift */; };
@@ -196,6 +197,7 @@
 		0B7442B7AA1CFE33776582C1 /* AgentBoardMobileApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentBoardMobileApp.swift; sourceTree = "<group>"; };
 		0D0FBEDFA7766F71A98B48E3 /* SlashCommandHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlashCommandHandler.swift; sourceTree = "<group>"; };
 		196C90FC0E35E33601741243 /* KeyboardDismissal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardDismissal.swift; sourceTree = "<group>"; };
+		19CE389F4A620817A309F601 /* DesignSemanticsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSemanticsTests.swift; sourceTree = "<group>"; };
 		1A169A5D550028B6D20B397D /* DomainPills.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainPills.swift; sourceTree = "<group>"; };
 		1F06E0C2FFE9CAC90D48662B /* HermesGatewayClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HermesGatewayClientTests.swift; sourceTree = "<group>"; };
 		26A31E0F643092B573A4DB9D /* IssueDetailSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IssueDetailSheet.swift; sourceTree = "<group>"; };
@@ -307,6 +309,7 @@
 				376B52FEC631A3F6F0383459 /* AttachmentModelsTests.swift */,
 				7F925ACBB136730BD7852D8B /* ChatStoreTests.swift */,
 				B56A44BC3ACA67014432FDD4 /* CompanionSQLiteStoreTests.swift */,
+				19CE389F4A620817A309F601 /* DesignSemanticsTests.swift */,
 				6C0ED2A504BC7E3CA18E4094 /* GitHubWorkServiceTests.swift */,
 				1F06E0C2FFE9CAC90D48662B /* HermesGatewayClientTests.swift */,
 				957114148477B05585A13D7C /* MockURLProtocol.swift */,
@@ -781,6 +784,7 @@
 				96C502A1BD49F2AE81F03313 /* AttachmentModelsTests.swift in Sources */,
 				FF4D3F1289548330CC170576 /* ChatStoreTests.swift in Sources */,
 				58446795E6F62924439AD001 /* CompanionSQLiteStoreTests.swift in Sources */,
+				10A2BF960BB432E046A8392E /* DesignSemanticsTests.swift in Sources */,
 				D2F03218C8433B59598A04D5 /* GitHubWorkServiceTests.swift in Sources */,
 				62108DFBD6C8CF3265C4F8A5 /* HermesGatewayClientTests.swift in Sources */,
 				38E1089316EEC57E444A6FB1 /* MockURLProtocol.swift in Sources */,
@@ -1014,6 +1018,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 32XZRDTGK3;
+				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = AgentBoardMobile/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1037,6 +1042,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 32XZRDTGK3;
+				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = AgentBoardMobile/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (

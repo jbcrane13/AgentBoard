@@ -114,11 +114,13 @@ public final class WorkStore {
         do {
             let item = try await service.createIssue(
                 repository: repository,
-                title: title,
-                body: body,
-                labels: labels,
-                assignees: assignees,
-                milestone: milestone
+                draft: GitHubIssueDraft(
+                    title: title,
+                    body: body,
+                    labels: labels,
+                    assignees: assignees,
+                    milestone: milestone
+                )
             )
             upsert(item)
             try cache.replaceWorkItems(items)

@@ -7,21 +7,26 @@ struct MobileRootView: View {
     init() {
         let appearance = UITabBarAppearance()
         appearance.configureWithOpaqueBackground()
-        appearance.backgroundColor = UIColor(red: 0.14, green: 0.15, blue: 0.21, alpha: 1.0)
+        appearance.backgroundColor = UIColor(red: 0.086, green: 0.110, blue: 0.153, alpha: 1.0)
 
-        appearance.stackedLayoutAppearance.normal.iconColor = UIColor(red: 0.44, green: 0.46, blue: 0.56, alpha: 1.0)
+        appearance.stackedLayoutAppearance.normal.iconColor = UIColor(red: 0.494, green: 0.522, blue: 0.584, alpha: 1.0)
         appearance.stackedLayoutAppearance.normal.titleTextAttributes = [.foregroundColor: UIColor(
-            red: 0.44,
-            green: 0.46,
-            blue: 0.56,
+            red: 0.494,
+            green: 0.522,
+            blue: 0.584,
             alpha: 1.0
         )]
 
-        appearance.stackedLayoutAppearance.selected.iconColor = UIColor(red: 0.16, green: 0.77, blue: 0.82, alpha: 1.0)
+        appearance.stackedLayoutAppearance.selected.iconColor = UIColor(
+            red: 0.310,
+            green: 0.851,
+            blue: 0.773,
+            alpha: 1.0
+        )
         appearance.stackedLayoutAppearance.selected.titleTextAttributes = [.foregroundColor: UIColor(
-            red: 0.16,
-            green: 0.77,
-            blue: 0.82,
+            red: 0.310,
+            green: 0.851,
+            blue: 0.773,
             alpha: 1.0
         )]
 
