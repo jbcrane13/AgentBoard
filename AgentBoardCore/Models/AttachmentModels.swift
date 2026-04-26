@@ -273,6 +273,17 @@ public enum AnyAttachmentPayload: Sendable, Hashable {
         case .linkPreview: return nil
         }
     }
+
+    public var remoteURL: URL? {
+        switch self {
+        case let .image(payload): return payload.remoteURL
+        case let .video(payload): return payload.remoteURL
+        case let .file(payload): return payload.remoteURL
+        case let .audio(payload): return payload.remoteURL
+        case let .voiceRecording(payload): return payload.remoteURL
+        case .linkPreview: return nil
+        }
+    }
 }
 
 extension AnyAttachmentPayload: Codable {
@@ -345,5 +356,13 @@ public struct ChatAttachment: Identifiable, Sendable, Codable, Hashable {
 
     public func hash(into hasher: inout Hasher) {
         hasher.combine(id)
+    }
+
+    /// The remote URL if the attachment has been uploaded.
+    public var remoteURL: URL? {
+        switch state {
+        case let .uploaded(url): return url
+        default: return payload.remoteURL
+        }
     }
 }

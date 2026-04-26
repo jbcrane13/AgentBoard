@@ -31,6 +31,8 @@ public final class ChatStore {
     private let hermesClient: HermesGatewayClient
     private let cache: AgentBoardCache
     private let settingsStore: SettingsStore
+    private let uploadService = AttachmentUploadService()
+    private let linkPreviewService = LinkPreviewService()
 
     public private(set) var conversations: [ChatConversation] = []
     public var selectedConversationID: UUID?
@@ -233,11 +235,16 @@ public final class ChatStore {
         var conversation = selectedConversation ?? ChatConversation(id: conversationID, title: "Conversation")
         let currentMessages = messagesByConversationID[conversationID] ?? []
 
+        var allAttachments = attachmentsToSend
+        let linkPreviews = await linkPreviewService.buildPreviews(for: trimmed)
+        allAttachments.append(contentsOf: linkPreviews)
+        let uploadedAttachments = await uploadAttachments(allAttachments)
+
         let userMessage = ConversationMessage(
             conversationID: conversationID,
             role: .user,
             content: trimmed,
-            attachments: attachmentsToSend
+            attachments: uploadedAttachments
         )
         var assistantMessage = ConversationMessage(
             conversationID: conversationID,
@@ -294,6 +301,39 @@ public final class ChatStore {
             }
             persist(conversationID: conversationID)
         }
+    }
+
+    private func uploadEndpointURL() -> URL {
+        let baseURL = settingsStore.hermesGatewayURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        let url = URL(string: baseURL) ?? URL(string: "http://127.0.0.1:8642")!
+        return url.appendingPathComponent("v1/upload")
+    }
+
+    private func uploadAttachments(_ attachments: [ChatAttachment]) async -> [ChatAttachment] {
+        var results: [ChatAttachment] = []
+        for var attachment in attachments {
+            if attachment.payload.localURL != nil, attachment.state == .pendingUpload {
+                statusMessage = "Uploading \(attachment.type.rawValue)..."
+                do {
+                    let remoteURL = try await uploadService.upload(
+                        attachment: attachment,
+                        to: uploadEndpointURL(),
+                        apiKey: settingsStore.hermesAPIKey.trimmedOrNil
+                    ) { [weak self] progress in
+                        Task { @MainActor in
+                            self?.statusMessage = "Uploading... \(Int(progress * 100))%"
+                        }
+                    }
+                    attachment.state = .uploaded(remoteURL: remoteURL)
+                } catch {
+                    logger.error("Attachment upload failed: \(error.localizedDescription, privacy: .public)")
+                    attachment.state = .uploadingFailed(error: error.localizedDescription)
+                }
+            }
+            results.append(attachment)
+        }
+        statusMessage = nil
+        return results
     }
 
     private func configureClient() async throws {

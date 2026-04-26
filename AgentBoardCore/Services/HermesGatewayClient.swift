@@ -156,8 +156,28 @@ public actor HermesGatewayClient {
         setAuth(&request)
 
         let messages = conversation
-            .filter { !$0.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
-            .map { ["role": $0.role.rawValue, "content": $0.content] }
+            .filter { !$0.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !$0.attachments.isEmpty }
+            .map { msg -> [String: Any] in
+                var messageDict: [String: Any] = ["role": msg.role.rawValue, "content": msg.content]
+
+                if !msg.attachments.isEmpty {
+                    let attachmentData: [[String: Any]] = msg.attachments.compactMap { attachment in
+                        var dict: [String: Any] = ["type": attachment.type.rawValue]
+                        if let remoteURL = attachment.remoteURL {
+                            dict["url"] = remoteURL.absoluteString
+                        }
+                        if case let .linkPreview(payload) = attachment.payload {
+                            dict["url"] = payload.url.absoluteString
+                            dict["title"] = payload.title as Any
+                            dict["description"] = payload.description as Any
+                        }
+                        return dict
+                    }
+                    messageDict["attachments"] = attachmentData
+                }
+
+                return messageDict
+            }
         let payload: [String: Any] = [
             "model": configuration.preferredModelID ?? "hermes-agent",
             "messages": messages,
