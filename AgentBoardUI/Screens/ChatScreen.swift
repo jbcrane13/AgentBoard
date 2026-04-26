@@ -124,6 +124,8 @@ struct ChatScreen: View {
                     Image(systemName: "arrow.clockwise")
                         .font(.caption)
                 }
+                .accessibilityLabel("Refresh Hermes connection and models")
+                .accessibilityHint("Reconnects to Hermes and reloads the available models.")
                 .buttonStyle(NeuButtonTarget(isAccent: false))
             }
         }
