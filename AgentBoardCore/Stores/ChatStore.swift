@@ -303,10 +303,24 @@ public final class ChatStore {
         }
     }
 
-    private func uploadEndpointURL() -> URL {
+    private func normalizedHermesGatewayURL() -> URL {
         let baseURL = settingsStore.hermesGatewayURL.trimmingCharacters(in: .whitespacesAndNewlines)
-        let url = URL(string: baseURL) ?? URL(string: "http://127.0.0.1:8642")!
-        return url.appendingPathComponent("v1/upload")
+        let fallbackURL = URL(string: "http://127.0.0.1:8642")!
+        guard let url = URL(string: baseURL) else {
+            return fallbackURL
+        }
+
+        var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        var pathComponents = url.pathComponents.filter { $0 != "/" }
+        if pathComponents.last == "v1" {
+            pathComponents.removeLast()
+        }
+        components?.path = pathComponents.isEmpty ? "" : "/" + pathComponents.joined(separator: "/")
+        return components?.url ?? url
+    }
+
+    private func uploadEndpointURL() -> URL {
+        normalizedHermesGatewayURL().appendingPathComponent("v1/upload")
     }
 
     private func uploadAttachments(_ attachments: [ChatAttachment]) async -> [ChatAttachment] {
