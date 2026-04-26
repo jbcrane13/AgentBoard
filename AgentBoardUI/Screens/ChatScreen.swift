@@ -114,6 +114,8 @@ struct ChatScreen: View {
                 Circle()
                     .fill(connectionTint)
                     .frame(width: 8, height: 8)
+                    .accessibilityLabel("Connection status")
+                    .accessibilityValue(appModel.chatStore.connectionState.title)
 
                 Button {
                     Task {
