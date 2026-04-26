@@ -2,14 +2,22 @@ import AgentBoardCore
 import SwiftUI
 #if os(iOS)
     import PhotosUI
+    import UIKit
+    import UniformTypeIdentifiers
 #endif
 
 // MARK: - AttachmentPickerSheet
 
-/// Platform-specific attachment picker — Photos/Files/Camera on iOS, NSOpenPanel on macOS.
+/// Platform-specific attachment picker — real pickers on iOS, NSOpenPanel on macOS.
 struct AttachmentPickerSheet: View {
     let onPick: (ChatAttachment) -> Void
     @Environment(\.dismiss) private var dismiss
+
+    #if os(iOS)
+        @State private var showPhotosPicker = false
+        @State private var showDocumentPicker = false
+        @State private var showCameraPicker = false
+    #endif
 
     var body: some View {
         #if os(iOS)
@@ -17,24 +25,21 @@ struct AttachmentPickerSheet: View {
                 List {
                     Section {
                         Button {
-                            dismiss()
-                            presentPhotosPicker()
+                            showPhotosPicker = true
                         } label: {
                             Label("Photo Library", systemImage: "photo.on.rectangle")
                         }
                         .accessibilityIdentifier("attachment_picker_photos")
 
                         Button {
-                            dismiss()
-                            presentDocumentPicker()
+                            showDocumentPicker = true
                         } label: {
                             Label("Files", systemImage: "folder")
                         }
                         .accessibilityIdentifier("attachment_picker_files")
 
                         Button {
-                            dismiss()
-                            presentCameraPicker()
+                            showCameraPicker = true
                         } label: {
                             Label("Camera", systemImage: "camera")
                         }
@@ -50,6 +55,43 @@ struct AttachmentPickerSheet: View {
                 }
             }
             .presentationDetents([.medium])
+            .sheet(isPresented: $showPhotosPicker) {
+                MultiPhotoPicker { images in
+                    for image in images {
+                        let url = Self.saveTempImage(image)
+                        let attachment = ChatAttachment(
+                            type: .image,
+                            payload: .image(ImageAttachmentPayload(localURL: url))
+                        )
+                        onPick(attachment)
+                    }
+                }
+            }
+            .sheet(isPresented: $showDocumentPicker) {
+                IOSDocumentPicker { urls in
+                    for url in urls {
+                        let attachment = ChatAttachment(
+                            type: .file,
+                            payload: .file(FileAttachmentPayload(
+                                localURL: url,
+                                fileName: url.lastPathComponent,
+                                fileSize: Self.fileSize(url)
+                            ))
+                        )
+                        onPick(attachment)
+                    }
+                }
+            }
+            .sheet(isPresented: $showCameraPicker) {
+                IOSCameraPicker { image in
+                    let url = Self.saveTempImage(image)
+                    let attachment = ChatAttachment(
+                        type: .image,
+                        payload: .image(ImageAttachmentPayload(localURL: url))
+                    )
+                    onPick(attachment)
+                }
+            }
         #else
             NavigationStack {
                 VStack(alignment: .leading, spacing: 16) {
@@ -86,20 +128,23 @@ struct AttachmentPickerSheet: View {
     }
 
     #if os(iOS)
-        private func presentPhotosPicker() {
-            // PhotosUI picker is presented via PhotosPicker in the parent view
-            // This triggers the parent to show it
-            NotificationCenter.default.post(name: .init("AgentBoard.PresentPhotosPicker"), object: nil)
+        private static func saveTempImage(_ image: UIImage) -> URL {
+            let dir = FileManager.default.temporaryDirectory
+            let url = dir.appendingPathComponent("ab-\(UUID().uuidString).jpg")
+            if let data = image.jpegData(compressionQuality: 0.85) {
+                try? data.write(to: url)
+            }
+            return url
         }
+    #endif
 
-        private func presentDocumentPicker() {
-            NotificationCenter.default.post(name: .init("AgentBoard.PresentDocumentPicker"), object: nil)
-        }
+    private static func fileSize(_ url: URL) -> Int64? {
+        guard let attrs = try? FileManager.default.attributesOfItem(atPath: url.path),
+              let size = attrs[.size] as? NSNumber else { return nil }
+        return size.int64Value
+    }
 
-        private func presentCameraPicker() {
-            NotificationCenter.default.post(name: .init("AgentBoard.PresentCameraPicker"), object: nil)
-        }
-    #else
+    #if os(macOS)
         private func presentMacFilePicker() {
             let panel = NSOpenPanel()
             panel.allowsMultipleSelection = true
@@ -114,7 +159,7 @@ struct AttachmentPickerSheet: View {
                         payload: .file(FileAttachmentPayload(
                             localURL: url,
                             fileName: url.lastPathComponent,
-                            fileSize: fileSize(url)
+                            fileSize: Self.fileSize(url)
                         ))
                     )
                     onPick(attachment)
@@ -139,14 +184,146 @@ struct AttachmentPickerSheet: View {
                 }
             }
         }
-
-        private func fileSize(_ url: URL) -> Int64? {
-            guard let attrs = try? FileManager.default.attributesOfItem(atPath: url.path),
-                  let size = attrs[.size] as? NSNumber else { return nil }
-            return size.int64Value
-        }
     #endif
 }
+
+// MARK: - iOS Multi-Photo Picker
+
+#if os(iOS)
+    private struct MultiPhotoPicker: UIViewControllerRepresentable {
+        let onPick: ([UIImage]) -> Void
+        @Environment(\.dismiss) private var dismiss
+
+        func makeCoordinator() -> Coordinator {
+            Coordinator(parent: self)
+        }
+
+        func makeUIViewController(context: Context) -> PHPickerViewController {
+            var config = PHPickerConfiguration()
+            config.selectionLimit = 0
+            config.filter = .images
+            let picker = PHPickerViewController(configuration: config)
+            picker.delegate = context.coordinator
+            return picker
+        }
+
+        func updateUIViewController(_: PHPickerViewController, context _: Context) {}
+
+        final class Coordinator: NSObject, PHPickerViewControllerDelegate {
+            let parent: MultiPhotoPicker
+
+            init(parent: MultiPhotoPicker) {
+                self.parent = parent
+            }
+
+            func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+                parent.dismiss()
+                guard !results.isEmpty else { return }
+
+                var images: [UIImage] = []
+                let group = DispatchGroup()
+
+                for result in results where result.itemProvider.canLoadObject(ofClass: UIImage.self) {
+                    group.enter()
+                    result.itemProvider.loadObject(ofClass: UIImage.self) { image, _ in
+                        if let uiImage = image as? UIImage {
+                            DispatchQueue.main.async {
+                                images.append(uiImage)
+                            }
+                        }
+                        group.leave()
+                    }
+                }
+
+                group.notify(queue: .main) {
+                    self.parent.onPick(images)
+                }
+            }
+        }
+    }
+
+    // MARK: - iOS Document Picker
+
+    private struct IOSDocumentPicker: UIViewControllerRepresentable {
+        let onPick: ([URL]) -> Void
+        @Environment(\.dismiss) private var dismiss
+
+        func makeCoordinator() -> Coordinator {
+            Coordinator(parent: self)
+        }
+
+        func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
+            let picker = UIDocumentPickerViewController(
+                forOpeningContentTypes: [.data, .image, .audio, .movie],
+                asCopy: true
+            )
+            picker.allowsMultipleSelection = true
+            picker.delegate = context.coordinator
+            return picker
+        }
+
+        func updateUIViewController(_: UIDocumentPickerViewController, context _: Context) {}
+
+        final class Coordinator: NSObject, UIDocumentPickerDelegate {
+            let parent: IOSDocumentPicker
+
+            init(parent: IOSDocumentPicker) {
+                self.parent = parent
+            }
+
+            func documentPicker(_: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+                parent.dismiss()
+                parent.onPick(urls)
+            }
+
+            func documentPickerWasCancelled(_: UIDocumentPickerViewController) {
+                parent.dismiss()
+            }
+        }
+    }
+
+    // MARK: - iOS Camera Picker
+
+    private struct IOSCameraPicker: UIViewControllerRepresentable {
+        let onPick: (UIImage) -> Void
+        @Environment(\.dismiss) private var dismiss
+
+        func makeCoordinator() -> Coordinator {
+            Coordinator(parent: self)
+        }
+
+        func makeUIViewController(context: Context) -> UIImagePickerController {
+            let picker = UIImagePickerController()
+            picker.sourceType = .camera
+            picker.delegate = context.coordinator
+            return picker
+        }
+
+        func updateUIViewController(_: UIImagePickerController, context _: Context) {}
+
+        final class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+            let parent: IOSCameraPicker
+
+            init(parent: IOSCameraPicker) {
+                self.parent = parent
+            }
+
+            func imagePickerController(
+                _: UIImagePickerController,
+                didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
+            ) {
+                parent.dismiss()
+                if let image = info[.originalImage] as? UIImage {
+                    parent.onPick(image)
+                }
+            }
+
+            func imagePickerControllerDidCancel(_: UIImagePickerController) {
+                parent.dismiss()
+            }
+        }
+    }
+#endif
 
 // MARK: - AttachmentPreviewStrip
 

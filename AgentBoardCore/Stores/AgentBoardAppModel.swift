@@ -9,6 +9,7 @@ public final class AgentBoardAppModel {
     private let companionClient: CompanionClient
 
     public let settingsStore: SettingsStore
+    public let settingsRepository: SettingsRepository
     public let chatStore: ChatStore
     public let workStore: WorkStore
     public let agentsStore: AgentsStore
@@ -24,6 +25,7 @@ public final class AgentBoardAppModel {
     private var refreshTask: Task<Void, Never>?
 
     public init(
+        settingsRepository: SettingsRepository,
         settingsStore: SettingsStore,
         chatStore: ChatStore,
         workStore: WorkStore,
@@ -32,6 +34,7 @@ public final class AgentBoardAppModel {
         sessionLauncher: SessionLauncher,
         companionClient: CompanionClient
     ) {
+        self.settingsRepository = settingsRepository
         self.settingsStore = settingsStore
         self.chatStore = chatStore
         self.workStore = workStore
@@ -171,6 +174,7 @@ public enum AgentBoardBootstrap {
         let sessionLauncher = SessionLauncher()
 
         return AgentBoardAppModel(
+            settingsRepository: settingsRepository,
             settingsStore: settingsStore,
             chatStore: chatStore,
             workStore: workStore,

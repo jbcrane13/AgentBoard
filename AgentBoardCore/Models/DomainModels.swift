@@ -531,7 +531,7 @@ public struct AgentBoardSettings: Codable, Hashable, Sendable {
     }
 }
 
-public struct AgentBoardSecrets: Equatable, Sendable {
+public struct AgentBoardSecrets: Codable, Equatable, Sendable {
     public var hermesAPIKey: String?
     public var githubToken: String?
     public var companionToken: String?

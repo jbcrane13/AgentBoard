@@ -37,6 +37,11 @@ struct ChatScreen: View {
         }
         .agentBoardNavigationBarHidden(true)
         .agentBoardKeyboardDismissToolbar()
+        #if os(iOS)
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+                Task { await appModel.chatStore.autoReconnectIfNeeded() }
+            }
+        #endif
     }
 
     private var header: some View {
@@ -384,7 +389,7 @@ struct ChatScreen: View {
                 Button {
                     isTextFieldFocused = false
                     AgentBoardKeyboard.dismiss()
-                    Task { await chatStore.sendDraft() }
+                    Task { await chatStore.sendDraftWithRetry() }
                 } label: {
                     Image(systemName: chatStore.isStreaming ? "stop.fill" : "paperplane.fill")
                         .font(.system(size: 13, weight: .bold))

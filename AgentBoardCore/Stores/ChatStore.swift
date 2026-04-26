@@ -33,7 +33,6 @@ public final class ChatStore {
     private let settingsStore: SettingsStore
     private let uploadService = AttachmentUploadService()
     private let linkPreviewService = LinkPreviewService()
-
     public private(set) var conversations: [ChatConversation] = []
     public var selectedConversationID: UUID?
     public private(set) var availableModels: [String] = []
@@ -191,6 +190,25 @@ public final class ChatStore {
         }
     }
 
+    public func autoReconnectIfNeeded() async {
+        guard connectionState == .failed || connectionState == .disconnected else { return }
+        logger.info("Auto-reconnecting after background/foreground transition")
+        await refreshConnection()
+        if connectionState == .connected {
+            await refreshModels()
+        }
+    }
+
+    public func sendDraftWithRetry(maxAttempts: Int = 2) async {
+        for attempt in 0 ..< maxAttempts {
+            await sendDraft()
+            if errorMessage == nil || attempt == maxAttempts - 1 { return }
+            logger.info("Send failed (attempt \(attempt + 1)/\(maxAttempts)), retrying...")
+            errorMessage = nil
+            try? await Task.sleep(for: .seconds(1))
+        }
+    }
+
     public func diagnoseConnection() async {
         errorMessage = nil
         statusMessage = "Checking Hermes health..."
@@ -226,6 +244,73 @@ public final class ChatStore {
         let attachmentsToSend = pendingAttachments
         guard !trimmed.isEmpty || !attachmentsToSend.isEmpty,
               let conversationID = selectedConversationID else { return }
+
+        // Intercept slash commands before sending to Hermes
+        if trimmed.hasPrefix("/") {
+            let result = SlashCommandHandler.handle(trimmed)
+            switch result {
+            case .newConversation:
+                draft = ""
+                pendingAttachments = []
+                startNewConversation()
+                return
+            case .clearConversation:
+                draft = ""
+                pendingAttachments = []
+                deleteConversation(id: conversationID)
+                startNewConversation()
+                return
+            case let .switchModel(modelID):
+                draft = ""
+                pendingAttachments = []
+                selectModel(modelID)
+                statusMessage = "Switched to model: \(modelID)"
+                return
+            case .showHelp:
+                draft = ""
+                pendingAttachments = []
+                appendSystemMessage(SlashCommandHandler.formatHelp(), to: conversationID)
+                return
+            case .showStatus:
+                draft = ""
+                pendingAttachments = []
+                let stateStr = switch connectionState {
+                case .connected: "Connected"
+                case .connecting: "Connecting"
+                case .disconnected: "Disconnected"
+                case .reconnecting: "Reconnecting"
+                case .failed: "Failed"
+                }
+                let status = SlashCommandHandler.formatStatus(
+                    connectionState: stateStr,
+                    model: settingsStore.hermesModelID,
+                    conversationTitle: selectedConversation?.title ?? "None",
+                    messageCount: messages.count
+                )
+                appendSystemMessage(status, to: conversationID)
+                return
+            case .showConfig:
+                draft = ""
+                pendingAttachments = []
+                let config = SlashCommandHandler.formatConfig(
+                    gatewayURL: settingsStore.hermesGatewayURL,
+                    model: settingsStore.hermesModelID,
+                    hasAPIKey: settingsStore.hermesAPIKey.trimmedOrNil != nil,
+                    repos: settingsStore.repositories.map(\.fullName)
+                )
+                appendSystemMessage(config, to: conversationID)
+                return
+            case let .handled(response):
+                draft = ""
+                pendingAttachments = []
+                appendSystemMessage(response, to: conversationID)
+                return
+            case let .unknown(command):
+                statusMessage = "Sending /\(command) to agent..."
+            case .passthrough:
+                break
+            }
+        }
 
         draft = ""
         pendingAttachments = []
@@ -465,6 +550,18 @@ public final class ChatStore {
         }
         messages[index] = message
         messagesByConversationID[conversationID] = messages
+    }
+
+    private func appendSystemMessage(_ content: String, to conversationID: UUID) {
+        let message = ConversationMessage(
+            conversationID: conversationID,
+            role: .assistant,
+            content: content
+        )
+        var current = messagesByConversationID[conversationID] ?? []
+        current.append(message)
+        messagesByConversationID[conversationID] = current
+        persist(conversationID: conversationID)
     }
 
     private func removeMessage(id: UUID, conversationID: UUID) {
