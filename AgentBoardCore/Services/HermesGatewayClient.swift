@@ -168,8 +168,12 @@ public actor HermesGatewayClient {
                         }
                         if case let .linkPreview(payload) = attachment.payload {
                             dict["url"] = payload.url.absoluteString
-                            dict["title"] = payload.title as Any
-                            dict["description"] = payload.description as Any
+                            if let title = payload.title {
+                                dict["title"] = title
+                            }
+                            if let description = payload.description {
+                                dict["description"] = description
+                            }
                         }
                         return dict
                     }
