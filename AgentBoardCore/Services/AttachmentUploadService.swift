@@ -85,6 +85,17 @@ public final class AttachmentUploadService {
         return try await withCheckedThrowingContinuation { continuation in
             let task = session.uploadTask(with: request, from: body) { [weak self] data, response, error in
                 if let error {
+                    if let urlError = error as? URLError, urlError.code == .cancelled {
+                        continuation.resume(throwing: AttachmentUploadError.cancelled)
+                        return
+                    }
+
+                    let nsError = error as NSError
+                    if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled {
+                        continuation.resume(throwing: AttachmentUploadError.cancelled)
+                        return
+                    }
+
                     continuation.resume(throwing: AttachmentUploadError.transportError(error.localizedDescription))
                     return
                 }
