@@ -28,12 +28,6 @@ struct ChatScreen: View {
                     .padding(.bottom, 16)
                     .background(NeuPalette.background.ignoresSafeArea())
 
-                if !chatStore.conversations.isEmpty {
-                    conversationRail
-                        .padding(.bottom, 4)
-                        .background(NeuPalette.background)
-                }
-
                 // The shrinking center body
                 messageList
 
@@ -46,95 +40,117 @@ struct ChatScreen: View {
     }
 
     private var header: some View {
-        HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 6) {
+        HStack(alignment: .center) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text("HERMES AI")
                     .font(.caption.weight(.bold))
                     .tracking(2)
                     .foregroundStyle(NeuPalette.accentCyan)
                 Text("Live Link")
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
                     .foregroundStyle(NeuPalette.textPrimary)
             }
+
             Spacer()
-            VStack(alignment: .trailing, spacing: 10) {
-                HStack(spacing: 10) {
-                    Menu {
-                        ForEach(appModel.chatStore.conversations) { conversation in
-                            Button {
-                                appModel.chatStore.selectConversation(conversation.id)
-                            } label: {
-                                Label(
-                                    conversation.title,
-                                    systemImage: conversation.id == appModel.chatStore.selectedConversationID
-                                        ? "checkmark.circle.fill" : "bubble.left"
-                                )
-                            }
-                        }
 
-                        Divider()
-
+            HStack(spacing: 8) {
+                // Session dropdown
+                Menu {
+                    ForEach(appModel.chatStore.conversations) { conversation in
                         Button {
-                            appModel.chatStore.startNewConversation()
+                            appModel.chatStore.selectConversation(conversation.id)
                         } label: {
-                            Label("New Session", systemImage: "square.and.pencil")
+                            Label(
+                                conversation.title,
+                                systemImage: conversation.id == appModel.chatStore.selectedConversationID
+                                    ? "checkmark.circle.fill" : "bubble.left"
+                            )
                         }
-                    } label: {
-                        headerCapsule(
-                            title: "Session",
-                            value: appModel.chatStore.selectedConversation?.title ?? "New Conversation",
-                            systemImage: "bubble.left.and.bubble.right.fill"
-                        )
                     }
-                    .buttonStyle(.plain)
-
-                    Menu {
-                        ForEach(appModel.settingsStore.availableHermesProfiles) { profile in
-                            Button {
-                                Task {
-                                    if profile.id != "current" {
-                                        appModel.settingsStore.selectHermesProfile(id: profile.id)
-                                    }
-                                    await appModel.chatStore.refreshConnection()
-                                    await appModel.chatStore.refreshModels()
-                                }
-                            } label: {
-                                Label(
-                                    profile.name,
-                                    systemImage: appModel.settingsStore.selectedHermesProfileID == profile.id
-                                        ? "checkmark.circle.fill" : "network"
-                                )
-                            }
-                        }
-                    } label: {
-                        headerCapsule(
-                            title: "Profile",
-                            value: appModel.settingsStore.activeHermesProfile?.name ?? portLabel,
-                            systemImage: "server.rack"
-                        )
+                    if !appModel.chatStore.conversations.isEmpty {
+                        Divider()
                     }
-                    .buttonStyle(.plain)
-                }
-
-                HStack(spacing: 10) {
-                    Circle()
-                        .fill(connectionTint)
-                        .frame(width: 8, height: 8)
-
                     Button {
-                        Task {
-                            await appModel.chatStore.refreshConnection()
-                            await appModel.chatStore.refreshModels()
-                        }
+                        appModel.chatStore.startNewConversation()
                     } label: {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.caption)
+                        Label("New Session", systemImage: "square.and.pencil")
                     }
-                    .buttonStyle(NeuButtonTarget(isAccent: false))
+                } label: {
+                    compactMenuButton(
+                        icon: "bubble.left.and.bubble.right.fill",
+                        text: appModel.chatStore.selectedConversation?.title ?? "Session"
+                    )
                 }
+                .buttonStyle(.plain)
+
+                // Profile dropdown
+                Menu {
+                    ForEach(appModel.settingsStore.availableHermesProfiles) { profile in
+                        Button {
+                            Task {
+                                if profile.id != "current" {
+                                    appModel.settingsStore.selectHermesProfile(id: profile.id)
+                                }
+                                await appModel.chatStore.refreshConnection()
+                                await appModel.chatStore.refreshModels()
+                            }
+                        } label: {
+                            Label(
+                                profile.name,
+                                systemImage: appModel.settingsStore.selectedHermesProfileID == profile.id
+                                    ? "checkmark.circle.fill" : "network"
+                            )
+                        }
+                    }
+                } label: {
+                    compactMenuButton(
+                        icon: "server.rack",
+                        text: appModel.settingsStore.activeHermesProfile?.name ?? portLabel
+                    )
+                }
+                .buttonStyle(.plain)
+
+                // Status dot + refresh
+                Circle()
+                    .fill(connectionTint)
+                    .frame(width: 8, height: 8)
+                    .accessibilityLabel("Connection status")
+                    .accessibilityValue(appModel.chatStore.connectionState.title)
+
+                Button {
+                    Task {
+                        await appModel.chatStore.refreshConnection()
+                        await appModel.chatStore.refreshModels()
+                    }
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.caption)
+                }
+                .accessibilityLabel("Refresh Hermes connection and models")
+                .accessibilityHint("Reconnects to Hermes and reloads the available models.")
+                .buttonStyle(NeuButtonTarget(isAccent: false))
             }
         }
     }
+
+    private func compactMenuButton(icon: String, text: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.caption2)
+                .foregroundStyle(NeuPalette.accentCyan)
+            Text(text)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(NeuPalette.textPrimary)
+                .lineLimit(1)
+            Image(systemName: "chevron.down")
+                .font(.system(size: 8, weight: .bold))
+                .foregroundStyle(NeuPalette.textSecondary)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .neuExtruded(cornerRadius: 12, elevation: 2)
+    }
+
 
     private func headerCapsule(title: String, value: String, systemImage: String) -> some View {
         HStack(spacing: 8) {
