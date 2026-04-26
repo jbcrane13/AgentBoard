@@ -1,6 +1,7 @@
 import AgentBoardCore
 import SwiftUI
 
+// swiftlint:disable:next type_body_length
 struct ChatScreen: View {
     @Environment(AgentBoardAppModel.self) private var appModel
     @Environment(\.horizontalSizeClass) private var hSizeClass
@@ -8,6 +9,7 @@ struct ChatScreen: View {
     @State private var editingConversationID: UUID?
     @State private var editingTitle = ""
     @State private var showAttachmentPicker = false
+    @StateObject private var audioRecorder = AudioRecorderService()
 
     private var isCompact: Bool {
         hSizeClass == .compact
@@ -389,6 +391,15 @@ struct ChatScreen: View {
                         }
                     }
 
+                    // Microphone button
+                    VoiceRecordingButton(
+                        recorder: audioRecorder,
+                        onRecorded: { result in
+                            chatStore.addAttachment(result.toAttachment())
+                        },
+                        onCancel: {}
+                    )
+
                     Spacer()
                 }
                 .padding(.leading, 8)
@@ -434,79 +445,5 @@ struct ChatScreen: View {
                 .ignoresSafeArea(edges: .bottom)
                 .shadow(color: NeuPalette.shadowDark, radius: 10, y: -4)
         )
-    }
-}
-
-private struct NeuChatBubble: View {
-    let message: ConversationMessage
-
-    var body: some View {
-        HStack(alignment: .top) {
-            if message.role == .assistant {
-                bubble
-                Spacer(minLength: 40)
-            } else {
-                Spacer(minLength: 40)
-                bubble
-            }
-        }
-    }
-
-    private var bubble: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Text(message.role == .assistant ? "Hermes" : "You")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(message.role == .assistant ? NeuPalette.accentCyan : NeuPalette.accentOrange)
-                    .tracking(1)
-
-                if message.isStreaming {
-                    ProgressView()
-                        .controlSize(.mini)
-                        .tint(NeuPalette.accentCyan)
-                }
-            }
-
-            if message.isStreaming, message.content.isEmpty {
-                Text("typing...")
-                    .foregroundStyle(NeuPalette.textSecondary)
-            } else {
-                MarkdownText(content: message.content)
-                    .foregroundStyle(NeuPalette.textPrimary)
-            }
-
-            // Render attachments
-            if !message.attachments.isEmpty {
-                VStack(spacing: 8) {
-                    ForEach(message.attachments) { attachment in
-                        AttachmentContainerView(attachment: attachment)
-                    }
-                }
-            }
-        }
-        .padding(20)
-        .modifier(
-            message.role == .assistant
-                ? AnyViewModifier(NeuExtrudedModifier(cornerRadius: 24, elevation: 8))
-                : AnyViewModifier(NeuRecessedModifier(cornerRadius: 24, depth: 6))
-        )
-    }
-}
-
-struct AnyViewModifier: ViewModifier {
-    let modifier: Any
-
-    init<M: ViewModifier>(_ modifier: M) {
-        self.modifier = modifier
-    }
-
-    func body(content: Content) -> some View {
-        if let neuromod = modifier as? NeuExtrudedModifier {
-            content.modifier(neuromod)
-        } else if let neuromod = modifier as? NeuRecessedModifier {
-            content.modifier(neuromod)
-        } else {
-            content
-        }
     }
 }
