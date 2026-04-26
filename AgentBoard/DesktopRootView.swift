@@ -22,7 +22,7 @@ private enum DesktopTab: String, CaseIterable, Identifiable {
 
     var systemImage: String {
         switch self {
-        case .work: "layout.3.columns"
+        case .work: "square.grid.3x3"
         case .agents: "person.3.sequence.fill"
         case .sessions: "bolt.horizontal.circle.fill"
         case .settings: "slider.horizontal.3"

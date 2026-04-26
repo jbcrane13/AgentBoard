@@ -44,7 +44,17 @@ struct WorkScreen: View {
                     .padding(.top, isCompact ? 16 : 24)
                     .padding(.bottom, 16)
 
-                if filteredItems.isEmpty {
+                // macOS always shows board layout; status banner shown when empty
+                if isMac || (!isCompact && layoutMode == .board) {
+                    if let statusMessage = appModel.workStore.statusMessage, filteredItems.isEmpty {
+                        Text(statusMessage)
+                            .font(.subheadline)
+                            .foregroundStyle(NeuPalette.textSecondary)
+                            .padding(.horizontal, 24)
+                            .padding(.bottom, 8)
+                    }
+                    boardLayout
+                } else if filteredItems.isEmpty {
                     EmptyStateCard(
                         title: "No work items",
                         message: appModel.workStore
@@ -52,8 +62,6 @@ struct WorkScreen: View {
                         systemImage: "tray"
                     )
                     .padding(isCompact ? 16 : 24)
-                } else if isMac || (!isCompact && layoutMode == .board) {
-                    boardLayout
                 } else {
                     listLayout
                 }
