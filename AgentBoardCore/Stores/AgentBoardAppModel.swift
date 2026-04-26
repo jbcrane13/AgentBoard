@@ -13,6 +13,7 @@ public final class AgentBoardAppModel {
     public let workStore: WorkStore
     public let agentsStore: AgentsStore
     public let sessionsStore: SessionsStore
+    public let sessionLauncher: SessionLauncher
 
     public var selectedDestination: AppDestination = .chat
     public private(set) var isBootstrapping = false
@@ -28,6 +29,7 @@ public final class AgentBoardAppModel {
         workStore: WorkStore,
         agentsStore: AgentsStore,
         sessionsStore: SessionsStore,
+        sessionLauncher: SessionLauncher,
         companionClient: CompanionClient
     ) {
         self.settingsStore = settingsStore
@@ -35,6 +37,7 @@ public final class AgentBoardAppModel {
         self.workStore = workStore
         self.agentsStore = agentsStore
         self.sessionsStore = sessionsStore
+        self.sessionLauncher = sessionLauncher
         self.companionClient = companionClient
     }
 
@@ -165,6 +168,7 @@ public enum AgentBoardBootstrap {
             cache: cache,
             settingsStore: settingsStore
         )
+        let sessionLauncher = SessionLauncher()
 
         return AgentBoardAppModel(
             settingsStore: settingsStore,
@@ -172,6 +176,7 @@ public enum AgentBoardBootstrap {
             workStore: workStore,
             agentsStore: agentsStore,
             sessionsStore: sessionsStore,
+            sessionLauncher: sessionLauncher,
             companionClient: companionClient
         )
     }

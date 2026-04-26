@@ -151,7 +151,6 @@ struct ChatScreen: View {
         .neuExtruded(cornerRadius: 12, elevation: 2)
     }
 
-
     private func headerCapsule(title: String, value: String, systemImage: String) -> some View {
         HStack(spacing: 8) {
             Image(systemName: systemImage)
@@ -350,78 +349,60 @@ struct ChatScreen: View {
                     .padding(.bottom, 8)
             }
 
-            // Attachment preview strip
             if !chatStore.pendingAttachments.isEmpty {
                 AttachmentPreviewStrip(attachments: $chatStore.pendingAttachments)
             }
 
-            ZStack(alignment: .bottomTrailing) {
-                // Attachment button on the left
-                HStack {
-                    Button {
-                        showAttachmentPicker = true
-                    } label: {
-                        Image(systemName: "paperclip")
-                            .font(.system(size: 18, weight: .medium))
-                            .foregroundStyle(NeuPalette.accentCyan)
-                            .frame(width: 44, height: 44)
-                    }
-                    .accessibilityIdentifier("chat_button_attach")
-                    .sheet(isPresented: $showAttachmentPicker) {
-                        AttachmentPickerSheet { attachment in
-                            chatStore.addAttachment(attachment)
-                        }
-                    }
-
-                    // Microphone button
-                    VoiceRecordingButton(
-                        recorder: audioRecorder,
-                        onRecorded: { result in
-                            chatStore.addAttachment(result.toAttachment())
-                        },
-                        onCancel: {}
-                    )
-
-                    Spacer()
+            // Compose row: [attach] [mic] [textfield] [send]
+            HStack(spacing: 8) {
+                Button { showAttachmentPicker = true } label: {
+                    Image(systemName: "paperclip")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(NeuPalette.accentCyan)
+                        .frame(width: 28, height: 28)
                 }
-                .padding(.leading, 8)
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("chat_button_attach")
+                .sheet(isPresented: $showAttachmentPicker) {
+                    AttachmentPickerSheet { attachment in
+                        chatStore.addAttachment(attachment)
+                    }
+                }
 
-                // Text field
-                TextField("", text: $chatStore.draft, axis: .vertical)
+                VoiceRecordingButton(
+                    recorder: audioRecorder,
+                    onRecorded: { result in chatStore.addAttachment(result.toAttachment()) },
+                    onCancel: {}
+                )
+
+                TextField("Message Hermes...", text: $chatStore.draft, axis: .vertical)
                     .lineLimit(1 ... 6)
                     .focused($isTextFieldFocused)
                     .foregroundStyle(NeuPalette.textPrimary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 64)
-                    .padding(.vertical, 24)
-                    .overlay(
-                        Text("Message Hermes...")
-                            .foregroundStyle(NeuPalette.textSecondary)
-                            .opacity(chatStore.draft.isEmpty && chatStore.pendingAttachments.isEmpty ? 1 : 0)
-                            .allowsHitTesting(false)
-                    )
+                    .textFieldStyle(.plain)
 
-                // Send button
                 Button {
                     isTextFieldFocused = false
                     AgentBoardKeyboard.dismiss()
                     Task { await chatStore.sendDraft() }
                 } label: {
                     Image(systemName: chatStore.isStreaming ? "stop.fill" : "paperplane.fill")
-                        .font(.system(size: 16, weight: .bold))
+                        .font(.system(size: 13, weight: .bold))
                         .foregroundStyle(sendButtonForeground)
-                        .frame(width: 48, height: 48)
+                        .frame(width: 32, height: 32)
                         .background(Circle().fill(sendButtonBackground))
                 }
                 .disabled(!canSend)
-                .padding(12)
+                .buttonStyle(.plain)
                 .accessibilityIdentifier("chat_button_send")
             }
-            .neuRecessed(cornerRadius: 36, depth: 6)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .neuRecessed(cornerRadius: 20, depth: 6)
         }
         .padding(.horizontal, isCompact ? 16 : 24)
-        .padding(.top, 12)
-        .padding(.bottom, 16)
+        .padding(.top, 8)
+        .padding(.bottom, 12)
         .background(
             NeuPalette.background
                 .ignoresSafeArea(edges: .bottom)

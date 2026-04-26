@@ -12,9 +12,9 @@ struct AttachmentPickerSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        NavigationStack {
-            List {
-                #if os(iOS)
+        #if os(iOS)
+            NavigationStack {
+                List {
                     Section {
                         Button {
                             dismiss()
@@ -40,38 +40,48 @@ struct AttachmentPickerSheet: View {
                         }
                         .accessibilityIdentifier("attachment_picker_camera")
                     }
-                #else
-                    Section {
-                        Button {
-                            dismiss()
-                            presentMacFilePicker()
-                        } label: {
-                            Label("Choose File...", systemImage: "doc")
-                        }
-                        .accessibilityIdentifier("attachment_picker_file")
-
-                        Button {
-                            dismiss()
-                            presentMacImagePicker()
-                        } label: {
-                            Label("Choose Image...", systemImage: "photo")
-                        }
-                        .accessibilityIdentifier("attachment_picker_image")
-                    }
-                #endif
-            }
-            .navigationTitle("Attach")
-            #if os(iOS)
+                }
+                .navigationTitle("Attach")
                 .navigationBarTitleDisplayMode(.inline)
-            #endif
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("Cancel") { dismiss() }
                     }
                 }
-        }
-        #if os(iOS)
-        .presentationDetents([.medium])
+            }
+            .presentationDetents([.medium])
+        #else
+            NavigationStack {
+                VStack(alignment: .leading, spacing: 16) {
+                    Button {
+                        dismiss()
+                        presentMacFilePicker()
+                    } label: {
+                        Label("Choose File...", systemImage: "doc")
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("attachment_picker_file")
+
+                    Button {
+                        dismiss()
+                        presentMacImagePicker()
+                    } label: {
+                        Label("Choose Image...", systemImage: "photo")
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("attachment_picker_image")
+                }
+                .padding(24)
+                .frame(minWidth: 280)
+                .navigationTitle("Attach")
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") { dismiss() }
+                    }
+                }
+            }
         #endif
     }
 
