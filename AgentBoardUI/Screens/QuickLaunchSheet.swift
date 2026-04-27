@@ -1,56 +1,17 @@
 import AgentBoardCore
 import SwiftUI
 
-struct LaunchSessionSheet: View {
+struct QuickLaunchSheet: View {
     @Environment(AgentBoardAppModel.self) private var appModel
     @Environment(\.dismiss) private var dismiss
-
-    let task: AgentTask?
-    let workItem: WorkItem?
 
     @State private var selectedPreset: SessionLauncher.ExecutionPreset = .ralphLoop
     @State private var selectedAgent: SessionLauncher.AgentType = .claude
     @State private var customInstructions = ""
     @State private var repoName = ""
+    @State private var issueNumber = ""
+    @State private var taskTitle = ""
     @State private var isLaunching = false
-
-    init(task: AgentTask) {
-        self.task = task
-        workItem = nil
-    }
-
-    init(workItem: WorkItem) {
-        task = nil
-        self.workItem = workItem
-    }
-
-    private var displayTitle: String {
-        task?.title ?? workItem?.title ?? "New Session"
-    }
-
-    private var displayIssueRef: String {
-        if let task { return task.workItem.issueReference }
-        if let workItem { return workItem.issueReference }
-        return "—"
-    }
-
-    private var displayRepoName: String {
-        if let task { return task.workItem.repository.name }
-        if let workItem { return workItem.repository.name }
-        return ""
-    }
-
-    private var displayFullRepo: String {
-        if let task { return task.workItem.repository.fullName }
-        if let workItem { return workItem.repository.fullName }
-        return ""
-    }
-
-    private var displayIssueNumber: Int {
-        if let task { return task.workItem.issueNumber }
-        if let workItem { return workItem.issueNumber }
-        return 0
-    }
 
     var body: some View {
         NavigationStack {
@@ -60,31 +21,25 @@ struct LaunchSessionSheet: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
                         VStack(alignment: .leading, spacing: 20) {
-                            Text("LAUNCH SESSION")
+                            Text("QUICK LAUNCH")
                                 .font(.caption.weight(.bold))
                                 .tracking(1)
                                 .foregroundStyle(NeuPalette.textSecondary)
 
                             VStack(alignment: .leading, spacing: 6) {
-                                Text("Task").font(.headline).foregroundStyle(NeuPalette.textPrimary)
-                                Text(displayTitle)
-                                    .font(.subheadline)
-                                    .foregroundStyle(NeuPalette.textSecondary)
-                                    .padding(12)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .neuRecessed(cornerRadius: 12, depth: 4)
+                                Text("Task Title").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                                NeuTextField(placeholder: "e.g. Implement feature X", text: $taskTitle)
                             }
 
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("Issue").font(.headline).foregroundStyle(NeuPalette.textPrimary)
-                                Text(displayIssueRef)
-                                    .font(.subheadline.monospaced())
-                                    .foregroundStyle(NeuPalette.accentCyan)
-                            }
-
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("Repository Folder").font(.headline).foregroundStyle(NeuPalette.textPrimary)
-                                NeuTextField(placeholder: "e.g. AgentBoard", text: $repoName)
+                            HStack(spacing: 16) {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("Issue #").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                                    NeuTextField(placeholder: "72", text: $issueNumber)
+                                }
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("Repository").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                                    NeuTextField(placeholder: "AgentBoard", text: $repoName)
+                                }
                             }
 
                             VStack(alignment: .leading, spacing: 12) {
@@ -189,7 +144,7 @@ struct LaunchSessionSheet: View {
                     .padding(24)
                 }
             }
-            .navigationTitle("Launch Session")
+            .navigationTitle("Quick Launch")
             .agentBoardNavigationBarTitleInline()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -199,28 +154,24 @@ struct LaunchSessionSheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Launch") { launch() }
                         .buttonStyle(NeuButtonTarget(isAccent: true))
-                        .disabled(isLaunching || repoName.trimmedOrNil == nil)
+                        .disabled(isLaunching || repoName.trimmedOrNil == nil || taskTitle.trimmedOrNil == nil)
                 }
-            }
-            .onAppear {
-                // Pre-fill repo name from the work item
-                if repoName.isEmpty {
-                    repoName = displayRepoName
-                }
-                selectedAgent = selectedPreset.agent
             }
         }
     }
 
     private func launch() {
-        guard !repoName.isEmpty else { return }
+        guard !repoName.isEmpty, !taskTitle.isEmpty else { return }
         isLaunching = true
 
+        let num = Int(issueNumber.trimmingCharacters(in: .whitespaces)) ?? 0
+        let fullRepo = "jbcrane13/\(repoName.trimmingCharacters(in: .whitespaces))"
+
         let config = SessionLauncher.LaunchConfig(
-            taskTitle: displayTitle,
-            issueNumber: displayIssueNumber,
+            taskTitle: taskTitle,
+            issueNumber: num,
             repo: repoName.trimmingCharacters(in: .whitespaces),
-            fullRepo: displayFullRepo,
+            fullRepo: fullRepo,
             preset: selectedPreset,
             agentType: selectedAgent,
             customInstructions: customInstructions.trimmingCharacters(in: .whitespacesAndNewlines)

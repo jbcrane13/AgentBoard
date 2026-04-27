@@ -1,7 +1,7 @@
 import AgentBoardCore
 import SwiftUI
 
-private enum DesktopTab: String, CaseIterable, Identifiable {
+enum DesktopTab: String, CaseIterable, Identifiable {
     case work
     case agents
     case sessions
@@ -33,155 +33,120 @@ private enum DesktopTab: String, CaseIterable, Identifiable {
 struct DesktopRootView: View {
     @Environment(AgentBoardAppModel.self) private var appModel
     @State private var activeTab: DesktopTab? = .work
-    @State private var columnVisibility: NavigationSplitViewVisibility = .all
+    @State private var activeSessionTerminal: SessionLauncher.ActiveSession?
+    @State private var isPresentingQuickLaunch = false
 
     var body: some View {
-        NavigationSplitView(columnVisibility: $columnVisibility) {
-            sidebar
-                .navigationSplitViewColumnWidth(min: 196, ideal: 220, max: 260)
-        } content: {
-            centerPanel
-                .navigationSplitViewColumnWidth(min: 600, ideal: 800)
-        } detail: {
-            ChatScreen()
-                .navigationSplitViewColumnWidth(min: 300, ideal: 380, max: 480)
-        }
-        .navigationSplitViewStyle(.balanced)
-        .toolbar {
-            ToolbarItem(placement: .status) {
-                connectionStatusChip
-            }
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    Task<Void, Never> { await appModel.refreshAll() }
-                } label: {
-                    Label("Refresh", systemImage: "arrow.clockwise")
-                }
-                .buttonStyle(NeuButtonTarget(isAccent: false))
-                .accessibilityIdentifier("desktop_button_refresh")
+        VStack(spacing: 0) {
+            titleBar
+                .frame(height: 40)
+
+            HStack(spacing: 0) {
+                DesktopSidebar(
+                    activeTab: activeTab,
+                    onTabSelect: { tab in activeTab = tab },
+                    onSessionTap: { session in activeSessionTerminal = session },
+                    onQuickLaunch: { isPresentingQuickLaunch = true }
+                )
+                .frame(width: 230)
+
+                centerPanel
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(NeuPalette.background)
+
+                ChatScreen()
+                    .frame(width: 360)
+                    .background(NeuPalette.surface)
+                    .overlay(alignment: .leading) {
+                        Rectangle()
+                            .fill(NeuPalette.borderSoft)
+                            .frame(width: 1)
+                    }
             }
         }
         .background(NeuBackground())
-    }
-
-    // MARK: - Sidebar
-
-    private var sidebar: some View {
-        ZStack {
-            NeuBackground()
-
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("VIEWS")
-                            .font(.caption.weight(.bold))
-                            .tracking(1)
-                            .foregroundStyle(NeuPalette.textSecondary)
-                            .padding(.horizontal, 8)
-
-                        ForEach(DesktopTab.allCases) { tab in
-                            Button {
-                                activeTab = tab
-                            } label: {
-                                HStack {
-                                    Image(systemName: tab.systemImage)
-                                        .frame(width: 24)
-                                    Text(tab.title)
-                                        .font(.subheadline.weight(.medium))
-                                    Spacer()
-                                }
-                                .foregroundStyle(activeTab == tab ? NeuPalette.accentCyan : NeuPalette.textSecondary)
-                                .padding(12)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .fill(activeTab == tab ? Color.white.opacity(0.05) : Color.clear)
-                                )
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityIdentifier("desktop_sidebar_tab_\(tab.rawValue)")
-                        }
-                    }
-
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("PROJECTS")
-                            .font(.caption.weight(.bold))
-                            .tracking(1)
-                            .foregroundStyle(NeuPalette.textSecondary)
-                            .padding(.horizontal, 8)
-
-                        if appModel.settingsStore.repositories.isEmpty {
-                            Text("No repositories")
-                                .font(.caption)
-                                .foregroundStyle(NeuPalette.textSecondary)
-                                .padding(.horizontal, 8)
-                        } else {
-                            ForEach(appModel.settingsStore.repositories) { repo in
-                                HStack {
-                                    Image(systemName: "folder.fill")
-                                        .foregroundStyle(NeuPalette.accentOrange)
-                                    Text(repo.shortName)
-                                        .font(.subheadline)
-                                        .foregroundStyle(NeuPalette.textPrimary)
-                                    Spacer()
-                                }
-                                .padding(12)
-                            }
-                        }
-                    }
-
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("SESSIONS")
-                            .font(.caption.weight(.bold))
-                            .tracking(1)
-                            .foregroundStyle(NeuPalette.textSecondary)
-                            .padding(.horizontal, 8)
-
-                        if appModel.sessionsStore.sessions.isEmpty {
-                            Text("No active sessions")
-                                .font(.caption)
-                                .foregroundStyle(NeuPalette.textSecondary)
-                                .padding(.horizontal, 8)
-                        } else {
-                            ForEach(appModel.sessionsStore.sessions) { session in
-                                sessionRow(session)
-                            }
-                        }
-                    }
-                }
-                .padding(16)
-            }
+        .sheet(isPresented: $isPresentingQuickLaunch) {
+            QuickLaunchSheet()
+                .environment(appModel)
         }
-        .navigationTitle("AgentBoard")
     }
 
-    private func sessionRow(_ session: AgentSession) -> some View {
-        HStack(spacing: 8) {
-            Circle()
-                .fill(sessionStatusColor(session.status))
-                .frame(width: 8, height: 8)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(session.source)
-                    .font(.subheadline)
-                    .foregroundStyle(NeuPalette.textPrimary)
-                    .lineLimit(1)
-                if let item = session.workItem {
-                    Text(item.issueReference)
-                        .font(.caption)
-                        .foregroundStyle(NeuPalette.textSecondary)
+    private var titleBar: some View {
+        HStack(spacing: 0) {
+            HStack(spacing: 10) {
+                #if os(macOS)
+                    HStack(spacing: 6) {
+                        Circle().fill(Color(red: 1.0, green: 0.38, blue: 0.35))
+                        Circle().fill(Color(red: 1.0, green: 0.74, blue: 0.18))
+                        Circle().fill(Color(red: 0.16, green: 0.79, blue: 0.25))
+                    }
+                    .frame(width: 48)
+                #endif
+
+                HStack(spacing: 6) {
+                    Image(systemName: "cube.transparent")
+                        .font(.system(size: 11, weight: .bold))
+                    Text("AB")
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
                 }
-            }
-            Spacer()
-        }
-        .padding(12)
-        .accessibilityIdentifier("desktop_sidebar_session_\(session.id)")
-    }
+                .foregroundStyle(NeuPalette.background)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .background(
+                    LinearGradient(
+                        colors: [NeuPalette.accentCyanBright, NeuPalette.accentCyan.opacity(0.82)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
 
-    private func sessionStatusColor(_ status: AgentSessionStatus) -> Color {
-        switch status {
-        case .running: .green
-        case .idle: .blue
-        case .stopped: NeuPalette.textSecondary
-        case .error: .red
+                Image(systemName: "sidebar.left")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(NeuPalette.textTertiary)
+            }
+            .frame(width: 230, alignment: .leading)
+            .padding(.horizontal, 14)
+
+            HStack(spacing: 12) {
+                Text("AgentBoard")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(NeuPalette.textSecondary)
+                Text("-")
+                    .font(.caption.monospaced())
+                    .foregroundStyle(NeuPalette.textDisabled)
+                Text(activeRepositoryTitle)
+                    .font(.caption.monospaced())
+                    .foregroundStyle(NeuPalette.textTertiary)
+            }
+            .frame(maxWidth: .infinity)
+
+            HStack(spacing: 10) {
+                connectionStatusChip
+                Button {
+                    Task<Void, Never> { await appModel.refreshAll() }
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 12, weight: .semibold))
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(NeuPalette.textTertiary)
+                .accessibilityIdentifier("desktop_button_refresh")
+            }
+            .frame(width: 360, alignment: .trailing)
+            .padding(.horizontal, 14)
+        }
+        .background(
+            LinearGradient(
+                colors: [NeuPalette.surface, NeuPalette.background],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        )
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(NeuPalette.borderSoft)
+                .frame(height: 1)
         }
     }
 
@@ -189,15 +154,21 @@ struct DesktopRootView: View {
 
     @ViewBuilder
     private var centerPanel: some View {
-        switch activeTab ?? .work {
-        case .work:
-            WorkScreen()
-        case .agents:
-            AgentsScreen()
-        case .sessions:
-            SessionsScreen()
-        case .settings:
-            SettingsScreen()
+        if let session = activeSessionTerminal {
+            SessionTerminalView(session: session) {
+                activeSessionTerminal = nil
+            }
+        } else {
+            switch activeTab ?? .work {
+            case .work:
+                WorkScreen()
+            case .agents:
+                AgentsScreen()
+            case .sessions:
+                SessionsScreen()
+            case .settings:
+                SettingsScreen()
+            }
         }
     }
 
@@ -207,22 +178,37 @@ struct DesktopRootView: View {
         HStack(spacing: 6) {
             Circle()
                 .fill(connectionDotColor)
-                .frame(width: 8, height: 8)
-            Text(appModel.chatStore.connectionState.title)
-                .font(.caption.weight(.bold))
-                .foregroundStyle(NeuPalette.textSecondary)
+                .frame(width: 7, height: 7)
+            Text(connectionStatusText)
+                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                .foregroundStyle(connectionDotColor)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .neuRecessed(cornerRadius: 12, depth: 3)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(NeuPalette.inset)
+        .clipShape(Capsule())
     }
 
     private var connectionDotColor: Color {
         switch appModel.chatStore.connectionState {
-        case .connected: .green
+        case .connected: NeuPalette.statusSuccess
         case .connecting, .reconnecting: NeuPalette.accentOrange
         case .failed: .red
         case .disconnected: NeuPalette.textSecondary
+        }
+    }
+
+    private var activeRepositoryTitle: String {
+        appModel.settingsStore.repositories.first?.fullName ?? "no repository"
+    }
+
+    private var connectionStatusText: String {
+        switch appModel.chatStore.connectionState {
+        case .connected: "LIVE"
+        case .connecting: "CONNECTING"
+        case .reconnecting: "RECONNECTING"
+        case .failed: "ERROR"
+        case .disconnected: "OFFLINE"
         }
     }
 }

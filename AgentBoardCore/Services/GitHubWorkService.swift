@@ -25,6 +25,28 @@ public struct GitHubIssuePatch: Sendable {
     }
 }
 
+public struct GitHubIssueDraft: Sendable {
+    public let title: String
+    public let body: String
+    public let labels: [String]
+    public let assignees: [String]
+    public let milestone: Int?
+
+    public init(
+        title: String,
+        body: String,
+        labels: [String],
+        assignees: [String],
+        milestone: Int?
+    ) {
+        self.title = title
+        self.body = body
+        self.labels = labels
+        self.assignees = assignees
+        self.milestone = milestone
+    }
+}
+
 public actor GitHubWorkService {
     public enum ServiceError: LocalizedError, Sendable {
         case unauthorized
@@ -120,11 +142,7 @@ public actor GitHubWorkService {
 
     public func createIssue(
         repository: ConfiguredRepository,
-        title: String,
-        body: String,
-        labels: [String],
-        assignees: [String],
-        milestone: Int?
+        draft: GitHubIssueDraft
     ) async throws -> WorkItem {
         guard let token, !token.isEmpty else {
             throw ServiceError.missingConfiguration
@@ -136,12 +154,12 @@ public actor GitHubWorkService {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         var payload: [String: Any] = [
-            "title": title,
-            "body": body,
-            "labels": labels,
-            "assignees": assignees
+            "title": draft.title,
+            "body": draft.body,
+            "labels": draft.labels,
+            "assignees": draft.assignees
         ]
-        if let milestone {
+        if let milestone = draft.milestone {
             payload["milestone"] = milestone
         }
         request.httpBody = try JSONSerialization.data(withJSONObject: payload)
@@ -190,12 +208,12 @@ public actor GitHubWorkService {
         } catch let error as ServiceError {
             switch error {
             case .notFound, .unauthorized:
-#if os(macOS)
-                // Token may be missing scopes or misconfigured — fall back to gh CLI
-                return try await fetchIssuesViaCLI(for: repository)
-#else
-                throw error
-#endif
+                #if os(macOS)
+                    // Token may be missing scopes or misconfigured — fall back to gh CLI
+                    return try await fetchIssuesViaCLI(for: repository)
+                #else
+                    throw error
+                #endif
             default:
                 throw error
             }
@@ -234,38 +252,38 @@ public actor GitHubWorkService {
             .map { map(issue: $0, repository: repository) }
     }
 
-#if os(macOS)
-    private func fetchIssuesViaCLI(
-        for repository: ConfiguredRepository
-    ) async throws -> [WorkItem] {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/local/bin/gh")
-        process.arguments = [
-            "api", "repos/\(repository.owner)/\(repository.name)/issues",
-            "-f", "state=all",
-            "-f", "per_page=100",
-            "-q", "[.[] | select(.pull_request == null)]"
-        ]
+    #if os(macOS)
+        private func fetchIssuesViaCLI(
+            for repository: ConfiguredRepository
+        ) async throws -> [WorkItem] {
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/local/bin/gh")
+            process.arguments = [
+                "api", "repos/\(repository.owner)/\(repository.name)/issues",
+                "-f", "state=all",
+                "-f", "per_page=100",
+                "-q", "[.[] | select(.pull_request == null)]"
+            ]
 
-        let stdout = Pipe()
-        let stderr = Pipe()
-        process.standardOutput = stdout
-        process.standardError = stderr
+            let stdout = Pipe()
+            let stderr = Pipe()
+            process.standardOutput = stdout
+            process.standardError = stderr
 
-        try process.run()
-        process.waitUntilExit()
+            try process.run()
+            process.waitUntilExit()
 
-        guard process.terminationStatus == 0 else {
-            throw ServiceError.notFound
+            guard process.terminationStatus == 0 else {
+                throw ServiceError.notFound
+            }
+
+            let data = stdout.fileHandleForReading.readDataToEndOfFile()
+            guard !data.isEmpty else { return [] }
+
+            let issues = try JSONDecoder().decode([RawIssue].self, from: data)
+            return issues.map { map(issue: $0, repository: repository) }
         }
-
-        let data = stdout.fileHandleForReading.readDataToEndOfFile()
-        guard !data.isEmpty else { return [] }
-
-        let issues = try JSONDecoder().decode([RawIssue].self, from: data)
-        return issues.map { map(issue: $0, repository: repository) }
-    }
-#endif
+    #endif
 
     private func map(issue: RawIssue, repository: ConfiguredRepository) -> WorkItem {
         let labels = issue.labels.map(\.name)
@@ -289,8 +307,9 @@ public actor GitHubWorkService {
     }
 
     private func derivedStatus(issueState: String, labels: [String]) -> WorkState {
+        // Closed issues have no label-based status — they're just closed
         if issueState == "closed" {
-            return .done
+            return .ready // Default when reopened
         }
 
         for label in labels {
@@ -299,30 +318,31 @@ public actor GitHubWorkService {
                 return .blocked
             case "status:in-progress", "status:in_progress", "status:doing":
                 return .inProgress
-            case "status:done", "status:closed":
-                return .done
-            case "status:open", "status:ready":
-                return .open
+            case "status:review", "status:in-review":
+                return .review
+            case "status:ready", "status:open":
+                return .ready
             default:
                 continue
             }
         }
 
-        return .open
+        return .ready
     }
 
     private func derivedPriority(labels: [String]) -> WorkPriority {
         let normalized = labels.map { $0.lowercased() }
-        if normalized.contains("priority:p0") || normalized.contains("priority:urgent") {
-            return .critical
+        if normalized.contains("priority:p0") || normalized.contains("priority:critical") || normalized
+            .contains("priority:urgent") {
+            return .p0
         }
         if normalized.contains("priority:p1") || normalized.contains("priority:high") {
-            return .high
+            return .p1
         }
         if normalized.contains("priority:p3") || normalized.contains("priority:low") {
-            return .low
+            return .p3
         }
-        return .medium
+        return .p2
     }
 
     private func bodySummary(from body: String?) -> String {

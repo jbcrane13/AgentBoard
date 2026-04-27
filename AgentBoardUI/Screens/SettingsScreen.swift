@@ -15,7 +15,9 @@ struct SettingsScreen: View {
     @State private var exportedFileURL: URL?
     @State private var lastImportedURL: URL?
 
-    private var isCompact: Bool { hSizeClass == .compact }
+    private var isCompact: Bool {
+        hSizeClass == .compact
+    }
 
     var body: some View {
         @Bindable var settingsStore = appModel.settingsStore
@@ -29,6 +31,7 @@ struct SettingsScreen: View {
 
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 32) {
+                        appearanceSection(settingsStore: settingsStore)
                         hermesSection(settingsStore: settingsStore)
                         githubSection(settingsStore: settingsStore)
                         companionSection(settingsStore: settingsStore)
@@ -42,6 +45,32 @@ struct SettingsScreen: View {
         }
         .agentBoardNavigationBarHidden(true)
         .agentBoardKeyboardDismissToolbar()
+    }
+
+    // MARK: - Appearance
+
+    private func appearanceSection(settingsStore: SettingsStore) -> some View {
+        @Bindable var s = settingsStore
+        return VStack(alignment: .leading, spacing: 16) {
+            sectionHeader("APPEARANCE")
+            VStack(alignment: .leading, spacing: 16) {
+                Picker("Theme", selection: $s.designTheme) {
+                    ForEach(AgentBoardDesignTheme.allCases) { theme in
+                        Text(theme.displayName).tag(theme)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .tint(NeuPalette.accentCyan)
+
+                HStack(spacing: 10) {
+                    ForEach(AgentBoardDesignTheme.allCases) { theme in
+                        SettingsThemeSwatch(theme: theme, isSelected: s.designTheme == theme)
+                    }
+                }
+            }
+            .padding(24)
+            .neuExtruded(cornerRadius: 24, elevation: 8)
+        }
     }
 
     // MARK: - Hermes Gateway
@@ -137,8 +166,8 @@ struct SettingsScreen: View {
                         repositoryOwner = ""
                         repositoryName = ""
                     } label: { Image(systemName: "plus") }
-                    .buttonStyle(NeuButtonTarget(isAccent: !(repositoryOwner.isEmpty || repositoryName.isEmpty)))
-                    .disabled(repositoryOwner.isEmpty || repositoryName.isEmpty)
+                        .buttonStyle(NeuButtonTarget(isAccent: !(repositoryOwner.isEmpty || repositoryName.isEmpty)))
+                        .disabled(repositoryOwner.isEmpty || repositoryName.isEmpty)
                 }
             }
             .padding(24)
@@ -173,7 +202,6 @@ struct SettingsScreen: View {
 
     // MARK: - Backup and Restore
 
-    @ViewBuilder
     private var backupSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             sectionHeader("BACKUP AND RESTORE")
@@ -377,13 +405,11 @@ struct SettingsScreen: View {
     private var header: some View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("SETTINGS")
-                    .font(.caption.weight(.bold))
-                    .tracking(2)
-                    .foregroundStyle(NeuPalette.accentCyan)
+                AgentBoardEyebrow(text: "SETTINGS")
                 Text("Configuration")
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .font(.system(size: 32, weight: .bold))
                     .foregroundStyle(NeuPalette.textPrimary)
+                    .tracking(-0.8)
             }
             Spacer()
         }
@@ -395,6 +421,42 @@ struct SettingsScreen: View {
             .tracking(1)
             .foregroundStyle(NeuPalette.textSecondary)
             .padding(.horizontal, 8)
+    }
+}
+
+private struct SettingsThemeSwatch: View {
+    let theme: AgentBoardDesignTheme
+    let isSelected: Bool
+
+    var body: some View {
+        let palette = NeuTheme.preset(theme)
+        return HStack(spacing: 10) {
+            HStack(spacing: -5) {
+                Circle()
+                    .fill(palette.background)
+                    .frame(width: 20, height: 20)
+                Circle()
+                    .fill(palette.surfaceRaised)
+                    .frame(width: 20, height: 20)
+                Circle()
+                    .fill(palette.primaryAccentBright)
+                    .frame(width: 20, height: 20)
+            }
+            Text(theme.displayName)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(isSelected ? NeuPalette.textPrimary : NeuPalette.textSecondary)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(NeuPalette.inset)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(
+                    isSelected ? palette.primaryAccentBright : NeuPalette.borderSoft,
+                    lineWidth: isSelected ? 1.5 : 1
+                )
+        }
     }
 }
 

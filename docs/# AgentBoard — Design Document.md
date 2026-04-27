@@ -92,7 +92,7 @@ Represents a running (or completed) coding agent session.
             -Opencode
   -  prompt can be preloaded with Ticket context, and workflow preset (Ralph Loop, Superpowers,  Custom)
   -session launches into swiftterm window taking over center board view
-  - session can me minimized to left panel where it shows session name and a status indicatior
-  -clicking on a session in the left panel casues it to expand over center bopard. 
+  - session can me minimized to left panel where it shows session name and a status indicator
+  -clicking on a session in the left panel causes it to expand over center board. 
 
 ---

@@ -40,9 +40,9 @@ struct WorkScreen: View {
 
             VStack(alignment: .leading, spacing: 0) {
                 header
-                    .padding(.horizontal, isCompact ? 16 : 24)
-                    .padding(.top, isCompact ? 16 : 24)
-                    .padding(.bottom, 16)
+                    .padding(.horizontal, isCompact ? 22 : 28)
+                    .padding(.top, isCompact ? 20 : 20)
+                    .padding(.bottom, 14)
 
                 // macOS always shows board layout; status banner shown when empty
                 if isMac || (!isCompact && layoutMode == .board) {
@@ -88,29 +88,37 @@ struct WorkScreen: View {
     }
 
     private var groupedFilteredItems: [(state: WorkState, items: [WorkItem])] {
-        // Only show Open, In Progress, Done columns (skip Blocked)
-        [.open, .inProgress, .done].map { state in
+        // Only show Ready, In Progress, Review columns (skip Blocked)
+        [.ready, .inProgress, .review].map { state in
             (state, filteredItems.filter { $0.status == state })
         }
     }
 
     private var header: some View {
-        HStack(alignment: .top) {
+        HStack(alignment: .bottom) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("WORKSPACE")
-                    .font(.caption.weight(.bold))
-                    .tracking(2)
-                    .foregroundStyle(NeuPalette.accentCyan)
+                AgentBoardEyebrow(text: "WORKSPACE")
                 Text("GitHub Issues")
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .font(.system(size: isCompact ? 34 : 30, weight: .bold))
                     .foregroundStyle(NeuPalette.textPrimary)
+                    .tracking(-0.8)
             }
             Spacer()
-            Button { isPresentingCreate = true } label: {
-                Image(systemName: "plus")
+            HStack(spacing: 8) {
+                filterRepositoryPicker
+                Button {} label: {
+                    Label("Filter", systemImage: "line.3.horizontal.decrease")
+                }
+                .buttonStyle(NeuButtonTarget(isAccent: false))
+
+                Button { isPresentingCreate = true } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 14, weight: .bold))
+                        .frame(width: 20, height: 20)
+                }
+                .buttonStyle(NeuButtonTarget(isAccent: true))
+                .disabled(!appModel.settingsStore.isGitHubConfigured)
             }
-            .buttonStyle(NeuButtonTarget(isAccent: true))
-            .disabled(!appModel.settingsStore.isGitHubConfigured)
         }
     }
 
@@ -124,50 +132,79 @@ struct WorkScreen: View {
                     }
                 }
                 .tint(NeuPalette.accentOrange)
+            } else {
+                AgentBoardPill(text: "All repos", color: NeuPalette.accentOrange)
             }
         }
     }
 
     private var boardLayout: some View {
-        ScrollView(.horizontal, showsIndicators: true) {
-            HStack(alignment: .top, spacing: 24) {
-                ForEach(groupedFilteredItems, id: \.state) { column in
-                    VStack(alignment: .leading, spacing: 16) {
-                        HStack {
-                            Text(column.state.title.uppercased())
-                                .font(.caption.weight(.bold))
-                                .tracking(1)
-                                .foregroundStyle(NeuPalette.textSecondary)
-                            Spacer()
-                            Text("\(column.items.count)")
-                                .font(.caption.weight(.bold))
-                                .foregroundStyle(NeuPalette.textSecondary)
-                        }
-                        .padding(.horizontal, 4)
+        GeometryReader { proxy in
+            let columnWidth = max((proxy.size.width - 32) / 3, 190)
+            ScrollView(.horizontal, showsIndicators: true) {
+                HStack(alignment: .top, spacing: 16) {
+                    ForEach(groupedFilteredItems, id: \.state) { column in
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack(spacing: 8) {
+                                Circle()
+                                    .fill(workStateColor(column.state))
+                                    .frame(width: 7, height: 7)
+                                    .shadow(color: workStateColor(column.state).opacity(0.6), radius: 8)
+                                Text(column.state.designColumnTitle)
+                                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                                    .tracking(1.2)
+                                    .foregroundStyle(NeuPalette.textPrimary)
+                                Text("\(column.items.count)")
+                                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                    .foregroundStyle(NeuPalette.textTertiary)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(NeuPalette.inset)
+                                    .clipShape(Capsule())
+                                Spacer()
+                                Image(systemName: "plus")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundStyle(NeuPalette.textTertiary)
+                            }
+                            .padding(.horizontal, 6)
+                            .padding(.bottom, 10)
+                            .overlay(alignment: .bottom) {
+                                Rectangle()
+                                    .fill(NeuPalette.borderSoft)
+                                    .frame(height: 1)
+                            }
 
-                        if column.items.isEmpty {
-                            Text("None")
-                                .font(.subheadline)
-                                .foregroundStyle(NeuPalette.textSecondary)
-                                .frame(maxWidth: .infinity, alignment: .center)
-                                .padding(.vertical, 24)
-                        } else {
-                            ScrollView(showsIndicators: false) {
-                                LazyVStack(spacing: 16) {
-                                    ForEach(column.items) { item in
-                                        WorkCardNeu(item: item) { selectedItem = item }
+                            if column.items.isEmpty {
+                                Text("None")
+                                    .font(.subheadline)
+                                    .foregroundStyle(NeuPalette.textTertiary)
+                                    .frame(maxWidth: .infinity, alignment: .center)
+                                    .padding(.vertical, 24)
+                            } else {
+                                ScrollView(showsIndicators: false) {
+                                    LazyVStack(spacing: 8) {
+                                        ForEach(column.items) { item in
+                                            WorkCardNeu(item: item) { selectedItem = item }
+                                        }
                                     }
+                                    .padding(.bottom, 12)
                                 }
-                                .padding(.bottom, 24)
                             }
                         }
+                        .frame(width: columnWidth, alignment: .topLeading)
+                        .padding(12)
+                        .background(NeuPalette.background.opacity(0.62))
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .stroke(NeuPalette.borderSoft, lineWidth: 1)
+                        }
                     }
-                    .frame(width: 320, alignment: .topLeading)
-                    .padding(20)
-                    .neuExtruded(cornerRadius: 32, elevation: 12)
                 }
+                .frame(minWidth: proxy.size.width, alignment: .topLeading)
+                .padding(.horizontal, 28)
+                .padding(.bottom, 28)
             }
-            .padding(24)
         }
     }
 
@@ -201,8 +238,10 @@ private struct WorkCardNeu: View {
             VStack(alignment: .leading, spacing: 16) {
                 HStack(alignment: .top) {
                     Text(item.issueReference)
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(NeuPalette.accentCyan)
+                        .font(.system(size: 10.5, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(NeuPalette.accentCyanBright)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
 
                     Spacer(minLength: 8)
 
@@ -213,16 +252,16 @@ private struct WorkCardNeu: View {
                 }
 
                 Text(item.title)
-                    .font(.body.weight(.medium))
+                    .font(.system(size: 12.5, weight: .semibold))
                     .foregroundStyle(NeuPalette.textPrimary)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
 
                 if !item.bodySummary.isEmpty {
                     Text(item.bodySummary)
-                        .font(.subheadline)
-                        .foregroundStyle(NeuPalette.textSecondary)
-                        .lineLimit(2)
+                        .font(.system(size: 11.5))
+                        .foregroundStyle(NeuPalette.textTertiary)
+                        .lineLimit(1)
                         .multilineTextAlignment(.leading)
                 }
 
@@ -256,8 +295,8 @@ private struct WorkCardNeu: View {
                         .foregroundStyle(NeuPalette.textSecondary)
                 }
             }
-            .padding(20)
-            .neuExtruded(cornerRadius: 24, elevation: 8)
+            .padding(10)
+            .neuExtruded(cornerRadius: 14, elevation: 7)
         }
         .buttonStyle(.plain)
     }
@@ -267,8 +306,7 @@ struct WorkStatusNeu: View {
     let state: WorkState
     var body: some View {
         Circle()
-            .fill(state == .done ? NeuPalette.accentCyan : state == .inProgress ? NeuPalette
-                .accentOrange : state == .blocked ? .red : NeuPalette.textSecondary)
+            .fill(workStateColor(state))
             .frame(width: 10, height: 10)
     }
 }
@@ -278,7 +316,26 @@ struct PriorityNeu: View {
     var body: some View {
         Image(systemName: "flag.fill")
             .font(.system(size: 10))
-            .foregroundStyle(priority == .critical ? .red : priority == .high ? NeuPalette.accentOrange : NeuPalette
-                .textSecondary)
+            .foregroundStyle(priorityColor(priority))
+    }
+}
+
+@MainActor
+private func workStateColor(_ state: WorkState) -> Color {
+    switch state {
+    case .ready: NeuPalette.statusBlue
+    case .inProgress: NeuPalette.accentOrange
+    case .blocked: NeuPalette.accentCoral
+    case .review: .purple
+    }
+}
+
+@MainActor
+private func priorityColor(_ priority: WorkPriority) -> Color {
+    switch priority {
+    case .p0: NeuPalette.accentCoral
+    case .p1: NeuPalette.accentCoral.opacity(0.82)
+    case .p2: NeuPalette.accentOrange
+    case .p3: NeuPalette.textTertiary
     }
 }

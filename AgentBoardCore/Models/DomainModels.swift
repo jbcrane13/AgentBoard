@@ -127,10 +127,10 @@ public enum ChatConnectionState: String, Codable, CaseIterable, Sendable {
 }
 
 public enum WorkState: String, Codable, CaseIterable, Identifiable, Sendable {
-    case open
+    case ready
     case inProgress
     case blocked
-    case done
+    case review
 
     public var id: String {
         rawValue
@@ -138,32 +138,46 @@ public enum WorkState: String, Codable, CaseIterable, Identifiable, Sendable {
 
     public var title: String {
         switch self {
-        case .open: "Open"
+        case .ready: "Ready"
         case .inProgress: "In Progress"
         case .blocked: "Blocked"
-        case .done: "Done"
+        case .review: "Review"
         }
     }
 
     public var githubState: String {
-        self == .done ? "closed" : "open"
+        // All label-based statuses are "open" on GitHub
+        "open"
     }
 
     public var labelValue: String {
         switch self {
-        case .open: "status:open"
+        case .ready: "status:ready"
         case .inProgress: "status:in-progress"
         case .blocked: "status:blocked"
-        case .done: "status:done"
+        case .review: "status:review"
+        }
+    }
+
+    public var designColumnTitle: String {
+        switch self {
+        case .ready: "READY"
+        case .inProgress: "IN PROGRESS"
+        case .blocked: "BLOCKED"
+        case .review: "REVIEW"
         }
     }
 }
 
 public enum WorkPriority: String, Codable, CaseIterable, Identifiable, Sendable {
-    case critical = "p0"
-    case high = "p1"
-    case medium = "p2"
-    case low = "p3"
+    // swiftlint:disable:next identifier_name
+    case p0
+    // swiftlint:disable:next identifier_name
+    case p1
+    // swiftlint:disable:next identifier_name
+    case p2
+    // swiftlint:disable:next identifier_name
+    case p3
 
     public var id: String {
         rawValue
@@ -175,10 +189,10 @@ public enum WorkPriority: String, Codable, CaseIterable, Identifiable, Sendable 
 
     public var rank: Int {
         switch self {
-        case .critical: 0
-        case .high: 1
-        case .medium: 2
-        case .low: 3
+        case .p0: 0
+        case .p1: 1
+        case .p2: 2
+        case .p3: 3
         }
     }
 
@@ -339,7 +353,7 @@ public struct AgentTaskDraft: Codable, Hashable, Sendable {
         workItem: WorkReference,
         title: String,
         status: AgentTaskState = .backlog,
-        priority: WorkPriority = .medium,
+        priority: WorkPriority = .p2,
         assignedAgent: String,
         sessionID: String? = nil,
         note: String = ""
@@ -511,6 +525,18 @@ public struct AgentBoardSettings: Codable, Hashable, Sendable {
     public var companionURL: String
     public var repositories: [ConfiguredRepository]
     public var autoRefreshInterval: TimeInterval
+    public var designTheme: AgentBoardDesignTheme
+
+    private enum CodingKeys: String, CodingKey {
+        case hermesGatewayURL
+        case hermesModelID
+        case hermesProfiles
+        case selectedHermesProfileID
+        case companionURL
+        case repositories
+        case autoRefreshInterval
+        case designTheme
+    }
 
     public init(
         hermesGatewayURL: String = "http://127.0.0.1:8642",
@@ -519,7 +545,8 @@ public struct AgentBoardSettings: Codable, Hashable, Sendable {
         selectedHermesProfileID: String? = nil,
         companionURL: String = "http://127.0.0.1:8742",
         repositories: [ConfiguredRepository] = [],
-        autoRefreshInterval: TimeInterval = 30
+        autoRefreshInterval: TimeInterval = 30,
+        designTheme: AgentBoardDesignTheme = .blue
     ) {
         self.hermesGatewayURL = hermesGatewayURL
         self.hermesModelID = hermesModelID
@@ -528,6 +555,21 @@ public struct AgentBoardSettings: Codable, Hashable, Sendable {
         self.companionURL = companionURL
         self.repositories = repositories
         self.autoRefreshInterval = autoRefreshInterval
+        self.designTheme = designTheme
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        hermesGatewayURL = try container.decodeIfPresent(String.self, forKey: .hermesGatewayURL)
+            ?? "http://127.0.0.1:8642"
+        hermesModelID = try container.decodeIfPresent(String.self, forKey: .hermesModelID)
+        hermesProfiles = try container.decodeIfPresent([HermesProfile].self, forKey: .hermesProfiles)
+        selectedHermesProfileID = try container.decodeIfPresent(String.self, forKey: .selectedHermesProfileID)
+        companionURL = try container.decodeIfPresent(String.self, forKey: .companionURL)
+            ?? "http://127.0.0.1:8742"
+        repositories = try container.decodeIfPresent([ConfiguredRepository].self, forKey: .repositories) ?? []
+        autoRefreshInterval = try container.decodeIfPresent(TimeInterval.self, forKey: .autoRefreshInterval) ?? 30
+        designTheme = try container.decodeIfPresent(AgentBoardDesignTheme.self, forKey: .designTheme) ?? .blue
     }
 }
 
@@ -544,37 +586,5 @@ public struct AgentBoardSecrets: Codable, Equatable, Sendable {
         self.hermesAPIKey = hermesAPIKey
         self.githubToken = githubToken
         self.companionToken = companionToken
-    }
-}
-
-public enum AppDestination: String, CaseIterable, Identifiable, Sendable {
-    case chat
-    case work
-    case agents
-    case sessions
-    case settings
-
-    public var id: String {
-        rawValue
-    }
-
-    public var title: String {
-        switch self {
-        case .chat: "Chat"
-        case .work: "Work"
-        case .agents: "Agents"
-        case .sessions: "Sessions"
-        case .settings: "Settings"
-        }
-    }
-
-    public var systemImage: String {
-        switch self {
-        case .chat: "bubble.left.and.bubble.right"
-        case .work: "square.grid.2x2"
-        case .agents: "person.3.sequence"
-        case .sessions: "bolt.horizontal.circle"
-        case .settings: "slider.horizontal.3"
-        }
     }
 }
