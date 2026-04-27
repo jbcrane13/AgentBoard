@@ -10,10 +10,10 @@ struct IssueDetailSheet: View {
     @State private var isEditing = false
     @State private var editTitle = ""
     @State private var editBody = ""
-    @State private var editLabels = ""
-    @State private var editAssignees = ""
-    @State private var editState: WorkState = .open
-    @State private var editPriority: WorkPriority = .medium
+    @State private var editType: IssueType = .task
+    @State private var editPriority: WorkPriority = .p2
+    @State private var editStatus: WorkState = .ready
+    @State private var editAgent: AgentName?
     @State private var editMilestone = ""
     @State private var isSaving = false
     @State private var isPresentingLaunchSession = false
@@ -58,32 +58,32 @@ struct IssueDetailSheet: View {
         }
     }
 
+    // MARK: - Read View
+
     private var readView: some View {
         VStack(alignment: .leading, spacing: 24) {
+            // Header card
             VStack(alignment: .leading, spacing: 12) {
                 Text(item.title)
                     .font(.title2.weight(.bold))
                     .foregroundStyle(NeuPalette.textPrimary)
-                HStack(spacing: 8) {
+
+                // Structured pills
+                FlowLayout(spacing: 8) {
                     WorkStatusPill(state: item.status)
                     PriorityPill(priority: item.priority)
-                }
-                if !item.assignees.isEmpty {
-                    Label(item.assignees.joined(separator: ", "), systemImage: "person.fill")
-                        .font(.subheadline)
-                        .foregroundStyle(NeuPalette.textSecondary)
-                }
-                if let milestone = item.milestone {
-                    Label(milestone.title, systemImage: "flag")
-                        .font(.subheadline)
-                        .foregroundStyle(NeuPalette.accentOrange)
+                    if let typeLabel = parsedTypeLabel {
+                        LabelPill(text: typeLabel, color: .purple)
+                    }
+                    if let agentLabel = parsedAgentLabel {
+                        LabelPill(text: agentLabel, color: .green)
+                    }
                 }
             }
             .padding(24)
             .neuExtruded(cornerRadius: 24, elevation: 8)
 
             descriptionCard
-            labelsCard
             launchSessionCard
             timelineCard
         }
@@ -100,29 +100,6 @@ struct IssueDetailSheet: View {
                     .font(.body)
                     .foregroundStyle(NeuPalette.textSecondary)
                     .textSelection(.enabled)
-            }
-            .padding(24)
-            .neuExtruded(cornerRadius: 24, elevation: 8)
-        }
-    }
-
-    @ViewBuilder
-    private var labelsCard: some View {
-        if !item.labels.isEmpty {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Labels")
-                    .font(.headline)
-                    .foregroundStyle(NeuPalette.textPrimary)
-                FlowLayout(spacing: 8) {
-                    ForEach(item.labels, id: \.self) { label in
-                        Text(label)
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(NeuPalette.accentCyan)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .neuRecessed(cornerRadius: 12, depth: 3)
-                    }
-                }
             }
             .padding(24)
             .neuExtruded(cornerRadius: 24, elevation: 8)
@@ -191,6 +168,8 @@ struct IssueDetailSheet: View {
         .neuExtruded(cornerRadius: 24, elevation: 8)
     }
 
+    // MARK: - Edit Form
+
     private var editForm: some View {
         VStack(alignment: .leading, spacing: 24) {
             VStack(alignment: .leading, spacing: 20) {
@@ -199,11 +178,13 @@ struct IssueDetailSheet: View {
                     .tracking(1)
                     .foregroundStyle(NeuPalette.textSecondary)
 
+                // Title
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Title").font(.headline).foregroundStyle(NeuPalette.textPrimary)
                     NeuTextField(placeholder: "Issue title", text: $editTitle)
                 }
 
+                // Description
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Description").font(.headline).foregroundStyle(NeuPalette.textPrimary)
                     TextEditor(text: $editBody)
@@ -214,41 +195,71 @@ struct IssueDetailSheet: View {
                         .foregroundStyle(NeuPalette.textPrimary)
                 }
 
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Labels").font(.headline).foregroundStyle(NeuPalette.textPrimary)
-                    NeuTextField(placeholder: "bug, priority:p1", text: $editLabels)
-                }
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Assignees").font(.headline).foregroundStyle(NeuPalette.textPrimary)
-                    NeuTextField(placeholder: "alice, bob", text: $editAssignees)
-                }
-
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Status").font(.headline).foregroundStyle(NeuPalette.textPrimary)
-                    Picker("Status", selection: $editState) {
-                        ForEach(WorkState.allCases) { state in
-                            Text(state.title).tag(state)
+                // Type (required)
+                editDropdown(label: "Type", required: true) {
+                    Picker("Type", selection: $editType) {
+                        ForEach(IssueType.allCases) { type in
+                            Text(type.title).tag(type)
                         }
                     }
-                    .pickerStyle(.segmented)
-                    .tint(NeuPalette.accentCyan)
+                    .pickerStyle(.menu)
                 }
 
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Priority").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                // Priority (required)
+                editDropdown(label: "Priority", required: true) {
                     Picker("Priority", selection: $editPriority) {
                         ForEach(WorkPriority.allCases) { priority in
                             Text(priority.title).tag(priority)
                         }
                     }
-                    .pickerStyle(.segmented)
-                    .tint(NeuPalette.accentOrange)
+                    .pickerStyle(.menu)
                 }
 
+                // Status (required)
+                editDropdown(label: "Status", required: true) {
+                    Picker("Status", selection: $editStatus) {
+                        ForEach(WorkState.allCases) { state in
+                            Text(state.title).tag(state)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                }
+
+                // Agent (optional)
+                editDropdown(label: "Agent", required: false) {
+                    Picker("Agent", selection: $editAgent) {
+                        Text("None").tag(AgentName?.none)
+                        ForEach(AgentName.allCases) { agent in
+                            Text(agent.title).tag(Optional(agent))
+                        }
+                    }
+                    .pickerStyle(.menu)
+                }
+
+                // Milestone (optional)
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Milestone Number").font(.headline).foregroundStyle(NeuPalette.textPrimary)
-                    NeuTextField(placeholder: "Optional milestone number", text: $editMilestone)
+                    Text("Milestone").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                    NeuTextField(placeholder: "Optional milestone", text: $editMilestone)
+                }
+
+                // Attachment (optional)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Attachment").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                    Button {
+                        // TODO: file picker integration
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "paperclip")
+                            Text("Add attachment…")
+                        }
+                        .font(.subheadline)
+                        .foregroundStyle(NeuPalette.textSecondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .neuRecessed(cornerRadius: 16, depth: 6)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
             .padding(24)
@@ -262,42 +273,101 @@ struct IssueDetailSheet: View {
         }
     }
 
+    // MARK: - Actions
+
     private func beginEditing() {
         editTitle = item.title
         editBody = item.bodySummary
-        editLabels = item.labels.joined(separator: ", ")
-        editAssignees = item.assignees.joined(separator: ", ")
-        editState = item.status
+        editType = parsedType ?? .task
         editPriority = item.priority
+        editStatus = item.status
+        editAgent = parsedAgent
         editMilestone = item.milestone.map { String($0.number) } ?? ""
         isEditing = true
     }
 
     private func save() {
         isSaving = true
-        let labels = editLabels.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
-            .filter { !$0.lowercased().hasPrefix("status:") && !$0.lowercased().hasPrefix("priority:") }
-        let mergedLabels = Array(Set(labels + [editState.labelValue, editPriority.labelValue])).sorted()
-        let assignees = editAssignees.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
-        let milestone = Int(editMilestone.trimmingCharacters(in: .whitespacesAndNewlines))
+
+        let mergedLabels = [
+            editType.labelValue,
+            editPriority.labelValue,
+            editStatus.labelValue
+        ] + (editAgent.map { [$0.labelValue] } ?? [])
+
         Task {
             await appModel.workStore.updateIssue(
                 item,
                 title: editTitle.trimmedOrNil,
                 body: editBody.trimmedOrNil,
-                labels: mergedLabels,
-                assignees: assignees,
-                milestone: milestone,
-                state: editState
+                labels: mergedLabels.sorted(),
+                assignees: [],
+                milestone: Int(editMilestone.trimmingCharacters(in: .whitespacesAndNewlines)),
+                state: editStatus
             )
             isSaving = false
             isEditing = false
             dismiss()
         }
     }
+
+    // MARK: - Label Parsing Helpers
+
+    /// Parse the issue's labels into a structured IssueType.
+    private var parsedType: IssueType? {
+        for label in item.labels {
+            if label.hasPrefix("type:"),
+               let type = IssueType(rawValue: String(label.dropFirst(5))) {
+                return type
+            }
+        }
+        return nil
+    }
+
+    /// Parse the issue's labels into a structured AgentName.
+    private var parsedAgent: AgentName? {
+        for label in item.labels {
+            if label.hasPrefix("agent:"),
+               let agent = AgentName(rawValue: String(label.dropFirst(6))) {
+                return agent
+            }
+        }
+        return nil
+    }
+
+    private var parsedTypeLabel: String? {
+        parsedType?.title
+    }
+
+    private var parsedAgentLabel: String? {
+        parsedAgent?.title
+    }
+
+    // MARK: - Helpers
+
+    private func editDropdown<Content: View>(
+        label: String,
+        required: Bool,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 4) {
+                Text(label).font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                if required {
+                    Text("•").foregroundStyle(.red).font(.caption)
+                }
+            }
+            content()
+                .tint(NeuPalette.accentCyan)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .neuRecessed(cornerRadius: 16, depth: 6)
+        }
+    }
 }
+
+// MARK: - Shared Layout & Pills
 
 private struct FlowLayout: Layout {
     var spacing: CGFloat = 8
@@ -338,5 +408,19 @@ private struct FlowLayout: Layout {
             x += size.width + spacing
             rowHeight = max(rowHeight, size.height)
         }
+    }
+}
+
+struct LabelPill: View {
+    let text: String
+    let color: Color
+    var body: some View {
+        Text(text)
+            .font(.caption.weight(.semibold))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(color.opacity(0.15))
+            .foregroundStyle(color)
+            .clipShape(Capsule())
     }
 }

@@ -88,8 +88,8 @@ struct WorkScreen: View {
     }
 
     private var groupedFilteredItems: [(state: WorkState, items: [WorkItem])] {
-        // Only show Open, In Progress, Done columns (skip Blocked)
-        [.open, .inProgress, .done].map { state in
+        // Only show Ready, In Progress, Review columns (skip Blocked)
+        [.ready, .inProgress, .review].map { state in
             (state, filteredItems.filter { $0.status == state })
         }
     }
@@ -323,19 +323,19 @@ struct PriorityNeu: View {
 @MainActor
 private func workStateColor(_ state: WorkState) -> Color {
     switch state {
-    case .open: NeuPalette.statusBlue
+    case .ready: NeuPalette.statusBlue
     case .inProgress: NeuPalette.accentOrange
     case .blocked: NeuPalette.accentCoral
-    case .done: NeuPalette.statusClosed
+    case .review: .purple
     }
 }
 
 @MainActor
 private func priorityColor(_ priority: WorkPriority) -> Color {
     switch priority {
-    case .critical: NeuPalette.accentCoral
-    case .high: NeuPalette.accentCoral.opacity(0.82)
-    case .medium: NeuPalette.accentOrange
-    case .low: NeuPalette.textTertiary
+    case .p0: NeuPalette.accentCoral
+    case .p1: NeuPalette.accentCoral.opacity(0.82)
+    case .p2: NeuPalette.accentOrange
+    case .p3: NeuPalette.textTertiary
     }
 }

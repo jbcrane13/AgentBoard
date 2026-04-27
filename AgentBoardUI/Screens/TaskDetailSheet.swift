@@ -12,7 +12,7 @@ struct TaskDetailSheet: View {
     @State private var editAssignedAgent = ""
     @State private var editNote = ""
     @State private var editStatus: AgentTaskState = .backlog
-    @State private var editPriority: WorkPriority = .medium
+    @State private var editPriority: WorkPriority = .p2
 
     var body: some View {
         NavigationStack {

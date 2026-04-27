@@ -127,10 +127,10 @@ public enum ChatConnectionState: String, Codable, CaseIterable, Sendable {
 }
 
 public enum WorkState: String, Codable, CaseIterable, Identifiable, Sendable {
-    case open
+    case ready
     case inProgress
     case blocked
-    case done
+    case review
 
     public var id: String {
         rawValue
@@ -138,41 +138,46 @@ public enum WorkState: String, Codable, CaseIterable, Identifiable, Sendable {
 
     public var title: String {
         switch self {
-        case .open: "Open"
+        case .ready: "Ready"
         case .inProgress: "In Progress"
         case .blocked: "Blocked"
-        case .done: "Done"
+        case .review: "Review"
         }
     }
 
     public var githubState: String {
-        self == .done ? "closed" : "open"
+        // All label-based statuses are "open" on GitHub
+        "open"
     }
 
     public var labelValue: String {
         switch self {
-        case .open: "status:open"
+        case .ready: "status:ready"
         case .inProgress: "status:in-progress"
         case .blocked: "status:blocked"
-        case .done: "status:done"
+        case .review: "status:review"
         }
     }
 
     public var designColumnTitle: String {
         switch self {
-        case .open: "OPEN"
-        case .inProgress: "IN REVIEW"
+        case .ready: "READY"
+        case .inProgress: "IN PROGRESS"
         case .blocked: "BLOCKED"
-        case .done: "CLOSED"
+        case .review: "REVIEW"
         }
     }
 }
 
 public enum WorkPriority: String, Codable, CaseIterable, Identifiable, Sendable {
-    case critical = "p0"
-    case high = "p1"
-    case medium = "p2"
-    case low = "p3"
+    // swiftlint:disable:next identifier_name
+    case p0
+    // swiftlint:disable:next identifier_name
+    case p1
+    // swiftlint:disable:next identifier_name
+    case p2
+    // swiftlint:disable:next identifier_name
+    case p3
 
     public var id: String {
         rawValue
@@ -184,10 +189,10 @@ public enum WorkPriority: String, Codable, CaseIterable, Identifiable, Sendable 
 
     public var rank: Int {
         switch self {
-        case .critical: 0
-        case .high: 1
-        case .medium: 2
-        case .low: 3
+        case .p0: 0
+        case .p1: 1
+        case .p2: 2
+        case .p3: 3
         }
     }
 
@@ -348,7 +353,7 @@ public struct AgentTaskDraft: Codable, Hashable, Sendable {
         workItem: WorkReference,
         title: String,
         status: AgentTaskState = .backlog,
-        priority: WorkPriority = .medium,
+        priority: WorkPriority = .p2,
         assignedAgent: String,
         sessionID: String? = nil,
         note: String = ""

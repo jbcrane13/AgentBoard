@@ -307,8 +307,9 @@ public actor GitHubWorkService {
     }
 
     private func derivedStatus(issueState: String, labels: [String]) -> WorkState {
+        // Closed issues have no label-based status — they're just closed
         if issueState == "closed" {
-            return .done
+            return .ready // Default when reopened
         }
 
         for label in labels {
@@ -317,30 +318,31 @@ public actor GitHubWorkService {
                 return .blocked
             case "status:in-progress", "status:in_progress", "status:doing":
                 return .inProgress
-            case "status:done", "status:closed":
-                return .done
-            case "status:open", "status:ready":
-                return .open
+            case "status:review", "status:in-review":
+                return .review
+            case "status:ready", "status:open":
+                return .ready
             default:
                 continue
             }
         }
 
-        return .open
+        return .ready
     }
 
     private func derivedPriority(labels: [String]) -> WorkPriority {
         let normalized = labels.map { $0.lowercased() }
-        if normalized.contains("priority:p0") || normalized.contains("priority:urgent") {
-            return .critical
+        if normalized.contains("priority:p0") || normalized.contains("priority:critical") || normalized
+            .contains("priority:urgent") {
+            return .p0
         }
         if normalized.contains("priority:p1") || normalized.contains("priority:high") {
-            return .high
+            return .p1
         }
         if normalized.contains("priority:p3") || normalized.contains("priority:low") {
-            return .low
+            return .p3
         }
-        return .medium
+        return .p2
     }
 
     private func bodySummary(from body: String?) -> String {

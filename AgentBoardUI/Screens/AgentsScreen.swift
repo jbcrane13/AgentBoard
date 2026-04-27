@@ -12,7 +12,7 @@ struct AgentsScreen: View {
     @State private var assignedAgent = ""
     @State private var note = ""
     @State private var status: AgentTaskState = .backlog
-    @State private var priority: WorkPriority = .medium
+    @State private var priority: WorkPriority = .p2
 
     private var groupedTasks: [(state: AgentTaskState, tasks: [AgentTask])] {
         AgentTaskState.allCases.map { state in
@@ -81,7 +81,7 @@ struct AgentsScreen: View {
                 taskTitle = ""
                 note = ""
                 status = .backlog
-                priority = .medium
+                priority = .p2
                 isPresentingCreateSheet = true
             } label: {
                 Image(systemName: "plus")

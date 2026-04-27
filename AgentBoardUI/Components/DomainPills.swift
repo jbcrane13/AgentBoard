@@ -10,19 +10,19 @@ struct WorkStatusPill: View {
 
     private var tint: Color {
         switch state {
-        case .open: NeuPalette.statusBlue
+        case .ready: NeuPalette.statusBlue
         case .inProgress: NeuPalette.accentOrange
         case .blocked: .red
-        case .done: NeuPalette.statusClosed
+        case .review: .purple
         }
     }
 
     private var systemImage: String {
         switch state {
-        case .open: "circle"
+        case .ready: "circle"
         case .inProgress: "clock.arrow.circlepath"
         case .blocked: "exclamationmark.triangle"
-        case .done: "checkmark.circle"
+        case .review: "eye"
         }
     }
 }
@@ -34,9 +34,9 @@ struct PriorityPill: View {
         BoardChip(
             label: priority.title,
             systemImage: "flag.fill",
-            tint: priority == .critical
+            tint: priority == .p0
                 ? .red
-                : priority == .high ? .red : NeuPalette.statusBlue
+                : priority == .p1 ? .orange : NeuPalette.statusBlue
         )
     }
 }

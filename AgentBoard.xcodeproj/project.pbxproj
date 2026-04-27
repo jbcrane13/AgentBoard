@@ -89,6 +89,7 @@
 		C23BCB5CF1615F000459D9E7 /* HermesGatewayClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7B2891F313F2E1804101D36 /* HermesGatewayClient.swift */; };
 		C6F5E2BE0559A438785BBCF8 /* FoundationExtras.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7ABBA014D0943EA3DA8EEB96 /* FoundationExtras.swift */; };
 		C993681ECCC427965F61D4E6 /* SlashCommandHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0FBEDFA7766F71A98B48E3 /* SlashCommandHandler.swift */; };
+		CB10A2005C3CAEE8253B7324 /* LabelSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE2A97A08B0556443C6746EC /* LabelSchema.swift */; };
 		D2F03218C8433B59598A04D5 /* GitHubWorkServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C0ED2A504BC7E3CA18E4094 /* GitHubWorkServiceTests.swift */; };
 		D5FE06BE70E2B8AFB20C40B5 /* DesktopSidebar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F7D59DE18AF7B3E0D84EF9A /* DesktopSidebar.swift */; };
 		DB87AF9AF4B7456FBDD3F011 /* SettingsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7A095E80382BA922486329A /* SettingsScreen.swift */; };
@@ -245,6 +246,7 @@
 		AAD7F0F3E84953BCE4E07275 /* DesktopRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesktopRootView.swift; sourceTree = "<group>"; };
 		AAFBB71134457F46E6F2B247 /* ChatBubble.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatBubble.swift; sourceTree = "<group>"; };
 		AC92FF930020DC82D470A002 /* AgentBoardApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentBoardApp.swift; sourceTree = "<group>"; };
+		AE2A97A08B0556443C6746EC /* LabelSchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabelSchema.swift; sourceTree = "<group>"; };
 		B56A44BC3ACA67014432FDD4 /* CompanionSQLiteStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompanionSQLiteStoreTests.swift; sourceTree = "<group>"; };
 		B7B2891F313F2E1804101D36 /* HermesGatewayClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HermesGatewayClient.swift; sourceTree = "<group>"; };
 		BA51DADAAAAFFE9B833D35E9 /* CompanionLocalProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompanionLocalProbe.swift; sourceTree = "<group>"; };
@@ -338,6 +340,7 @@
 				C9D42E5CA1B251EA0284E8C6 /* AttachmentModels.swift */,
 				E20006E3DE0937110157F9D1 /* DemoFixtures.swift */,
 				043C2F07C2F7E6DFBC165E9A /* DomainModels.swift */,
+				AE2A97A08B0556443C6746EC /* LabelSchema.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -832,6 +835,7 @@
 				C6F5E2BE0559A438785BBCF8 /* FoundationExtras.swift in Sources */,
 				AB66AFF4128BA91808D24DB5 /* GitHubWorkService.swift in Sources */,
 				C23BCB5CF1615F000459D9E7 /* HermesGatewayClient.swift in Sources */,
+				CB10A2005C3CAEE8253B7324 /* LabelSchema.swift in Sources */,
 				BCE6371A2B658B37FE0C3124 /* LinkPreviewService.swift in Sources */,
 				9EAAAF4FFBF10F8A576AF5BD /* SessionLauncher.swift in Sources */,
 				5407CC8EF71865713E95B1BF /* SessionsStore.swift in Sources */,

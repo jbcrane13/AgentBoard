@@ -18,7 +18,7 @@ struct CompanionSQLiteStoreTests {
                 workItem: WorkReference(repository: repository, issueNumber: 42),
                 title: "Ship the companion store",
                 status: .backlog,
-                priority: .high,
+                priority: .p1,
                 assignedAgent: "Codex",
                 note: "Start with SQLite and SSE."
             )
