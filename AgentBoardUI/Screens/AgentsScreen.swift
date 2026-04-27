@@ -12,7 +12,7 @@ struct AgentsScreen: View {
     @State private var assignedAgent = ""
     @State private var note = ""
     @State private var status: AgentTaskState = .backlog
-    @State private var priority: WorkPriority = .medium
+    @State private var priority: WorkPriority = .p2
 
     private var groupedTasks: [(state: AgentTaskState, tasks: [AgentTask])] {
         AgentTaskState.allCases.map { state in
@@ -81,7 +81,7 @@ struct AgentsScreen: View {
                 taskTitle = ""
                 note = ""
                 status = .backlog
-                priority = .medium
+                priority = .p2
                 isPresentingCreateSheet = true
             } label: {
                 Image(systemName: "plus")
@@ -108,12 +108,12 @@ struct AgentsScreen: View {
                         HStack(spacing: 16) {
                             HStack(spacing: 6) {
                                 Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(NeuPalette.accentCyan)
+                                    .foregroundStyle(NeuPalette.statusSuccess)
                                 Text("\(summary.activeTaskCount)")
                             }
                             HStack(spacing: 6) {
                                 Image(systemName: "bolt.horizontal.circle.fill")
-                                    .foregroundStyle(NeuPalette.textSecondary)
+                                    .foregroundStyle(NeuPalette.statusIdle)
                                 Text("\(summary.activeSessionCount)")
                             }
                         }
@@ -209,7 +209,7 @@ struct AgentsScreen: View {
                         }
                         .frame(width: columnWidth, alignment: .topLeading)
                         .padding(12)
-                        .background(NeuPalette.inset.opacity(0.58))
+                        .background(NeuPalette.background.opacity(0.62))
                         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                         .overlay {
                             RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -320,10 +320,10 @@ private struct AgentSummaryRowNeu: View {
             HStack(spacing: 20) {
                 Label("\(summary.activeTaskCount) Tasks", systemImage: "checkmark.circle.fill")
                     .font(.caption.weight(.bold))
-                    .foregroundStyle(NeuPalette.accentCyan)
+                    .foregroundStyle(NeuPalette.statusSuccess)
                 Label("\(summary.activeSessionCount) Sessions", systemImage: "bolt.horizontal.circle.fill")
                     .font(.caption.weight(.bold))
-                    .foregroundStyle(NeuPalette.textSecondary)
+                    .foregroundStyle(NeuPalette.statusIdle)
             }
         }
         .padding(20)
@@ -475,9 +475,7 @@ struct AgentHealthNeu: View {
     var body: some View {
         HStack(spacing: 6) {
             Circle()
-                .fill(health == .online ? NeuPalette.accentCyan : health == .idle ? NeuPalette
-                    .textSecondary : health == .warning ? NeuPalette
-                    .accentOrange : .red)
+                .fill(healthColor)
                 .frame(width: 8, height: 8)
             Text(health.title.uppercased())
                 .font(.caption2.weight(.bold))
@@ -487,6 +485,15 @@ struct AgentHealthNeu: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
         .neuRecessed(cornerRadius: 12, depth: 3)
+    }
+
+    private var healthColor: Color {
+        switch health {
+        case .online: NeuPalette.statusSuccess
+        case .idle: NeuPalette.statusIdle
+        case .warning: NeuPalette.accentOrange
+        case .offline: .red
+        }
     }
 }
 
@@ -499,6 +506,7 @@ private func agentColumnTitle(_ state: AgentTaskState) -> String {
     }
 }
 
+@MainActor
 private func agentStateColor(_ state: AgentTaskState) -> Color {
     switch state {
     case .backlog: NeuPalette.textTertiary

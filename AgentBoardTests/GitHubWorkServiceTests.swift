@@ -70,12 +70,12 @@ struct GitHubWorkServiceTests {
         let first = try #require(items.first)
         #expect(first.issueNumber == 14)
         #expect(first.status == .inProgress)
-        #expect(first.priority == .high)
+        #expect(first.priority == .p1)
         #expect(first.agentHint == "codex")
         #expect(first.bodySummary == "First line")
 
         let unlabeled = try #require(items.first(where: { $0.issueNumber == 18 }))
-        #expect(unlabeled.status == .open)
-        #expect(unlabeled.priority == .medium)
+        #expect(unlabeled.status == .ready)
+        #expect(unlabeled.priority == .p2)
     }
 }

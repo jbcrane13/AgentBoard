@@ -3,9 +3,10 @@ import Testing
 
 struct DesignSemanticsTests {
     @Test func workBoardColumnTitlesMatchDesignTemplate() {
-        #expect(WorkState.open.designColumnTitle == "OPEN")
-        #expect(WorkState.inProgress.designColumnTitle == "IN REVIEW")
-        #expect(WorkState.done.designColumnTitle == "CLOSED")
+        #expect(WorkState.ready.designColumnTitle == "READY")
+        #expect(WorkState.inProgress.designColumnTitle == "IN PROGRESS")
+        #expect(WorkState.blocked.designColumnTitle == "BLOCKED")
+        #expect(WorkState.review.designColumnTitle == "REVIEW")
     }
 
     @Test func currentComparisonDesignUsesGraphiteCopperTokens() {

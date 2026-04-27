@@ -149,7 +149,7 @@ public actor CompanionSQLiteStore {
                     ),
                     title: string(statement, index: 4),
                     status: AgentTaskState(rawValue: string(statement, index: 5)) ?? .backlog,
-                    priority: WorkPriority(rawValue: string(statement, index: 6)) ?? .medium,
+                    priority: WorkPriority(rawValue: string(statement, index: 6)) ?? .p2,
                     assignedAgent: string(statement, index: 7),
                     sessionID: nullableString(statement, index: 8),
                     note: string(statement, index: 9),

@@ -344,8 +344,8 @@ public final class AgentBoardCache {
                     return WorkMilestone(number: number, title: title)
                 }(),
                 labels: decodeStrings(record.labelsData),
-                status: WorkState(rawValue: record.status) ?? .open,
-                priority: WorkPriority(rawValue: record.priority) ?? .medium,
+                status: WorkState(rawValue: record.status) ?? .ready,
+                priority: WorkPriority(rawValue: record.priority) ?? .p2,
                 agentHint: record.agentHint,
                 createdAt: record.createdAt,
                 updatedAt: record.updatedAt
@@ -393,7 +393,7 @@ public final class AgentBoardCache {
                 ),
                 title: record.title,
                 status: AgentTaskState(rawValue: record.status) ?? .backlog,
-                priority: WorkPriority(rawValue: record.priority) ?? .medium,
+                priority: WorkPriority(rawValue: record.priority) ?? .p2,
                 assignedAgent: record.assignedAgent,
                 sessionID: record.sessionID,
                 note: record.note,

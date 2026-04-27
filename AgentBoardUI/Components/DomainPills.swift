@@ -10,19 +10,19 @@ struct WorkStatusPill: View {
 
     private var tint: Color {
         switch state {
-        case .open: NeuPalette.statusBlue
+        case .ready: NeuPalette.statusBlue
         case .inProgress: NeuPalette.accentOrange
         case .blocked: .red
-        case .done: NeuPalette.statusClosed
+        case .review: .purple
         }
     }
 
     private var systemImage: String {
         switch state {
-        case .open: "circle"
+        case .ready: "circle"
         case .inProgress: "clock.arrow.circlepath"
         case .blocked: "exclamationmark.triangle"
-        case .done: "checkmark.circle"
+        case .review: "eye"
         }
     }
 }
@@ -34,9 +34,9 @@ struct PriorityPill: View {
         BoardChip(
             label: priority.title,
             systemImage: "flag.fill",
-            tint: priority == .critical
+            tint: priority == .p0
                 ? .red
-                : priority == .high ? .red : NeuPalette.accentOrange
+                : priority == .p1 ? .orange : NeuPalette.statusBlue
         )
     }
 }
@@ -50,8 +50,8 @@ struct AgentHealthPill: View {
 
     private var tint: Color {
         switch health {
-        case .online: NeuPalette.accentCyan
-        case .idle: NeuPalette.textSecondary
+        case .online: NeuPalette.statusSuccess
+        case .idle: NeuPalette.statusIdle
         case .warning: NeuPalette.accentOrange
         case .offline: .red
         }
@@ -67,8 +67,8 @@ struct SessionStatusPill: View {
 
     private var tint: Color {
         switch status {
-        case .running: NeuPalette.accentCyan
-        case .idle: NeuPalette.textSecondary
+        case .running: NeuPalette.statusSuccess
+        case .idle: NeuPalette.statusIdle
         case .stopped: NeuPalette.accentOrange
         case .error: .red
         }

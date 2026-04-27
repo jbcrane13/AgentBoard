@@ -88,8 +88,8 @@ struct WorkScreen: View {
     }
 
     private var groupedFilteredItems: [(state: WorkState, items: [WorkItem])] {
-        // Only show Open, In Progress, Done columns (skip Blocked)
-        [.open, .inProgress, .done].map { state in
+        // Only show Ready, In Progress, Review columns (skip Blocked)
+        [.ready, .inProgress, .review].map { state in
             (state, filteredItems.filter { $0.status == state })
         }
     }
@@ -193,7 +193,7 @@ struct WorkScreen: View {
                         }
                         .frame(width: columnWidth, alignment: .topLeading)
                         .padding(12)
-                        .background(NeuPalette.inset.opacity(0.58))
+                        .background(NeuPalette.background.opacity(0.62))
                         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                         .overlay {
                             RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -235,7 +235,7 @@ private struct WorkCardNeu: View {
 
     var body: some View {
         Button(action: onTap) {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 16) {
                 HStack(alignment: .top) {
                     Text(item.issueReference)
                         .font(.system(size: 10.5, weight: .semibold, design: .monospaced))
@@ -296,7 +296,7 @@ private struct WorkCardNeu: View {
                 }
             }
             .padding(10)
-            .neuExtruded(cornerRadius: 14, elevation: 8)
+            .neuExtruded(cornerRadius: 14, elevation: 7)
         }
         .buttonStyle(.plain)
     }
@@ -320,20 +320,22 @@ struct PriorityNeu: View {
     }
 }
 
+@MainActor
 private func workStateColor(_ state: WorkState) -> Color {
     switch state {
-    case .open: NeuPalette.statusBlue
+    case .ready: NeuPalette.statusBlue
     case .inProgress: NeuPalette.accentOrange
     case .blocked: NeuPalette.accentCoral
-    case .done: NeuPalette.statusClosed
+    case .review: .purple
     }
 }
 
+@MainActor
 private func priorityColor(_ priority: WorkPriority) -> Color {
     switch priority {
-    case .critical: NeuPalette.accentCoral
-    case .high: NeuPalette.accentCoral.opacity(0.82)
-    case .medium: NeuPalette.accentOrange
-    case .low: NeuPalette.textTertiary
+    case .p0: NeuPalette.accentCoral
+    case .p1: NeuPalette.accentCoral.opacity(0.82)
+    case .p2: NeuPalette.accentOrange
+    case .p3: NeuPalette.textTertiary
     }
 }

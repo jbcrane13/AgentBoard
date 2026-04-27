@@ -10,10 +10,46 @@ public final class SessionLauncher {
 
     // MARK: - Models
 
+    public enum AgentType: String, CaseIterable, Identifiable, Sendable {
+        case claude
+        case codex
+        case opencode
+
+        public var id: String {
+            rawValue
+        }
+
+        public var displayName: String {
+            switch self {
+            case .claude: return "Claude Code"
+            case .codex: return "Codex CLI"
+            case .opencode: return "OpenCode"
+            }
+        }
+
+        public var icon: String {
+            switch self {
+            case .claude: return "brain.head.profile"
+            case .codex: return "terminal.fill"
+            case .opencode: return "chevron.left.forwardslash.chevron.right"
+            }
+        }
+
+        public var launchFlag: String {
+            switch self {
+            case .claude: return "claude"
+            case .codex: return "codex"
+            case .opencode: return "opencode"
+            }
+        }
+    }
+
     public enum ExecutionPreset: String, CaseIterable, Identifiable, Sendable {
         case ralphLoop = "Ralph Loop"
         case tddSuperpowers = "TDD (Superpowers)"
         case claudeToCodex = "Claude → Codex Handoff"
+        case codexReview = "Codex Review & Test"
+        case opencodeSession = "OpenCode Session"
 
         public var id: String {
             rawValue
@@ -27,6 +63,10 @@ public final class SessionLauncher {
                 return "Test-first workflow. Write failing tests, then implement. Best for business logic."
             case .claudeToCodex:
                 return "Claude implements, auto-hands off to Codex for test validation. Best for large features."
+            case .codexReview:
+                return "Codex handles implementation with built-in review cycle. Best for PRs and testing."
+            case .opencodeSession:
+                return "OpenCode multi-model session. Best for parallel exploration and non-Anthropic models."
             }
         }
 
@@ -35,14 +75,18 @@ public final class SessionLauncher {
             case .ralphLoop: return "arrow.triangle.2.circlepath"
             case .tddSuperpowers: return "checkmark.shield"
             case .claudeToCodex: return "arrow.right.circle"
+            case .codexReview: return "terminal.fill"
+            case .opencodeSession: return "chevron.left.forwardslash.chevron.right"
             }
         }
 
-        public var agent: String {
+        public var agent: AgentType {
             switch self {
-            case .ralphLoop: return "claude"
-            case .tddSuperpowers: return "claude"
-            case .claudeToCodex: return "claude"
+            case .ralphLoop: return .claude
+            case .tddSuperpowers: return .claude
+            case .claudeToCodex: return .claude
+            case .codexReview: return .codex
+            case .opencodeSession: return .opencode
             }
         }
     }
@@ -53,6 +97,7 @@ public final class SessionLauncher {
         public let repo: String
         public let fullRepo: String
         public let preset: ExecutionPreset
+        public let agentType: AgentType
         public let customInstructions: String
 
         public init(
@@ -61,6 +106,7 @@ public final class SessionLauncher {
             repo: String,
             fullRepo: String,
             preset: ExecutionPreset,
+            agentType: AgentType? = nil,
             customInstructions: String
         ) {
             self.taskTitle = taskTitle
@@ -68,6 +114,7 @@ public final class SessionLauncher {
             self.repo = repo
             self.fullRepo = fullRepo
             self.preset = preset
+            self.agentType = agentType ?? preset.agent
             self.customInstructions = customInstructions
         }
     }
@@ -77,11 +124,21 @@ public final class SessionLauncher {
         public let sessionName: String
         public let issueNumber: Int
         public let preset: ExecutionPreset
+        public let agentType: AgentType
         public let startTime: Date
         public var status: SessionStatus
 
-        public enum SessionStatus: Sendable {
+        public enum SessionStatus: Sendable, CustomStringConvertible {
             case running, completed, failed, stalled
+
+            public var description: String {
+                switch self {
+                case .running: "running"
+                case .completed: "completed"
+                case .failed: "failed"
+                case .stalled: "stalled"
+                }
+            }
         }
 
         public var elapsed: String {
@@ -120,7 +177,7 @@ public final class SessionLauncher {
             try await launchTmuxSession(
                 sessionName: sessionName,
                 repo: config.repo,
-                preset: config.preset,
+                agentType: config.agentType,
                 prdPath: prdPath
             )
 
@@ -130,6 +187,7 @@ public final class SessionLauncher {
                 sessionName: sessionName,
                 issueNumber: config.issueNumber,
                 preset: config.preset,
+                agentType: config.agentType,
                 startTime: Date(),
                 status: .running
             )
@@ -137,6 +195,7 @@ public final class SessionLauncher {
             isLaunching = false
 
             logger.info("Launched session: \(sessionName)")
+            startMonitoring()
             return sessionName
 
         } catch {
@@ -193,6 +252,26 @@ public final class SessionLauncher {
             - [ ] Report results
 
             """
+        case .codexReview:
+            prd += """
+            ## Tasks
+            - [ ] Implement \(config.taskTitle)
+            - [ ] Run full test suite
+            - [ ] Review code quality and suggest improvements
+            - [ ] Add accessibilityIdentifier to every interactive element
+            - [ ] Build verify: xcodebuild -scheme AgentBoard -destination 'platform=macOS' build
+
+            """
+        case .opencodeSession:
+            prd += """
+            ## Tasks
+            - [ ] Analyze codebase for \(config.taskTitle)
+            - [ ] Implement with multi-model approach
+            - [ ] Cross-validate with different models
+            - [ ] Add accessibilityIdentifier to every interactive element
+            - [ ] Build verify: xcodebuild -scheme AgentBoard -destination 'platform=macOS' build
+
+            """
         }
 
         prd += """
@@ -217,83 +296,161 @@ public final class SessionLauncher {
     // MARK: - tmux Launch
 
     private func writePRD(repo: String, path: String, content: String) throws {
-#if os(macOS)
-        let home = FileManager.default.homeDirectoryForCurrentUser
-        let projectDir = home.appendingPathComponent("Projects").appendingPathComponent(repo)
-        let prdDir = projectDir.appendingPathComponent("docs")
+        #if os(macOS)
+            let home = FileManager.default.homeDirectoryForCurrentUser
+            let projectDir = home.appendingPathComponent("Projects").appendingPathComponent(repo)
+            let prdDir = projectDir.appendingPathComponent("docs")
 
-        try FileManager.default.createDirectory(at: prdDir, withIntermediateDirectories: true)
+            try FileManager.default.createDirectory(at: prdDir, withIntermediateDirectories: true)
 
-        let prdFile = prdDir.appendingPathComponent(URL(fileURLWithPath: path).lastPathComponent)
-        try content.write(to: prdFile, atomically: true, encoding: .utf8)
-#else
-        throw LaunchError.unsupportedPlatform
-#endif
+            let prdFile = prdDir.appendingPathComponent(URL(fileURLWithPath: path).lastPathComponent)
+            try content.write(to: prdFile, atomically: true, encoding: .utf8)
+        #else
+            throw LaunchError.unsupportedPlatform
+        #endif
     }
 
     private func launchTmuxSession(
         sessionName: String,
         repo: String,
-        preset: ExecutionPreset,
+        agentType: AgentType,
         prdPath: String
     ) async throws {
-#if os(macOS)
-        let home = FileManager.default.homeDirectoryForCurrentUser
-        let projectDir = home.appendingPathComponent("Projects").appendingPathComponent(repo).path
-        let socket = home.appendingPathComponent(".tmux/sock").path
-        let agent = preset.agent
+        #if os(macOS)
+            let home = FileManager.default.homeDirectoryForCurrentUser
+            let projectDir = home.appendingPathComponent("Projects").appendingPathComponent(repo).path
+            let socket = home.appendingPathComponent(".tmux/sock").path
+            let agent = agentType.launchFlag
 
-        let shellCmd = "/opt/homebrew/bin/tmux -S \(socket) new -d -s \(sessionName)" +
-            " \"cd \(projectDir) && unset ANTHROPIC_API_KEY" +
-            " && /opt/homebrew/bin/ralphy --\(agent) --prd \(prdPath)" +
-            "; EXIT_CODE=$?; echo EXITED: $EXIT_CODE; sleep 999999\""
+            let shellCmd = "/opt/homebrew/bin/tmux -S \(socket) new -d -s \(sessionName)" +
+                " \"cd \(projectDir) && unset ANTHROPIC_API_KEY" +
+                " && /opt/homebrew/bin/ralphy --\(agent) --prd \(prdPath)" +
+                "; EXIT_CODE=$?; echo EXITED: $EXIT_CODE; sleep 999999\""
 
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/bin/zsh")
-        process.arguments = ["-c", shellCmd]
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/bin/zsh")
+            process.arguments = ["-c", shellCmd]
 
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = pipe
+            let pipe = Pipe()
+            process.standardOutput = pipe
+            process.standardError = pipe
 
-        try process.run()
-        process.waitUntilExit()
+            try process.run()
+            process.waitUntilExit()
 
-        if process.terminationStatus != 0 {
-            let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            let output = String(data: data, encoding: .utf8) ?? "unknown error"
-            throw LaunchError.tmuxFailed(output)
-        }
-#else
-        throw LaunchError.unsupportedPlatform
-#endif
+            if process.terminationStatus != 0 {
+                let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                let output = String(data: data, encoding: .utf8) ?? "unknown error"
+                throw LaunchError.tmuxFailed(output)
+            }
+        #else
+            throw LaunchError.unsupportedPlatform
+        #endif
     }
 
     // MARK: - Monitoring
 
     public func checkSession(_ session: ActiveSession) async -> ActiveSession.SessionStatus {
-#if os(macOS)
-        let home = FileManager.default.homeDirectoryForCurrentUser
-        let socket = home.appendingPathComponent(".tmux/sock").path
+        #if os(macOS)
+            let home = FileManager.default.homeDirectoryForCurrentUser
+            let socket = home.appendingPathComponent(".tmux/sock").path
 
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/opt/homebrew/bin/tmux")
-        process.arguments = ["-S", socket, "has-session", "-t", session.sessionName]
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/opt/homebrew/bin/tmux")
+            process.arguments = ["-S", socket, "has-session", "-t", session.sessionName]
 
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = pipe
+            let pipe = Pipe()
+            process.standardOutput = pipe
+            process.standardError = pipe
 
-        do {
-            try process.run()
-            process.waitUntilExit()
-            return process.terminationStatus == 0 ? .running : .completed
-        } catch {
+            do {
+                try process.run()
+                process.waitUntilExit()
+                return process.terminationStatus == 0 ? .running : .completed
+            } catch {
+                return .failed
+            }
+        #else
             return .failed
+        #endif
+    }
+
+    /// Capture the current visible content of a tmux session pane.
+    public func capturePane(sessionName: String) -> String? {
+        #if os(macOS)
+            let home = FileManager.default.homeDirectoryForCurrentUser
+            let socket = home.appendingPathComponent(".tmux/sock").path
+
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/opt/homebrew/bin/tmux")
+            process.arguments = ["-S", socket, "capture-pane", "-t", sessionName, "-p", "-J"]
+
+            let pipe = Pipe()
+            process.standardOutput = pipe
+            process.standardError = Pipe()
+
+            do {
+                try process.run()
+                process.waitUntilExit()
+                guard process.terminationStatus == 0 else { return nil }
+                let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                return String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
+            } catch {
+                return nil
+            }
+        #else
+            return nil
+        #endif
+    }
+
+    /// Open a tmux session in the system Terminal.app.
+    public func openInTerminal(sessionName: String) {
+        #if os(macOS)
+            let home = FileManager.default.homeDirectoryForCurrentUser
+            let socket = home.appendingPathComponent(".tmux/sock").path
+
+            let cmd = "tmux -S \(socket) attach -t \(sessionName)"
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+            process.arguments = ["-a", "Terminal.app"]
+
+            let appleScript = """
+            tell application "Terminal"
+                activate
+                do script "\(cmd)"
+            end tell
+            """
+
+            let scriptProcess = Process()
+            scriptProcess.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+            scriptProcess.arguments = ["-e", appleScript]
+
+            do {
+                try scriptProcess.run()
+            } catch {
+                logger.error("Failed to open Terminal.app: \(error.localizedDescription)")
+            }
+        #endif
+    }
+
+    /// Start monitoring active sessions for status changes.
+    public func startMonitoring() {
+        Task { [weak self] in
+            guard let self else { return }
+            while !Task.isCancelled {
+                for index in activeSessions.indices {
+                    let session = activeSessions[index]
+                    if session.status == .running {
+                        let newStatus = await checkSession(session)
+                        if newStatus != session.status {
+                            activeSessions[index].status = newStatus
+                            logger.info("Session \(session.sessionName) status changed to \(newStatus)")
+                        }
+                    }
+                }
+                try? await Task.sleep(for: .seconds(30))
+            }
         }
-#else
-        return .failed
-#endif
     }
 
     // MARK: - Errors
