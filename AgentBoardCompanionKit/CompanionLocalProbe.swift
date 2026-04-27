@@ -97,8 +97,7 @@ public actor CompanionLocalProbe {
         machineName: String
     ) -> AgentSummary {
         let activeTasks = tasks.filter {
-            $0.assignedAgent.compare(agentName, options: .caseInsensitive) == .orderedSame && $0.status != .done && $0
-                .status != .review
+            $0.assignedAgent.compare(agentName, options: .caseInsensitive) == .orderedSame && $0.status != .done
         }
         let activeSessions = sessions.filter { sessionMatchesAgent($0, agentName: agentName, tasks: tasks) }
         let health = agentHealth(sessions: activeSessions, tasks: activeTasks)
