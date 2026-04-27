@@ -17,6 +17,7 @@ public final class AgentsStore {
     public var statusMessage: String?
 
     private var didBootstrap = false
+    private var lastFingerprint: String = ""
 
     public init(
         companionClient: CompanionClient,
@@ -46,6 +47,7 @@ public final class AgentsStore {
         do {
             tasks = try cache.loadTasks()
             summaries = try cache.loadAgentSummaries()
+            lastFingerprint = fingerprint(tasks: tasks, summaries: summaries)
         } catch {
             logger.error("Failed to load agents cache: \(error.localizedDescription, privacy: .public)")
             errorMessage = error.localizedDescription
@@ -67,25 +69,33 @@ public final class AgentsStore {
         }
 
         isLoading = true
-        errorMessage = nil
 
         do {
             try await configureCompanion()
             async let refreshedTasks = companionClient.listTasks()
             async let refreshedSummaries = companionClient.listAgents()
-            tasks = try await refreshedTasks.sorted { $0.updatedAt > $1.updatedAt }
-            summaries = try await refreshedSummaries.sorted { lhs, rhs in
+            let newTasks = try await refreshedTasks.sorted { $0.updatedAt > $1.updatedAt }
+            let newSummaries = try await refreshedSummaries.sorted { lhs, rhs in
                 if lhs.activeSessionCount != rhs.activeSessionCount {
                     return lhs.activeSessionCount > rhs.activeSessionCount
                 }
                 return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
             }
-            try cache.replaceTasks(tasks)
-            try cache.replaceAgentSummaries(summaries)
-            statusMessage = "Loaded \(tasks.count) tasks across \(summaries.count) agents."
+
+            let newFingerprint = fingerprint(tasks: newTasks, summaries: newSummaries)
+            if newFingerprint != lastFingerprint {
+                tasks = newTasks
+                summaries = newSummaries
+                lastFingerprint = newFingerprint
+                try cache.replaceTasks(tasks)
+                try cache.replaceAgentSummaries(summaries)
+            }
+            // Data unchanged — skip SwiftUI invalidation entirely
         } catch {
             logger.error("Failed to refresh agents: \(error.localizedDescription, privacy: .public)")
-            errorMessage = error.localizedDescription
+            if tasks.isEmpty, summaries.isEmpty {
+                errorMessage = error.localizedDescription
+            }
         }
 
         isLoading = false
@@ -96,8 +106,8 @@ public final class AgentsStore {
             try await configureCompanion()
             let task = try await companionClient.createTask(draft)
             upsert(task)
+            lastFingerprint = fingerprint(tasks: tasks, summaries: summaries)
             try cache.replaceTasks(tasks)
-            await refresh()
             statusMessage = "Created task \(task.title)."
         } catch {
             logger.error("Failed to create task: \(error.localizedDescription, privacy: .public)")
@@ -110,8 +120,8 @@ public final class AgentsStore {
             try await configureCompanion()
             let task = try await companionClient.updateTask(id: id, patch: patch)
             upsert(task)
+            lastFingerprint = fingerprint(tasks: tasks, summaries: summaries)
             try cache.replaceTasks(tasks)
-            await refresh()
             statusMessage = "Updated \(task.title)."
         } catch {
             logger.error("Failed to update task: \(error.localizedDescription, privacy: .public)")
@@ -124,6 +134,7 @@ public final class AgentsStore {
             try await configureCompanion()
             try await companionClient.deleteTask(id: id)
             tasks.removeAll { $0.id == id }
+            lastFingerprint = fingerprint(tasks: tasks, summaries: summaries)
             try cache.replaceTasks(tasks)
             statusMessage = "Task deleted."
         } catch {
@@ -156,5 +167,11 @@ public final class AgentsStore {
         }
 
         tasks.sort { $0.updatedAt > $1.updatedAt }
+    }
+
+    private func fingerprint(tasks: [AgentTask], summaries: [AgentSummary]) -> String {
+        let taskFP = tasks.map { "\($0.id):\($0.status.rawValue):\($0.title)" }.joined(separator: "|")
+        let summaryFP = summaries.map { "\($0.id):\($0.activeSessionCount)" }.joined(separator: "|")
+        return "\(taskFP)||\(summaryFP)"
     }
 }

@@ -16,6 +16,7 @@ public final class SessionsStore {
     public var statusMessage: String?
 
     private var didBootstrap = false
+    private var lastFingerprint: String = ""
 
     public init(
         companionClient: CompanionClient,
@@ -32,6 +33,7 @@ public final class SessionsStore {
 
         do {
             sessions = try cache.loadSessions()
+            lastFingerprint = fingerprint(sessions)
         } catch {
             logger.error("Failed to load sessions cache: \(error.localizedDescription, privacy: .public)")
             errorMessage = error.localizedDescription
@@ -53,21 +55,26 @@ public final class SessionsStore {
         }
 
         isLoading = true
-        errorMessage = nil
 
         do {
             try await companionClient.configure(
                 baseURL: settingsStore.companionURL,
                 bearerToken: settingsStore.companionToken.trimmedOrNil
             )
-            sessions = try await companionClient.listSessions().sorted { lhs, rhs in
+            let newSessions = try await companionClient.listSessions().sorted { lhs, rhs in
                 lhs.lastSeenAt > rhs.lastSeenAt
             }
-            try cache.replaceSessions(sessions)
-            statusMessage = "Loaded \(sessions.count) live sessions."
+            let newFingerprint = fingerprint(newSessions)
+            if newFingerprint != lastFingerprint {
+                sessions = newSessions
+                lastFingerprint = newFingerprint
+                try cache.replaceSessions(sessions)
+            }
         } catch {
             logger.error("Failed to refresh sessions: \(error.localizedDescription, privacy: .public)")
-            errorMessage = error.localizedDescription
+            if sessions.isEmpty {
+                errorMessage = error.localizedDescription
+            }
         }
 
         isLoading = false
@@ -126,5 +133,9 @@ public final class SessionsStore {
         case .tasksChanged, .agentsChanged:
             break
         }
+    }
+
+    private func fingerprint(_ sessions: [AgentSession]) -> String {
+        sessions.map { "\($0.id):\($0.status.rawValue):\($0.lastSeenAt)" }.joined(separator: "|")
     }
 }

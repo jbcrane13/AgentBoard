@@ -18,6 +18,10 @@ public final class WorkStore {
 
     private var didBootstrap = false
 
+    /// Tracks the data fingerprint from the last successful refresh.
+    /// Used to skip SwiftUI updates when the data hasn't actually changed.
+    private var lastFingerprint: String = ""
+
     public init(
         service: GitHubWorkService,
         cache: AgentBoardCache,
@@ -53,6 +57,7 @@ public final class WorkStore {
 
         do {
             items = try cache.loadWorkItems()
+            lastFingerprint = fingerprint(items)
         } catch {
             logger.error("Failed to load work cache: \(error.localizedDescription, privacy: .public)")
             errorMessage = error.localizedDescription
@@ -73,8 +78,8 @@ public final class WorkStore {
             return
         }
 
+        // Don't flash the loading state — keep existing data visible during refresh
         isLoading = true
-        errorMessage = nil
 
         await service.configure(
             repositories: settingsStore.repositories,
@@ -83,19 +88,34 @@ public final class WorkStore {
 
         do {
             let fresh = try await service.fetchWorkItems()
-            mergeItems(fresh)
-            try cache.replaceWorkItems(items)
-            statusMessage = "Loaded \(items.count) GitHub issues."
+            let newFingerprint = fingerprint(fresh)
+
+            // Only update items if the data actually changed
+            if newFingerprint != lastFingerprint {
+                mergeItems(fresh)
+                lastFingerprint = newFingerprint
+                try cache.replaceWorkItems(items)
+                statusMessage = "Loaded \(items.count) GitHub issues."
+            }
+            // Data unchanged — skip the update entirely, no SwiftUI invalidation
+            // Also skip statusMessage update to avoid unnecessary re-renders
         } catch {
             logger.error("Failed to refresh work items: \(error.localizedDescription, privacy: .public)")
             // Keep existing items visible — don't clear on transient failures
             if items.isEmpty {
                 errorMessage = error.localizedDescription
             }
-            // If we have cached items, just log the error silently
         }
 
         isLoading = false
+    }
+
+    /// Computes a lightweight fingerprint for change detection.
+    /// Uses item IDs + status + title to detect real changes without
+    /// triggering false positives from timestamp drift.
+    private func fingerprint(_ items: [WorkItem]) -> String {
+        items.map { "\($0.id):\($0.status.rawValue):\($0.title)" }
+            .joined(separator: "|")
     }
 
     /// Merge fresh items with existing items, preserving stable identity.
@@ -147,6 +167,7 @@ public final class WorkStore {
                 )
             )
             upsert(item)
+            lastFingerprint = fingerprint(items)
             try cache.replaceWorkItems(items)
             errorMessage = nil
             statusMessage = "Created \(item.issueReference)."
@@ -190,6 +211,7 @@ public final class WorkStore {
                 patch: patch
             )
             upsert(updated)
+            lastFingerprint = fingerprint(items)
             try cache.replaceWorkItems(items)
             statusMessage = "Updated \(updated.issueReference)."
         } catch {
@@ -222,6 +244,7 @@ public final class WorkStore {
                 patch: patch
             )
             upsert(updated)
+            lastFingerprint = fingerprint(items)
             try cache.replaceWorkItems(items)
             statusMessage = "Updated \(updated.issueReference) to \(state.title)."
         } catch {
