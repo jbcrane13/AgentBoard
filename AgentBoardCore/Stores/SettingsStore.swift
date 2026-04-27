@@ -38,7 +38,7 @@ public final class SettingsStore {
             selectedHermesProfileID: selectedHermesProfileID,
             companionURL: companionURL.trimmedOrNil ?? "http://127.0.0.1:8742",
             repositories: repositories,
-            autoRefreshInterval: max(15, autoRefreshInterval),
+            autoRefreshInterval: max(30, autoRefreshInterval),
             designTheme: designTheme
         )
     }

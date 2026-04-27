@@ -8,116 +8,32 @@ struct DesktopRootView: View {
     @State private var isPresentingQuickLaunch = false
 
     var body: some View {
-        VStack(spacing: 0) {
-            titleBar
-                .frame(height: 40)
+        HStack(spacing: 0) {
+            DesktopSidebar(
+                activeTab: activeTab,
+                onTabSelect: { tab in activeTab = tab },
+                onSessionTap: { session in activeSessionTerminal = session },
+                onQuickLaunch: { isPresentingQuickLaunch = true }
+            )
+            .frame(width: 230)
 
-            HStack(spacing: 0) {
-                DesktopSidebar(
-                    activeTab: activeTab,
-                    onTabSelect: { tab in activeTab = tab },
-                    onSessionTap: { session in activeSessionTerminal = session },
-                    onQuickLaunch: { isPresentingQuickLaunch = true }
-                )
-                .frame(width: 230)
+            centerPanel
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(NeuPalette.background)
 
-                centerPanel
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(NeuPalette.background)
-
-                ChatScreen()
-                    .frame(width: 360)
-                    .background(NeuPalette.surface)
-                    .overlay(alignment: .leading) {
-                        Rectangle()
-                            .fill(NeuPalette.borderSoft)
-                            .frame(width: 1)
-                    }
-            }
+            ChatScreen()
+                .frame(width: 360)
+                .background(NeuPalette.surface)
+                .overlay(alignment: .leading) {
+                    Rectangle()
+                        .fill(NeuPalette.borderSoft)
+                        .frame(width: 1)
+                }
         }
         .background(NeuBackground())
         .sheet(isPresented: $isPresentingQuickLaunch) {
             QuickLaunchSheet()
                 .environment(appModel)
-        }
-    }
-
-    private var titleBar: some View {
-        HStack(spacing: 0) {
-            HStack(spacing: 10) {
-                #if os(macOS)
-                    HStack(spacing: 6) {
-                        Circle().fill(Color(red: 1.0, green: 0.38, blue: 0.35))
-                        Circle().fill(Color(red: 1.0, green: 0.74, blue: 0.18))
-                        Circle().fill(Color(red: 0.16, green: 0.79, blue: 0.25))
-                    }
-                    .frame(width: 48)
-                #endif
-
-                HStack(spacing: 6) {
-                    Image(systemName: "cube.transparent")
-                        .font(.system(size: 11, weight: .bold))
-                    Text("AB")
-                        .font(.system(size: 11, weight: .bold, design: .monospaced))
-                }
-                .foregroundStyle(NeuPalette.background)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .background(
-                    LinearGradient(
-                        colors: [NeuPalette.accentCyanBright, NeuPalette.accentCyan.opacity(0.82)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-
-                Image(systemName: "sidebar.left")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(NeuPalette.textTertiary)
-            }
-            .frame(width: 230, alignment: .leading)
-            .padding(.horizontal, 14)
-
-            HStack(spacing: 12) {
-                Text("AgentBoard")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(NeuPalette.textSecondary)
-                Text("-")
-                    .font(.caption.monospaced())
-                    .foregroundStyle(NeuPalette.textDisabled)
-                Text(activeRepositoryTitle)
-                    .font(.caption.monospaced())
-                    .foregroundStyle(NeuPalette.textTertiary)
-            }
-            .frame(maxWidth: .infinity)
-
-            HStack(spacing: 10) {
-                connectionStatusChip
-                Button {
-                    Task<Void, Never> { await appModel.refreshAll() }
-                } label: {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 12, weight: .semibold))
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(NeuPalette.textTertiary)
-                .accessibilityIdentifier("desktop_button_refresh")
-            }
-            .frame(width: 360, alignment: .trailing)
-            .padding(.horizontal, 14)
-        }
-        .background(
-            LinearGradient(
-                colors: [NeuPalette.surface, NeuPalette.background],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        )
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(NeuPalette.borderSoft)
-                .frame(height: 1)
         }
     }
 

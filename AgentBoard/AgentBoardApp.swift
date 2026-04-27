@@ -19,6 +19,7 @@ struct AgentBoardApp: App {
                 .environment(appModel)
                 .onAppear {
                     applyTheme(appModel.settingsStore.designTheme)
+                    hideTitleBar()
                 }
                 .onChange(of: appModel.settingsStore.designTheme) {
                     applyTheme(appModel.settingsStore.designTheme)
@@ -35,6 +36,16 @@ struct AgentBoardApp: App {
         NeuPalette.apply(designTheme)
         appliedTheme = designTheme
     }
+
+    #if os(macOS)
+        private func hideTitleBar() {
+            guard let window = NSApplication.shared.windows.first else { return }
+            window.titlebarAppearsTransparent = true
+            window.titleVisibility = .hidden
+            window.toolbar = nil
+            window.styleMask.insert(.fullSizeContentView)
+        }
+    #endif
 
     private static func logRuntimeConfiguration() {
         let bundleID = Bundle.main.bundleIdentifier ?? "unknown"

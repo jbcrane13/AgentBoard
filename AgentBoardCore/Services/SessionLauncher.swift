@@ -5,6 +5,7 @@ import os
 /// Creates tmux sessions pre-loaded with issue context and execution presets.
 @MainActor
 @Observable
+// swiftlint:disable:next type_body_length
 public final class SessionLauncher {
     private let logger = Logger(subsystem: "com.agentboard.modern", category: "SessionLauncher")
 
@@ -127,6 +128,24 @@ public final class SessionLauncher {
         public let agentType: AgentType
         public let startTime: Date
         public var status: SessionStatus
+
+        public init(
+            id: String,
+            sessionName: String,
+            issueNumber: Int,
+            preset: ExecutionPreset,
+            agentType: AgentType,
+            startTime: Date,
+            status: SessionStatus
+        ) {
+            self.id = id
+            self.sessionName = sessionName
+            self.issueNumber = issueNumber
+            self.preset = preset
+            self.agentType = agentType
+            self.startTime = startTime
+            self.status = status
+        }
 
         public enum SessionStatus: Sendable, CustomStringConvertible {
             case running, completed, failed, stalled

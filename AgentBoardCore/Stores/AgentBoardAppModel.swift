@@ -112,8 +112,10 @@ public final class AgentBoardAppModel {
             guard let self else { return }
 
             while !Task.isCancelled {
-                let interval = max(15, self.settingsStore.autoRefreshInterval)
-                try? await Task.sleep(for: .seconds(interval))
+                let base = max(60.0, self.settingsStore.autoRefreshInterval)
+                // Add 0-15s jitter to avoid thundering herd on reconnect
+                let jitter = Double(Int.random(in: 0 ... 15))
+                try? await Task.sleep(for: .seconds(base + jitter))
                 guard !Task.isCancelled else { return }
                 await self.workStore.refresh()
                 await self.agentsStore.refresh()

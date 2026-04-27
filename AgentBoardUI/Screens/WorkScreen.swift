@@ -175,11 +175,12 @@ struct WorkScreen: View {
                             }
 
                             if column.items.isEmpty {
+                                Spacer()
                                 Text("None")
                                     .font(.subheadline)
                                     .foregroundStyle(NeuPalette.textTertiary)
                                     .frame(maxWidth: .infinity, alignment: .center)
-                                    .padding(.vertical, 24)
+                                Spacer()
                             } else {
                                 ScrollView(showsIndicators: false) {
                                     LazyVStack(spacing: 8) {
@@ -191,7 +192,7 @@ struct WorkScreen: View {
                                 }
                             }
                         }
-                        .frame(width: columnWidth, alignment: .topLeading)
+                        .frame(width: columnWidth, height: proxy.size.height - 28, alignment: .topLeading)
                         .padding(12)
                         .background(NeuPalette.background.opacity(0.62))
                         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
@@ -203,7 +204,6 @@ struct WorkScreen: View {
                 }
                 .frame(minWidth: proxy.size.width, alignment: .topLeading)
                 .padding(.horizontal, 28)
-                .padding(.bottom, 28)
             }
         }
     }

@@ -1,6 +1,7 @@
 import AgentBoardCore
 import SwiftUI
 
+// swiftlint:disable:next type_body_length
 struct ChatScreen: View {
     @Environment(AgentBoardAppModel.self) private var appModel
     @Environment(\.horizontalSizeClass) private var hSizeClass
@@ -383,13 +384,17 @@ struct ChatScreen: View {
                 AttachmentPreviewStrip(attachments: $chatStore.pendingAttachments)
             }
 
+            // Slash command autocomplete overlay
+            slashCommandSuggestions
+
             // Compose row: [attach] [mic] [textfield] [send]
-            HStack(spacing: 8) {
+            HStack(spacing: 6) {
                 Button { showAttachmentPicker = true } label: {
                     Image(systemName: "paperclip")
-                        .font(.system(size: 14, weight: .medium))
+                        .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(NeuPalette.accentCyan)
-                        .frame(width: 28, height: 28)
+                        .frame(width: 24, height: 24)
+                        .background(Circle().fill(NeuPalette.surface))
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("chat_button_attach")
@@ -416,18 +421,18 @@ struct ChatScreen: View {
                     AgentBoardKeyboard.dismiss()
                     Task { await chatStore.sendDraftWithRetry() }
                 } label: {
-                    Image(systemName: chatStore.isStreaming ? "stop.fill" : "paperplane.fill")
-                        .font(.system(size: 13, weight: .bold))
+                    Image(systemName: chatStore.isStreaming ? "stop.fill" : "arrow.up")
+                        .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(sendButtonForeground)
-                        .frame(width: 32, height: 32)
+                        .frame(width: 26, height: 26)
                         .background(Circle().fill(sendButtonBackground))
                 }
                 .disabled(!canSend)
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("chat_button_send")
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
             .neuRecessed(cornerRadius: 20, depth: 6)
         }
         .padding(.horizontal, isCompact ? 16 : 24)
@@ -437,6 +442,61 @@ struct ChatScreen: View {
             NeuPalette.background
                 .ignoresSafeArea(edges: .bottom)
                 .shadow(color: NeuPalette.shadowDark, radius: 10, y: -4)
+        )
+    }
+
+    // MARK: - Slash Command Autocomplete
+
+    private var matchingSlashCommands: [SlashCommand] {
+        let draft = appModel.chatStore.draft
+        guard draft.hasPrefix("/"), draft.count > 1 else {
+            return draft.hasPrefix("/") ? Array(SlashCommandHandler.builtInCommands.prefix(8)) : []
+        }
+        let matches = SlashCommandHandler.commands(matching: draft)
+        return Array(matches.prefix(6))
+    }
+
+    private var slashCommandSuggestions: some View {
+        let matches = matchingSlashCommands
+        guard !matches.isEmpty else { return AnyView(EmptyView()) }
+
+        return AnyView(
+            VStack(alignment: .leading, spacing: 4) {
+                ForEach(matches) { cmd in
+                    Button {
+                        appModel.chatStore.draft = cmd.name + " "
+                    } label: {
+                        HStack(spacing: 8) {
+                            Text(cmd.name)
+                                .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                                .foregroundStyle(NeuPalette.accentCyan)
+                            Text(cmd.description)
+                                .font(.system(size: 12))
+                                .foregroundStyle(NeuPalette.textSecondary)
+                                .lineLimit(1)
+                            Spacer()
+                            Text(cmd.category.rawValue)
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundStyle(NeuPalette.textTertiary)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(
+                                    Capsule().fill(NeuPalette.surface)
+                                )
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.vertical, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(NeuPalette.background)
+                    .shadow(color: NeuPalette.shadowDark, radius: 4, y: 2)
+            )
+            .padding(.horizontal, isCompact ? 16 : 24)
         )
     }
 }

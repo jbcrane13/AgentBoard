@@ -17,6 +17,8 @@ struct IssueDetailSheet: View {
     @State private var editMilestone = ""
     @State private var isSaving = false
     @State private var isPresentingLaunchSession = false
+    @State private var showAttachmentPicker = false
+    @State private var pendingAttachments: [ChatAttachment] = []
 
     var body: some View {
         NavigationStack {
@@ -55,6 +57,11 @@ struct IssueDetailSheet: View {
         .sheet(isPresented: $isPresentingLaunchSession) {
             LaunchSessionSheet(workItem: item)
                 .environment(appModel)
+        }
+        .sheet(isPresented: $showAttachmentPicker) {
+            AttachmentPickerSheet { attachment in
+                pendingAttachments.append(attachment)
+            }
         }
     }
 
@@ -245,8 +252,11 @@ struct IssueDetailSheet: View {
                 // Attachment (optional)
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Attachment").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                    if !pendingAttachments.isEmpty {
+                        AttachmentPreviewStrip(attachments: $pendingAttachments)
+                    }
                     Button {
-                        // TODO: file picker integration
+                        showAttachmentPicker = true
                     } label: {
                         HStack(spacing: 8) {
                             Image(systemName: "paperclip")
@@ -295,11 +305,26 @@ struct IssueDetailSheet: View {
             editStatus.labelValue
         ] + (editAgent.map { [$0.labelValue] } ?? [])
 
+        var bodyText = editBody.trimmedOrNil ?? ""
+        if !pendingAttachments.isEmpty {
+            let attachmentNote = pendingAttachments.map { attachment in
+                let name: String
+                switch attachment.payload {
+                case let .file(payload): name = payload.fileName
+                case let .image(payload): name = payload.localURL.lastPathComponent
+                default: name = "attachment"
+                }
+                return "- 📎 \(name)"
+            }.joined(separator: "\n")
+            if !bodyText.isEmpty { bodyText += "\n\n" }
+            bodyText += "**Attachments:**\n\(attachmentNote)"
+        }
+
         Task {
             await appModel.workStore.updateIssue(
                 item,
                 title: editTitle.trimmedOrNil,
-                body: editBody.trimmedOrNil,
+                body: bodyText,
                 labels: mergedLabels.sorted(),
                 assignees: [],
                 milestone: Int(editMilestone.trimmingCharacters(in: .whitespacesAndNewlines)),

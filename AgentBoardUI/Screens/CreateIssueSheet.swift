@@ -14,6 +14,8 @@ struct CreateIssueSheet: View {
     @State private var selectedAgent: AgentName?
     @State private var milestoneText = ""
     @State private var isCreating = false
+    @State private var showAttachmentPicker = false
+    @State private var pendingAttachments: [ChatAttachment] = []
 
     var body: some View {
         NavigationStack {
@@ -124,8 +126,11 @@ struct CreateIssueSheet: View {
                             // ── Attachment (optional) ──
                             VStack(alignment: .leading, spacing: 6) {
                                 Text("Attachment").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                                if !pendingAttachments.isEmpty {
+                                    AttachmentPreviewStrip(attachments: $pendingAttachments)
+                                }
                                 Button {
-                                    // TODO: file picker integration
+                                    showAttachmentPicker = true
                                 } label: {
                                     HStack(spacing: 8) {
                                         Image(systemName: "paperclip")
@@ -172,6 +177,11 @@ struct CreateIssueSheet: View {
                 }
             }
         }
+        .sheet(isPresented: $showAttachmentPicker) {
+            AttachmentPickerSheet { attachment in
+                pendingAttachments.append(attachment)
+            }
+        }
     }
 
     // MARK: - Actions
@@ -186,11 +196,26 @@ struct CreateIssueSheet: View {
             selectedStatus.labelValue
         ] + (selectedAgent.map { [$0.labelValue] } ?? [])
 
+        var bodyText = issueBody.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !pendingAttachments.isEmpty {
+            let attachmentNote = pendingAttachments.map { attachment in
+                let name: String
+                switch attachment.payload {
+                case let .file(payload): name = payload.fileName
+                case let .image(payload): name = payload.localURL.lastPathComponent
+                default: name = "attachment"
+                }
+                return "- 📎 \(name)"
+            }.joined(separator: "\n")
+            if !bodyText.isEmpty { bodyText += "\n\n" }
+            bodyText += "**Attachments:**\n\(attachmentNote)"
+        }
+
         Task {
             await appModel.workStore.createIssue(
                 repository: repo,
                 title: title.trimmingCharacters(in: .whitespacesAndNewlines),
-                body: issueBody.trimmingCharacters(in: .whitespacesAndNewlines),
+                body: bodyText,
                 labels: mergedLabels.sorted(),
                 assignees: [],
                 milestone: Int(milestoneText.trimmingCharacters(in: .whitespacesAndNewlines))

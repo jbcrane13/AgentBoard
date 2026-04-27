@@ -191,7 +191,7 @@ struct SettingsScreen: View {
                         Text("\(Int(s.autoRefreshInterval))s").font(.subheadline.weight(.bold))
                             .foregroundStyle(NeuPalette.accentCyan)
                     }
-                    Slider(value: $s.autoRefreshInterval, in: 15 ... 120, step: 15)
+                    Slider(value: $s.autoRefreshInterval, in: 30 ... 300, step: 30)
                         .tint(NeuPalette.accentCyan)
                 }
             }

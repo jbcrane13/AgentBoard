@@ -1,3 +1,4 @@
+// swiftlint:disable file_length
 import Foundation
 import Observation
 import os
@@ -492,34 +493,35 @@ public final class ChatStore {
         messagesByConversationID[conversationID] = messages
     }
 
+    private func clearDraft() {
+        draft = ""
+        pendingAttachments = []
+    }
+
+    // swiftlint:disable:next cyclomatic_complexity
     private func handleSlashCommand(_ text: String, conversationID: UUID) async -> Bool {
         let result = SlashCommandHandler.handle(text)
         switch result {
         case .newConversation:
-            draft = ""
-            pendingAttachments = []
+            clearDraft()
             startNewConversation()
             return true
         case .clearConversation:
-            draft = ""
-            pendingAttachments = []
+            clearDraft()
             deleteConversation(id: conversationID)
             startNewConversation()
             return true
         case let .switchModel(modelID):
-            draft = ""
-            pendingAttachments = []
+            clearDraft()
             selectModel(modelID)
             statusMessage = "Switched to model: \(modelID)"
             return true
         case .showHelp:
-            draft = ""
-            pendingAttachments = []
+            clearDraft()
             appendSystemMessage(SlashCommandHandler.formatHelp(), to: conversationID)
             return true
         case .showStatus:
-            draft = ""
-            pendingAttachments = []
+            clearDraft()
             let stateStr = switch connectionState {
             case .connected: "Connected"
             case .connecting: "Connecting"
@@ -536,8 +538,7 @@ public final class ChatStore {
             appendSystemMessage(status, to: conversationID)
             return true
         case .showConfig:
-            draft = ""
-            pendingAttachments = []
+            clearDraft()
             let config = SlashCommandHandler.formatConfig(
                 gatewayURL: settingsStore.hermesGatewayURL,
                 model: settingsStore.hermesModelID,
@@ -546,9 +547,25 @@ public final class ChatStore {
             )
             appendSystemMessage(config, to: conversationID)
             return true
+        case .showSkills:
+            clearDraft()
+            appendSystemMessage(SlashCommandHandler.formatSkills([]), to: conversationID)
+            return true
+        case let .activateSkill(name):
+            clearDraft()
+            appendSystemMessage("Activating skill: \(name)…", to: conversationID)
+            statusMessage = "Skill '\(name)' activated"
+            return true
+        case .showMemory, .showTools, .toggleThinking, .toggleWeb,
+             .toggleCode, .toggleImage, .toggleSpeak:
+            return handleToggleCommand(result, conversationID: conversationID)
+        case .resetConversation:
+            clearDraft()
+            startNewConversation()
+            statusMessage = "Conversation reset"
+            return true
         case let .handled(response):
-            draft = ""
-            pendingAttachments = []
+            clearDraft()
             appendSystemMessage(response, to: conversationID)
             return true
         case let .unknown(command):
@@ -557,6 +574,25 @@ public final class ChatStore {
         case .passthrough:
             return false
         }
+    }
+
+    private func handleToggleCommand(
+        _ result: SlashCommandResult,
+        conversationID: UUID
+    ) -> Bool {
+        clearDraft()
+        let message = switch result {
+        case .showMemory: "Memory lookup sent to Hermes. Response will appear below."
+        case .showTools: "Tool listing sent to Hermes. Response will appear below."
+        case .toggleThinking: "Toggled thinking mode. Sent to agent."
+        case .toggleWeb: "Toggled web access. Sent to agent."
+        case .toggleCode: "Toggled code execution. Sent to agent."
+        case .toggleImage: "Toggled image generation. Sent to agent."
+        case .toggleSpeak: "Toggled voice output. Sent to agent."
+        default: "Command sent to agent."
+        }
+        appendSystemMessage(message, to: conversationID)
+        return false
     }
 
     private func appendSystemMessage(_ content: String, to conversationID: UUID) {

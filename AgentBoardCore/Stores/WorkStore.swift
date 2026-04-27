@@ -82,15 +82,39 @@ public final class WorkStore {
         )
 
         do {
-            items = try await service.fetchWorkItems()
+            let fresh = try await service.fetchWorkItems()
+            mergeItems(fresh)
             try cache.replaceWorkItems(items)
             statusMessage = "Loaded \(items.count) GitHub issues."
         } catch {
             logger.error("Failed to refresh work items: \(error.localizedDescription, privacy: .public)")
-            errorMessage = error.localizedDescription
+            // Keep existing items visible — don't clear on transient failures
+            if items.isEmpty {
+                errorMessage = error.localizedDescription
+            }
+            // If we have cached items, just log the error silently
         }
 
         isLoading = false
+    }
+
+    /// Merge fresh items with existing items, preserving stable identity.
+    /// Only updates rows that changed, avoiding full-board flash on refresh.
+    private func mergeItems(_ fresh: [WorkItem]) {
+        var existingByID = Dictionary(uniqueKeysWithValues: items.map { ($0.id, $0) })
+        for item in fresh {
+            existingByID[item.id] = item
+        }
+        // Remove items that no longer exist in the fresh fetch
+        let freshIDs = Set(fresh.map(\.id))
+        items = existingByID.values
+            .filter { freshIDs.contains($0.id) }
+            .sorted { lhs, rhs in
+                if lhs.priority.rank != rhs.priority.rank {
+                    return lhs.priority.rank < rhs.priority.rank
+                }
+                return lhs.updatedAt > rhs.updatedAt
+            }
     }
 
     public func createIssue(
@@ -232,4 +256,11 @@ public final class WorkStore {
         result.append(state.labelValue)
         return Array(Set(result)).sortedCaseInsensitive()
     }
+
+    #if DEBUG
+        /// Test-only helper to set items directly.
+        public func setItemsForTesting(_ newItems: [WorkItem]) {
+            items = newItems
+        }
+    #endif
 }
