@@ -1,7 +1,7 @@
 import AgentBoardCore
 import SwiftUI
 
-private enum DesktopTab: String, CaseIterable, Identifiable {
+enum DesktopTab: String, CaseIterable, Identifiable {
     case work
     case agents
     case sessions
@@ -33,6 +33,8 @@ private enum DesktopTab: String, CaseIterable, Identifiable {
 struct DesktopRootView: View {
     @Environment(AgentBoardAppModel.self) private var appModel
     @State private var activeTab: DesktopTab? = .work
+    @State private var activeSessionTerminal: SessionLauncher.ActiveSession?
+    @State private var isPresentingQuickLaunch = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -40,8 +42,13 @@ struct DesktopRootView: View {
                 .frame(height: 40)
 
             HStack(spacing: 0) {
-                sidebar
-                    .frame(width: 230)
+                DesktopSidebar(
+                    activeTab: activeTab,
+                    onTabSelect: { tab in activeTab = tab },
+                    onSessionTap: { session in activeSessionTerminal = session },
+                    onQuickLaunch: { isPresentingQuickLaunch = true }
+                )
+                .frame(width: 230)
 
                 centerPanel
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -58,6 +65,10 @@ struct DesktopRootView: View {
             }
         }
         .background(NeuBackground())
+        .sheet(isPresented: $isPresentingQuickLaunch) {
+            QuickLaunchSheet()
+                .environment(appModel)
+        }
     }
 
     private var titleBar: some View {
@@ -139,174 +150,25 @@ struct DesktopRootView: View {
         }
     }
 
-    // MARK: - Sidebar
-
-    private var sidebar: some View {
-        ZStack {
-            LinearGradient(
-                colors: [
-                    NeuPalette.surface,
-                    NeuPalette.inset
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-
-            ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    VStack(alignment: .leading, spacing: 12) {
-                        sidebarHeader("VIEWS")
-
-                        ForEach(DesktopTab.allCases) { tab in
-                            Button {
-                                activeTab = tab
-                            } label: {
-                                HStack(spacing: 10) {
-                                    Image(systemName: tab.systemImage)
-                                        .font(.system(size: 14, weight: .semibold))
-                                        .frame(width: 18)
-                                    Text(tab.title)
-                                        .font(.system(size: 12.5, weight: .semibold))
-                                    Spacer()
-                                    if let count = tabCount(tab) {
-                                        Text("\(count)")
-                                            .font(.system(size: 10, weight: .medium, design: .monospaced))
-                                            .foregroundStyle(NeuPalette.textTertiary)
-                                            .padding(.horizontal, 6)
-                                            .padding(.vertical, 2)
-                                            .background(NeuPalette.inset)
-                                            .clipShape(Capsule())
-                                    }
-                                }
-                                .foregroundStyle(activeTab == tab ? NeuPalette.accentCyanBright : NeuPalette
-                                    .textSecondary)
-                                .padding(.horizontal, 11)
-                                .padding(.vertical, 7)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                        .fill(activeTab == tab ? NeuPalette.accentCyan.opacity(0.12) : .clear)
-                                        .overlay {
-                                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                                .stroke(
-                                                    activeTab == tab ? NeuPalette.accentCyan.opacity(0.25) : .clear,
-                                                    lineWidth: 1
-                                                )
-                                        }
-                                )
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityIdentifier("desktop_sidebar_tab_\(tab.rawValue)")
-                        }
-                    }
-
-                    VStack(alignment: .leading, spacing: 12) {
-                        sidebarHeader("PROJECTS")
-
-                        if appModel.settingsStore.repositories.isEmpty {
-                            Text("No repositories")
-                                .font(.caption)
-                                .foregroundStyle(NeuPalette.textSecondary)
-                                .padding(.horizontal, 8)
-                        } else {
-                            ForEach(appModel.settingsStore.repositories) { repo in
-                                HStack(spacing: 10) {
-                                    RoundedRectangle(cornerRadius: 4, style: .continuous)
-                                        .fill(projectColor(repo.shortName))
-                                        .frame(width: 14, height: 14)
-                                        .shadow(color: projectColor(repo.shortName).opacity(0.45), radius: 8)
-                                    Text(repo.shortName)
-                                        .font(.system(size: 12, weight: .medium, design: .monospaced))
-                                        .foregroundStyle(NeuPalette.textSecondary)
-                                    Spacer()
-                                    Text("\(itemsCount(for: repo))")
-                                        .font(.system(size: 10, weight: .medium, design: .monospaced))
-                                        .foregroundStyle(NeuPalette.textTertiary)
-                                }
-                                .padding(.horizontal, 11)
-                                .padding(.vertical, 6)
-                            }
-                        }
-                    }
-
-                    VStack(alignment: .leading, spacing: 12) {
-                        sidebarHeader("LIVE SESSIONS")
-
-                        if appModel.sessionsStore.sessions.isEmpty {
-                            Text("No active sessions")
-                                .font(.caption)
-                                .foregroundStyle(NeuPalette.textSecondary)
-                                .padding(.horizontal, 8)
-                        } else {
-                            ForEach(appModel.sessionsStore.sessions) { session in
-                                sessionRow(session)
-                            }
-                        }
-                    }
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 14)
-            }
-        }
-        .overlay(alignment: .trailing) {
-            Rectangle()
-                .fill(NeuPalette.borderSoft)
-                .frame(width: 1)
-        }
-    }
-
-    private func sessionRow(_ session: AgentSession) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            HStack(spacing: 7) {
-                Circle()
-                    .fill(sessionStatusColor(session.status))
-                    .frame(width: 6, height: 6)
-                Text(session.source)
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(NeuPalette.accentOrange)
-                    .lineLimit(1)
-                Spacer()
-                Text(session.status.title.uppercased())
-                    .font(.system(size: 9.5, weight: .semibold, design: .monospaced))
-                    .tracking(0.8)
-                    .foregroundStyle(NeuPalette.textTertiary)
-            }
-            VStack(alignment: .leading, spacing: 2) {
-                if let item = session.workItem {
-                    Text(item.issueReference)
-                        .font(.system(size: 11))
-                        .foregroundStyle(NeuPalette.textTertiary)
-                        .lineLimit(1)
-                }
-            }
-            .padding(.leading, 13)
-        }
-        .padding(.horizontal, 11)
-        .padding(.vertical, 8)
-        .accessibilityIdentifier("desktop_sidebar_session_\(session.id)")
-    }
-
-    private func sessionStatusColor(_ status: AgentSessionStatus) -> Color {
-        switch status {
-        case .running: NeuPalette.statusSuccess
-        case .idle: NeuPalette.statusIdle
-        case .stopped: NeuPalette.textSecondary
-        case .error: .red
-        }
-    }
-
     // MARK: - Center Panel
 
     @ViewBuilder
     private var centerPanel: some View {
-        switch activeTab ?? .work {
-        case .work:
-            WorkScreen()
-        case .agents:
-            AgentsScreen()
-        case .sessions:
-            SessionsScreen()
-        case .settings:
-            SettingsScreen()
+        if let session = activeSessionTerminal {
+            SessionTerminalView(session: session) {
+                activeSessionTerminal = nil
+            }
+        } else {
+            switch activeTab ?? .work {
+            case .work:
+                WorkScreen()
+            case .agents:
+                AgentsScreen()
+            case .sessions:
+                SessionsScreen()
+            case .settings:
+                SettingsScreen()
+            }
         }
     }
 
@@ -348,33 +210,5 @@ struct DesktopRootView: View {
         case .failed: "ERROR"
         case .disconnected: "OFFLINE"
         }
-    }
-
-    private func sidebarHeader(_ label: String) -> some View {
-        Text(label)
-            .font(.system(size: 9.5, weight: .semibold, design: .monospaced))
-            .tracking(1.6)
-            .foregroundStyle(NeuPalette.textDisabled)
-            .padding(.horizontal, 11)
-            .padding(.bottom, 2)
-    }
-
-    private func tabCount(_ tab: DesktopTab) -> Int? {
-        switch tab {
-        case .work: appModel.workStore.items.count
-        case .agents: appModel.agentsStore.summaries.count
-        case .sessions: appModel.sessionsStore.sessions.count
-        case .settings: nil
-        }
-    }
-
-    private func projectColor(_ shortName: String) -> Color {
-        let colors = [NeuPalette.accentCyan, NeuPalette.accentOrange, NeuPalette.accentPurple]
-        let index = abs(shortName.hashValue) % colors.count
-        return colors[index]
-    }
-
-    private func itemsCount(for repo: ConfiguredRepository) -> Int {
-        appModel.workStore.items.filter { $0.repository.id == repo.id }.count
     }
 }

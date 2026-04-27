@@ -16,6 +16,7 @@ struct IssueDetailSheet: View {
     @State private var editPriority: WorkPriority = .medium
     @State private var editMilestone = ""
     @State private var isSaving = false
+    @State private var isPresentingLaunchSession = false
 
     var body: some View {
         NavigationStack {
@@ -51,6 +52,10 @@ struct IssueDetailSheet: View {
                 }
             }
         }
+        .sheet(isPresented: $isPresentingLaunchSession) {
+            LaunchSessionSheet(workItem: item)
+                .environment(appModel)
+        }
     }
 
     private var readView: some View {
@@ -79,6 +84,7 @@ struct IssueDetailSheet: View {
 
             descriptionCard
             labelsCard
+            launchSessionCard
             timelineCard
         }
     }
@@ -140,6 +146,46 @@ struct IssueDetailSheet: View {
                 Text(item.updatedAt, style: .relative)
                     .foregroundStyle(NeuPalette.textPrimary)
             }
+        }
+        .padding(24)
+        .neuExtruded(cornerRadius: 24, elevation: 8)
+    }
+
+    private var launchSessionCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("CODING SESSION")
+                .font(.caption.weight(.bold))
+                .tracking(1)
+                .foregroundStyle(NeuPalette.textSecondary)
+
+            Button {
+                isPresentingLaunchSession = true
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "bolt.horizontal.circle.fill")
+                        .font(.system(size: 18))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Launch Session")
+                            .font(.subheadline.weight(.bold))
+                        Text("Start an agent session for this issue")
+                            .font(.caption)
+                            .foregroundStyle(NeuPalette.textSecondary)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.bold))
+                }
+                .foregroundStyle(NeuPalette.accentCyanBright)
+                .padding(16)
+                .background(NeuPalette.accentCyan.opacity(0.08))
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(NeuPalette.accentCyan.opacity(0.2), lineWidth: 1)
+                }
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("issue_detail_launch_session")
         }
         .padding(24)
         .neuExtruded(cornerRadius: 24, elevation: 8)
