@@ -337,18 +337,28 @@ public final class SessionLauncher {
     ) async throws {
         #if os(macOS)
             let home = FileManager.default.homeDirectoryForCurrentUser
+            let homePath = home.path
             let projectDir = home.appendingPathComponent("Projects").appendingPathComponent(repo).path
             let socket = home.appendingPathComponent(".tmux/sock").path
             let agent = agentType.launchFlag
 
-            let shellCmd = "/opt/homebrew/bin/tmux -S \(socket) new -d -s \(sessionName)" +
-                " \"cd \(projectDir) && unset ANTHROPIC_API_KEY" +
+            // Use a login shell (-l) so .zprofile/.zshrc are sourced,
+            // ensuring Homebrew paths (node, ralphy, etc.) are on PATH.
+            // Also set HOME explicitly — Process may not inherit it.
+            let shellCmd = "export HOME=\(homePath)" +
+                " && /opt/homebrew/bin/tmux -S \(socket) new -d -s \(sessionName)" +
+                " \"source ~/.zshrc 2>/dev/null; cd \(projectDir)" +
+                " && unset ANTHROPIC_API_KEY" +
                 " && /opt/homebrew/bin/ralphy --\(agent) --prd \(prdPath)" +
-                "; EXIT_CODE=$?; echo EXITED: $EXIT_CODE; sleep 999999\""
+                "; EXIT_CODE=\\$?; echo EXITED: \\$EXIT_CODE; sleep 999999\""
 
             let process = Process()
             process.executableURL = URL(fileURLWithPath: "/bin/zsh")
-            process.arguments = ["-c", shellCmd]
+            process.arguments = ["-l", "-c", shellCmd]
+
+            // Explicitly inherit the current environment so PATH includes
+            // all Homebrew and user-local tools.
+            process.environment = ProcessInfo.processInfo.environment
 
             let pipe = Pipe()
             process.standardOutput = pipe
@@ -428,7 +438,9 @@ public final class SessionLauncher {
             let home = FileManager.default.homeDirectoryForCurrentUser
             let socket = home.appendingPathComponent(".tmux/sock").path
 
-            let cmd = "tmux -S \(socket) attach -t \(sessionName)"
+            // Use /opt/homebrew/bin/tmux explicitly and source shell profile
+            // so PATH is correct inside the terminal.
+            let cmd = "source ~/.zshrc 2>/dev/null; /opt/homebrew/bin/tmux -S \(socket) attach -t \(sessionName)"
             let process = Process()
             process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
             process.arguments = ["-a", "Terminal.app"]
