@@ -37,6 +37,7 @@
 		3D5547FD2C8499B8C8FA087B /* AudioRecorderService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39E1BE6A2B2B66CFAF5F4AC0 /* AudioRecorderService.swift */; };
 		3FDBA88CC8E8D63388C757C6 /* ConfigBackupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9679A2004F1CFD39A588CC7 /* ConfigBackupService.swift */; };
 		41487A7506D835D9946C1B9E /* ChatScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6FDDFF5030B377E6973E969 /* ChatScreen.swift */; };
+		4D05F9AAB6DA0E2642F377F4 /* ShellEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52959B32060C120BA1BB1AB7 /* ShellEnvironment.swift */; };
 		4E523683F87984FFDF08FC54 /* AttachmentInteractions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F31C11E46072F7E4A9FFADDB /* AttachmentInteractions.swift */; };
 		5364836AF5802F65E8F2B521 /* SessionTerminalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEDFAB3DEE21BBA70FAF2EBD /* SessionTerminalView.swift */; };
 		5407CC8EF71865713E95B1BF /* SessionsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5B9C06C17BE65937A00661D /* SessionsStore.swift */; };
@@ -237,6 +238,7 @@
 		3FEBA7BFDBBBF6316B340FAA /* VoiceViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceViews.swift; sourceTree = "<group>"; };
 		4542E208AACDF95595A0B0D4 /* AgentBoardDesignTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentBoardDesignTheme.swift; sourceTree = "<group>"; };
 		4F7D59DE18AF7B3E0D84EF9A /* DesktopSidebar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesktopSidebar.swift; sourceTree = "<group>"; };
+		52959B32060C120BA1BB1AB7 /* ShellEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShellEnvironment.swift; sourceTree = "<group>"; };
 		54CA712A46E969ED79300E4F /* LinkPreviewService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkPreviewService.swift; sourceTree = "<group>"; };
 		5F60733BA5BCAD5BD388E855 /* AgentBoardMobile.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = AgentBoardMobile.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		63376B7513D3E5CFE45372D6 /* BoardPalette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardPalette.swift; sourceTree = "<group>"; };
@@ -425,6 +427,7 @@
 				B7B2891F313F2E1804101D36 /* HermesGatewayClient.swift */,
 				54CA712A46E969ED79300E4F /* LinkPreviewService.swift */,
 				08B7CE4C138A75D87781C1DB /* SessionLauncher.swift */,
+				52959B32060C120BA1BB1AB7 /* ShellEnvironment.swift */,
 				0D0FBEDFA7766F71A98B48E3 /* SlashCommandHandler.swift */,
 			);
 			path = Services;
@@ -874,6 +877,7 @@
 				5407CC8EF71865713E95B1BF /* SessionsStore.swift in Sources */,
 				5B810A52F3C78D394BE76608 /* SettingsRepository.swift in Sources */,
 				1C7E32DFC4B2295F98363820 /* SettingsStore.swift in Sources */,
+				4D05F9AAB6DA0E2642F377F4 /* ShellEnvironment.swift in Sources */,
 				C993681ECCC427965F61D4E6 /* SlashCommandHandler.swift in Sources */,
 				1C711E565B9941FC998F8265 /* WorkStore.swift in Sources */,
 			);

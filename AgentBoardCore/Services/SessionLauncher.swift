@@ -337,17 +337,17 @@ public final class SessionLauncher {
     ) async throws {
         #if os(macOS)
             let home = FileManager.default.homeDirectoryForCurrentUser
-            let homePath = home.path
             let projectDir = home.appendingPathComponent("Projects").appendingPathComponent(repo).path
             let socket = home.appendingPathComponent(".tmux/sock").path
             let agent = agentType.launchFlag
 
-            // Use a login shell (-l) so .zprofile/.zshrc are sourced,
-            // ensuring Homebrew paths (node, ralphy, etc.) are on PATH.
-            // Also set HOME explicitly — Process may not inherit it.
-            let shellCmd = "export HOME=\(homePath)" +
-                " && /opt/homebrew/bin/tmux -S \(socket) new -d -s \(sessionName)" +
-                " \"source ~/.zshrc 2>/dev/null; cd \(projectDir)" +
+            // Use enriched environment that harvests PATH and credentials from
+            // the user's login shell (sources .zprofile + .zshrc for nvm/Homebrew).
+            // tmux new-session receives this env so node, ralphy, etc. are on PATH.
+            let env = ShellEnvironment.enrichedEnvironment()
+
+            let shellCmd = "/opt/homebrew/bin/tmux -S \(socket) new -d -s \(sessionName)" +
+                " \"cd \(projectDir)" +
                 " && unset ANTHROPIC_API_KEY" +
                 " && /opt/homebrew/bin/ralphy --\(agent) --prd \(prdPath)" +
                 "; EXIT_CODE=\\$?; echo EXITED: \\$EXIT_CODE; sleep 999999\""
@@ -355,10 +355,7 @@ public final class SessionLauncher {
             let process = Process()
             process.executableURL = URL(fileURLWithPath: "/bin/zsh")
             process.arguments = ["-l", "-c", shellCmd]
-
-            // Explicitly inherit the current environment so PATH includes
-            // all Homebrew and user-local tools.
-            process.environment = ProcessInfo.processInfo.environment
+            process.environment = env
 
             let pipe = Pipe()
             process.standardOutput = pipe
@@ -387,6 +384,7 @@ public final class SessionLauncher {
             let process = Process()
             process.executableURL = URL(fileURLWithPath: "/opt/homebrew/bin/tmux")
             process.arguments = ["-S", socket, "has-session", "-t", session.sessionName]
+            process.environment = ShellEnvironment.enrichedEnvironment()
 
             let pipe = Pipe()
             process.standardOutput = pipe
@@ -413,6 +411,7 @@ public final class SessionLauncher {
             let process = Process()
             process.executableURL = URL(fileURLWithPath: "/opt/homebrew/bin/tmux")
             process.arguments = ["-S", socket, "capture-pane", "-t", sessionName, "-p", "-J"]
+            process.environment = ShellEnvironment.enrichedEnvironment()
 
             let pipe = Pipe()
             process.standardOutput = pipe
