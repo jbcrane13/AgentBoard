@@ -228,7 +228,7 @@ struct ChatScreen: View {
     private var sendButtonForeground: Color {
         let chatStore = appModel.chatStore
         if chatStore.isStreaming { return .white }
-        return canSend ? NeuPalette.background : NeuPalette.textSecondary
+        return canSend ? NeuPalette.accentForeground : NeuPalette.textSecondary
     }
 
     private var sendButtonBackground: Color {
