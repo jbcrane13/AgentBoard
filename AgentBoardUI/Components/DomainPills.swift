@@ -14,6 +14,7 @@ struct WorkStatusPill: View {
         case .inProgress: NeuPalette.accentOrange
         case .blocked: .red
         case .review: .purple
+        case .done: NeuPalette.accentGreen
         }
     }
 
@@ -23,6 +24,7 @@ struct WorkStatusPill: View {
         case .inProgress: "clock.arrow.circlepath"
         case .blocked: "exclamationmark.triangle"
         case .review: "eye"
+        case .done: "checkmark.circle.fill"
         }
     }
 }

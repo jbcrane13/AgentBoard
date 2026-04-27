@@ -158,6 +158,10 @@ public enum NeuPalette {
         active.accentPurple
     }
 
+    public static var accentGreen: Color {
+        active.statusSuccess
+    }
+
     public static var statusBlue: Color {
         active.statusOpen
     }

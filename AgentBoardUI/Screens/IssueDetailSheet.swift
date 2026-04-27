@@ -1,6 +1,7 @@
 import AgentBoardCore
 import SwiftUI
 
+// swiftlint:disable:next type_body_length
 struct IssueDetailSheet: View {
     @Environment(AgentBoardAppModel.self) private var appModel
     @Environment(\.dismiss) private var dismiss
@@ -16,6 +17,7 @@ struct IssueDetailSheet: View {
     @State private var editAgent: AgentName?
     @State private var editMilestone = ""
     @State private var isSaving = false
+    @State private var isClosing = false
     @State private var isPresentingLaunchSession = false
     @State private var showAttachmentPicker = false
     @State private var pendingAttachments: [ChatAttachment] = []
@@ -42,12 +44,21 @@ struct IssueDetailSheet: View {
                     Button("Close") { dismiss() }
                         .foregroundStyle(NeuPalette.textPrimary)
                 }
-                ToolbarItem(placement: .primaryAction) {
+                ToolbarItemGroup(placement: .primaryAction) {
                     if isEditing {
                         Button("Save") { save() }
                             .buttonStyle(NeuButtonTarget(isAccent: true))
                             .disabled(isSaving || editTitle.trimmedOrNil == nil)
                     } else {
+                        if item.status == .done {
+                            Button("Reopen") { closeOrReopen() }
+                                .buttonStyle(NeuButtonTarget(isAccent: false))
+                                .disabled(isClosing)
+                        } else {
+                            Button("Close Issue") { closeOrReopen() }
+                                .buttonStyle(NeuButtonTarget(isAccent: true))
+                                .disabled(isClosing)
+                        }
                         Button("Edit") { beginEditing() }
                             .buttonStyle(NeuButtonTarget(isAccent: false))
                     }
@@ -91,6 +102,7 @@ struct IssueDetailSheet: View {
             .neuExtruded(cornerRadius: 24, elevation: 8)
 
             descriptionCard
+            closeActionCard
             launchSessionCard
             timelineCard
         }
@@ -283,7 +295,88 @@ struct IssueDetailSheet: View {
         }
     }
 
+    private var closeActionCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if item.status == .done {
+                Button {
+                    closeOrReopen()
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "arrow.uturn.right")
+                            .font(.system(size: 16))
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Reopen Issue")
+                                .font(.subheadline.weight(.bold))
+                            Text("Move back to Ready")
+                                .font(.caption)
+                                .foregroundStyle(NeuPalette.textSecondary)
+                        }
+                        Spacer()
+                        if isClosing {
+                            ProgressView()
+                        }
+                    }
+                    .foregroundStyle(NeuPalette.accentCyanBright)
+                    .padding(16)
+                    .background(NeuPalette.accentCyan.opacity(0.08))
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(NeuPalette.accentCyan.opacity(0.2), lineWidth: 1)
+                    }
+                }
+                .buttonStyle(.plain)
+                .disabled(isClosing)
+            } else {
+                Button {
+                    closeOrReopen()
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "checkmark.circle")
+                            .font(.system(size: 16))
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Close Issue")
+                                .font(.subheadline.weight(.bold))
+                            Text("Mark as Done")
+                                .font(.caption)
+                                .foregroundStyle(NeuPalette.textSecondary)
+                        }
+                        Spacer()
+                        if isClosing {
+                            ProgressView()
+                        }
+                    }
+                    .foregroundStyle(NeuPalette.accentGreen)
+                    .padding(16)
+                    .background(NeuPalette.accentGreen.opacity(0.08))
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(NeuPalette.accentGreen.opacity(0.2), lineWidth: 1)
+                    }
+                }
+                .buttonStyle(.plain)
+                .disabled(isClosing)
+            }
+        }
+        .padding(24)
+        .neuExtruded(cornerRadius: 24, elevation: 8)
+    }
+
     // MARK: - Actions
+
+    private func closeOrReopen() {
+        isClosing = true
+        Task {
+            if item.status == .done {
+                await appModel.workStore.reopenIssue(item)
+            } else {
+                await appModel.workStore.closeIssue(item)
+            }
+            isClosing = false
+            dismiss()
+        }
+    }
 
     private func beginEditing() {
         editTitle = item.title

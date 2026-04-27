@@ -1,3 +1,4 @@
+// swiftlint:disable file_length
 import Foundation
 
 public enum AgentBoardDesignHandoff {
@@ -138,6 +139,7 @@ public enum WorkState: String, Codable, CaseIterable, Identifiable, Sendable {
     case inProgress
     case blocked
     case review
+    case done
 
     public var id: String {
         rawValue
@@ -149,12 +151,15 @@ public enum WorkState: String, Codable, CaseIterable, Identifiable, Sendable {
         case .inProgress: "In Progress"
         case .blocked: "Blocked"
         case .review: "Review"
+        case .done: "Done"
         }
     }
 
     public var githubState: String {
-        // All label-based statuses are "open" on GitHub
-        "open"
+        switch self {
+        case .done: "closed"
+        default: "open"
+        }
     }
 
     public var labelValue: String {
@@ -163,6 +168,7 @@ public enum WorkState: String, Codable, CaseIterable, Identifiable, Sendable {
         case .inProgress: "status:in-progress"
         case .blocked: "status:blocked"
         case .review: "status:review"
+        case .done: "status:done"
         }
     }
 
@@ -172,7 +178,13 @@ public enum WorkState: String, Codable, CaseIterable, Identifiable, Sendable {
         case .inProgress: "IN PROGRESS"
         case .blocked: "BLOCKED"
         case .review: "REVIEW"
+        case .done: "DONE"
         }
+    }
+
+    /// Whether this state represents a closed/done item on GitHub.
+    public var isTerminal: Bool {
+        self == .done
     }
 }
 

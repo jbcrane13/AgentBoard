@@ -190,7 +190,15 @@ public actor GitHubWorkService {
         if let labels = patch.labels { payload["labels"] = labels }
         if let assignees = patch.assignees { payload["assignees"] = assignees }
         if let milestone = patch.milestone { payload["milestone"] = milestone }
-        if let state = patch.state { payload["state"] = state.githubState }
+        if let state = patch.state {
+            payload["state"] = state.githubState
+            // When closing, also remove status labels so GitHub state is authoritative
+            if state.isTerminal, var currentLabels = patch.labels {
+                currentLabels.removeAll { $0.lowercased().hasPrefix("status:") }
+                currentLabels.append(state.labelValue)
+                payload["labels"] = currentLabels
+            }
+        }
         request.httpBody = try JSONSerialization.data(withJSONObject: payload)
 
         let (data, response) = try await session.data(for: request)
@@ -307,9 +315,9 @@ public actor GitHubWorkService {
     }
 
     private func derivedStatus(issueState: String, labels: [String]) -> WorkState {
-        // Closed issues have no label-based status — they're just closed
+        // Closed GitHub issues map to .done
         if issueState == "closed" {
-            return .ready // Default when reopened
+            return .done
         }
 
         for label in labels {
@@ -320,6 +328,8 @@ public actor GitHubWorkService {
                 return .inProgress
             case "status:review", "status:in-review":
                 return .review
+            case "status:done", "status:closed":
+                return .done
             case "status:ready", "status:open":
                 return .ready
             default:

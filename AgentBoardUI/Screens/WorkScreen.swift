@@ -88,8 +88,8 @@ struct WorkScreen: View {
     }
 
     private var groupedFilteredItems: [(state: WorkState, items: [WorkItem])] {
-        // Only show Ready, In Progress, Review columns (skip Blocked)
-        [.ready, .inProgress, .review].map { state in
+        // Show Ready, In Progress, Review, Done columns (skip Blocked)
+        [.ready, .inProgress, .review, .done].map { state in
             (state, filteredItems.filter { $0.status == state })
         }
     }
@@ -327,6 +327,7 @@ private func workStateColor(_ state: WorkState) -> Color {
     case .inProgress: NeuPalette.accentOrange
     case .blocked: NeuPalette.accentCoral
     case .review: .purple
+    case .done: NeuPalette.accentGreen
     }
 }
 

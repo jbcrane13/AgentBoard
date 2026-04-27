@@ -253,6 +253,14 @@ public final class WorkStore {
         }
     }
 
+    public func closeIssue(_ item: WorkItem) async {
+        await updateStatus(for: item, to: .done)
+    }
+
+    public func reopenIssue(_ item: WorkItem) async {
+        await updateStatus(for: item, to: .ready)
+    }
+
     public func workItem(for reference: WorkReference) -> WorkItem? {
         items.first { $0.reference == reference }
     }
