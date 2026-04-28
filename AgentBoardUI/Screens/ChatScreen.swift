@@ -452,8 +452,12 @@ struct ChatScreen: View {
                     Button { showAttachmentPicker = true } label: {
                         Image(systemName: "paperclip")
                             .font(.system(size: 14, weight: .medium))
-                            .foregroundStyle(NeuPalette.accentCyan)
+                            .foregroundStyle(canSend ? NeuPalette.accentCyan : NeuPalette.textSecondary)
                             .frame(width: 32, height: 32)
+                            .background(NeuPalette.surfaceRaised)
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(NeuPalette.borderSoft, lineWidth: 0.5))
+                            .shadow(color: NeuPalette.shadowDark.opacity(0.3), radius: 3, x: 0, y: 1)
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("chat_button_attach")
@@ -496,10 +500,15 @@ struct ChatScreen: View {
                     } label: {
                         Image(systemName: chatStore.isStreaming ? "stop.fill" : "arrow.up")
                             .font(.system(size: 13, weight: .bold))
-                            .foregroundStyle(sendButtonForeground)
+                            .foregroundStyle(canSend ? sendButtonForeground : NeuPalette.textDisabled)
                             .frame(width: 32, height: 32)
-                            .background(NeuPalette.surfaceRaised.clipShape(Circle()))
-                            .shadow(color: NeuPalette.shadowDark, radius: 4, x: 2, y: 2)
+                            .background(
+                                canSend ? NeuPalette.accentCyan.opacity(0.15) : Color.clear
+                            )
+                            .clipShape(Circle())
+                            .overlay(
+                                Circle().stroke(canSend ? NeuPalette.accentCyan.opacity(0.3) : .clear, lineWidth: 1)
+                            )
                     }
                     .disabled(!canSend)
                     .buttonStyle(.plain)
@@ -507,12 +516,13 @@ struct ChatScreen: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
-                .background(NeuPalette.surface)
+                .background(NeuPalette.surfaceRaised)
                 .clipShape(RoundedRectangle(cornerRadius: 18))
                 .overlay(
                     RoundedRectangle(cornerRadius: 18)
                         .stroke(NeuPalette.borderSoft, lineWidth: 1)
                 )
+                .shadow(color: NeuPalette.shadowDark.opacity(0.5), radius: 6, x: 0, y: 2)
             }
             .padding(.horizontal, 14)
             .padding(.top, 10)

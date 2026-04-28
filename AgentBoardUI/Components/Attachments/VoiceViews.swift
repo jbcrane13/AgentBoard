@@ -33,8 +33,10 @@ struct VoiceRecordingButton: View {
                 .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(NeuPalette.accentOrange)
                 .frame(width: 32, height: 32)
-                // Remove the button background circle, we make it transparent or matching the paperclip
-                .background(Color.clear)
+                .background(NeuPalette.surfaceRaised)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(NeuPalette.borderSoft, lineWidth: 0.5))
+                .shadow(color: NeuPalette.shadowDark.opacity(0.3), radius: 3, x: 0, y: 1)
         }
         .accessibilityIdentifier("chat_button_mic")
     }
