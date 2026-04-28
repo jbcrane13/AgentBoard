@@ -52,11 +52,16 @@ struct NeuChatBubble: View {
             }
         }
         .padding(20)
-        .modifier(
+        .background(
             message.role == .assistant
-                ? AnyViewModifier(NeuExtrudedModifier(cornerRadius: 24, elevation: 8))
-                : AnyViewModifier(NeuRecessedModifier(cornerRadius: 24, depth: 6))
+                ? RoundedRectangle(cornerRadius: 24, style: .continuous).fill(NeuPalette.surfaceRaised)
+                : RoundedRectangle(cornerRadius: 24, style: .continuous).fill(NeuPalette.surfaceHover)
         )
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(NeuPalette.borderSoft, lineWidth: 1)
+        )
+        .shadow(color: NeuPalette.shadowDark.opacity(0.6), radius: 8, x: 0, y: 4)
     }
 }
 

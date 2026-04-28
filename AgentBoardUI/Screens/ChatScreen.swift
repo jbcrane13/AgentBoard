@@ -446,10 +446,40 @@ struct ChatScreen: View {
             // Slash command autocomplete overlay
             slashCommandSuggestions
 
-            VStack(spacing: 2) {
+            VStack(spacing: 8) {
+                // Secondary toolbar: attach + mic ABOVE the text field
+                HStack(spacing: 4) {
+                    Button { showAttachmentPicker = true } label: {
+                        Image(systemName: "paperclip")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(canSend ? NeuPalette.accentCyan : NeuPalette.textSecondary)
+                            .frame(width: 32, height: 32)
+                            .background(NeuPalette.surfaceRaised)
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(NeuPalette.borderSoft, lineWidth: 0.5))
+                            .shadow(color: NeuPalette.shadowDark.opacity(0.3), radius: 3, x: 0, y: 1)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("chat_button_attach")
+                    .sheet(isPresented: $showAttachmentPicker) {
+                        AttachmentPickerSheet { attachment in
+                            chatStore.addAttachment(attachment)
+                        }
+                    }
+
+                    VoiceRecordingButton(
+                        recorder: audioRecorder,
+                        onRecorded: { result in chatStore.addAttachment(result.toAttachment()) },
+                        onCancel: {}
+                    )
+
+                    Spacer()
+                }
+                .padding(.horizontal, 4)
+
                 // Primary row: text field + send
-                HStack(spacing: 8) {
-                    TextField("Message Hermes...", text: $chatStore.draft, axis: .vertical)
+                HStack(spacing: 12) {
+                    TextField(" Message Hermes...", text: $chatStore.draft, axis: .vertical)
                         .lineLimit(1 ... 6)
                         .focused($isTextFieldFocused)
                         .foregroundStyle(NeuPalette.textPrimary)
@@ -469,52 +499,43 @@ struct ChatScreen: View {
                         Task { await chatStore.sendDraftWithRetry() }
                     } label: {
                         Image(systemName: chatStore.isStreaming ? "stop.fill" : "arrow.up")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundStyle(sendButtonForeground)
-                            .frame(width: 26, height: 26)
-                            .background(Circle().fill(sendButtonBackground))
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundStyle(canSend ? sendButtonForeground : NeuPalette.textDisabled)
+                            .frame(width: 32, height: 32)
+                            .background(
+                                canSend ? NeuPalette.accentCyan.opacity(0.15) : Color.clear
+                            )
+                            .clipShape(Circle())
+                            .overlay(
+                                Circle().stroke(canSend ? NeuPalette.accentCyan.opacity(0.3) : .clear, lineWidth: 1)
+                            )
                     }
                     .disabled(!canSend)
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("chat_button_send")
                 }
-
-                // Secondary toolbar: attach + mic below the text field
-                HStack(spacing: 8) {
-                    Button { showAttachmentPicker = true } label: {
-                        Image(systemName: "paperclip")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(NeuPalette.textSecondary)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("chat_button_attach")
-                    .sheet(isPresented: $showAttachmentPicker) {
-                        AttachmentPickerSheet { attachment in
-                            chatStore.addAttachment(attachment)
-                        }
-                    }
-
-                    VoiceRecordingButton(
-                        recorder: audioRecorder,
-                        onRecorded: { result in chatStore.addAttachment(result.toAttachment()) },
-                        onCancel: {}
-                    )
-
-                    Spacer()
-                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(NeuPalette.surfaceRaised)
+                .clipShape(RoundedRectangle(cornerRadius: 18))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18)
+                        .stroke(NeuPalette.borderSoft, lineWidth: 1)
+                )
+                .shadow(color: NeuPalette.shadowDark.opacity(0.5), radius: 6, x: 0, y: 2)
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, 14)
             .padding(.top, 10)
-            .padding(.bottom, 6)
-            .neuRecessed(cornerRadius: 20, depth: 6)
+            .padding(.bottom, 12)
+            // Remove the neuromorphic recessed background from the entire stack since the textfield has its own
+            // background now
         }
-        .padding(.horizontal, isCompact ? 16 : 24)
+        .padding(.horizontal, isCompact ? 0 : 8)
         .padding(.top, 8)
         .padding(.bottom, 12)
         .background(
             NeuPalette.background
                 .ignoresSafeArea(edges: .bottom)
-                .shadow(color: NeuPalette.shadowDark, radius: 10, y: -4)
         )
     }
 

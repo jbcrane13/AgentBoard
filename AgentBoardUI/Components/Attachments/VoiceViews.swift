@@ -30,10 +30,13 @@ struct VoiceRecordingButton: View {
             }
         } label: {
             Image(systemName: "mic")
-                .font(.system(size: 12, weight: .medium))
+                .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(NeuPalette.accentOrange)
-                .frame(width: 24, height: 24)
-                .background(Circle().fill(NeuPalette.surface))
+                .frame(width: 32, height: 32)
+                .background(NeuPalette.surfaceRaised)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(NeuPalette.borderSoft, lineWidth: 0.5))
+                .shadow(color: NeuPalette.shadowDark.opacity(0.3), radius: 3, x: 0, y: 1)
         }
         .accessibilityIdentifier("chat_button_mic")
     }

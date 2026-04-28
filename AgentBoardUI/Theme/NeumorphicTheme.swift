@@ -33,13 +33,13 @@ public struct NeuTheme: Sendable {
     public let shadowLight: Color
 
     public static let blue = NeuTheme(
-        background: Color(red: 0.102, green: 0.110, blue: 0.149),
-        surface: Color(red: 0.137, green: 0.149, blue: 0.196),
-        surfaceRaised: Color(red: 0.165, green: 0.180, blue: 0.231),
-        surfaceHover: Color(red: 0.200, green: 0.220, blue: 0.278),
-        inset: Color(red: 0.078, green: 0.086, blue: 0.118),
-        gradientTop: Color(red: 0.161, green: 0.176, blue: 0.227),
-        gradientBottom: Color(red: 0.102, green: 0.110, blue: 0.149),
+        background: Color(red: 0.102, green: 0.110, blue: 0.13), // slightly less blue-tinted
+        surface: Color(red: 0.125, green: 0.135, blue: 0.165),
+        surfaceRaised: Color(red: 0.155, green: 0.170, blue: 0.20),
+        surfaceHover: Color(red: 0.180, green: 0.200, blue: 0.24),
+        inset: Color(red: 0.085, green: 0.09, blue: 0.10),
+        gradientTop: Color(red: 0.15, green: 0.16, blue: 0.19),
+        gradientBottom: Color(red: 0.102, green: 0.110, blue: 0.13),
         accentOrange: Color(red: 0.961, green: 0.647, blue: 0.141),
         primaryAccent: Color(red: 0.106, green: 0.749, blue: 0.651),
         primaryAccentBright: Color(red: 0.310, green: 0.851, blue: 0.773),
