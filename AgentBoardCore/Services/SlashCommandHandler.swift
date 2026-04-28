@@ -128,11 +128,21 @@ public enum SlashCommandHandler: Sendable {
         guard text.hasPrefix("/") else { return .passthrough }
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        let parts = trimmed.split(separator: " ", maxSplits: 1)
-        let command = String(parts[0]).lowercased()
+        // Split on any whitespace (space, tab, newline) so pasted or multi-line
+        // input like "/model\thermes-pro" still parses correctly.
+        let parts = trimmed.split(
+            maxSplits: 1,
+            omittingEmptySubsequences: true,
+            whereSeparator: { $0.isWhitespace }
+        )
+        guard let firstPart = parts.first else { return .passthrough }
+        let command = String(firstPart).lowercased()
         let argument = parts.count > 1
             ? String(parts[1]).trimmingCharacters(in: .whitespacesAndNewlines)
             : ""
+
+        // A bare "/" is treated as a help shortcut so users can discover commands.
+        if command == "/" { return .showHelp }
 
         // Passthrough commands are forwarded to the agent as-is
         if passthroughCommands.contains(command) {
