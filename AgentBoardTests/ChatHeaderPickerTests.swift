@@ -102,4 +102,37 @@ struct ChatHeaderPickerTests {
         #expect(store.selectedConversationID != originalID)
         #expect(store.selectedConversationID == store.conversations[0].id)
     }
+
+    // MARK: - Edge cases
+
+    @Test
+    func pickingDeletedSessionLeavesSelectionUntouched() throws {
+        // Race condition: a session is deleted between menu render and click.
+        // The picker passes a now-stale UUID; selection must not become a phantom id.
+        let settings = makeSettingsStore()
+        let store = try makeChatStore(settingsStore: settings)
+        store.startNewConversation()
+        let validID = try #require(store.selectedConversationID)
+
+        store.selectConversation(UUID())
+
+        #expect(store.selectedConversationID == validID)
+        #expect(store.selectedConversation?.id == validID)
+    }
+
+    @Test
+    func pickingUnknownProfileLeavesActiveProfileUntouched() throws {
+        // Race condition: a profile is removed between menu render and click.
+        // SettingsStore.selectHermesProfile silently returns; verify state is preserved.
+        let store = makeSettingsStore()
+        store.hermesGatewayURL = "http://127.0.0.1:8642"
+        store.saveCurrentHermesProfile(named: "Local")
+        let localID = try #require(store.hermesProfiles.first { $0.name == "Local" }?.id)
+        let originalURL = store.hermesGatewayURL
+
+        store.selectHermesProfile(id: "ghost-profile-id")
+
+        #expect(store.activeHermesProfile?.id == localID)
+        #expect(store.hermesGatewayURL == originalURL)
+    }
 }
