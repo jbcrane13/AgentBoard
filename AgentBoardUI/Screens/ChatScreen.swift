@@ -495,6 +495,7 @@ struct ChatScreen: View {
                         .padding(.vertical, 6)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("chat_button_slashcmd_\(cmd.name.dropFirst())")
                 }
             }
             .padding(.vertical, 8)
