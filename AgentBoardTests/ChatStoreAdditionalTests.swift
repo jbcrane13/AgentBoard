@@ -284,4 +284,30 @@ struct ChatStoreAdditionalTests {
         store.draft = "Hello Hermes"
         #expect(store.canSendDraft == true)
     }
+
+    @Test
+    @MainActor
+    func canSendDraftTrueWhenAttachmentsOnlyNoText() throws {
+        let store = try makeStore()
+        store.startNewConversation()
+        store.draft = ""
+        store.addAttachment(ChatAttachment(
+            type: .image,
+            payload: .image(ImageAttachmentPayload(localURL: URL(fileURLWithPath: "/tmp/img.jpg")))
+        ))
+        #expect(store.canSendDraft == true)
+    }
+
+    @Test
+    @MainActor
+    func canSendDraftTrueWhenWhitespaceTextWithAttachment() throws {
+        let store = try makeStore()
+        store.startNewConversation()
+        store.draft = "   "
+        store.addAttachment(ChatAttachment(
+            type: .image,
+            payload: .image(ImageAttachmentPayload(localURL: URL(fileURLWithPath: "/tmp/img.jpg")))
+        ))
+        #expect(store.canSendDraft == true)
+    }
 }

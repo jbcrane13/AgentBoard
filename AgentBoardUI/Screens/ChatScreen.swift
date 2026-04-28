@@ -415,7 +415,8 @@ struct ChatScreen: View {
                     .focused($isTextFieldFocused)
                     .foregroundStyle(NeuPalette.textPrimary)
                     .textFieldStyle(.plain)
-                    .onKeyPress(.return) {
+                    .onKeyPress(.return, phases: .down) { press in
+                        if press.modifiers.contains(.shift) { return .ignored }
                         guard chatStore.canSendDraft else { return .ignored }
                         isTextFieldFocused = false
                         AgentBoardKeyboard.dismiss()
