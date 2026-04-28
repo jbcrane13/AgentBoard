@@ -47,6 +47,7 @@ struct MobileRootView: View {
             .tabItem {
                 Label(AppDestination.chat.title, systemImage: AppDestination.chat.systemImage)
             }
+            .accessibilityIdentifier("mobile_tab_chat")
 
             NavigationStack {
                 WorkScreen()
@@ -54,6 +55,7 @@ struct MobileRootView: View {
             .tabItem {
                 Label(AppDestination.work.title, systemImage: AppDestination.work.systemImage)
             }
+            .accessibilityIdentifier("mobile_tab_work")
 
             NavigationStack {
                 AgentsScreen()
@@ -61,6 +63,7 @@ struct MobileRootView: View {
             .tabItem {
                 Label(AppDestination.agents.title, systemImage: AppDestination.agents.systemImage)
             }
+            .accessibilityIdentifier("mobile_tab_agents")
 
             NavigationStack {
                 SessionsScreen()
@@ -68,6 +71,7 @@ struct MobileRootView: View {
             .tabItem {
                 Label(AppDestination.sessions.title, systemImage: AppDestination.sessions.systemImage)
             }
+            .accessibilityIdentifier("mobile_tab_sessions")
 
             NavigationStack {
                 SettingsScreen()
@@ -75,7 +79,9 @@ struct MobileRootView: View {
             .tabItem {
                 Label(AppDestination.settings.title, systemImage: AppDestination.settings.systemImage)
             }
+            .accessibilityIdentifier("mobile_tab_settings")
         }
         .tint(NeuPalette.accentCyan)
+        .accessibilityIdentifier("screen_mobileRoot")
     }
 }
