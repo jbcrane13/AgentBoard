@@ -35,9 +35,12 @@ public final class ConfigBackupService {
 
     /// Create a backup from the current configuration.
     public func createBackup() async -> AgentBoardBackup {
-        let settings = await repository.loadSettings()
-        let secrets = await repository.loadSecrets()
-        return AgentBoardBackup(settings: settings, secrets: secrets)
+        // Use the live in-memory snapshot so unsaved edits are captured. The
+        // repository may lag behind SettingsStore until persist() runs.
+        AgentBoardBackup(
+            settings: settingsStore.settingsSnapshot,
+            secrets: settingsStore.secretsSnapshot
+        )
     }
 
     /// Export backup to a JSON Data blob.

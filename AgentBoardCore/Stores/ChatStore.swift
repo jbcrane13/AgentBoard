@@ -257,6 +257,17 @@ public final class ChatStore {
             if handled { return }
         }
 
+        // Validate the Hermes endpoint before mutating any state. A misconfigured
+        // gateway (HTTPS on a local host, pointed at the companion port, etc.)
+        // must surface as an error without appending the user message.
+        do {
+            try validateHermesEndpoint()
+        } catch {
+            errorMessage = error.localizedDescription
+            connectionState = .failed
+            return
+        }
+
         draft = ""
         pendingAttachments = []
         errorMessage = nil
