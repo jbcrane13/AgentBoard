@@ -3,6 +3,7 @@ import Foundation
 import Testing
 
 @Suite("ChatStore — slash command integration", .serialized)
+// swiftlint:disable:next type_body_length
 struct ChatStoreSlashCommandTests {
     @MainActor
     private func makeStore(hermesURL: String = "http://127.0.0.1:8642") throws -> ChatStore {
@@ -437,5 +438,111 @@ struct ChatStoreSlashCommandTests {
         // Normal message creates a user message
         let userMessages = store.messages.filter { $0.role == .user }
         #expect(userMessages.contains { $0.content == "Hello, agent!" })
+    }
+
+    @Test
+    @MainActor
+    func whitespaceOnlyDraftDoesNothing() async throws {
+        let store = try makeStore()
+        store.draft = "   \n\t  "
+        await store.sendDraft()
+        #expect(store.messages.isEmpty)
+    }
+
+    @Test
+    @MainActor
+    func leadingWhitespaceBeforeSlashIsStillHandledLocally() async throws {
+        // Dispatcher trims before handing to handler, so leading whitespace
+        // shouldn't prevent a /help command from being recognised.
+        let store = try makeStore()
+        store.draft = "   /help"
+        await store.sendDraft()
+        let systemMessages = store.messages.filter { $0.role == .assistant && !$0.isStreaming }
+        #expect(!systemMessages.isEmpty)
+        #expect(store.draft.isEmpty)
+    }
+
+    @Test
+    @MainActor
+    func bareSlashAppendsHelpSystemMessage() async throws {
+        let store = try makeStore()
+        store.draft = "/"
+        await store.sendDraft()
+        let systemMessages = store.messages.filter { $0.role == .assistant && !$0.isStreaming }
+        #expect(!systemMessages.isEmpty)
+        let content = try #require(systemMessages.first?.content)
+        #expect(content.contains("/help") || content.contains("Commands"))
+    }
+
+    @Test
+    @MainActor
+    func tabSeparatedModelCommandSwitchesModel() async throws {
+        let store = try makeStore()
+        store.draft = "/model\thermes-pro"
+        await store.sendDraft()
+        let status = try #require(store.statusMessage)
+        #expect(status.contains("hermes-pro"))
+        #expect(store.draft.isEmpty)
+    }
+
+    @Test
+    @MainActor
+    func localSlashCommandClearsPendingAttachments() async throws {
+        let store = try makeStore()
+        let attachment = ChatAttachment(
+            type: .file,
+            payload: .file(FileAttachmentPayload(
+                localURL: URL(fileURLWithPath: "/tmp/edge-case.txt"),
+                fileName: "edge-case.txt"
+            ))
+        )
+        store.addAttachment(attachment)
+        #expect(store.pendingAttachments.count == 1)
+
+        store.draft = "/help"
+        await store.sendDraft()
+
+        // Local commands clear the draft AND any pending attachments — they
+        // shouldn't leak into the next message the user sends.
+        #expect(store.pendingAttachments.isEmpty)
+        #expect(store.draft.isEmpty)
+    }
+
+    @Test
+    @MainActor
+    func consecutiveSlashCommandsAccumulateMessages() async throws {
+        // Make sure running multiple local commands in a row doesn't clobber
+        // earlier system messages or get tangled in shared state.
+        let store = try makeStore()
+        store.draft = "/help"
+        await store.sendDraft()
+        let firstCount = store.messages.count
+
+        store.draft = "/status"
+        await store.sendDraft()
+        #expect(store.messages.count >= firstCount + 1)
+
+        store.draft = "/config"
+        await store.sendDraft()
+        #expect(store.messages.count >= firstCount + 2)
+    }
+
+    @Test
+    @MainActor
+    func unknownSlashCommandClearsStatusBeforeForwarding() async throws {
+        // Unknown commands fall through to the agent path. Any temporary
+        // "Sending …" status used while forwarding should be cleared again by
+        // the time sendDraft() returns.
+        let store = try makeStore()
+        store.draft = "/foobar"
+        await store.sendDraft()
+
+        // The mock returns 200 OK with an empty body, so forwarding completes
+        // without an error. The forwarded user message should be persisted,
+        // the draft cleared, and no transient status should remain.
+        let userMessages = store.messages.filter { $0.role == .user }
+        #expect(userMessages.contains { $0.content == "/foobar" })
+        #expect(store.draft.isEmpty)
+        #expect(store.statusMessage == nil)
     }
 }

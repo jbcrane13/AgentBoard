@@ -95,6 +95,60 @@ struct SlashCommandHandlerTests {
         #expect(result == .passthrough) // leading space means not a slash command
     }
 
+    @Test func trailingWhitespaceOnCommandIsTrimmed() {
+        #expect(SlashCommandHandler.handle("/help   ") == .showHelp)
+        #expect(SlashCommandHandler.handle("/help\n") == .showHelp)
+    }
+
+    // MARK: - Edge cases
+
+    @Test func bareSlashShowsHelp() {
+        // A user typing just "/" is asking what commands exist.
+        #expect(SlashCommandHandler.handle("/") == .showHelp)
+    }
+
+    @Test func bareSlashWithSurroundingWhitespaceShowsHelp() {
+        #expect(SlashCommandHandler.handle("/   ") == .showHelp)
+        #expect(SlashCommandHandler.handle("/\n") == .showHelp)
+    }
+
+    @Test func tabSeparatedArgumentParsesCorrectly() {
+        let result = SlashCommandHandler.handle("/model\thermes-pro")
+        #expect(result == .switchModel("hermes-pro"))
+    }
+
+    @Test func newlineSeparatedArgumentParsesCorrectly() {
+        let result = SlashCommandHandler.handle("/model\nhermes-pro")
+        #expect(result == .switchModel("hermes-pro"))
+    }
+
+    @Test func skillArgumentPreservesMixedCase() {
+        // Command name is case-insensitive, but arguments must preserve case
+        // because skill identifiers may be case-sensitive.
+        let result = SlashCommandHandler.handle("/SKILL MyCoolSkill")
+        #expect(result == .activateSkill("MyCoolSkill"))
+    }
+
+    @Test func helpIgnoresExtraneousArguments() {
+        #expect(SlashCommandHandler.handle("/help foo bar") == .showHelp)
+    }
+
+    @Test func skillWithWhitespaceOnlyArgumentIsPassthrough() {
+        // After trimming, /skill has no argument → forwarded to agent unchanged.
+        #expect(SlashCommandHandler.handle("/skill   ") == .passthrough)
+        #expect(SlashCommandHandler.handle("/skill\t") == .passthrough)
+    }
+
+    @Test func doubleSlashIsUnknown() {
+        // "//" looks like a comment marker, not a real command — don't claim it.
+        let result = SlashCommandHandler.handle("//foo")
+        if case let .unknown(cmd) = result {
+            #expect(cmd == "//foo")
+        } else {
+            Issue.record("Expected .unknown for '//foo', got \(result)")
+        }
+    }
+
     // MARK: - Format helpers
 
     @Test func formatHelpContainsAllCommands() {
