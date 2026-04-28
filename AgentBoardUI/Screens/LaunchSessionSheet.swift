@@ -85,6 +85,7 @@ struct LaunchSessionSheet: View {
                             VStack(alignment: .leading, spacing: 6) {
                                 Text("Repository Folder").font(.headline).foregroundStyle(NeuPalette.textPrimary)
                                 NeuTextField(placeholder: "e.g. AgentBoard", text: $repoName)
+                                    .accessibilityIdentifier("launchSession_textfield_repoName")
                             }
 
                             VStack(alignment: .leading, spacing: 12) {
@@ -93,6 +94,7 @@ struct LaunchSessionSheet: View {
                                     Button {
                                         selectedAgent = agent
                                     } label: {
+                                        // swiftlint:disable:next closure_body_length
                                         HStack(spacing: 12) {
                                             Image(systemName: agent.icon)
                                                 .frame(width: 24)

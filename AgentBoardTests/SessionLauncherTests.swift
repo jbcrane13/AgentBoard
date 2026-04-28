@@ -122,4 +122,8 @@ struct SessionLauncherTests {
         #expect(SessionLauncher.ActiveSession.SessionStatus.failed.description == "failed")
         #expect(SessionLauncher.ActiveSession.SessionStatus.stalled.description == "stalled")
     }
+
+    @Test func tmuxSocketPathUsesExpectedSuffix() {
+        #expect(SessionLauncher.tmuxSocketPath.hasSuffix("/.tmux/sock"))
+    }
 }

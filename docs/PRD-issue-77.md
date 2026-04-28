@@ -3,10 +3,10 @@
 ## Issue
 #77 in jbcrane13/agentboard
 ## Tasks
-- [ ] Implement Desktop app: Cannot change session or agent profile from picker above chat window
-- [ ] Handle edge cases and error states
-- [ ] Add accessibilityIdentifier to every interactive element
-- [ ] Build verify: xcodebuild -scheme AgentBoard -destination 'platform=macOS' build
+- [x] Implement Desktop app: Cannot change session or agent profile from picker above chat window
+- [x] Handle edge cases and error states
+- [x] Add accessibilityIdentifier to every interactive element
+- [x] Build verify: xcodebuild -scheme AgentBoard -destination 'platform=macOS' build
 ## Constraints
 - Swift 6 strict concurrency
 - @Observable not ObservableObject

@@ -407,7 +407,7 @@ public final class SessionLauncher {
 
     /// Path to the tmux socket used for app-managed sessions.
     public static var tmuxSocketPath: String {
-        FileManager.default.homeDirectoryForCurrentUser
+        URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true)
             .appendingPathComponent(".tmux/sock")
             .path
     }
