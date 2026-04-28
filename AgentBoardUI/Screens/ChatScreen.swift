@@ -11,6 +11,11 @@ struct ChatScreen: View {
     @State private var showAttachmentPicker = false
     @StateObject private var audioRecorder = AudioRecorderService()
 
+    /// When set, ChatScreen renders a "chat-only" toggle in its header.
+    /// The hosting view manages the actual hide/show and window-resize logic.
+    var onToggleChatOnly: (() -> Void)?
+    var isChatOnlyMode: Bool = false
+
     private var isCompact: Bool {
         hSizeClass == .compact
     }
@@ -51,7 +56,21 @@ struct ChatScreen: View {
     }
 
     private var header: some View {
-        HStack(alignment: .center) {
+        HStack(alignment: .center, spacing: 10) {
+            if let onToggleChatOnly, !isCompact {
+                Button {
+                    onToggleChatOnly()
+                } label: {
+                    Image(systemName: isChatOnlyMode ? "rectangle.split.3x1" : "rectangle.righthalf.inset.filled")
+                        .font(.system(size: 13, weight: .semibold))
+                }
+                .buttonStyle(NeuButtonTarget(isAccent: isChatOnlyMode))
+                .accessibilityLabel(isChatOnlyMode
+                    ? "Restore the sidebar and board"
+                    : "Hide the sidebar and board, shrink the window to chat-only")
+                .accessibilityIdentifier("chat_button_toggle_chat_only")
+            }
+
             VStack(alignment: .leading, spacing: 4) {
                 AgentBoardEyebrow(text: "HERMES AI")
                 Text("Live Link")
