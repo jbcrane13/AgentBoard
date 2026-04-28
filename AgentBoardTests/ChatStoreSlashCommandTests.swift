@@ -530,17 +530,19 @@ struct ChatStoreSlashCommandTests {
     @Test
     @MainActor
     func unknownSlashCommandClearsStatusBeforeForwarding() async throws {
-        // Unknown commands fall through to the agent path. They shouldn't
-        // leave a stale "Sending /foo to agent..." status hanging around once
-        // the network call fails — errorMessage should be set instead.
+        // Unknown commands fall through to the agent path. Any temporary
+        // "Sending …" status used while forwarding should be cleared again by
+        // the time sendDraft() returns.
         let store = try makeStore()
         store.draft = "/foobar"
         await store.sendDraft()
-        // After the failed network call, the user message should be persisted
-        // and the draft cleared. (The mock returns 200 OK with empty body, so
-        // streaming finishes without error.)
+
+        // The mock returns 200 OK with an empty body, so forwarding completes
+        // without an error. The forwarded user message should be persisted,
+        // the draft cleared, and no transient status should remain.
         let userMessages = store.messages.filter { $0.role == .user }
         #expect(userMessages.contains { $0.content == "/foobar" })
         #expect(store.draft.isEmpty)
+        #expect(store.statusMessage == nil)
     }
 }
