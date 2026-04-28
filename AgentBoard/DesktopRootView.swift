@@ -5,31 +5,43 @@ struct DesktopRootView: View {
     @Environment(AgentBoardAppModel.self) private var appModel
     @State private var activeTab: DesktopTab? = .work
     @State private var activeSessionTerminal: SessionLauncher.ActiveSession?
+    @State private var isTerminalExpanded = false
     @State private var isPresentingQuickLaunch = false
 
     var body: some View {
         HStack(spacing: 0) {
-            DesktopSidebar(
-                activeTab: activeTab,
-                onTabSelect: { tab in activeTab = tab },
-                onSessionTap: { session in activeSessionTerminal = session },
-                onQuickLaunch: { isPresentingQuickLaunch = true }
-            )
-            .frame(width: 230)
+            if !isTerminalExpanded {
+                DesktopSidebar(
+                    activeTab: activeTab,
+                    onTabSelect: { tab in
+                        activeTab = tab
+                        activeSessionTerminal = nil
+                        isTerminalExpanded = false
+                    },
+                    onSessionTap: { session in activeSessionTerminal = session },
+                    onQuickLaunch: { isPresentingQuickLaunch = true }
+                )
+                .frame(width: 230)
+                .transition(.move(edge: .leading).combined(with: .opacity))
+            }
 
             centerPanel
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(NeuPalette.background)
 
-            ChatScreen()
-                .frame(width: 360)
-                .background(NeuPalette.surface)
-                .overlay(alignment: .leading) {
-                    Rectangle()
-                        .fill(NeuPalette.borderSoft)
-                        .frame(width: 1)
-                }
+            if !isTerminalExpanded {
+                ChatScreen()
+                    .frame(width: 360)
+                    .background(NeuPalette.surface)
+                    .overlay(alignment: .leading) {
+                        Rectangle()
+                            .fill(NeuPalette.borderSoft)
+                            .frame(width: 1)
+                    }
+                    .transition(.move(edge: .trailing).combined(with: .opacity))
+            }
         }
+        .animation(.easeInOut(duration: 0.22), value: isTerminalExpanded)
         .background(NeuBackground())
         .sheet(isPresented: $isPresentingQuickLaunch) {
             QuickLaunchSheet()
@@ -42,8 +54,12 @@ struct DesktopRootView: View {
     @ViewBuilder
     private var centerPanel: some View {
         if let session = activeSessionTerminal {
-            SessionTerminalView(session: session) {
+            SessionTerminalView(
+                session: session,
+                isExpanded: $isTerminalExpanded
+            ) {
                 activeSessionTerminal = nil
+                isTerminalExpanded = false
             }
         } else {
             switch activeTab ?? .work {
