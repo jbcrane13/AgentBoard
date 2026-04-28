@@ -125,8 +125,8 @@ public enum SlashCommandHandler: Sendable {
 
     // swiftlint:disable:next cyclomatic_complexity
     public static func handle(_ text: String) -> SlashCommandResult {
+        guard text.hasPrefix("/") else { return .passthrough }
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmed.hasPrefix("/") else { return .passthrough }
 
         let parts = trimmed.split(separator: " ", maxSplits: 1)
         let command = String(parts[0]).lowercased()
