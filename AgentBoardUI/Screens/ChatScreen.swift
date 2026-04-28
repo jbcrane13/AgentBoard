@@ -446,60 +446,66 @@ struct ChatScreen: View {
             // Slash command autocomplete overlay
             slashCommandSuggestions
 
-            // Compose row: [attach] [mic] [textfield] [send]
-            HStack(spacing: 6) {
-                Button { showAttachmentPicker = true } label: {
-                    Image(systemName: "paperclip")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(NeuPalette.accentCyan)
-                        .frame(width: 24, height: 24)
-                        .background(Circle().fill(NeuPalette.surface))
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("chat_button_attach")
-                .sheet(isPresented: $showAttachmentPicker) {
-                    AttachmentPickerSheet { attachment in
-                        chatStore.addAttachment(attachment)
-                    }
-                }
+            VStack(spacing: 2) {
+                // Primary row: text field + send
+                HStack(spacing: 8) {
+                    TextField("Message Hermes...", text: $chatStore.draft, axis: .vertical)
+                        .lineLimit(1 ... 6)
+                        .focused($isTextFieldFocused)
+                        .foregroundStyle(NeuPalette.textPrimary)
+                        .textFieldStyle(.plain)
+                        .onKeyPress(.return, phases: .down) { press in
+                            if press.modifiers.contains(.shift) { return .ignored }
+                            guard chatStore.canSendDraft else { return .ignored }
+                            isTextFieldFocused = false
+                            AgentBoardKeyboard.dismiss()
+                            Task { await chatStore.sendDraftWithRetry() }
+                            return .handled
+                        }
 
-                VoiceRecordingButton(
-                    recorder: audioRecorder,
-                    onRecorded: { result in chatStore.addAttachment(result.toAttachment()) },
-                    onCancel: {}
-                )
-
-                TextField("Message Hermes...", text: $chatStore.draft, axis: .vertical)
-                    .lineLimit(1 ... 6)
-                    .focused($isTextFieldFocused)
-                    .foregroundStyle(NeuPalette.textPrimary)
-                    .textFieldStyle(.plain)
-                    .onKeyPress(.return, phases: .down) { press in
-                        if press.modifiers.contains(.shift) { return .ignored }
-                        guard chatStore.canSendDraft else { return .ignored }
+                    Button {
                         isTextFieldFocused = false
                         AgentBoardKeyboard.dismiss()
                         Task { await chatStore.sendDraftWithRetry() }
-                        return .handled
+                    } label: {
+                        Image(systemName: chatStore.isStreaming ? "stop.fill" : "arrow.up")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(sendButtonForeground)
+                            .frame(width: 26, height: 26)
+                            .background(Circle().fill(sendButtonBackground))
+                    }
+                    .disabled(!canSend)
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("chat_button_send")
+                }
+
+                // Secondary toolbar: attach + mic below the text field
+                HStack(spacing: 8) {
+                    Button { showAttachmentPicker = true } label: {
+                        Image(systemName: "paperclip")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(NeuPalette.textSecondary)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("chat_button_attach")
+                    .sheet(isPresented: $showAttachmentPicker) {
+                        AttachmentPickerSheet { attachment in
+                            chatStore.addAttachment(attachment)
+                        }
                     }
 
-                Button {
-                    isTextFieldFocused = false
-                    AgentBoardKeyboard.dismiss()
-                    Task { await chatStore.sendDraftWithRetry() }
-                } label: {
-                    Image(systemName: chatStore.isStreaming ? "stop.fill" : "arrow.up")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(sendButtonForeground)
-                        .frame(width: 26, height: 26)
-                        .background(Circle().fill(sendButtonBackground))
+                    VoiceRecordingButton(
+                        recorder: audioRecorder,
+                        onRecorded: { result in chatStore.addAttachment(result.toAttachment()) },
+                        onCancel: {}
+                    )
+
+                    Spacer()
                 }
-                .disabled(!canSend)
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("chat_button_send")
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
+            .padding(.horizontal, 12)
+            .padding(.top, 10)
+            .padding(.bottom, 6)
             .neuRecessed(cornerRadius: 20, depth: 6)
         }
         .padding(.horizontal, isCompact ? 16 : 24)
