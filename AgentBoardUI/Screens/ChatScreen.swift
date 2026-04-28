@@ -86,20 +86,8 @@ struct ChatScreen: View {
                     sessionMenu
                     profileMenu
                 } else {
-                    Text(appModel.chatStore.selectedConversation?.title.prefix(10) ?? "session")
-                        .font(.system(size: 10.5, weight: .medium, design: .monospaced))
-                        .foregroundStyle(NeuPalette.textTertiary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(NeuPalette.inset)
-                        .clipShape(Capsule())
-                    Text(appModel.settingsStore.activeHermesProfile?.name ?? portLabel)
-                        .font(.system(size: 10.5, weight: .medium, design: .monospaced))
-                        .foregroundStyle(NeuPalette.accentCyanBright)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(NeuPalette.accentCyan.opacity(0.08))
-                        .clipShape(Capsule())
+                    desktopSessionMenu
+                    desktopProfileMenu
                 }
 
                 // Status dot + refresh
@@ -125,27 +113,55 @@ struct ChatScreen: View {
         }
     }
 
+    @ViewBuilder
+    private var sessionMenuItems: some View {
+        ForEach(appModel.chatStore.conversations) { conversation in
+            Button {
+                appModel.chatStore.selectConversation(conversation.id)
+            } label: {
+                Label(
+                    conversation.title,
+                    systemImage: conversation.id == appModel.chatStore.selectedConversationID
+                        ? "checkmark.circle.fill" : "bubble.left"
+                )
+            }
+            .accessibilityIdentifier("chat_menuitem_session_\(conversation.id.uuidString)")
+        }
+        if !appModel.chatStore.conversations.isEmpty {
+            Divider()
+        }
+        Button {
+            appModel.chatStore.startNewConversation()
+        } label: {
+            Label("New Session", systemImage: "square.and.pencil")
+        }
+        .accessibilityIdentifier("chat_menuitem_session_new")
+    }
+
+    private var profileMenuItems: some View {
+        ForEach(appModel.settingsStore.availableHermesProfiles) { profile in
+            Button {
+                Task {
+                    if profile.id != "current" {
+                        appModel.settingsStore.selectHermesProfile(id: profile.id)
+                    }
+                    await appModel.chatStore.refreshConnection()
+                    await appModel.chatStore.refreshModels()
+                }
+            } label: {
+                Label(
+                    profile.name,
+                    systemImage: appModel.settingsStore.selectedHermesProfileID == profile.id
+                        ? "checkmark.circle.fill" : "network"
+                )
+            }
+            .accessibilityIdentifier("chat_menuitem_profile_\(profile.id)")
+        }
+    }
+
     private var sessionMenu: some View {
         Menu {
-            ForEach(appModel.chatStore.conversations) { conversation in
-                Button {
-                    appModel.chatStore.selectConversation(conversation.id)
-                } label: {
-                    Label(
-                        conversation.title,
-                        systemImage: conversation.id == appModel.chatStore.selectedConversationID
-                            ? "checkmark.circle.fill" : "bubble.left"
-                    )
-                }
-            }
-            if !appModel.chatStore.conversations.isEmpty {
-                Divider()
-            }
-            Button {
-                appModel.chatStore.startNewConversation()
-            } label: {
-                Label("New Session", systemImage: "square.and.pencil")
-            }
+            sessionMenuItems
         } label: {
             compactMenuButton(
                 icon: "bubble.left.and.bubble.right.fill",
@@ -153,27 +169,12 @@ struct ChatScreen: View {
             )
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("chat_menu_session")
     }
 
     private var profileMenu: some View {
         Menu {
-            ForEach(appModel.settingsStore.availableHermesProfiles) { profile in
-                Button {
-                    Task {
-                        if profile.id != "current" {
-                            appModel.settingsStore.selectHermesProfile(id: profile.id)
-                        }
-                        await appModel.chatStore.refreshConnection()
-                        await appModel.chatStore.refreshModels()
-                    }
-                } label: {
-                    Label(
-                        profile.name,
-                        systemImage: appModel.settingsStore.selectedHermesProfileID == profile.id
-                            ? "checkmark.circle.fill" : "network"
-                    )
-                }
-            }
+            profileMenuItems
         } label: {
             compactMenuButton(
                 icon: "server.rack",
@@ -181,6 +182,45 @@ struct ChatScreen: View {
             )
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("chat_menu_profile")
+    }
+
+    private var desktopSessionMenu: some View {
+        Menu {
+            sessionMenuItems
+        } label: {
+            Text(appModel.chatStore.selectedConversation?.title.prefix(10) ?? "session")
+                .font(.system(size: 10.5, weight: .medium, design: .monospaced))
+                .foregroundStyle(NeuPalette.textTertiary)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(NeuPalette.inset)
+                .clipShape(Capsule())
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .accessibilityLabel("Switch session")
+        .accessibilityIdentifier("chat_menu_session_desktop")
+    }
+
+    private var desktopProfileMenu: some View {
+        Menu {
+            profileMenuItems
+        } label: {
+            Text(appModel.settingsStore.activeHermesProfile?.name ?? portLabel)
+                .font(.system(size: 10.5, weight: .medium, design: .monospaced))
+                .foregroundStyle(NeuPalette.accentCyanBright)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(NeuPalette.accentCyan.opacity(0.08))
+                .clipShape(Capsule())
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .accessibilityLabel("Switch Hermes profile")
+        .accessibilityIdentifier("chat_menu_profile_desktop")
     }
 
     private func compactMenuButton(icon: String, text: String) -> some View {

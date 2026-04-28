@@ -18,6 +18,7 @@
 		0E24BCCE3258BA3081DFB21D /* VoiceViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FEBA7BFDBBBF6316B340FAA /* VoiceViews.swift */; };
 		10A2BF960BB432E046A8392E /* DesignSemanticsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19CE389F4A620817A309F601 /* DesignSemanticsTests.swift */; };
 		15369C112AA2304F032D157F /* MarkdownText.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A2BE598EEDA7A998AEA8DE /* MarkdownText.swift */; };
+		171A150F155917F5196D7647 /* ChatHeaderPickerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E01910C75287C5F3B6650B2A /* ChatHeaderPickerTests.swift */; };
 		18513E9340A65D8111F82D18 /* DomainPills.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A169A5D550028B6D20B397D /* DomainPills.swift */; };
 		1C711E565B9941FC998F8265 /* WorkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A06C1DAB866C77FF3A634D71 /* WorkStore.swift */; };
 		1C7E32DFC4B2295F98363820 /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F876603AEC9BE7B94289CA01 /* SettingsStore.swift */; };
@@ -282,6 +283,7 @@
 		DB3E71CE348AC298EB4048DE /* AgentBoardCompanionKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = AgentBoardCompanionKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		DBD5578CD361B8A4976B9A0A /* AgentBoardCompanion */ = {isa = PBXFileReference; includeInIndex = 0; path = AgentBoardCompanion; sourceTree = BUILT_PRODUCTS_DIR; };
 		DEDFAB3DEE21BBA70FAF2EBD /* SessionTerminalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionTerminalView.swift; sourceTree = "<group>"; };
+		E01910C75287C5F3B6650B2A /* ChatHeaderPickerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatHeaderPickerTests.swift; sourceTree = "<group>"; };
 		E035F81810040D898374ACEF /* AttachmentUploadService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentUploadService.swift; sourceTree = "<group>"; };
 		E15329720160FF009D5B1535 /* ConfigBackupServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigBackupServiceTests.swift; sourceTree = "<group>"; };
 		E20006E3DE0937110157F9D1 /* DemoFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoFixtures.swift; sourceTree = "<group>"; };
@@ -349,6 +351,7 @@
 			children = (
 				C8ECD5A8D1C4F9C4099CBB9C /* AgentBoardCacheTests.swift */,
 				376B52FEC631A3F6F0383459 /* AttachmentModelsTests.swift */,
+				E01910C75287C5F3B6650B2A /* ChatHeaderPickerTests.swift */,
 				30366B0DAB9553F53ACE2BE6 /* ChatStoreAdditionalTests.swift */,
 				0551DF2CA889DD84A9EFF3B7 /* ChatStoreSlashCommandTests.swift */,
 				7F925ACBB136730BD7852D8B /* ChatStoreTests.swift */,
@@ -848,6 +851,7 @@
 			files = (
 				BAFAE9A54D7EB126DB951F33 /* AgentBoardCacheTests.swift in Sources */,
 				96C502A1BD49F2AE81F03313 /* AttachmentModelsTests.swift in Sources */,
+				171A150F155917F5196D7647 /* ChatHeaderPickerTests.swift in Sources */,
 				C6A73DFEFD3440E23C5AE028 /* ChatStoreAdditionalTests.swift in Sources */,
 				B01C8989FACCB9D76DD46CDF /* ChatStoreSlashCommandTests.swift in Sources */,
 				FF4D3F1289548330CC170576 /* ChatStoreTests.swift in Sources */,
