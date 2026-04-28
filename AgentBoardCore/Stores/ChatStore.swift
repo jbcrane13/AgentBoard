@@ -45,6 +45,10 @@ public final class ChatStore {
     public var errorMessage: String?
     public var pendingAttachments: [ChatAttachment] = []
 
+    public var canSendDraft: Bool {
+        !isStreaming && (draft.trimmedOrNil != nil || !pendingAttachments.isEmpty)
+    }
+
     private var messagesByConversationID: [UUID: [ConversationMessage]] = [:]
     private var didBootstrap = false
 
