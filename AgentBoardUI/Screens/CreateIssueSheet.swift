@@ -42,6 +42,7 @@ struct CreateIssueSheet: View {
                                     }
                                 }
                                 .pickerStyle(.menu)
+                                .accessibilityIdentifier("create_issue_picker_repository")
                             }
 
                             // ── Title (required) ──
@@ -75,6 +76,7 @@ struct CreateIssueSheet: View {
                                     }
                                 }
                                 .pickerStyle(.menu)
+                                .accessibilityIdentifier("create_issue_picker_type")
                             }
 
                             // ── Priority (required) ──
@@ -88,6 +90,7 @@ struct CreateIssueSheet: View {
                                     }
                                 }
                                 .pickerStyle(.menu)
+                                .accessibilityIdentifier("create_issue_picker_priority")
                             }
 
                             // ── Status (required) ──
@@ -101,6 +104,7 @@ struct CreateIssueSheet: View {
                                     }
                                 }
                                 .pickerStyle(.menu)
+                                .accessibilityIdentifier("create_issue_picker_status")
                             }
 
                             // ── Agent (optional) ──
@@ -115,6 +119,7 @@ struct CreateIssueSheet: View {
                                     }
                                 }
                                 .pickerStyle(.menu)
+                                .accessibilityIdentifier("create_issue_picker_agent")
                             }
 
                             // ── Milestone (optional) ──
@@ -229,25 +234,32 @@ struct CreateIssueSheet: View {
 
     // MARK: - Helpers
 
-    /// Consistent row layout: "Label:" followed by a dropdown field.
+    /// Inline row: label on the left, picker rendered as a tightly-hugged
+    /// capsule chip on the right. No full-width recessed background, so the
+    /// row no longer reads as an empty text field.
     private func labelDropdown<Content: View>(
         label: String,
         required: Bool,
         @ViewBuilder content: () -> Content
     ) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 4) {
-                Text(label).font(.headline).foregroundStyle(NeuPalette.textPrimary)
-                if required {
-                    Text("•").foregroundStyle(.red).font(.caption)
-                }
+        HStack(spacing: 12) {
+            Text(label).font(.headline).foregroundStyle(NeuPalette.textPrimary)
+            if required {
+                Text("•").foregroundStyle(.red).font(.caption)
             }
+            Spacer(minLength: 8)
             content()
                 .tint(NeuPalette.accentCyan)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .neuRecessed(cornerRadius: 16, depth: 6)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(
+                    Capsule()
+                        .fill(NeuPalette.inset.opacity(0.55))
+                        .overlay(
+                            Capsule()
+                                .stroke(NeuPalette.borderSoft, lineWidth: 1)
+                        )
+                )
         }
     }
 }
