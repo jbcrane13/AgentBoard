@@ -402,6 +402,22 @@ public final class SessionLauncher {
         #endif
     }
 
+    /// Path to the tmux executable used for app-managed sessions.
+    public static let tmuxExecutablePath = "/opt/homebrew/bin/tmux"
+
+    /// Path to the tmux socket used for app-managed sessions.
+    public static var tmuxSocketPath: String {
+        FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".tmux/sock")
+            .path
+    }
+
+    /// Build the `tmux attach` command for a given session — used to spawn an
+    /// interactive PTY-backed terminal inside the app.
+    public static func attachCommand(for sessionName: String) -> (executable: String, arguments: [String]) {
+        (tmuxExecutablePath, ["-S", tmuxSocketPath, "attach", "-t", sessionName])
+    }
+
     /// Capture the current visible content of a tmux session pane.
     public func capturePane(sessionName: String) -> String? {
         #if os(macOS)

@@ -255,4 +255,59 @@ struct ChatStoreAdditionalTests {
         #expect(settings.hermesModelID == "hermes-pro")
         #expect(s.statusMessage?.contains("hermes-pro") == true)
     }
+
+    // MARK: - canSendDraft (Enter-to-send guard)
+
+    @Test
+    @MainActor
+    func canSendDraftFalseWhenDraftIsEmpty() throws {
+        let store = try makeStore()
+        store.startNewConversation()
+        store.draft = ""
+        #expect(store.canSendDraft == false)
+    }
+
+    @Test
+    @MainActor
+    func canSendDraftFalseWhenDraftIsWhitespaceOnly() throws {
+        let store = try makeStore()
+        store.startNewConversation()
+        store.draft = "   \n  "
+        #expect(store.canSendDraft == false)
+    }
+
+    @Test
+    @MainActor
+    func canSendDraftTrueWhenDraftHasContent() throws {
+        let store = try makeStore()
+        store.startNewConversation()
+        store.draft = "Hello Hermes"
+        #expect(store.canSendDraft == true)
+    }
+
+    @Test
+    @MainActor
+    func canSendDraftTrueWhenAttachmentsOnlyNoText() throws {
+        let store = try makeStore()
+        store.startNewConversation()
+        store.draft = ""
+        store.addAttachment(ChatAttachment(
+            type: .image,
+            payload: .image(ImageAttachmentPayload(localURL: URL(fileURLWithPath: "/tmp/img.jpg")))
+        ))
+        #expect(store.canSendDraft == true)
+    }
+
+    @Test
+    @MainActor
+    func canSendDraftTrueWhenWhitespaceTextWithAttachment() throws {
+        let store = try makeStore()
+        store.startNewConversation()
+        store.draft = "   "
+        store.addAttachment(ChatAttachment(
+            type: .image,
+            payload: .image(ImageAttachmentPayload(localURL: URL(fileURLWithPath: "/tmp/img.jpg")))
+        ))
+        #expect(store.canSendDraft == true)
+    }
 }

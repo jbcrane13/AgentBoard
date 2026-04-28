@@ -21,12 +21,14 @@ struct AttachmentContextMenu: ViewModifier {
                 } label: {
                     Label("Copy", systemImage: "doc.on.doc")
                 }
+                .accessibilityIdentifier("attachment_button_copy")
 
                 Button {
                     saveToFiles(localURL)
                 } label: {
                     Label("Save to Files", systemImage: "square.and.arrow.down")
                 }
+                .accessibilityIdentifier("attachment_button_saveToFiles")
 
                 #if os(iOS)
                     Button {
@@ -34,6 +36,7 @@ struct AttachmentContextMenu: ViewModifier {
                     } label: {
                         Label("Share", systemImage: "square.and.arrow.up")
                     }
+                    .accessibilityIdentifier("attachment_button_share")
                 #endif
             }
 
@@ -43,6 +46,7 @@ struct AttachmentContextMenu: ViewModifier {
                 } label: {
                     Label("Copy Link", systemImage: "link")
                 }
+                .accessibilityIdentifier("attachment_button_copyLink")
             }
         }
     }

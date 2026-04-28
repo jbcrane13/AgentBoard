@@ -45,6 +45,10 @@ public final class ChatStore {
     public var errorMessage: String?
     public var pendingAttachments: [ChatAttachment] = []
 
+    public var canSendDraft: Bool {
+        !isStreaming && (draft.trimmedOrNil != nil || !pendingAttachments.isEmpty)
+    }
+
     private var messagesByConversationID: [UUID: [ConversationMessage]] = [:]
     private var didBootstrap = false
 
@@ -251,6 +255,17 @@ public final class ChatStore {
         if trimmed.hasPrefix("/") {
             let handled = await handleSlashCommand(trimmed, conversationID: conversationID)
             if handled { return }
+        }
+
+        // Validate the Hermes endpoint before mutating any state. A misconfigured
+        // gateway (HTTPS on a local host, pointed at the companion port, etc.)
+        // must surface as an error without appending the user message.
+        do {
+            try validateHermesEndpoint()
+        } catch {
+            errorMessage = error.localizedDescription
+            connectionState = .failed
+            return
         }
 
         draft = ""

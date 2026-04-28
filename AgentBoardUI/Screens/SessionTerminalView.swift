@@ -5,11 +5,8 @@ struct SessionTerminalView: View {
     @Environment(AgentBoardAppModel.self) private var appModel
 
     let session: SessionLauncher.ActiveSession
+    @Binding var isExpanded: Bool
     let onMinimize: () -> Void
-
-    @State private var paneOutput: String = ""
-    @State private var isRefreshing = false
-    @State private var refreshTimer: Timer?
 
     private var statusColor: Color {
         switch session.status {
@@ -34,165 +31,247 @@ struct SessionTerminalView: View {
             NeuBackground()
 
             VStack(spacing: 0) {
-                // Header bar
-                HStack(spacing: 12) {
-                    Button {
-                        onMinimize()
-                    } label: {
-                        Image(systemName: "sidebar.left")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(NeuPalette.textSecondary)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("session_terminal_minimize")
+                header
 
-                    Circle()
-                        .fill(statusColor)
-                        .frame(width: 8, height: 8)
-                        .shadow(color: statusColor.opacity(0.6), radius: 6)
-
-                    Text(session.agentType.displayName)
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(NeuPalette.textPrimary)
-
-                    Text(session.preset.rawValue)
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(NeuPalette.accentOrange)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(NeuPalette.accentOrange.opacity(0.12))
-                        .clipShape(Capsule())
-
-                    Text(statusTitle)
-                        .font(.caption2.weight(.bold).monospaced())
-                        .tracking(0.8)
-                        .foregroundStyle(statusColor)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(statusColor.opacity(0.08))
-                        .clipShape(Capsule())
-
-                    Spacer()
-
-                    Text("Issue #\(session.issueNumber)")
-                        .font(.caption.monospaced())
-                        .foregroundStyle(NeuPalette.accentCyan)
-
-                    Text(session.elapsed)
-                        .font(.caption.monospaced().weight(.semibold))
-                        .foregroundStyle(NeuPalette.textTertiary)
-
-                    Button {
-                        captureOutput()
-                    } label: {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.system(size: 12, weight: .semibold))
-                    }
-                    .buttonStyle(NeuButtonTarget(isAccent: false))
-                    .accessibilityIdentifier("session_terminal_refresh")
-
-                    Button {
-                        appModel.sessionLauncher.openInTerminal(sessionName: session.sessionName)
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "terminal")
-                                .font(.system(size: 11, weight: .semibold))
-                            Text("Terminal")
-                                .font(.caption.weight(.semibold))
-                        }
-                    }
-                    .buttonStyle(NeuButtonTarget(isAccent: true))
-                    .accessibilityIdentifier("session_terminal_open_terminal")
+                switch session.status {
+                case .failed:
+                    failedStateView
+                case .stalled:
+                    stalledStateView
+                case .running, .completed:
+                    terminalContentView
                 }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 12)
-                .background(
-                    LinearGradient(
-                        colors: [NeuPalette.surface, NeuPalette.background],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-                .overlay(alignment: .bottom) {
-                    Rectangle()
-                        .fill(NeuPalette.borderSoft)
-                        .frame(height: 1)
-                }
+            }
+        }
+    }
 
-                // Terminal output
-                if paneOutput.isEmpty && !isRefreshing {
-                    VStack(spacing: 16) {
+    // MARK: - Header
+
+    private var header: some View {
+        HStack(spacing: 12) {
+            Circle()
+                .fill(statusColor)
+                .frame(width: 8, height: 8)
+                .shadow(color: statusColor.opacity(0.6), radius: 6)
+
+            Text(session.agentType.displayName)
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(NeuPalette.textPrimary)
+
+            Text(session.preset.rawValue)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(NeuPalette.accentOrange)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(NeuPalette.accentOrange.opacity(0.12))
+                .clipShape(Capsule())
+
+            Text(statusTitle)
+                .font(.caption2.weight(.bold).monospaced())
+                .tracking(0.8)
+                .foregroundStyle(statusColor)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(statusColor.opacity(0.08))
+                .clipShape(Capsule())
+
+            Spacer()
+
+            Text("Issue #\(session.issueNumber)")
+                .font(.caption.monospaced())
+                .foregroundStyle(NeuPalette.accentCyan)
+
+            Text(session.elapsed)
+                .font(.caption.monospaced().weight(.semibold))
+                .foregroundStyle(NeuPalette.textTertiary)
+
+            if session.status == .running || session.status == .completed {
+                Button {
+                    isExpanded.toggle()
+                } label: {
+                    Image(systemName: isExpanded ? "arrow.down.right.and.arrow.up.left" :
+                        "arrow.up.left.and.arrow.down.right")
+                        .font(.system(size: 12, weight: .semibold))
+                }
+                .buttonStyle(NeuButtonTarget(isAccent: false))
+                .accessibilityLabel(isExpanded ? "Collapse terminal" : "Expand terminal to full width")
+                .accessibilityIdentifier("session_terminal_toggle_expand")
+
+                Button {
+                    appModel.sessionLauncher.openInTerminal(sessionName: session.sessionName)
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "macwindow")
+                            .font(.system(size: 11, weight: .semibold))
+                        Text("Detach")
+                            .font(.caption.weight(.semibold))
+                    }
+                }
+                .buttonStyle(NeuButtonTarget(isAccent: true))
+                .accessibilityLabel("Open session in Terminal.app")
+                .accessibilityIdentifier("session_terminal_open_terminal")
+            }
+
+            Button {
+                onMinimize()
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(NeuPalette.textSecondary)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Close session terminal")
+            .accessibilityIdentifier("session_terminal_close")
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+        .background(
+            LinearGradient(
+                colors: [NeuPalette.surface, NeuPalette.background],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        )
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(NeuPalette.borderSoft)
+                .frame(height: 1)
+        }
+    }
+
+    // MARK: - Live Terminal
+
+    @ViewBuilder
+    private var terminalContentView: some View {
+        #if os(macOS) && canImport(SwiftTerm)
+            let attach = SessionLauncher.attachCommand(for: session.sessionName)
+            EmbeddedTerminalView(
+                executable: attach.executable,
+                arguments: attach.arguments,
+                environment: nil,
+                onProcessExit: { _ in }
+            )
+            .id(session.sessionName)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(red: 0.06, green: 0.06, blue: 0.08))
+            .accessibilityIdentifier("session_terminal_embedded")
+        #else
+            VStack(spacing: 12) {
+                Image(systemName: "desktopcomputer.trianglebadge.exclamationmark")
+                    .font(.system(size: 36))
+                    .foregroundStyle(NeuPalette.textSecondary)
+                Text("Interactive terminal is available on macOS only")
+                    .font(.subheadline)
+                    .foregroundStyle(NeuPalette.textSecondary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        #endif
+    }
+
+    // MARK: - Failed State
+
+    private var failedStateView: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 48))
+                .foregroundStyle(.red)
+
+            Text("Session Failed")
+                .font(.title2.weight(.bold))
+                .foregroundStyle(NeuPalette.textPrimary)
+
+            Text("The agent session encountered an error and could not continue.")
+                .font(.subheadline)
+                .foregroundStyle(NeuPalette.textSecondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 400)
+
+            if let error = appModel.sessionLauncher.lastError {
+                Text(error)
+                    .font(.caption.monospaced())
+                    .foregroundStyle(NeuPalette.textTertiary)
+                    .padding(12)
+                    .background(Color.red.opacity(0.08))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+
+            HStack(spacing: 12) {
+                Button {
+                    appModel.sessionLauncher.openInTerminal(sessionName: session.sessionName)
+                } label: {
+                    HStack(spacing: 6) {
                         Image(systemName: "terminal")
-                            .font(.system(size: 40))
-                            .foregroundStyle(NeuPalette.textTertiary)
-                        Text("Waiting for session output…")
-                            .font(.subheadline)
-                            .foregroundStyle(NeuPalette.textSecondary)
-                        Text("Session: \(session.sessionName)")
-                            .font(.caption.monospaced())
-                            .foregroundStyle(NeuPalette.textTertiary)
+                        Text("View in Terminal")
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    ScrollViewReader { proxy in
-                        ScrollView(showsIndicators: true) {
-                            LazyVStack(alignment: .leading, spacing: 0) {
-                                if isRefreshing && paneOutput.isEmpty {
-                                    ProgressView()
-                                        .padding()
-                                } else {
-                                    Text(paneOutput)
-                                        .font(.system(size: 12, weight: .regular, design: .monospaced))
-                                        .foregroundStyle(NeuPalette.textPrimary)
-                                        .textSelection(.enabled)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        .padding(16)
-                                }
-                            }
-                            .id("terminal_output")
-                        }
-                        .onChange(of: paneOutput) {
-                            withAnimation {
-                                proxy.scrollTo("terminal_output", anchor: .bottom)
-                            }
-                        }
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color(red: 0.06, green: 0.06, blue: 0.08))
+                    .font(.subheadline.weight(.semibold))
                 }
+                .buttonStyle(NeuButtonTarget(isAccent: true))
+                .accessibilityLabel("Open failed session in Terminal.app")
+                .accessibilityIdentifier("session_terminal_failed_open_terminal")
+
+                Button {
+                    onMinimize()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "xmark")
+                        Text("Close")
+                    }
+                    .font(.subheadline.weight(.semibold))
+                }
+                .buttonStyle(NeuButtonTarget(isAccent: false))
+                .accessibilityLabel("Close failed session view")
+                .accessibilityIdentifier("session_terminal_failed_close")
             }
         }
-        .task {
-            captureOutput()
-        }
-        .onAppear {
-            startAutoRefresh()
-        }
-        .onDisappear {
-            stopAutoRefresh()
-        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private func captureOutput() {
-        isRefreshing = true
-        let output = appModel.sessionLauncher.capturePane(sessionName: session.sessionName)
-        if let output {
-            paneOutput = output
-        }
-        isRefreshing = false
-    }
+    // MARK: - Stalled State
 
-    private func startAutoRefresh() {
-        stopAutoRefresh()
-        refreshTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { _ in
-            Task { @MainActor in
-                captureOutput()
+    private var stalledStateView: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "hourglass")
+                .font(.system(size: 48))
+                .foregroundStyle(NeuPalette.accentOrange)
+
+            Text("Session Stalled")
+                .font(.title2.weight(.bold))
+                .foregroundStyle(NeuPalette.textPrimary)
+
+            Text("The agent session appears to be inactive. It may have stopped producing output.")
+                .font(.subheadline)
+                .foregroundStyle(NeuPalette.textSecondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 400)
+
+            HStack(spacing: 12) {
+                Button {
+                    appModel.sessionLauncher.openInTerminal(sessionName: session.sessionName)
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "terminal")
+                        Text("View in Terminal")
+                    }
+                    .font(.subheadline.weight(.semibold))
+                }
+                .buttonStyle(NeuButtonTarget(isAccent: true))
+                .accessibilityLabel("Open stalled session in Terminal.app")
+                .accessibilityIdentifier("session_terminal_stalled_open_terminal")
+
+                Button {
+                    onMinimize()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "xmark")
+                        Text("Close")
+                    }
+                    .font(.subheadline.weight(.semibold))
+                }
+                .buttonStyle(NeuButtonTarget(isAccent: false))
+                .accessibilityLabel("Close stalled session view")
+                .accessibilityIdentifier("session_terminal_stalled_close")
             }
         }
-    }
-
-    private func stopAutoRefresh() {
-        refreshTimer?.invalidate()
-        refreshTimer = nil
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

@@ -43,6 +43,7 @@ struct WorkScreen: View {
                     .padding(.horizontal, isCompact ? 22 : 28)
                     .padding(.top, isCompact ? 20 : 20)
                     .padding(.bottom, 14)
+                    .accessibilityIdentifier("work_section_header")
 
                 // macOS always shows board layout; status banner shown when empty
                 if isMac || (!isCompact && layoutMode == .board) {
@@ -79,6 +80,7 @@ struct WorkScreen: View {
             CreateIssueSheet()
                 .environment(appModel)
         }
+        .accessibilityIdentifier("screen_work")
     }
 
     private var filteredItems: [WorkItem] {

@@ -12,6 +12,9 @@ packages:
   Nuke:
     url: https://github.com/kean/Nuke
     from: 12.0.0
+  SwiftTerm:
+    url: https://github.com/migueldeicaza/SwiftTerm
+    from: 1.10.0
 
 settings:
   base:
@@ -98,6 +101,7 @@ targets:
       - package: Nuke
       - package: Nuke
         product: NukeUI
+      - package: SwiftTerm
 
   AgentBoardMobile:
     type: application

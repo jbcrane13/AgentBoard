@@ -5,31 +5,58 @@ struct DesktopRootView: View {
     @Environment(AgentBoardAppModel.self) private var appModel
     @State private var activeTab: DesktopTab? = .work
     @State private var activeSessionTerminal: SessionLauncher.ActiveSession?
+    @State private var isTerminalExpanded = false
+    @State private var isChatOnlyMode = false
+    @State private var savedWindowWidth: CGFloat?
     @State private var isPresentingQuickLaunch = false
+
+    private static let chatOnlyWindowWidth: CGFloat = 380
+
+    private var sidePanelsHidden: Bool {
+        isTerminalExpanded || isChatOnlyMode
+    }
 
     var body: some View {
         HStack(spacing: 0) {
-            DesktopSidebar(
-                activeTab: activeTab,
-                onTabSelect: { tab in activeTab = tab },
-                onSessionTap: { session in activeSessionTerminal = session },
-                onQuickLaunch: { isPresentingQuickLaunch = true }
-            )
-            .frame(width: 230)
+            if !sidePanelsHidden {
+                DesktopSidebar(
+                    activeTab: activeTab,
+                    onTabSelect: { tab in
+                        activeTab = tab
+                        activeSessionTerminal = nil
+                        isTerminalExpanded = false
+                    },
+                    onSessionTap: { session in activeSessionTerminal = session },
+                    onQuickLaunch: { isPresentingQuickLaunch = true }
+                )
+                .frame(width: 230)
+                .transition(.move(edge: .leading).combined(with: .opacity))
+            }
 
-            centerPanel
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(NeuPalette.background)
+            if !isChatOnlyMode {
+                centerPanel
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(NeuPalette.background)
+            }
 
-            ChatScreen()
-                .frame(width: 360)
+            if !isTerminalExpanded {
+                ChatScreen(
+                    onToggleChatOnly: { toggleChatOnlyMode() },
+                    isChatOnlyMode: isChatOnlyMode
+                )
+                .frame(maxWidth: isChatOnlyMode ? .infinity : 360)
+                .frame(width: isChatOnlyMode ? nil : 360)
                 .background(NeuPalette.surface)
                 .overlay(alignment: .leading) {
                     Rectangle()
                         .fill(NeuPalette.borderSoft)
                         .frame(width: 1)
                 }
+                .transition(.move(edge: .trailing).combined(with: .opacity))
+            }
         }
+        .animation(.easeInOut(duration: 0.22), value: isTerminalExpanded)
+        .animation(.easeInOut(duration: 0.22), value: isChatOnlyMode)
         .background(NeuBackground())
         .sheet(isPresented: $isPresentingQuickLaunch) {
             QuickLaunchSheet()
@@ -37,13 +64,57 @@ struct DesktopRootView: View {
         }
     }
 
+    // MARK: - Chat-only Mode
+
+    private func toggleChatOnlyMode() {
+        #if os(macOS)
+            if isChatOnlyMode {
+                isChatOnlyMode = false
+                if let restoreWidth = savedWindowWidth {
+                    setWindowWidth(restoreWidth, animate: true)
+                }
+                savedWindowWidth = nil
+            } else {
+                if let window = primaryWindow() {
+                    savedWindowWidth = window.frame.width
+                }
+                isChatOnlyMode = true
+                setWindowWidth(Self.chatOnlyWindowWidth, animate: true)
+            }
+        #else
+            isChatOnlyMode.toggle()
+        #endif
+    }
+
+    #if os(macOS)
+        private func primaryWindow() -> NSWindow? {
+            NSApp.keyWindow ?? NSApp.mainWindow ?? NSApp.windows.first(where: { $0.isVisible })
+        }
+
+        private func setWindowWidth(_ width: CGFloat, animate: Bool) {
+            guard let window = primaryWindow() else { return }
+            // Allow the window to shrink below any prior contentMinSize.
+            window.contentMinSize = NSSize(width: min(width, window.contentMinSize.width), height: 0)
+            var frame = window.frame
+            let delta = frame.size.width - width
+            frame.size.width = width
+            // Keep the right edge of the window pinned so the chat column doesn't shift.
+            frame.origin.x += delta
+            window.setFrame(frame, display: true, animate: animate)
+        }
+    #endif
+
     // MARK: - Center Panel
 
     @ViewBuilder
     private var centerPanel: some View {
         if let session = activeSessionTerminal {
-            SessionTerminalView(session: session) {
+            SessionTerminalView(
+                session: session,
+                isExpanded: $isTerminalExpanded
+            ) {
                 activeSessionTerminal = nil
+                isTerminalExpanded = false
             }
         } else {
             switch activeTab ?? .work {

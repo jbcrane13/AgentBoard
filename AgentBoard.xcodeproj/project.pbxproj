@@ -18,6 +18,7 @@
 		0E24BCCE3258BA3081DFB21D /* VoiceViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FEBA7BFDBBBF6316B340FAA /* VoiceViews.swift */; };
 		10A2BF960BB432E046A8392E /* DesignSemanticsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19CE389F4A620817A309F601 /* DesignSemanticsTests.swift */; };
 		15369C112AA2304F032D157F /* MarkdownText.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A2BE598EEDA7A998AEA8DE /* MarkdownText.swift */; };
+		171A150F155917F5196D7647 /* ChatHeaderPickerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E01910C75287C5F3B6650B2A /* ChatHeaderPickerTests.swift */; };
 		18513E9340A65D8111F82D18 /* DomainPills.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A169A5D550028B6D20B397D /* DomainPills.swift */; };
 		1C711E565B9941FC998F8265 /* WorkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A06C1DAB866C77FF3A634D71 /* WorkStore.swift */; };
 		1C7E32DFC4B2295F98363820 /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F876603AEC9BE7B94289CA01 /* SettingsStore.swift */; };
@@ -33,6 +34,7 @@
 		2E95ECA2CB484B2089146AD0 /* QuickLaunchSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FFDF3222AEE5530E6C58DFC /* QuickLaunchSheet.swift */; };
 		2EFC8887C151538585798677 /* SessionDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A145F7A1A70B53DF066DBD /* SessionDetailSheet.swift */; };
 		30B2D9B7D1BFC77B6964A96C /* AgentBoardDesignTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4542E208AACDF95595A0B0D4 /* AgentBoardDesignTheme.swift */; };
+		37F82839F098968527158CC9 /* EmbeddedTerminalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A978B41E9572538A1E74E5C /* EmbeddedTerminalView.swift */; };
 		38E1089316EEC57E444A6FB1 /* MockURLProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 957114148477B05585A13D7C /* MockURLProtocol.swift */; };
 		3D5547FD2C8499B8C8FA087B /* AudioRecorderService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39E1BE6A2B2B66CFAF5F4AC0 /* AudioRecorderService.swift */; };
 		3FDBA88CC8E8D63388C757C6 /* ConfigBackupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9679A2004F1CFD39A588CC7 /* ConfigBackupService.swift */; };
@@ -40,6 +42,7 @@
 		4D05F9AAB6DA0E2642F377F4 /* ShellEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52959B32060C120BA1BB1AB7 /* ShellEnvironment.swift */; };
 		4E523683F87984FFDF08FC54 /* AttachmentInteractions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F31C11E46072F7E4A9FFADDB /* AttachmentInteractions.swift */; };
 		5364836AF5802F65E8F2B521 /* SessionTerminalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEDFAB3DEE21BBA70FAF2EBD /* SessionTerminalView.swift */; };
+		53760C00A84FA2ED25C37019 /* SwiftTerm in Frameworks */ = {isa = PBXBuildFile; productRef = AA65C204A6A99CEBA3E4B8C4 /* SwiftTerm */; };
 		5407CC8EF71865713E95B1BF /* SessionsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5B9C06C17BE65937A00661D /* SessionsStore.swift */; };
 		58446795E6F62924439AD001 /* CompanionSQLiteStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B56A44BC3ACA67014432FDD4 /* CompanionSQLiteStoreTests.swift */; };
 		593E56157C2853690F31D9F4 /* SessionTerminalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEDFAB3DEE21BBA70FAF2EBD /* SessionTerminalView.swift */; };
@@ -64,6 +67,7 @@
 		735B9E32C6B9218218F1CB8D /* AttachmentPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E3C09A95E37674D30B6072F /* AttachmentPicker.swift */; };
 		736771D2489A4C0C6FBB4A83 /* KeyboardDismissal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 196C90FC0E35E33601741243 /* KeyboardDismissal.swift */; };
 		73E3E44246ACF7764C2B96D9 /* AgentBoardCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2B26E0DCF07C395E5DA349A4 /* AgentBoardCore.framework */; };
+		77E2DDC0D4C0CA009FD508F0 /* EmbeddedTerminalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A978B41E9572538A1E74E5C /* EmbeddedTerminalView.swift */; };
 		7AC30545E6D54E227C8831BA /* AgentBoardCompanionKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DB3E71CE348AC298EB4048DE /* AgentBoardCompanionKit.framework */; };
 		7DE9CA2273E136476F38D922 /* TaskDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 651B64AF0921713BAE550D2D /* TaskDetailSheet.swift */; };
 		7E6D512A772F03628C275D52 /* LaunchSessionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03AD61915721952F19190205 /* LaunchSessionSheet.swift */; };
@@ -87,6 +91,7 @@
 		ABB3B9109C6F6749E7933CF2 /* DesktopRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAD7F0F3E84953BCE4E07275 /* DesktopRootView.swift */; };
 		AC9718464408D550B64EFB4E /* ConfigBackupServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E15329720160FF009D5B1535 /* ConfigBackupServiceTests.swift */; };
 		AE1142F9B022F4D629BB5EF8 /* DesktopTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B288F1A4879578BDDED47F /* DesktopTab.swift */; };
+		B01C8989FACCB9D76DD46CDF /* ChatStoreSlashCommandTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0551DF2CA889DD84A9EFF3B7 /* ChatStoreSlashCommandTests.swift */; };
 		B32E7225FAA8967B580A58A1 /* CreateIssueSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 702A0D71A27F07711AF96C4A /* CreateIssueSheet.swift */; };
 		B51F9A6B9302EDD7F2EB1437 /* BoardChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34D736CF52ACD4E2BD9D3ADC /* BoardChrome.swift */; };
 		BAFAE9A54D7EB126DB951F33 /* AgentBoardCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8ECD5A8D1C4F9C4099CBB9C /* AgentBoardCacheTests.swift */; };
@@ -209,6 +214,7 @@
 		035DCBF4EE40EE6A14CFE890 /* CompanionClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompanionClient.swift; sourceTree = "<group>"; };
 		03AD61915721952F19190205 /* LaunchSessionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchSessionSheet.swift; sourceTree = "<group>"; };
 		043C2F07C2F7E6DFBC165E9A /* DomainModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainModels.swift; sourceTree = "<group>"; };
+		0551DF2CA889DD84A9EFF3B7 /* ChatStoreSlashCommandTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatStoreSlashCommandTests.swift; sourceTree = "<group>"; };
 		05A145F7A1A70B53DF066DBD /* SessionDetailSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionDetailSheet.swift; sourceTree = "<group>"; };
 		06C0FE6A5C6D69E553E904D0 /* CompanionSQLiteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompanionSQLiteStore.swift; sourceTree = "<group>"; };
 		06CD1EF1E211EE615B37F28B /* AgentBoardCompanionMain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentBoardCompanionMain.swift; sourceTree = "<group>"; };
@@ -237,6 +243,7 @@
 		3E3C09A95E37674D30B6072F /* AttachmentPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentPicker.swift; sourceTree = "<group>"; };
 		3FEBA7BFDBBBF6316B340FAA /* VoiceViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceViews.swift; sourceTree = "<group>"; };
 		4542E208AACDF95595A0B0D4 /* AgentBoardDesignTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentBoardDesignTheme.swift; sourceTree = "<group>"; };
+		4A978B41E9572538A1E74E5C /* EmbeddedTerminalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbeddedTerminalView.swift; sourceTree = "<group>"; };
 		4F7D59DE18AF7B3E0D84EF9A /* DesktopSidebar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesktopSidebar.swift; sourceTree = "<group>"; };
 		52959B32060C120BA1BB1AB7 /* ShellEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShellEnvironment.swift; sourceTree = "<group>"; };
 		54CA712A46E969ED79300E4F /* LinkPreviewService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkPreviewService.swift; sourceTree = "<group>"; };
@@ -276,6 +283,7 @@
 		DB3E71CE348AC298EB4048DE /* AgentBoardCompanionKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = AgentBoardCompanionKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		DBD5578CD361B8A4976B9A0A /* AgentBoardCompanion */ = {isa = PBXFileReference; includeInIndex = 0; path = AgentBoardCompanion; sourceTree = BUILT_PRODUCTS_DIR; };
 		DEDFAB3DEE21BBA70FAF2EBD /* SessionTerminalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionTerminalView.swift; sourceTree = "<group>"; };
+		E01910C75287C5F3B6650B2A /* ChatHeaderPickerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatHeaderPickerTests.swift; sourceTree = "<group>"; };
 		E035F81810040D898374ACEF /* AttachmentUploadService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentUploadService.swift; sourceTree = "<group>"; };
 		E15329720160FF009D5B1535 /* ConfigBackupServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigBackupServiceTests.swift; sourceTree = "<group>"; };
 		E20006E3DE0937110157F9D1 /* DemoFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoFixtures.swift; sourceTree = "<group>"; };
@@ -306,6 +314,7 @@
 				73E3E44246ACF7764C2B96D9 /* AgentBoardCore.framework in Frameworks */,
 				0D4B6287FB492E255C4E927C /* Nuke in Frameworks */,
 				EEE501D250CCB4E6D2D60418 /* NukeUI in Frameworks */,
+				53760C00A84FA2ED25C37019 /* SwiftTerm in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -342,7 +351,9 @@
 			children = (
 				C8ECD5A8D1C4F9C4099CBB9C /* AgentBoardCacheTests.swift */,
 				376B52FEC631A3F6F0383459 /* AttachmentModelsTests.swift */,
+				E01910C75287C5F3B6650B2A /* ChatHeaderPickerTests.swift */,
 				30366B0DAB9553F53ACE2BE6 /* ChatStoreAdditionalTests.swift */,
+				0551DF2CA889DD84A9EFF3B7 /* ChatStoreSlashCommandTests.swift */,
 				7F925ACBB136730BD7852D8B /* ChatStoreTests.swift */,
 				B56A44BC3ACA67014432FDD4 /* CompanionSQLiteStoreTests.swift */,
 				E15329720160FF009D5B1535 /* ConfigBackupServiceTests.swift */,
@@ -516,6 +527,7 @@
 				4F7D59DE18AF7B3E0D84EF9A /* DesktopSidebar.swift */,
 				87B288F1A4879578BDDED47F /* DesktopTab.swift */,
 				1A169A5D550028B6D20B397D /* DomainPills.swift */,
+				4A978B41E9572538A1E74E5C /* EmbeddedTerminalView.swift */,
 				A1A2BE598EEDA7A998AEA8DE /* MarkdownText.swift */,
 				CF5FFC325775B34533A9C6F1 /* Attachments */,
 			);
@@ -606,6 +618,7 @@
 			packageProductDependencies = (
 				8E67F37D82C33338077E4371 /* Nuke */,
 				28BE44876742C1F619FDD2CA /* NukeUI */,
+				AA65C204A6A99CEBA3E4B8C4 /* SwiftTerm */,
 			);
 			productName = AgentBoard;
 			productReference = 351F53C221B69731A024B864 /* AgentBoard.app */;
@@ -721,6 +734,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				D04429BB4AFEDD9352E7C3BF /* XCRemoteSwiftPackageReference "Nuke" */,
+				8A42E6F6CCF27450821E497E /* XCRemoteSwiftPackageReference "SwiftTerm" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 81E8705C0A4C85BE52A078CB /* Products */;
@@ -805,6 +819,7 @@
 				8304F715858D01DEFB812754 /* DesktopSidebar.swift in Sources */,
 				234B04B1802DC26BE03D5265 /* DesktopTab.swift in Sources */,
 				18513E9340A65D8111F82D18 /* DomainPills.swift in Sources */,
+				37F82839F098968527158CC9 /* EmbeddedTerminalView.swift in Sources */,
 				1DBE4EB751A629F1664040D8 /* IssueDetailSheet.swift in Sources */,
 				64B8644401E5AFE74A627388 /* KeyboardDismissal.swift in Sources */,
 				7E6D512A772F03628C275D52 /* LaunchSessionSheet.swift in Sources */,
@@ -836,7 +851,9 @@
 			files = (
 				BAFAE9A54D7EB126DB951F33 /* AgentBoardCacheTests.swift in Sources */,
 				96C502A1BD49F2AE81F03313 /* AttachmentModelsTests.swift in Sources */,
+				171A150F155917F5196D7647 /* ChatHeaderPickerTests.swift in Sources */,
 				C6A73DFEFD3440E23C5AE028 /* ChatStoreAdditionalTests.swift in Sources */,
+				B01C8989FACCB9D76DD46CDF /* ChatStoreSlashCommandTests.swift in Sources */,
 				FF4D3F1289548330CC170576 /* ChatStoreTests.swift in Sources */,
 				58446795E6F62924439AD001 /* CompanionSQLiteStoreTests.swift in Sources */,
 				AC9718464408D550B64EFB4E /* ConfigBackupServiceTests.swift in Sources */,
@@ -900,6 +917,7 @@
 				D5FE06BE70E2B8AFB20C40B5 /* DesktopSidebar.swift in Sources */,
 				AE1142F9B022F4D629BB5EF8 /* DesktopTab.swift in Sources */,
 				BC1CCDB452C13C403BFA1460 /* DomainPills.swift in Sources */,
+				77E2DDC0D4C0CA009FD508F0 /* EmbeddedTerminalView.swift in Sources */,
 				22AD45AE145021107CD2C0AA /* IssueDetailSheet.swift in Sources */,
 				736771D2489A4C0C6FBB4A83 /* KeyboardDismissal.swift in Sources */,
 				891566BE5B53801826DE8CF0 /* LaunchSessionSheet.swift in Sources */,
@@ -1424,6 +1442,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		8A42E6F6CCF27450821E497E /* XCRemoteSwiftPackageReference "SwiftTerm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/migueldeicaza/SwiftTerm";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.10.0;
+			};
+		};
 		D04429BB4AFEDD9352E7C3BF /* XCRemoteSwiftPackageReference "Nuke" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/kean/Nuke";
@@ -1449,6 +1475,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = D04429BB4AFEDD9352E7C3BF /* XCRemoteSwiftPackageReference "Nuke" */;
 			productName = NukeUI;
+		};
+		AA65C204A6A99CEBA3E4B8C4 /* SwiftTerm */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8A42E6F6CCF27450821E497E /* XCRemoteSwiftPackageReference "SwiftTerm" */;
+			productName = SwiftTerm;
 		};
 		AD7CA2BAC6FD5DFD28FC0BCD /* Nuke */ = {
 			isa = XCSwiftPackageProductDependency;

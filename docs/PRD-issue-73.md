@@ -1,12 +1,13 @@
-# PRD: Make enter send message on chat
+# PRD: implement slash commands in chat
 
 ## Issue
-#76 in jbcrane13/agentboard
+#73 in jbcrane13/agentboard
 ## Tasks
-- [x] Implement Make enter send message on chat
-- [x] Handle edge cases and error states
+- [x] Write failing tests that define expected behavior
+- [x] Implement implement slash commands in chat to pass tests
+- [x] Handle edge cases
 - [x] Add accessibilityIdentifier to every interactive element
-- [x] Build verify: xcodebuild -scheme AgentBoard -destination 'platform=macOS' build
+- [x] Run full test suite — all tests must pass
 ## Constraints
 - Swift 6 strict concurrency
 - @Observable not ObservableObject

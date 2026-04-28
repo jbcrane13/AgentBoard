@@ -222,6 +222,7 @@ struct IssueDetailSheet: View {
                         }
                     }
                     .pickerStyle(.menu)
+                    .accessibilityIdentifier("edit_issue_picker_type")
                 }
 
                 // Priority (required)
@@ -232,6 +233,7 @@ struct IssueDetailSheet: View {
                         }
                     }
                     .pickerStyle(.menu)
+                    .accessibilityIdentifier("edit_issue_picker_priority")
                 }
 
                 // Status (required)
@@ -242,6 +244,7 @@ struct IssueDetailSheet: View {
                         }
                     }
                     .pickerStyle(.menu)
+                    .accessibilityIdentifier("edit_issue_picker_status")
                 }
 
                 // Agent (optional)
@@ -253,6 +256,7 @@ struct IssueDetailSheet: View {
                         }
                     }
                     .pickerStyle(.menu)
+                    .accessibilityIdentifier("edit_issue_picker_agent")
                 }
 
                 // Milestone (optional)
@@ -463,24 +467,31 @@ struct IssueDetailSheet: View {
 
     // MARK: - Helpers
 
+    /// Inline row: label on the left, picker rendered as a tightly-hugged
+    /// capsule chip on the right. Matches `CreateIssueSheet.labelDropdown`.
     private func editDropdown<Content: View>(
         label: String,
         required: Bool,
         @ViewBuilder content: () -> Content
     ) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 4) {
-                Text(label).font(.headline).foregroundStyle(NeuPalette.textPrimary)
-                if required {
-                    Text("•").foregroundStyle(.red).font(.caption)
-                }
+        HStack(spacing: 12) {
+            Text(label).font(.headline).foregroundStyle(NeuPalette.textPrimary)
+            if required {
+                Text("•").foregroundStyle(.red).font(.caption)
             }
+            Spacer(minLength: 8)
             content()
                 .tint(NeuPalette.accentCyan)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .neuRecessed(cornerRadius: 16, depth: 6)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(
+                    Capsule()
+                        .fill(NeuPalette.inset.opacity(0.55))
+                        .overlay(
+                            Capsule()
+                                .stroke(NeuPalette.borderSoft, lineWidth: 1)
+                        )
+                )
         }
     }
 }
