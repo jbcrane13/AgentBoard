@@ -30,8 +30,8 @@ struct ChatScreen: View {
                 // Main Header pinned at the top
                 header
                     .padding(.horizontal, isCompact ? 16 : 16)
-                    .padding(.top, isCompact ? 16 : 14)
-                    .padding(.bottom, 12)
+                    .padding(.top, isCompact ? 12 : 10)
+                    .padding(.bottom, 8)
                     .background(NeuPalette.surface.ignoresSafeArea())
                     .overlay(alignment: .bottom) {
                         Rectangle()
@@ -69,14 +69,6 @@ struct ChatScreen: View {
                     ? "Restore the sidebar and board"
                     : "Hide the sidebar and board, shrink the window to chat-only")
                 .accessibilityIdentifier("chat_button_toggle_chat_only")
-            }
-
-            VStack(alignment: .leading, spacing: 4) {
-                AgentBoardEyebrow(text: "HERMES AI")
-                Text("Live Link")
-                    .font(.system(size: isCompact ? 28 : 18, weight: .bold))
-                    .foregroundStyle(NeuPalette.textPrimary)
-                    .tracking(-0.4)
             }
 
             Spacer()
@@ -430,13 +422,13 @@ struct ChatScreen: View {
                     .font(.caption.weight(.bold))
                     .foregroundStyle(.red)
                     .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.bottom, 8)
+                    .padding(.bottom, 6)
             } else if let status = chatStore.statusMessage {
                 Text(status)
                     .font(.caption)
                     .foregroundStyle(NeuPalette.textSecondary)
                     .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.bottom, 8)
+                    .padding(.bottom, 6)
             }
 
             if !chatStore.pendingAttachments.isEmpty {
@@ -446,93 +438,75 @@ struct ChatScreen: View {
             // Slash command autocomplete overlay
             slashCommandSuggestions
 
-            VStack(spacing: 8) {
-                // Secondary toolbar: attach + mic ABOVE the text field
-                HStack(spacing: 4) {
-                    Button { showAttachmentPicker = true } label: {
-                        Image(systemName: "paperclip")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundStyle(canSend ? NeuPalette.accentCyan : NeuPalette.textSecondary)
-                            .frame(width: 32, height: 32)
-                            .background(NeuPalette.surfaceRaised)
-                            .clipShape(Circle())
-                            .overlay(Circle().stroke(NeuPalette.borderSoft, lineWidth: 0.5))
-                            .shadow(color: NeuPalette.shadowDark.opacity(0.3), radius: 3, x: 0, y: 1)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("chat_button_attach")
-                    .sheet(isPresented: $showAttachmentPicker) {
-                        AttachmentPickerSheet { attachment in
-                            chatStore.addAttachment(attachment)
-                        }
-                    }
-
-                    VoiceRecordingButton(
-                        recorder: audioRecorder,
-                        onRecorded: { result in chatStore.addAttachment(result.toAttachment()) },
-                        onCancel: {}
-                    )
-
-                    Spacer()
+            // Single-row compose: paperclip + mic + textfield + send
+            HStack(spacing: 8) {
+                Button { showAttachmentPicker = true } label: {
+                    Image(systemName: "paperclip")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(NeuPalette.accentCyan)
+                        .frame(width: 22, height: 22)
+                        .contentShape(Rectangle())
                 }
-                .padding(.horizontal, 4)
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("chat_button_attach")
+                .sheet(isPresented: $showAttachmentPicker) {
+                    AttachmentPickerSheet { attachment in
+                        chatStore.addAttachment(attachment)
+                    }
+                }
 
-                // Primary row: text field + send
-                HStack(spacing: 12) {
-                    TextField(" Message Hermes...", text: $chatStore.draft, axis: .vertical)
-                        .lineLimit(1 ... 6)
-                        .focused($isTextFieldFocused)
-                        .foregroundStyle(NeuPalette.textPrimary)
-                        .textFieldStyle(.plain)
-                        .onKeyPress(.return, phases: .down) { press in
-                            if press.modifiers.contains(.shift) { return .ignored }
-                            guard chatStore.canSendDraft else { return .ignored }
-                            isTextFieldFocused = false
-                            AgentBoardKeyboard.dismiss()
-                            Task { await chatStore.sendDraftWithRetry() }
-                            return .handled
-                        }
+                VoiceRecordingButton(
+                    recorder: audioRecorder,
+                    onRecorded: { result in chatStore.addAttachment(result.toAttachment()) },
+                    onCancel: {}
+                )
 
-                    Button {
+                TextField(" Message Hermes...", text: $chatStore.draft, axis: .vertical)
+                    .lineLimit(1 ... 6)
+                    .focused($isTextFieldFocused)
+                    .foregroundStyle(NeuPalette.textPrimary)
+                    .textFieldStyle(.plain)
+                    .onKeyPress(.return, phases: .down) { press in
+                        if press.modifiers.contains(.shift) { return .ignored }
+                        guard chatStore.canSendDraft else { return .ignored }
                         isTextFieldFocused = false
                         AgentBoardKeyboard.dismiss()
                         Task { await chatStore.sendDraftWithRetry() }
-                    } label: {
-                        Image(systemName: chatStore.isStreaming ? "stop.fill" : "arrow.up")
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundStyle(canSend ? sendButtonForeground : NeuPalette.textDisabled)
-                            .frame(width: 32, height: 32)
-                            .background(
-                                canSend ? NeuPalette.accentCyan.opacity(0.15) : Color.clear
-                            )
-                            .clipShape(Circle())
-                            .overlay(
-                                Circle().stroke(canSend ? NeuPalette.accentCyan.opacity(0.3) : .clear, lineWidth: 1)
-                            )
+                        return .handled
                     }
-                    .disabled(!canSend)
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("chat_button_send")
+
+                Button {
+                    isTextFieldFocused = false
+                    AgentBoardKeyboard.dismiss()
+                    Task { await chatStore.sendDraftWithRetry() }
+                } label: {
+                    Image(systemName: chatStore.isStreaming ? "stop.fill" : "arrow.up")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(canSend ? sendButtonForeground : NeuPalette.textDisabled)
+                        .frame(width: 22, height: 22)
+                        .background(canSend ? sendButtonBackground : Color.clear)
+                        .clipShape(Circle())
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .background(NeuPalette.surfaceRaised)
-                .clipShape(RoundedRectangle(cornerRadius: 18))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 18)
-                        .stroke(NeuPalette.borderSoft, lineWidth: 1)
-                )
-                .shadow(color: NeuPalette.shadowDark.opacity(0.5), radius: 6, x: 0, y: 2)
+                .disabled(!canSend)
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("chat_button_send")
             }
-            .padding(.horizontal, 14)
-            .padding(.top, 10)
-            .padding(.bottom, 12)
-            // Remove the neuromorphic recessed background from the entire stack since the textfield has its own
-            // background now
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(NeuPalette.surfaceRaised)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(NeuPalette.borderSoft, lineWidth: 1)
+            )
+            .shadow(color: NeuPalette.shadowDark.opacity(0.4), radius: 3, x: 0, y: 1)
+            .padding(.horizontal, 12)
+            .padding(.top, 6)
+            .padding(.bottom, 10)
         }
         .padding(.horizontal, isCompact ? 0 : 8)
-        .padding(.top, 8)
-        .padding(.bottom, 12)
+        .padding(.top, 6)
+        .padding(.bottom, 10)
         .background(
             NeuPalette.background
                 .ignoresSafeArea(edges: .bottom)
