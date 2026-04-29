@@ -96,27 +96,39 @@ struct WorkScreen: View {
         }
     }
 
+    private var openCount: Int {
+        filteredItems.lazy.filter { $0.status == .ready }.count
+    }
+
+    private var inProgressCount: Int {
+        filteredItems.lazy.filter { $0.status == .inProgress || $0.status == .review }.count
+    }
+
+    private var doneCount: Int {
+        filteredItems.lazy.filter { $0.status == .done }.count
+    }
+
     private var header: some View {
-        HStack(spacing: 12) {
+        @Bindable var workStore = appModel.workStore
+
+        return HStack(spacing: 12) {
             filterRepositoryPicker
                 .frame(minWidth: 140)
 
             HStack(spacing: 10) {
                 statChip(
                     label: "Open",
-                    count: filteredItems.filter { $0.status == .ready }.count,
+                    count: openCount,
                     color: NeuPalette.statusBlue
                 )
                 statChip(
                     label: "In Progress",
-                    count: filteredItems.filter {
-                        $0.status == .inProgress || $0.status == .review
-                    }.count,
+                    count: inProgressCount,
                     color: NeuPalette.accentOrange
                 )
                 statChip(
                     label: "Done",
-                    count: filteredItems.filter { $0.status == .done }.count,
+                    count: doneCount,
                     color: NeuPalette.accentGreen
                 )
             }
@@ -127,7 +139,7 @@ struct WorkScreen: View {
                 Image(systemName: "magnifyingglass")
                     .font(.caption)
                     .foregroundStyle(NeuPalette.textSecondary)
-                TextField("Search issues…", text: bindingForSearch())
+                TextField("Search issues…", text: $workStore.searchText)
                     .textFieldStyle(.plain)
                     .font(.caption)
                     .foregroundStyle(NeuPalette.textPrimary)
@@ -169,17 +181,11 @@ struct WorkScreen: View {
                 }
                 .pickerStyle(.menu)
                 .tint(NeuPalette.accentOrange)
+                .accessibilityIdentifier("work_picker_repository")
             } else {
                 AgentBoardPill(text: "All repos", color: NeuPalette.accentOrange)
             }
         }
-    }
-
-    private func bindingForSearch() -> Binding<String> {
-        Binding(
-            get: { appModel.workStore.searchText },
-            set: { appModel.workStore.searchText = $0 }
-        )
     }
 
     private func statChip(label: String, count: Int, color: Color) -> some View {
