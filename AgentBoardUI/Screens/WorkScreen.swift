@@ -96,60 +96,73 @@ struct WorkScreen: View {
         }
     }
 
-    private var openCount: Int {
-        filteredItems.lazy.filter { $0.status == .ready }.count
-    }
-
-    private var inProgressCount: Int {
-        filteredItems.lazy.filter { $0.status == .inProgress || $0.status == .review }.count
-    }
-
-    private var doneCount: Int {
-        filteredItems.lazy.filter { $0.status == .done }.count
+    private var statusCounts: (open: Int, inProgress: Int, done: Int) {
+        filteredItems.reduce(into: (open: 0, inProgress: 0, done: 0)) { counts, item in
+            switch item.status {
+            case .ready: counts.open += 1
+            case .inProgress, .review: counts.inProgress += 1
+            case .done: counts.done += 1
+            default: break
+            }
+        }
     }
 
     private var header: some View {
         @Bindable var workStore = appModel.workStore
+        let counts = statusCounts
 
         return HStack(spacing: 12) {
             filterRepositoryPicker
                 .frame(minWidth: 140)
 
-            HStack(spacing: 10) {
-                statChip(
-                    label: "Open",
-                    count: openCount,
-                    color: NeuPalette.statusBlue
-                )
-                statChip(
-                    label: "In Progress",
-                    count: inProgressCount,
-                    color: NeuPalette.accentOrange
-                )
-                statChip(
-                    label: "Done",
-                    count: doneCount,
-                    color: NeuPalette.accentGreen
-                )
+            if !isCompact {
+                HStack(spacing: 10) {
+                    statChip(
+                        label: "Open",
+                        count: counts.open,
+                        color: NeuPalette.statusBlue
+                    )
+                    statChip(
+                        label: "In Progress",
+                        count: counts.inProgress,
+                        color: NeuPalette.accentOrange
+                    )
+                    statChip(
+                        label: "Done",
+                        count: counts.done,
+                        color: NeuPalette.accentGreen
+                    )
+                }
             }
 
             Spacer()
 
-            HStack(spacing: 6) {
+            if isCompact {
                 Image(systemName: "magnifyingglass")
-                    .font(.caption)
+                    .font(.system(size: 14))
                     .foregroundStyle(NeuPalette.textSecondary)
-                TextField("Search issues…", text: $workStore.searchText)
-                    .textFieldStyle(.plain)
-                    .font(.caption)
-                    .foregroundStyle(NeuPalette.textPrimary)
-                    .frame(maxWidth: 180)
-                    .accessibilityIdentifier("work_textfield_search")
+                    .frame(width: 32, height: 32)
+                    .background(NeuPalette.inset)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .accessibilityLabel("Search")
+                    .accessibilityIdentifier("work_button_search")
+            } else {
+                HStack(spacing: 6) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.caption)
+                        .foregroundStyle(NeuPalette.textSecondary)
+                    TextField("Search issues…", text: $workStore.searchText)
+                        .textFieldStyle(.plain)
+                        .font(.caption)
+                        .foregroundStyle(NeuPalette.textPrimary)
+                        .frame(maxWidth: 180)
+                        .accessibilityIdentifier("work_textfield_search")
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(NeuPalette.inset)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(NeuPalette.inset)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
 
             Button {
                 isPresentingCreate = true
