@@ -30,8 +30,8 @@ struct ChatScreen: View {
                 // Main Header pinned at the top
                 header
                     .padding(.horizontal, isCompact ? 16 : 16)
-                    .padding(.top, isCompact ? 16 : 14)
-                    .padding(.bottom, 12)
+                    .padding(.top, isCompact ? 12 : 10)
+                    .padding(.bottom, 8)
                     .background(NeuPalette.surface.ignoresSafeArea())
                     .overlay(alignment: .bottom) {
                         Rectangle()
@@ -69,14 +69,6 @@ struct ChatScreen: View {
                     ? "Restore the sidebar and board"
                     : "Hide the sidebar and board, shrink the window to chat-only")
                 .accessibilityIdentifier("chat_button_toggle_chat_only")
-            }
-
-            VStack(alignment: .leading, spacing: 4) {
-                AgentBoardEyebrow(text: "HERMES AI")
-                Text("Live Link")
-                    .font(.system(size: isCompact ? 28 : 18, weight: .bold))
-                    .foregroundStyle(NeuPalette.textPrimary)
-                    .tracking(-0.4)
             }
 
             Spacer()
