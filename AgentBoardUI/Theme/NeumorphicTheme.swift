@@ -62,32 +62,38 @@ public struct NeuTheme: Sendable {
     )
 
     public static let grey = NeuTheme(
-        background: Color(red: 0.137, green: 0.145, blue: 0.157),
-        surface: Color(red: 0.180, green: 0.192, blue: 0.208),
-        surfaceRaised: Color(red: 0.216, green: 0.231, blue: 0.247),
-        surfaceHover: Color(red: 0.267, green: 0.286, blue: 0.306),
-        inset: Color(red: 0.110, green: 0.118, blue: 0.129),
-        gradientTop: Color(red: 0.231, green: 0.247, blue: 0.267),
-        gradientBottom: Color(red: 0.110, green: 0.118, blue: 0.129),
-        accentOrange: Color(red: 0.961, green: 0.647, blue: 0.141),
-        primaryAccent: Color(red: 0.878, green: 0.565, blue: 0.318),
-        primaryAccentBright: Color(red: 0.965, green: 0.718, blue: 0.506),
-        primaryAccentForeground: Color(red: 0.204, green: 0.110, blue: 0.031),
-        accentCoral: Color(red: 1.000, green: 0.420, blue: 0.329),
-        accentPurple: Color(red: 0.690, green: 0.486, blue: 1.000),
-        statusOpen: Color(red: 0.420, green: 0.659, blue: 0.980),
-        statusClosed: Color(red: 0.541, green: 0.557, blue: 0.580),
-        statusSuccess: Color(red: 0.420, green: 0.820, blue: 0.510),
-        statusIdle: Color(red: 0.565, green: 0.580, blue: 0.612),
-        textPrimary: Color(red: 0.945, green: 0.949, blue: 0.957),
-        textSecondary: Color(red: 0.765, green: 0.773, blue: 0.788),
-        textTertiary: Color(red: 0.502, green: 0.518, blue: 0.541),
-        textDisabled: Color(red: 0.329, green: 0.345, blue: 0.365),
+        // Apple HIG dark mode neutral greys — no blue/brown undertone
+        background: Color(red: 0.110, green: 0.110, blue: 0.118),   // #1C1C1E
+        surface: Color(red: 0.173, green: 0.173, blue: 0.180),       // #2C2C2E
+        surfaceRaised: Color(red: 0.227, green: 0.227, blue: 0.235), // #3A3A3C
+        surfaceHover: Color(red: 0.282, green: 0.282, blue: 0.290),  // #48484A
+        inset: Color(red: 0.067, green: 0.067, blue: 0.075),         // #111113 — deep well for recessed columns
+        gradientTop: Color(red: 0.173, green: 0.173, blue: 0.180),   // #2C2C2E
+        gradientBottom: Color(red: 0.067, green: 0.067, blue: 0.075), // #111113
+        // Apple system orange for secondary/warning use
+        accentOrange: Color(red: 1.000, green: 0.624, blue: 0.039),  // #FF9F0A
+        // System Blue — #0A84FF
+        primaryAccent: Color(red: 0.039, green: 0.518, blue: 1.000),
+        primaryAccentBright: Color(red: 0.251, green: 0.612, blue: 1.000), // #409CFF
+        primaryAccentForeground: Color(red: 1.000, green: 1.000, blue: 1.000), // white on blue
+        // Apple system red and purple
+        accentCoral: Color(red: 1.000, green: 0.216, blue: 0.373),   // #FF375F
+        accentPurple: Color(red: 0.749, green: 0.353, blue: 0.949),  // #BF5AF2
+        // GitHub-convention status colours
+        statusOpen: Color(red: 0.039, green: 0.518, blue: 1.000),    // blue — open
+        statusClosed: Color(red: 0.388, green: 0.388, blue: 0.400),  // #636366 — muted grey
+        statusSuccess: Color(red: 0.196, green: 0.843, blue: 0.294), // #32D74B — Apple green
+        statusIdle: Color(red: 0.388, green: 0.388, blue: 0.400),    // #636366
+        // True neutral text ramp
+        textPrimary: Color(red: 0.961, green: 0.961, blue: 0.969),   // #F5F5F7
+        textSecondary: Color(red: 0.682, green: 0.682, blue: 0.698), // #AEAEB2
+        textTertiary: Color(red: 0.424, green: 0.424, blue: 0.439),  // #6C6C70
+        textDisabled: Color(red: 0.282, green: 0.282, blue: 0.290),  // #48484A
         borderSoft: Color.white.opacity(0.05),
         border: Color.white.opacity(0.08),
         borderStrong: Color.white.opacity(0.14),
-        shadowDark: Color.black.opacity(0.55),
-        shadowLight: Color.white.opacity(0.07)
+        shadowDark: Color.black.opacity(0.60),
+        shadowLight: Color.white.opacity(0.06)
     )
 
     public static func preset(_ designTheme: AgentBoardDesignTheme) -> NeuTheme {
