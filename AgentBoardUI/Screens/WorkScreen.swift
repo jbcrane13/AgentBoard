@@ -196,11 +196,11 @@ struct WorkScreen: View {
                         }
                         .frame(width: columnWidth, height: proxy.size.height - 28, alignment: .topLeading)
                         .padding(12)
-                        .background(NeuPalette.background.opacity(0.62))
+                        .background(NeuPalette.inset)
                         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                         .overlay {
                             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .stroke(NeuPalette.borderSoft, lineWidth: 1)
+                                .stroke(NeuPalette.border, lineWidth: 1)
                         }
                     }
                 }
