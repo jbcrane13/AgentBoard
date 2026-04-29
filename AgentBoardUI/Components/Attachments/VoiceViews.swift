@@ -32,12 +32,10 @@ struct VoiceRecordingButton: View {
             Image(systemName: "mic")
                 .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(NeuPalette.accentOrange)
-                .frame(width: 32, height: 32)
-                .background(NeuPalette.surfaceRaised)
-                .clipShape(Circle())
-                .overlay(Circle().stroke(NeuPalette.borderSoft, lineWidth: 0.5))
-                .shadow(color: NeuPalette.shadowDark.opacity(0.3), radius: 3, x: 0, y: 1)
+                .frame(width: 22, height: 22)
+                .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
         .accessibilityIdentifier("chat_button_mic")
     }
 
