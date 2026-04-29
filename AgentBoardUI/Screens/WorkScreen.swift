@@ -206,7 +206,7 @@ struct WorkScreen: View {
 
     private var boardLayout: some View {
         GeometryReader { proxy in
-            let columnWidth = max((proxy.size.width - 32) / 3, 190)
+            let columnWidth: CGFloat = 170
             ScrollView(.horizontal, showsIndicators: true) {
                 HStack(alignment: .top, spacing: 16) {
                     ForEach(groupedFilteredItems, id: \.state) { column in
@@ -260,7 +260,7 @@ struct WorkScreen: View {
                         }
                         .frame(width: columnWidth, height: proxy.size.height - 28, alignment: .topLeading)
                         .padding(12)
-                        .background(NeuPalette.background.opacity(0.62))
+                        .background(NeuPalette.background)
                         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                         .overlay {
                             RoundedRectangle(cornerRadius: 14, style: .continuous)
