@@ -41,8 +41,8 @@ struct WorkScreen: View {
             VStack(alignment: .leading, spacing: 0) {
                 header
                     .padding(.horizontal, isCompact ? 22 : 28)
-                    .padding(.top, isCompact ? 20 : 20)
-                    .padding(.bottom, 14)
+                    .padding(.top, isCompact ? 16 : 14)
+                    .padding(.bottom, 10)
                     .accessibilityIdentifier("work_section_header")
 
                 // macOS always shows board layout; status banner shown when empty
@@ -97,30 +97,64 @@ struct WorkScreen: View {
     }
 
     private var header: some View {
-        HStack(alignment: .bottom) {
-            VStack(alignment: .leading, spacing: 6) {
-                AgentBoardEyebrow(text: "WORKSPACE")
-                Text("GitHub Issues")
-                    .font(.system(size: isCompact ? 34 : 30, weight: .bold))
-                    .foregroundStyle(NeuPalette.textPrimary)
-                    .tracking(-0.8)
-            }
-            Spacer()
-            HStack(spacing: 8) {
-                filterRepositoryPicker
-                Button {} label: {
-                    Label("Filter", systemImage: "line.3.horizontal.decrease")
-                }
-                .buttonStyle(NeuButtonTarget(isAccent: false))
+        HStack(spacing: 12) {
+            filterRepositoryPicker
+                .frame(minWidth: 140)
 
-                Button { isPresentingCreate = true } label: {
-                    Image(systemName: "plus")
-                        .font(.system(size: 14, weight: .bold))
-                        .frame(width: 20, height: 20)
-                }
-                .buttonStyle(NeuButtonTarget(isAccent: true))
-                .disabled(!appModel.settingsStore.isGitHubConfigured)
+            HStack(spacing: 10) {
+                statChip(
+                    label: "Open",
+                    count: filteredItems.filter { $0.status == .ready }.count,
+                    color: NeuPalette.statusBlue
+                )
+                statChip(
+                    label: "In Progress",
+                    count: filteredItems.filter {
+                        $0.status == .inProgress || $0.status == .review
+                    }.count,
+                    color: NeuPalette.accentOrange
+                )
+                statChip(
+                    label: "Done",
+                    count: filteredItems.filter { $0.status == .done }.count,
+                    color: NeuPalette.accentGreen
+                )
             }
+
+            Spacer()
+
+            HStack(spacing: 6) {
+                Image(systemName: "magnifyingglass")
+                    .font(.caption)
+                    .foregroundStyle(NeuPalette.textSecondary)
+                TextField("Search issues…", text: bindingForSearch())
+                    .textFieldStyle(.plain)
+                    .font(.caption)
+                    .foregroundStyle(NeuPalette.textPrimary)
+                    .frame(maxWidth: 180)
+                    .accessibilityIdentifier("work_textfield_search")
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(NeuPalette.inset)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+
+            Button {
+                isPresentingCreate = true
+            } label: {
+                Image(systemName: "plus")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(NeuPalette.accentForeground)
+                    .frame(width: 28, height: 28)
+                    .background(NeuPalette.accentCyan)
+                    .clipShape(Circle())
+                    .overlay(Circle().stroke(NeuPalette.borderSoft, lineWidth: 0.5))
+                    .shadow(color: NeuPalette.shadowDark.opacity(0.4), radius: 3, x: 0, y: 1)
+            }
+            .buttonStyle(.plain)
+            .disabled(!appModel.settingsStore.isGitHubConfigured)
+            .help("Create new issue")
+            .accessibilityIdentifier("work_button_create_issue")
         }
     }
 
@@ -133,10 +167,34 @@ struct WorkScreen: View {
                         Text(repo.shortName).tag(repo.fullName)
                     }
                 }
+                .pickerStyle(.menu)
                 .tint(NeuPalette.accentOrange)
             } else {
                 AgentBoardPill(text: "All repos", color: NeuPalette.accentOrange)
             }
+        }
+    }
+
+    private func bindingForSearch() -> Binding<String> {
+        Binding(
+            get: { appModel.workStore.searchText },
+            set: { appModel.workStore.searchText = $0 }
+        )
+    }
+
+    private func statChip(label: String, count: Int, color: Color) -> some View {
+        HStack(spacing: 5) {
+            Circle()
+                .fill(color)
+                .frame(width: 7, height: 7)
+                .shadow(color: color.opacity(0.6), radius: 4)
+            Text("\(count)")
+                .font(.system(.caption, design: .rounded, weight: .semibold))
+                .monospacedDigit()
+                .foregroundStyle(NeuPalette.textPrimary)
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(NeuPalette.textSecondary)
         }
     }
 
