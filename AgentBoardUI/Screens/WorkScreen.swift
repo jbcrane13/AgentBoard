@@ -255,7 +255,6 @@ struct WorkScreen: View {
                                     .frame(height: 1)
                             }
 
-                            let isDropTarget = draggedItemID != nil
                             boardColumnContent(for: column)
                         }
                         .frame(width: columnWidth, height: proxy.size.height - 28, alignment: .topLeading)
