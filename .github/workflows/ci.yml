@@ -28,6 +28,22 @@ jobs:
       - name: SwiftLint
         run: swiftlint lint --reporter github-actions-logging
 
+      - name: Setup Node (for jscpd)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Duplicate Code Detection (jscpd)
+        run: npx --yes jscpd@4.0.5 --config .jscpd.json "AgentBoardCore" "AgentBoardUI" "AgentBoardCompanionKit" "AgentBoardMobile" "AgentBoardCompanion" "AgentBoard" "AgentBoardTests"
+
+      - name: Upload jscpd Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jscpd-report
+          path: reports/jscpd
+          retention-days: 7
+
       - name: Build macOS App
         run: |
           xcodebuild build \
