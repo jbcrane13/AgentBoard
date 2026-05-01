@@ -6,6 +6,7 @@
 
 | Date | Level | Pass Rate | Sessions |
 |------|-------|-----------|---------|
+| 2026-05-01 | **Level 2** | 41.1% (23/56 non-skipped) | 01-initial-readiness, 02-duplicate-code-detection |
 | 2026-02-28 | **Level 2** | 39.3% (22/56 non-skipped) | 01-initial-readiness |
 
 ## What Was Established
@@ -80,6 +81,7 @@ xcodebuild -project AgentBoard.xcodeproj -scheme AgentBoardCompanion \
 | Session | Date | Level | Pass Rate | Key Change |
 |---------|------|-------|-----------|------------|
 | [01](./01-initial-readiness.md) | 2026-02-28 | Level 2 | 39.3% | Baseline evaluation + SwiftLint, CI, branch protection, coverage, architecture docs |
+| [02](./02-duplicate-code-detection.md) | 2026-05-01 | Level 2 | 41.1% | Added jscpd duplicate code detection (Swift) wired into CI |
 
 ## How To Add A New Session Entry
 

@@ -1,0 +1,38 @@
+{
+  "$schema": "https://raw.githubusercontent.com/kucherenko/jscpd/v4.0.5/packages/jscpd/schema.json",
+  "threshold": 3,
+  "reporters": [
+    "console",
+    "html",
+    "json"
+  ],
+  "output": "./reports/jscpd",
+  "format": [
+    "swift"
+  ],
+  "ignore": [
+    "**/build/**",
+    "**/DerivedData/**",
+    "**/.build/**",
+    "**/Packages/**",
+    "**/*.generated.swift",
+    "**/Pods/**",
+    "**/node_modules/**",
+    "**/AgentBoard.xcodeproj/**",
+    "**/.git/**",
+    "**/AgentBoardTests/**/Mocks/**",
+    "**/AgentBoardTests/**/Fixtures/**"
+  ],
+  "absolute": false,
+  "gitignore": true,
+  "ignoreCase": false,
+  "minTokens": 75,
+  "minLines": 8,
+  "maxLines": 1500,
+  "maxSize": "200kb",
+  "blame": false,
+  "silent": false,
+  "verbose": false,
+  "skipLocal": false,
+  "exitCode": 1
+}
