@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/kucherenko/jscpd/master/packages/jscpd/schema.json",
+  "$schema": "https://raw.githubusercontent.com/kucherenko/jscpd/v4.0.5/packages/jscpd/schema.json",
   "threshold": 3,
   "reporters": [
     "console",
