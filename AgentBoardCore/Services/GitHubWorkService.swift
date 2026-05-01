@@ -192,8 +192,10 @@ public actor GitHubWorkService {
         if let milestone = patch.milestone { payload["milestone"] = milestone }
         if let state = patch.state {
             payload["state"] = state.githubState
-            // When closing, also remove status labels so GitHub state is authoritative
-            if state.isTerminal, var currentLabels = patch.labels {
+            // Always swap status labels when changing state:
+            // Remove any existing status:* labels and add the new one.
+            // This ensures the GitHub label matches the WorkState.
+            if var currentLabels = patch.labels {
                 currentLabels.removeAll { $0.lowercased().hasPrefix("status:") }
                 currentLabels.append(state.labelValue)
                 payload["labels"] = currentLabels

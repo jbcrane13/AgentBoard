@@ -396,7 +396,13 @@ struct IssueDetailSheet: View {
     private func save() {
         isSaving = true
 
-        let mergedLabels = [
+        // Preserve non-structural labels from the original item (area:, topic:, etc.)
+        // Structural labels (type:, priority:, status:, agent:) are replaced by the edit form.
+        let structuralPrefixes = ["type:", "priority:", "status:", "agent:"]
+        let preservedLabels = item.labels.filter { label in
+            !structuralPrefixes.contains(where: { label.lowercased().hasPrefix($0) })
+        }
+        let mergedLabels = preservedLabels + [
             editType.labelValue,
             editPriority.labelValue,
             editStatus.labelValue

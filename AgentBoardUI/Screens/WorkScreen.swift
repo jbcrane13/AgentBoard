@@ -1,5 +1,6 @@
 import AgentBoardCore
 import SwiftUI
+import UniformTypeIdentifiers
 
 private enum WorkLayoutMode: String, CaseIterable, Identifiable {
     case board
@@ -17,6 +18,7 @@ struct WorkScreen: View {
     @State private var selectedItem: WorkItem?
     @State private var isPresentingCreate = false
     @State private var selectedRepo: String = "all"
+    @State private var draggedItemID: String?
 
     private var isCompact: Bool {
         #if os(macOS)
@@ -253,23 +255,8 @@ struct WorkScreen: View {
                                     .frame(height: 1)
                             }
 
-                            if column.items.isEmpty {
-                                Spacer()
-                                Text("None")
-                                    .font(.subheadline)
-                                    .foregroundStyle(NeuPalette.textTertiary)
-                                    .frame(maxWidth: .infinity, alignment: .center)
-                                Spacer()
-                            } else {
-                                ScrollView(showsIndicators: false) {
-                                    LazyVStack(spacing: 8) {
-                                        ForEach(column.items) { item in
-                                            WorkCardNeu(item: item) { selectedItem = item }
-                                        }
-                                    }
-                                    .padding(.bottom, 12)
-                                }
-                            }
+                            let isDropTarget = draggedItemID != nil
+                            boardColumnContent(for: column)
                         }
                         .frame(width: columnWidth, height: proxy.size.height - 28, alignment: .topLeading)
                         .padding(12)
@@ -285,6 +272,38 @@ struct WorkScreen: View {
                 .padding(.horizontal, 28)
             }
         }
+    }
+
+    private func boardColumnContent(for column: (state: WorkState, items: [WorkItem])) -> some View {
+        VStack(spacing: 8) {
+            if column.items.isEmpty {
+                Spacer()
+                Text("None")
+                    .font(.subheadline)
+                    .foregroundStyle(NeuPalette.textTertiary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                Spacer()
+            } else {
+                ScrollView(showsIndicators: false) {
+                    LazyVStack(spacing: 8) {
+                        ForEach(column.items) { item in
+                            WorkCardNeu(item: item) { selectedItem = item }
+                                .onDrag {
+                                    draggedItemID = item.id
+                                    return NSItemProvider(object: item.id as NSString)
+                                }
+                        }
+                    }
+                    .padding(.bottom, 12)
+                }
+            }
+        }
+        .onDrop(of: [.plainText], delegate: WorkColumnDropDelegate(
+            targetState: column.state,
+            workStore: appModel.workStore,
+            items: filteredItems,
+            draggedItemID: $draggedItemID
+        ))
     }
 
     private var listLayout: some View {
@@ -417,5 +436,48 @@ private func priorityColor(_ priority: WorkPriority) -> Color {
     case .p1: NeuPalette.accentCoral.opacity(0.82)
     case .p2: NeuPalette.accentOrange
     case .p3: NeuPalette.textTertiary
+    }
+}
+
+// MARK: - Drag & Drop Delegate
+
+struct WorkColumnDropDelegate: DropDelegate {
+    let targetState: WorkState
+    let workStore: WorkStore
+    let items: [WorkItem]
+    @Binding var draggedItemID: String?
+
+    func validateDrop(info: DropInfo) -> Bool {
+        info.hasItemsConforming(to: [.plainText])
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        guard let provider = info.itemProviders(for: [.plainText]).first else { return false }
+
+        provider.loadItem(forTypeIdentifier: "public.plain-text", options: nil) { data, _ in
+            // data can be Data, NSString, or NSAttributedString depending on platform
+            let idString: String?
+            if let data = data as? Data {
+                idString = String(data: data, encoding: .utf8)
+            } else if let str = data as? String {
+                idString = str
+            } else if let attrStr = data as? NSAttributedString {
+                idString = attrStr.string
+            } else {
+                idString = nil
+            }
+            guard let id = idString,
+                  let item = items.first(where: { $0.id == id })
+            else { return }
+            Task { @MainActor in
+                await workStore.updateStatus(for: item, to: targetState)
+            }
+        }
+        draggedItemID = nil
+        return true
+    }
+
+    func dropExited(info _: DropInfo) {
+        draggedItemID = nil
     }
 }
