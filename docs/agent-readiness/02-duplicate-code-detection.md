@@ -120,7 +120,7 @@ $ npx --yes jscpd@4.0.5 --config .jscpd.json AgentBoardCore AgentBoardUI \
 # ...
 # │ swift  │ 76             │ 17742 │ 157386 │ 9 │ 234 (1.32%) │ 2125 (1.35%) │
 # Found 9 clones.
-# Detection time:: ~1s
+# Detection time: ~1s
 ```
 
 Baseline duplication: **1.32%** (below the 3% threshold) → exit code `0`.
