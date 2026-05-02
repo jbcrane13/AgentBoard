@@ -57,39 +57,13 @@ public enum DemoFixtures {
         )
     ]
 
-    public static let tasks: [AgentTask] = [
-        AgentTask(
-            id: "task-chat-shell",
-            workItem: workItems[0].reference,
-            title: "Polish streaming composer states",
-            status: .inProgress,
-            priority: .p1,
-            assignedAgent: "Codex",
-            sessionID: "proc-1208",
-            note: "Mobile shell first, then macOS parity.",
-            createdAt: .now.addingTimeInterval(-7200),
-            updatedAt: .now.addingTimeInterval(-600)
-        ),
-        AgentTask(
-            id: "task-companion-contract",
-            workItem: workItems[1].reference,
-            title: "Draft task update payloads",
-            status: .backlog,
-            priority: .p0,
-            assignedAgent: "Claude",
-            note: "Need CRUD plus SSE events.",
-            createdAt: .now.addingTimeInterval(-10000),
-            updatedAt: .now.addingTimeInterval(-4800)
-        )
-    ]
-
     public static let sessions: [AgentSession] = [
         AgentSession(
             id: "proc-1208",
             source: "Blake's MacBook Pro",
             status: .running,
-            linkedTaskID: tasks[0].id,
-            workItem: tasks[0].workItem,
+            linkedTaskID: nil,
+            workItem: workItems[0].reference,
             model: "hermes-agent",
             startedAt: .now.addingTimeInterval(-5400),
             lastSeenAt: .now.addingTimeInterval(-30)

@@ -1,4 +1,3 @@
-// swiftlint:disable file_length
 import Foundation
 
 public enum AgentBoardDesignHandoff {
@@ -302,116 +301,6 @@ public struct WorkItem: Codable, Hashable, Identifiable, Sendable {
     }
 }
 
-public enum AgentTaskState: String, Codable, CaseIterable, Identifiable, Sendable {
-    case backlog
-    case inProgress
-    case blocked
-    case done
-
-    public var id: String {
-        rawValue
-    }
-
-    public var title: String {
-        switch self {
-        case .backlog: "Backlog"
-        case .inProgress: "In Progress"
-        case .blocked: "Blocked"
-        case .done: "Done"
-        }
-    }
-}
-
-public struct AgentTask: Codable, Hashable, Identifiable, Sendable {
-    public let id: String
-    public let workItem: WorkReference
-    public var title: String
-    public var status: AgentTaskState
-    public var priority: WorkPriority
-    public var assignedAgent: String
-    public var sessionID: String?
-    public var note: String
-    public let createdAt: Date
-    public var updatedAt: Date
-
-    public init(
-        id: String,
-        workItem: WorkReference,
-        title: String,
-        status: AgentTaskState,
-        priority: WorkPriority,
-        assignedAgent: String,
-        sessionID: String? = nil,
-        note: String = "",
-        createdAt: Date = .now,
-        updatedAt: Date = .now
-    ) {
-        self.id = id
-        self.workItem = workItem
-        self.title = title
-        self.status = status
-        self.priority = priority
-        self.assignedAgent = assignedAgent
-        self.sessionID = sessionID
-        self.note = note
-        self.createdAt = createdAt
-        self.updatedAt = updatedAt
-    }
-}
-
-public struct AgentTaskDraft: Codable, Hashable, Sendable {
-    public let workItem: WorkReference
-    public let title: String
-    public let status: AgentTaskState
-    public let priority: WorkPriority
-    public let assignedAgent: String
-    public let sessionID: String?
-    public let note: String
-
-    public init(
-        workItem: WorkReference,
-        title: String,
-        status: AgentTaskState = .backlog,
-        priority: WorkPriority = .p2,
-        assignedAgent: String,
-        sessionID: String? = nil,
-        note: String = ""
-    ) {
-        self.workItem = workItem
-        self.title = title
-        self.status = status
-        self.priority = priority
-        self.assignedAgent = assignedAgent
-        self.sessionID = sessionID
-        self.note = note
-    }
-}
-
-public struct AgentTaskPatch: Codable, Hashable, Sendable {
-    public var title: String?
-    public var status: AgentTaskState?
-    public var priority: WorkPriority?
-    public var assignedAgent: String?
-    public var sessionID: String?
-    public var note: String?
-
-    public init(
-        title: String? = nil,
-        status: AgentTaskState? = nil,
-        priority: WorkPriority? = nil,
-        assignedAgent: String? = nil,
-        sessionID: String? = nil,
-        note: String? = nil
-    ) {
-        self.title = title
-        self.status = status
-        self.priority = priority
-        self.assignedAgent = assignedAgent
-        self.sessionID = sessionID
-        self.note = note
-    }
-}
-
 public enum AgentSessionStatus: String, Codable, CaseIterable, Identifiable, Sendable {
     case running
     case idle
@@ -514,7 +403,6 @@ public struct AgentSummary: Codable, Hashable, Identifiable, Sendable {
 }
 
 public enum CompanionEventKind: String, Codable, CaseIterable, Sendable {
-    case tasksChanged
     case sessionsChanged
     case agentsChanged
     case snapshotRefreshed

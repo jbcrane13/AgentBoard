@@ -80,31 +80,12 @@ public actor CompanionClient {
         return true
     }
 
-    public func listTasks() async throws -> [AgentTask] {
-        try await fetch(path: "v1/tasks")
-    }
-
     public func listSessions() async throws -> [AgentSession] {
         try await fetch(path: "v1/sessions")
     }
 
     public func listAgents() async throws -> [AgentSummary] {
         try await fetch(path: "v1/agents")
-    }
-
-    public func createTask(_ draft: AgentTaskDraft) async throws -> AgentTask {
-        try await send(path: "v1/tasks", method: "POST", payload: draft)
-    }
-
-    public func updateTask(id: String, patch: AgentTaskPatch) async throws -> AgentTask {
-        try await send(path: "v1/tasks/\(id)", method: "PATCH", payload: patch)
-    }
-
-    public func deleteTask(id: String) async throws {
-        var request = makeRequest(path: "v1/tasks/\(id)")
-        request.httpMethod = "DELETE"
-        let (data, response) = try await session.data(for: request)
-        try validate(response: response, data: data)
     }
 
     public func stopSession(id: String) async throws {
@@ -170,23 +151,10 @@ public actor CompanionClient {
         }
     }
 
+    // MARK: - Internal
+
     private func fetch<Value: Decodable>(path: String) async throws -> Value {
         let (data, response) = try await session.data(for: makeRequest(path: path))
-        try validate(response: response, data: data)
-        return try decoder.decode(Value.self, from: data)
-    }
-
-    private func send<Payload: Encodable, Value: Decodable>(
-        path: String,
-        method: String,
-        payload: Payload
-    ) async throws -> Value {
-        var request = makeRequest(path: path)
-        request.httpMethod = method
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try encoder.encode(payload)
-
-        let (data, response) = try await session.data(for: request)
         try validate(response: response, data: data)
         return try decoder.decode(Value.self, from: data)
     }

@@ -130,7 +130,7 @@ public final class SessionsStore {
         switch event {
         case .sessionsChanged, .snapshotRefreshed:
             await refresh()
-        case .tasksChanged, .agentsChanged:
+        case .agentsChanged:
             break
         }
     }

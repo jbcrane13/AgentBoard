@@ -160,36 +160,6 @@ struct AgentBoardCacheTests {
         #expect(loaded[0].milestone == nil)
     }
 
-    // MARK: - Tasks
-
-    @Test func tasksRoundTrip() throws {
-        let cache = try AgentBoardCache(inMemory: true)
-        let ref = WorkReference(
-            repository: ConfiguredRepository(owner: "org", name: "repo"),
-            issueNumber: 7
-        )
-        let task = AgentTask(
-            id: "task-7",
-            workItem: ref,
-            title: "Fix the crash",
-            status: .inProgress,
-            priority: .p1,
-            assignedAgent: "Claude",
-            sessionID: "sess-42",
-            note: "Started."
-        )
-
-        try cache.replaceTasks([task])
-
-        let loaded = try cache.loadTasks()
-        #expect(loaded.count == 1)
-        #expect(loaded[0].id == "task-7")
-        #expect(loaded[0].title == "Fix the crash")
-        #expect(loaded[0].status == .inProgress)
-        #expect(loaded[0].sessionID == "sess-42")
-        #expect(loaded[0].note == "Started.")
-    }
-
     // MARK: - Sessions
 
     @Test func sessionsRoundTrip() throws {

@@ -144,7 +144,6 @@ public final class CompanionServer: @unchecked Sendable {
     private let queue = DispatchQueue(label: "com.agentboard.modern.companion")
 
     private let encoder: JSONEncoder
-    private let decoder: JSONDecoder
 
     private var listener: NWListener?
     private var refreshTask: Task<Void, Never>?
@@ -158,9 +157,7 @@ public final class CompanionServer: @unchecked Sendable {
         self.store = store
         self.probe = probe
         encoder = JSONEncoder()
-        decoder = JSONDecoder()
         encoder.dateEncodingStrategy = .iso8601
-        decoder.dateDecodingStrategy = .iso8601
     }
 
     deinit {
@@ -213,8 +210,7 @@ public final class CompanionServer: @unchecked Sendable {
     }
 
     private func refreshProbeSnapshot() async throws {
-        let tasks = try await store.listTasks()
-        let snapshot = await probe.snapshot(tasks: tasks)
+        let snapshot = await probe.snapshot()
         try await store.replaceSessions(snapshot.sessions)
         try await store.replaceAgents(snapshot.agents)
         await broker.publish(CompanionEvent(kind: .sessionsChanged))
@@ -289,34 +285,6 @@ public final class CompanionServer: @unchecked Sendable {
         switch (request.method, request.pathComponents) {
         case ("GET", ["health"]):
             try sendJSON(["status": "ok"], over: connection)
-
-        case ("GET", ["v1", "tasks"]):
-            try sendJSON(await store.listTasks(), over: connection)
-
-        case ("POST", ["v1", "tasks"]):
-            let draft = try decoder.decode(AgentTaskDraft.self, from: request.body)
-            let task = try await store.createTask(draft)
-            try sendJSON(task, over: connection)
-            await broker.publish(CompanionEvent(kind: .tasksChanged))
-
-        case let ("PATCH", components)
-            where components.count == 3 &&
-            components[0] == "v1" &&
-            components[1] == "tasks":
-            let id = components[2]
-            let patch = try decoder.decode(AgentTaskPatch.self, from: request.body)
-            let task = try await store.updateTask(id: id, patch: patch)
-            try sendJSON(task, over: connection)
-            await broker.publish(CompanionEvent(kind: .tasksChanged))
-
-        case let ("DELETE", components)
-            where components.count == 3 &&
-            components[0] == "v1" &&
-            components[1] == "tasks":
-            let id = components[2]
-            try await store.deleteTask(id: id)
-            try sendJSON(["ok": true], over: connection)
-            await broker.publish(CompanionEvent(kind: .tasksChanged))
 
         case ("GET", ["v1", "sessions"]):
             try sendJSON(await store.listSessions(), over: connection)

@@ -5,41 +5,6 @@ import Testing
 
 struct CompanionSQLiteStoreTests {
     @Test
-    func createUpdateAndListTasks() async throws {
-        let databaseURL = FileManager.default.temporaryDirectory
-            .appending(path: "agentboard-tests-\(UUID().uuidString).sqlite")
-
-        let store = try CompanionSQLiteStore(databaseURL: databaseURL)
-        try await store.initializeSchema()
-
-        let repository = ConfiguredRepository(owner: "openai", name: "agentboard")
-        let task = try await store.createTask(
-            AgentTaskDraft(
-                workItem: WorkReference(repository: repository, issueNumber: 42),
-                title: "Ship the companion store",
-                status: .backlog,
-                priority: .p1,
-                assignedAgent: "Codex",
-                note: "Start with SQLite and SSE."
-            )
-        )
-
-        #expect(task.status == .backlog)
-
-        let updated = try await store.updateTask(
-            id: task.id,
-            patch: AgentTaskPatch(status: .inProgress, note: "Streaming updates are wired.")
-        )
-
-        #expect(updated.status == .inProgress)
-        #expect(updated.note == "Streaming updates are wired.")
-
-        let tasks = try await store.listTasks()
-        #expect(tasks.count == 1)
-        #expect(tasks[0].status == .inProgress)
-    }
-
-    @Test
     func replaceSessionsAndAgents() async throws {
         let databaseURL = FileManager.default.temporaryDirectory
             .appending(path: "agentboard-tests-\(UUID().uuidString).sqlite")

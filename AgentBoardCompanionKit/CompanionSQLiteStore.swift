@@ -61,25 +61,6 @@ public actor CompanionSQLiteStore {
     public func initializeSchema() throws {
         try execute(
             """
-            CREATE TABLE IF NOT EXISTS agent_tasks (
-                id TEXT PRIMARY KEY NOT NULL,
-                repo_owner TEXT NOT NULL,
-                repo_name TEXT NOT NULL,
-                issue_number INTEGER NOT NULL,
-                title TEXT NOT NULL,
-                status TEXT NOT NULL,
-                priority TEXT NOT NULL,
-                assigned_agent TEXT NOT NULL,
-                session_id TEXT,
-                note TEXT NOT NULL,
-                created_at REAL NOT NULL,
-                updated_at REAL NOT NULL
-            );
-            """
-        )
-
-        try execute(
-            """
             CREATE TABLE IF NOT EXISTS sessions (
                 id TEXT PRIMARY KEY NOT NULL,
                 source TEXT NOT NULL,
@@ -124,98 +105,7 @@ public actor CompanionSQLiteStore {
         }
     }
 
-    public func listTasks() throws -> [AgentTask] {
-        let statement = try prepare(
-            """
-            SELECT id, repo_owner, repo_name, issue_number, title, status, priority,
-                   assigned_agent, session_id, note, created_at, updated_at
-            FROM agent_tasks
-            ORDER BY updated_at DESC;
-            """
-        )
-        defer { sqlite3_finalize(statement) }
-
-        var tasks: [AgentTask] = []
-        while sqlite3_step(statement) == SQLITE_ROW {
-            tasks.append(
-                AgentTask(
-                    id: string(statement, index: 0),
-                    workItem: WorkReference(
-                        repository: ConfiguredRepository(
-                            owner: string(statement, index: 1),
-                            name: string(statement, index: 2)
-                        ),
-                        issueNumber: int(statement, index: 3)
-                    ),
-                    title: string(statement, index: 4),
-                    status: AgentTaskState(rawValue: string(statement, index: 5)) ?? .backlog,
-                    priority: WorkPriority(rawValue: string(statement, index: 6)) ?? .p2,
-                    assignedAgent: string(statement, index: 7),
-                    sessionID: nullableString(statement, index: 8),
-                    note: string(statement, index: 9),
-                    createdAt: date(statement, index: 10),
-                    updatedAt: date(statement, index: 11)
-                )
-            )
-        }
-
-        return tasks
-    }
-
-    public func createTask(_ draft: AgentTaskDraft) throws -> AgentTask {
-        let task = AgentTask(
-            id: "task-\(UUID().uuidString.lowercased())",
-            workItem: draft.workItem,
-            title: draft.title,
-            status: draft.status,
-            priority: draft.priority,
-            assignedAgent: draft.assignedAgent,
-            sessionID: draft.sessionID,
-            note: draft.note,
-            createdAt: .now,
-            updatedAt: .now
-        )
-        try upsert(task)
-        return task
-    }
-
-    public func updateTask(id: String, patch: AgentTaskPatch) throws -> AgentTask {
-        guard var current = try listTasks().first(where: { $0.id == id }) else {
-            throw StoreError.notFound
-        }
-
-        if let title = patch.title {
-            current.title = title
-        }
-        if let status = patch.status {
-            current.status = status
-        }
-        if let priority = patch.priority {
-            current.priority = priority
-        }
-        if let assignedAgent = patch.assignedAgent {
-            current.assignedAgent = assignedAgent
-        }
-        if let sessionID = patch.sessionID {
-            current.sessionID = sessionID
-        }
-        if let note = patch.note {
-            current.note = note
-        }
-        current.updatedAt = .now
-
-        try upsert(current)
-        return current
-    }
-
-    public func deleteTask(id: String) throws {
-        let statement = try prepare("DELETE FROM agent_tasks WHERE id = ?;")
-        defer { sqlite3_finalize(statement) }
-        bind(id, to: 1, in: statement)
-        guard sqlite3_step(statement) == SQLITE_DONE else {
-            throw StoreError.stepFailed(Self.sqliteMessage(handle.raw))
-        }
-    }
+    // MARK: - Sessions
 
     public func replaceSessions(_ sessions: [AgentSession]) throws {
         try execute("DELETE FROM sessions;")
@@ -306,6 +196,8 @@ public actor CompanionSQLiteStore {
         return sessions
     }
 
+    // MARK: - Agents
+
     public func replaceAgents(_ agents: [AgentSummary]) throws {
         try execute("DELETE FROM agents;")
 
@@ -362,47 +254,7 @@ public actor CompanionSQLiteStore {
         return agents
     }
 
-    private func upsert(_ task: AgentTask) throws {
-        let statement = try prepare(
-            """
-            INSERT INTO agent_tasks (
-                id, repo_owner, repo_name, issue_number, title, status, priority,
-                assigned_agent, session_id, note, created_at, updated_at
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(id) DO UPDATE SET
-                repo_owner = excluded.repo_owner,
-                repo_name = excluded.repo_name,
-                issue_number = excluded.issue_number,
-                title = excluded.title,
-                status = excluded.status,
-                priority = excluded.priority,
-                assigned_agent = excluded.assigned_agent,
-                session_id = excluded.session_id,
-                note = excluded.note,
-                created_at = excluded.created_at,
-                updated_at = excluded.updated_at;
-            """
-        )
-        defer { sqlite3_finalize(statement) }
-
-        bind(task.id, to: 1, in: statement)
-        bind(task.workItem.repository.owner, to: 2, in: statement)
-        bind(task.workItem.repository.name, to: 3, in: statement)
-        sqlite3_bind_int(statement, 4, Int32(task.workItem.issueNumber))
-        bind(task.title, to: 5, in: statement)
-        bind(task.status.rawValue, to: 6, in: statement)
-        bind(task.priority.rawValue, to: 7, in: statement)
-        bind(task.assignedAgent, to: 8, in: statement)
-        bind(task.sessionID, to: 9, in: statement)
-        bind(task.note, to: 10, in: statement)
-        sqlite3_bind_double(statement, 11, task.createdAt.timeIntervalSince1970)
-        sqlite3_bind_double(statement, 12, task.updatedAt.timeIntervalSince1970)
-
-        guard sqlite3_step(statement) == SQLITE_DONE else {
-            throw StoreError.stepFailed(Self.sqliteMessage(handle.raw))
-        }
-    }
+    // MARK: - Helpers
 
     private func execute(_ sql: String) throws {
         guard sqlite3_exec(handle.raw, sql, nil, nil, nil) == SQLITE_OK else {

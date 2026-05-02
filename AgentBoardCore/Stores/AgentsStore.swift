@@ -6,11 +6,11 @@ import os
 @Observable
 public final class AgentsStore {
     private let logger = Logger(subsystem: "com.agentboard.modern", category: "AgentsStore")
-    private let companionClient: CompanionClient
-    private let cache: AgentBoardCache
+    private let kanbanData: KanbanDataService
+    private let cliWriter: KanbanCLIWriter
     private let settingsStore: SettingsStore
 
-    public private(set) var tasks: [AgentTask] = []
+    public private(set) var tasks: [KanbanTask] = []
     public private(set) var summaries: [AgentSummary] = []
     public private(set) var isLoading = false
     public var errorMessage: String?
@@ -20,80 +20,78 @@ public final class AgentsStore {
     private var lastFingerprint: String = ""
 
     public init(
-        companionClient: CompanionClient,
-        cache: AgentBoardCache,
+        kanbanData: KanbanDataService = KanbanDataService(),
+        cliWriter: KanbanCLIWriter = KanbanCLIWriter(),
         settingsStore: SettingsStore
     ) {
-        self.companionClient = companionClient
-        self.cache = cache
+        self.kanbanData = kanbanData
+        self.cliWriter = cliWriter
         self.settingsStore = settingsStore
     }
 
-    public var tasksByAgent: [(agent: AgentSummary, tasks: [AgentTask])] {
+    // MARK: - Computed
+
+    /// Tasks grouped by agent assignee for the agent summary rail.
+    public var tasksByAgent: [(agent: AgentSummary, tasks: [KanbanTask])] {
         summaries.map { summary in
             (
                 summary,
                 tasks.filter {
-                    $0.assignedAgent.compare(summary.name, options: .caseInsensitive) == .orderedSame ||
-                        $0.assignedAgent.compare(summary.id, options: .caseInsensitive) == .orderedSame
+                    $0.assignee?.compare(summary.name, options: .caseInsensitive) == .orderedSame ||
+                        $0.assignee?.compare(summary.id, options: .caseInsensitive) == .orderedSame
                 }
             )
         }
     }
 
+    /// Tasks grouped by status for kanban columns.
+    public var tasksByStatus: [(status: KanbanStatus, tasks: [KanbanTask])] {
+        KanbanStatus.boardColumns.map { status in
+            (status, tasks.filter { $0.status == status })
+        }
+    }
+
+    // MARK: - Bootstrap
+
     public func bootstrap() async {
         guard !didBootstrap else { return }
 
-        do {
-            tasks = try cache.loadTasks()
-            summaries = try cache.loadAgentSummaries()
-            lastFingerprint = fingerprint(tasks: tasks, summaries: summaries)
-        } catch {
-            logger.error("Failed to load agents cache: \(error.localizedDescription, privacy: .public)")
-            errorMessage = error.localizedDescription
-        }
-
-        if settingsStore.isCompanionConfigured {
-            await refresh()
-        }
-
+        // Always refresh from kanban.db — no cache layer for kanban tasks yet.
+        await refresh()
         didBootstrap = true
     }
 
-    public func refresh() async {
-        guard settingsStore.isCompanionConfigured else {
-            if tasks.isEmpty, summaries.isEmpty {
-                statusMessage = "Connect the companion service in Settings to load agent state."
-            }
-            return
-        }
+    // MARK: - Refresh
 
+    public func refresh() async {
         isLoading = true
 
         do {
-            try await configureCompanion()
-            async let refreshedTasks = companionClient.listTasks()
-            async let refreshedSummaries = companionClient.listAgents()
-            let newTasks = try await refreshedTasks.sorted { $0.updatedAt > $1.updatedAt }
-            let newSummaries = try await refreshedSummaries.sorted { lhs, rhs in
-                if lhs.activeSessionCount != rhs.activeSessionCount {
-                    return lhs.activeSessionCount > rhs.activeSessionCount
-                }
-                return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
-            }
+            // Refresh the read connection (close + reopen for fresh snapshot)
+            try await kanbanData.refresh()
+            let freshTasks = try await kanbanData.fetchTasks()
 
-            let newFingerprint = fingerprint(tasks: newTasks, summaries: newSummaries)
+            // Build pseudo agent summaries from task assignees (companion still
+            // handles real agent health / session data separately)
+            let freshSummaries = buildAgentSummaries(from: freshTasks)
+
+            let newFingerprint = fingerprint(tasks: freshTasks, summaries: freshSummaries)
             if newFingerprint != lastFingerprint {
-                tasks = newTasks
-                summaries = newSummaries
+                tasks = freshTasks
+                summaries = freshSummaries
                 lastFingerprint = newFingerprint
-                try cache.replaceTasks(tasks)
-                try cache.replaceAgentSummaries(summaries)
             }
-            // Data unchanged — skip SwiftUI invalidation entirely
+            // Data unchanged — skip SwiftUI invalidation
+
+            errorMessage = nil
+            if tasks.isEmpty {
+                statusMessage = "No kanban tasks yet. Create one below or via `hermes kanban create`."
+            } else {
+                statusMessage = nil
+            }
         } catch {
-            logger.error("Failed to refresh agents: \(error.localizedDescription, privacy: .public)")
-            if tasks.isEmpty, summaries.isEmpty {
+            logger.error("Failed to refresh kanban: \(error.localizedDescription, privacy: .public)")
+            if tasks.isEmpty {
                 errorMessage = error.localizedDescription
             }
         }
@@ -101,75 +99,147 @@ public final class AgentsStore {
         isLoading = false
     }
 
-    public func createTask(_ draft: AgentTaskDraft) async {
+    // MARK: - Create Task
+
+    public func createTask(_ draft: KanbanCreateDraft) async {
         do {
-            try await configureCompanion()
-            let task = try await companionClient.createTask(draft)
+            let task = try await cliWriter.create(draft)
             upsert(task)
             lastFingerprint = fingerprint(tasks: tasks, summaries: summaries)
-            try cache.replaceTasks(tasks)
-            statusMessage = "Created task \(task.title)."
+            statusMessage = "Created task \"\(task.title)\"."
+            errorMessage = nil
         } catch {
-            logger.error("Failed to create task: \(error.localizedDescription, privacy: .public)")
+            logger.error("Failed to create kanban task: \(error.localizedDescription, privacy: .public)")
             errorMessage = error.localizedDescription
         }
     }
 
-    public func updateTask(id: String, patch: AgentTaskPatch) async {
+    // MARK: - Update Task (reassign, comment)
+
+    public func updateTaskAssignee(id: String, newAssignee: String) async {
+        guard var task = tasks.first(where: { $0.id == id }) else { return }
         do {
-            try await configureCompanion()
-            let task = try await companionClient.updateTask(id: id, patch: patch)
+            try await cliWriter.assign(taskID: id, assignee: newAssignee)
+            task.assignee = newAssignee
             upsert(task)
             lastFingerprint = fingerprint(tasks: tasks, summaries: summaries)
-            try cache.replaceTasks(tasks)
-            statusMessage = "Updated \(task.title)."
+            statusMessage = "Reassigned \"\(task.title)\" to \(newAssignee)."
+            errorMessage = nil
         } catch {
-            logger.error("Failed to update task: \(error.localizedDescription, privacy: .public)")
+            logger.error("Failed to reassign task: \(error.localizedDescription, privacy: .public)")
             errorMessage = error.localizedDescription
         }
     }
 
-    public func deleteTask(id: String) async {
+    public func commentOnTask(id: String, body: String) async {
         do {
-            try await configureCompanion()
-            try await companionClient.deleteTask(id: id)
+            try await cliWriter.comment(taskID: id, body: body)
+            statusMessage = "Comment added."
+            errorMessage = nil
+        } catch {
+            logger.error("Failed to comment: \(error.localizedDescription, privacy: .public)")
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    // MARK: - Complete / Block / Archive
+
+    public func completeTask(id: String, summary: String) async {
+        guard var task = tasks.first(where: { $0.id == id }) else { return }
+        do {
+            try await cliWriter.complete(taskID: id, summary: summary)
+            task.status = .done
+            task.completedAt = .now
+            task.result = summary
+            upsert(task)
+            lastFingerprint = fingerprint(tasks: tasks, summaries: summaries)
+            statusMessage = "Completed \"\(task.title)\"."
+            errorMessage = nil
+        } catch {
+            logger.error("Failed to complete task: \(error.localizedDescription, privacy: .public)")
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    public func blockTask(id: String, reason: String) async {
+        guard var task = tasks.first(where: { $0.id == id }) else { return }
+        do {
+            try await cliWriter.block(taskID: id, reason: reason)
+            task.status = .blocked
+            upsert(task)
+            lastFingerprint = fingerprint(tasks: tasks, summaries: summaries)
+            statusMessage = "Blocked \"\(task.title)\"."
+            errorMessage = nil
+        } catch {
+            logger.error("Failed to block task: \(error.localizedDescription, privacy: .public)")
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    public func archiveTask(id: String) async {
+        do {
+            try await cliWriter.archive(taskID: id)
             tasks.removeAll { $0.id == id }
             lastFingerprint = fingerprint(tasks: tasks, summaries: summaries)
-            try cache.replaceTasks(tasks)
-            statusMessage = "Task deleted."
+            statusMessage = "Task archived."
+            errorMessage = nil
         } catch {
-            logger.error("Failed to delete task: \(error.localizedDescription, privacy: .public)")
+            logger.error("Failed to archive task: \(error.localizedDescription, privacy: .public)")
             errorMessage = error.localizedDescription
         }
     }
 
-    public func handle(event: CompanionEventKind) async {
-        switch event {
-        case .tasksChanged, .agentsChanged, .snapshotRefreshed:
-            await refresh()
-        case .sessionsChanged:
-            break
-        }
+    // MARK: - Detail Enrichment
+
+    /// Fetch comments + runs for a specific task (for detail sheet).
+    public func fetchComments(for taskID: String) async throws -> [KanbanComment] {
+        try await kanbanData.fetchComments(for: taskID)
     }
 
-    private func configureCompanion() async throws {
-        try await companionClient.configure(
-            baseURL: settingsStore.companionURL,
-            bearerToken: settingsStore.companionToken.trimmedOrNil
-        )
+    public func fetchRuns(for taskID: String) async throws -> [KanbanRun] {
+        try await kanbanData.fetchRuns(for: taskID)
     }
 
-    private func upsert(_ task: AgentTask) {
+    /// Fetch parent/child IDs for a task.
+    public func fetchLinks(for taskID: String) async throws -> (parents: [String], children: [String]) {
+        try await kanbanData.fetchLinks(for: taskID)
+    }
+
+    // MARK: - Internal
+
+    private func upsert(_ task: KanbanTask) {
         if let index = tasks.firstIndex(where: { $0.id == task.id }) {
             tasks[index] = task
         } else {
             tasks.append(task)
         }
-
-        tasks.sort { $0.updatedAt > $1.updatedAt }
+        tasks.sort { $0.createdAt > $1.createdAt }
     }
 
-    private func fingerprint(tasks: [AgentTask], summaries: [AgentSummary]) -> String {
+    /// Build lightweight agent summaries from task assignees.
+    /// The companion service still owns actual agent health / session data.
+    private func buildAgentSummaries(from tasks: [KanbanTask]) -> [AgentSummary] {
+        let assignees = Set(tasks.compactMap(\.assignee)).filter { !$0.isEmpty }
+
+        return assignees.map { name in
+            let agentTasks = tasks.filter { $0.assignee == name }
+            let activeCount = agentTasks.filter { $0.status == .running }.count
+            let totalCount = agentTasks.count
+            let recentTask = agentTasks.max(by: { $0.createdAt < $1.createdAt })
+
+            return AgentSummary(
+                id: name.lowercased(),
+                name: name,
+                health: activeCount > 0 ? .online : .idle,
+                activeTaskCount: activeCount,
+                activeSessionCount: 0,
+                recentActivity: recentTask?.title ?? "No recent activity",
+                updatedAt: recentTask?.createdAt ?? .now
+            )
+        }.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+    }
+
+    private func fingerprint(tasks: [KanbanTask], summaries: [AgentSummary]) -> String {
         let taskFP = tasks.map { "\($0.id):\($0.status.rawValue):\($0.title)" }.joined(separator: "|")
         let summaryFP = summaries.map { "\($0.id):\($0.activeSessionCount)" }.joined(separator: "|")
         return "\(taskFP)||\(summaryFP)"

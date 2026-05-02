@@ -113,3 +113,10 @@ Both app targets intentionally allow insecure development networking in their In
 ## Historical Notes
 
 The older OpenClaw/beads/macOS-only prototype has been removed from the active source tree. Historical documents such as `CLAUDE.md`, `DESIGN.md`, and `IMPLEMENTATION-PLAN.md` are archival context only.
+
+## Activity — 2026-05-01
+- 512d7cd Replace app icon with dark geometric design
+- 48e6e35 Add Hermes agent signatures
+- 70b4389 Potential fix for pull request finding
+- 922f450 Potential fix for pull request finding
+- ce1e150 ci: add jscpd duplicate code detection for Swift

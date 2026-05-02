@@ -99,50 +99,6 @@ private final class CachedWorkItemRecord {
 }
 
 @Model
-private final class CachedTaskRecord {
-    @Attribute(.unique) var id: String
-    var repositoryOwner: String
-    var repositoryName: String
-    var issueNumber: Int
-    var title: String
-    var status: String
-    var priority: String
-    var assignedAgent: String
-    var sessionID: String?
-    var note: String
-    var createdAt: Date
-    var updatedAt: Date
-
-    init(
-        id: String,
-        repositoryOwner: String,
-        repositoryName: String,
-        issueNumber: Int,
-        title: String,
-        status: String,
-        priority: String,
-        assignedAgent: String,
-        sessionID: String?,
-        note: String,
-        createdAt: Date,
-        updatedAt: Date
-    ) {
-        self.id = id
-        self.repositoryOwner = repositoryOwner
-        self.repositoryName = repositoryName
-        self.issueNumber = issueNumber
-        self.title = title
-        self.status = status
-        self.priority = priority
-        self.assignedAgent = assignedAgent
-        self.sessionID = sessionID
-        self.note = note
-        self.createdAt = createdAt
-        self.updatedAt = updatedAt
-    }
-}
-
-@Model
 private final class CachedSessionRecord {
     @Attribute(.unique) var id: String
     var source: String
@@ -238,7 +194,6 @@ public final class AgentBoardCache {
             for: CachedConversationRecord.self,
             CachedMessageRecord.self,
             CachedWorkItemRecord.self,
-            CachedTaskRecord.self,
             CachedSessionRecord.self,
             CachedAgentRecord.self,
             configurations: configuration
@@ -374,52 +329,6 @@ public final class AgentBoardCache {
                     agentHint: item.agentHint,
                     createdAt: item.createdAt,
                     updatedAt: item.updatedAt
-                )
-            )
-        }
-        try context.save()
-    }
-
-    public func loadTasks() throws -> [AgentTask] {
-        let descriptor = FetchDescriptor<CachedTaskRecord>(
-            sortBy: [SortDescriptor(\.updatedAt, order: .reverse)]
-        )
-        return try context.fetch(descriptor).map { record in
-            AgentTask(
-                id: record.id,
-                workItem: WorkReference(
-                    repository: ConfiguredRepository(owner: record.repositoryOwner, name: record.repositoryName),
-                    issueNumber: record.issueNumber
-                ),
-                title: record.title,
-                status: AgentTaskState(rawValue: record.status) ?? .backlog,
-                priority: WorkPriority(rawValue: record.priority) ?? .p2,
-                assignedAgent: record.assignedAgent,
-                sessionID: record.sessionID,
-                note: record.note,
-                createdAt: record.createdAt,
-                updatedAt: record.updatedAt
-            )
-        }
-    }
-
-    public func replaceTasks(_ tasks: [AgentTask]) throws {
-        try replaceAll(CachedTaskRecord.self)
-        for task in tasks {
-            context.insert(
-                CachedTaskRecord(
-                    id: task.id,
-                    repositoryOwner: task.workItem.repository.owner,
-                    repositoryName: task.workItem.repository.name,
-                    issueNumber: task.workItem.issueNumber,
-                    title: task.title,
-                    status: task.status.rawValue,
-                    priority: task.priority.rawValue,
-                    assignedAgent: task.assignedAgent,
-                    sessionID: task.sessionID,
-                    note: task.note,
-                    createdAt: task.createdAt,
-                    updatedAt: task.updatedAt
                 )
             )
         }

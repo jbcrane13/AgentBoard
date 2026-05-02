@@ -126,7 +126,6 @@ public final class AgentBoardAppModel {
 
     private func handle(event: CompanionEvent) async {
         statusMessage = "Companion update: \(event.kind.rawValue)"
-        await agentsStore.handle(event: event.kind)
         await sessionsStore.handle(event: event.kind)
     }
 }
@@ -163,11 +162,7 @@ public enum AgentBoardBootstrap {
             cache: cache,
             settingsStore: settingsStore
         )
-        let agentsStore = AgentsStore(
-            companionClient: companionClient,
-            cache: cache,
-            settingsStore: settingsStore
-        )
+        let agentsStore = AgentsStore(settingsStore: settingsStore)
         let sessionsStore = SessionsStore(
             companionClient: companionClient,
             cache: cache,

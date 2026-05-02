@@ -5,7 +5,7 @@ struct LaunchSessionSheet: View {
     @Environment(AgentBoardAppModel.self) private var appModel
     @Environment(\.dismiss) private var dismiss
 
-    let task: AgentTask?
+    let task: KanbanTask?
     let workItem: WorkItem?
 
     @State private var selectedPreset: SessionLauncher.ExecutionPreset = .ralphLoop
@@ -14,7 +14,7 @@ struct LaunchSessionSheet: View {
     @State private var repoName = ""
     @State private var isLaunching = false
 
-    init(task: AgentTask) {
+    init(task: KanbanTask) {
         self.task = task
         workItem = nil
     }
@@ -28,28 +28,16 @@ struct LaunchSessionSheet: View {
         task?.title ?? workItem?.title ?? "New Session"
     }
 
-    private var displayIssueRef: String {
-        if let task { return task.workItem.issueReference }
-        if let workItem { return workItem.issueReference }
-        return "—"
-    }
-
     private var displayRepoName: String {
-        if let task { return task.workItem.repository.name }
-        if let workItem { return workItem.repository.name }
-        return ""
+        workItem?.repository.name ?? ""
     }
 
     private var displayFullRepo: String {
-        if let task { return task.workItem.repository.fullName }
-        if let workItem { return workItem.repository.fullName }
-        return ""
+        workItem?.repository.fullName ?? ""
     }
 
     private var displayIssueNumber: Int {
-        if let task { return task.workItem.issueNumber }
-        if let workItem { return workItem.issueNumber }
-        return 0
+        workItem?.issueNumber ?? 0
     }
 
     var body: some View {
@@ -75,11 +63,14 @@ struct LaunchSessionSheet: View {
                                     .neuRecessed(cornerRadius: 12, depth: 4)
                             }
 
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("Issue").font(.headline).foregroundStyle(NeuPalette.textPrimary)
-                                Text(displayIssueRef)
-                                    .font(.subheadline.monospaced())
-                                    .foregroundStyle(NeuPalette.accentCyan)
+                            // If launched from a work item (GitHub issue), show the issue ref
+                            if let workItem {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("Issue").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                                    Text(workItem.issueReference)
+                                        .font(.subheadline.monospaced())
+                                        .foregroundStyle(NeuPalette.accentCyan)
+                                }
                             }
 
                             VStack(alignment: .leading, spacing: 6) {
@@ -94,7 +85,6 @@ struct LaunchSessionSheet: View {
                                     Button {
                                         selectedAgent = agent
                                     } label: {
-                                        // swiftlint:disable:next closure_body_length
                                         HStack(spacing: 12) {
                                             Image(systemName: agent.icon)
                                                 .frame(width: 24)
@@ -205,7 +195,6 @@ struct LaunchSessionSheet: View {
                 }
             }
             .onAppear {
-                // Pre-fill repo name from the work item
                 if repoName.isEmpty {
                     repoName = displayRepoName
                 }
