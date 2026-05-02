@@ -21,7 +21,9 @@ public actor CompanionLocalProbe {
         AgentSignature(keyword: "codex", name: "Codex"),
         AgentSignature(keyword: "claude", name: "Claude"),
         AgentSignature(keyword: "aider", name: "Aider"),
-        AgentSignature(keyword: "cursor", name: "Cursor")
+        AgentSignature(keyword: "cursor", name: "Cursor"),
+        AgentSignature(keyword: "hermes-agent", name: "Hermes"),
+        AgentSignature(keyword: "/hermes/", name: "Hermes")
     ]
 
     public init() {}
