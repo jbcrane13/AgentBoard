@@ -1,36 +1,3 @@
-<!-- BEGIN COMPOUND CODEX TOOL MAP -->
-## Compound Codex Tool Mapping (Claude Compatibility)
-
-This section maps Claude Code plugin tool references to Codex behavior.
-Only this block is managed automatically.
-
-Tool mapping:
-- Read: use shell reads (cat/sed) or rg
-- Write: create files via shell redirection or apply_patch
-- Edit/MultiEdit: use apply_patch
-- Bash: use shell_command
-- Grep: use rg (fallback: grep)
-- Glob: use rg --files or find
-- LS: use ls via shell_command
-- WebFetch/WebSearch: use curl or Context7 for library docs
-- AskUserQuestion/Question: ask the user in chat
-- Task/Subagent/Parallel: run sequentially in main thread; use multi_tool_use.parallel for tool calls
-- TodoWrite/TodoRead: use file-based todos in todos/ with file-todos skill
-- Skill: open the referenced SKILL.md and follow it
-- ExitPlanMode: ignore
-<!-- END COMPOUND CODEX TOOL MAP -->
-
-
-<claude-mem-context>
-# Memory Context
-
-# [recursing-saha-48fc39] recent context, 2026-04-16 11:43pm CDT
-
-No previous sessions found.
-</claude-mem-context>
-
---- project-doc ---
-
 # Agent Instructions
 
 This project uses **GitHub Issues** (`gh` CLI) for issue tracking. Repo: `jbcrane13/AgentBoard`.
@@ -42,12 +9,11 @@ This project uses **GitHub Issues** (`gh` CLI) for issue tracking. Repo: `jbcran
 It contains the current agent readiness score, conventions, key file locations, and quality gate commands. Treat it as the source of truth for active tooling rules.
 
 Quick orientation:
-- **Score as of 2026-02-28:** Level 2 → targeting Level 3
 - **Lint:** `swiftlint lint --strict`
-- **Test:** `xcodebuild test -project AgentBoard.xcodeproj -scheme AgentBoard -destination 'platform=macOS' CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO`
-- **Build macOS:** `xcodebuild -project AgentBoard.xcodeproj -scheme AgentBoard -destination 'platform=macOS' build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO`
-- **Build iOS:** `xcodebuild -project AgentBoard.xcodeproj -scheme AgentBoardMobile -destination 'generic/platform=iOS Simulator' build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO`
-- **Build companion:** `xcodebuild -project AgentBoard.xcodeproj -scheme AgentBoardCompanion -destination 'platform=macOS' build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO`
+- **Build macOS:** `xcodebuild -scheme AgentBoard -destination 'platform=macOS' build`
+- **Build iOS:** `xcodebuild -scheme AgentBoardMobile -destination 'generic/platform=iOS Simulator' build`
+- **Build companion:** `xcodebuild -scheme AgentBoardCompanion -destination 'platform=macOS' build`
+- **Test:** `xcodebuild test -scheme AgentBoard -destination 'platform=macOS'`
 - **Regenerate xcodeproj after `project.yml` edits:** `xcodegen generate`
 
 ## Quick Reference
@@ -74,11 +40,13 @@ gh issue close <number> --repo jbcrane13/AgentBoard --comment "Done: <summary>"
 5. **Clean up** stashes or temporary branches if you created them
 6. **Verify** the branch is up to date with origin
 7. **Hand off** any relevant context for the next session
+8. **Update AGENTS.md and ADR.md** for meaningful project changes
 
 Critical rules:
 - Work is not complete until `git push` succeeds
 - Never leave implementation changes stranded locally
 - Never say "ready to push when you are"
+- Update this file and docs/ADR.md for architectural changes
 
 ## Active App Architecture
 
@@ -96,9 +64,40 @@ The active product is the Hermes-first SwiftUI rebuild.
 
 ### Source of truth split
 
-- Hermes gateway powers chat
-- GitHub Issues power work tracking
-- AgentBoard companion powers agent tasks, sessions, and live runtime state
+- **Hermes gateway** powers chat (WebSocket JSON-RPC protocol)
+- **`~/.hermes/kanban.db`** is the task/work-tracking backend — all Kanban data lives here
+- **AgentBoard companion** monitors live tmux sessions and agent health (process discovery + tmux pane capture)
+- **GitHub Issues** are the external work-tracking source, consumed by Hermes agents
+
+### Key new files (2026-05-01 Kanban migration)
+
+| File | Role |
+|------|------|
+| `AgentBoardCore/Models/KanbanModels.swift` | `KanbanTask`, `KanbanComment`, `KanbanRun`, `KanbanCreateDraft` |
+| `AgentBoardCore/Services/KanbanDataService.swift` | Read-only SQLite access to `~/.hermes/kanban.db` |
+| `AgentBoardCore/Services/KanbanCLIWriter.swift` | Write access via `hermes kanban` CLI subprocess |
+| `AgentBoardCore/Stores/AgentsStore.swift` | Full kanban backend: columns by status, task CRUD |
+
+### Task architecture (post-2026-05-01)
+
+```
+Read  → KanbanDataService (SQLite3 open/read/close)
+Write → KanbanCLIWriter (Process.run → hermes kanban create/complete/block/comment/etc.)
+```
+
+- No SQLite contention — the gateway dispatcher owns all writes; the CLI routes through the same path
+- No REST API dependency — CLI subprocess is the native path
+- `KanbanTask` is self-contained — no GitHub work item anchoring
+
+### What was removed (2026-05-01)
+
+- `AgentTask`, `AgentTaskDraft`, `AgentTaskPatch`, `AgentTaskState` — removed from `DomainModels.swift`
+- `CachedTaskRecord` + `loadTasks()`/`replaceTasks()` — removed from `AgentBoardCache.swift`
+- Task CRUD routes (`POST/PATCH/DELETE /v1/tasks`, `GET /v1/tasks`) — removed from `CompanionServer.swift`
+- `store.createTask`/`updateTask`/`deleteTask`/`listTasks` — removed from `CompanionSQLiteStore.swift`
+- `CompanionEventKind.tasksChanged` — removed; companions no longer track tasks
+- `AgentTask` CRUD methods — removed from `CompanionClient.swift`
+- `CompanionLocalProbe.snapshot()` simplified — no longer takes `[AgentTask]`
 
 ### Networking requirement
 
@@ -110,13 +109,28 @@ Both app targets intentionally allow insecure development networking in their In
 - Never edit `AgentBoard.xcodeproj/project.pbxproj` directly
 - Run `xcodegen generate` after target, scheme, resource, or build-setting edits
 
+### App icon
+
+Located in `SharedResources/Assets.xcassets/AppIcon.appiconset/`. All 10 macOS sizes (16 through 512, 1x and 2x) are a dark kanban-themed design with colored card columns (cyan/amber/green). Generated 2026-05-01.
+
+## Design decisions
+
+See `docs/ADR.md` for the full architecture decision record. Key recent ADRs:
+- **ADR-011** (2026-05-01): Kanban.db as task backend
+- **ADR-010** (2026-04-23): Hermes-first shared SwiftUI rebuild
+
 ## Historical Notes
 
-The older OpenClaw/beads/macOS-only prototype has been removed from the active source tree. Historical documents such as `CLAUDE.md`, `DESIGN.md`, and `IMPLEMENTATION-PLAN.md` are archival context only.
+The older OpenClaw/beads/macOS-only prototype has been removed from the active source tree. Historical documents such as `CLAUDE.md`, `DESIGN.md`, and `IMPLEMENTATION-PLAN.md` are archival context only. beads (bd) is **decommissioned** across all projects.
 
-## Activity — 2026-05-01
+## Activity
+
+### 2026-05-01
+- 9cf07f9 **Kanban backend migration** — switch AgentsStore to `~/.hermes/kanban.db` via KanbanDataService (read) + KanbanCLIWriter (write). Kanban columns with create/comment/status change. Gut all AgentTask types and companion task CRUD. Add proper dark kanban-themed app icon.
 - 512d7cd Replace app icon with dark geometric design
 - 48e6e35 Add Hermes agent signatures
 - 70b4389 Potential fix for pull request finding
-- 922f450 Potential fix for pull request finding
 - ce1e150 ci: add jscpd duplicate code detection for Swift
+
+### 2026-04-23
+- Multiple commits: Hermes-first shared SwiftUI rebuild (ADR-010)

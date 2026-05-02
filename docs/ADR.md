@@ -1,6 +1,6 @@
 # Architecture Decision Records — AgentBoard
 
-A running log of significant architecture and design decisions. Both Daneel (OpenClaw) and Claude Code sessions should consult this before making structural changes, and append new entries when decisions are made.
+A running log of significant architecture and design decisions. Both Daneel (Hermes) and coding agents should consult this before making structural changes, and append new entries when decisions are made.
 
 **Format:** Date → Decision → Context → Consequences
 
@@ -32,29 +32,21 @@ A running log of significant architecture and design decisions. Both Daneel (Ope
 
 ## ADR-003: Beads integration for Kanban board
 **Date:** 2026-02-14  
-**Status:** Active  
-**Decision:** Use `beads` (`bd` CLI) as the backing store for the Kanban board, watched via FSEvents.  
-**Context:** Beads already tracks issues in-repo for all projects. AgentBoard should read from the same source rather than creating a separate task system.  
-**Consequences:**
-- `BeadsWatcher` service watches `.beads/` directory via FSEvents
-- Board columns map to beads statuses: Open → In Progress → Blocked → Done
-- No separate database for tasks
-- CLI and AgentBoard UI are interchangeable views of the same data
+**Status:** Superseded by ADR-011  
+**Decision:** ~~Use `beads` (`bd` CLI) as the backing store for the Kanban board, watched via FSEvents.~~  
+**Context:** Beads already tracked issues in-repo for all projects. AgentBoard should read from the same source rather than creating a separate task system. beads is now fully decommissioned across all projects.  
+**Consequences (historical):**
+- `BeadsWatcher` service watched `.beads/` directory via FSEvents (removed)
+- Board columns mapped to beads statuses (removed)
+- Replaced by kanban.db in ADR-011
 
 ---
 
 ## ADR-004: OpenClaw integration via WebSocket + REST
 **Date:** 2026-02-15  
-**Status:** Superseded by ADR-008  
-**Decision:** Connect to OpenClaw gateway for chat and session management. WS for health/streaming, REST for chat completions.  
-**Context:** AgentBoard is a frontend for OpenClaw workflows — needs to send messages and receive streaming responses.  
-**Consequences:**
-- `OpenClawService` actor handles gateway config, session fetch, chat streaming, WS lifecycle
-- WS endpoint: `/ws` for connection health + ping
-- Chat endpoint: `POST /v1/chat/completions` (SSE streaming with non-stream fallback)
-- Config discovery reads `~/.openclaw/openclaw.json` for gateway URL and auth token
-- Connection state model: connected/connecting/reconnecting/disconnected
-- **Problem discovered:** REST endpoint was stateless — every message created a throwaway session instead of talking to the real main session. The `/api/sessions` REST endpoint didn't exist (returned SPA HTML). See ADR-008.
+**Status:** Superseded by ADR-008, then ADR-010  
+**Decision:** Originally connected to OpenClaw gateway for chat and session management. Later migrated to Hermes gateway.  
+**Context:** AgentBoard is a frontend for agent workflows. OpenClaw was replaced by Hermes in ADR-010.  
 
 ---
 
@@ -64,10 +56,9 @@ A running log of significant architecture and design decisions. Both Daneel (Ope
 **Decision:** Monitor coding agent sessions via tmux socket inspection + process table scanning.  
 **Context:** Claude Code, Codex CLI, and other agents run in tmux sessions. AgentBoard needs to show what's running and capture output.  
 **Consequences:**
-- `SessionMonitor` actor uses tmux socket `/tmp/openclaw-tmux-sockets/openclaw.sock`
-- Discovery: `tmux list-sessions` + `tmux list-panes` + `ps -axo pid,ppid,pcpu,command`
-- Agent detection by command name (`claude`, `codex`, `opencode`)
-- Session status derived from process detection and CPU activity
+- `CompanionLocalProbe` uses tmux `/usr/bin/env tmux list-panes` + `ps -axo pid=,args=`
+- Agent detection by command name (`claude`, `codex`, `opencode`, `hermes-agent`)
+- Session status derived from process detection
 - Terminal pane capture for output preview
 
 ---
@@ -76,77 +67,100 @@ A running log of significant architecture and design decisions. Both Daneel (Ope
 **Date:** 2026-02-14  
 **Status:** Active  
 **Decision:** Use SwiftTerm library for rendering terminal output in the session monitor view.  
-**Context:** Need to display live terminal output from tmux panes. SwiftTerm handles ANSI escape codes, colors, and cursor positioning natively.  
 **Consequences:**
-- SwiftTerm dependency in Package.swift
+- SwiftTerm dependency via SPM (from `migueldeicaza/SwiftTerm`)
 - Terminal view embeds SwiftTerm for pane output rendering
 
 ---
 
 ## ADR-007: Phased implementation plan
 **Date:** 2026-02-14  
-**Status:** Active  
-**Decision:** Six phases: 1-Skeleton → 2-Beads → 3-Chat → 4-Session Monitor → 5-Canvas → 6-Polish.  
-**Context:** Incremental delivery, each phase buildable and testable.  
-**Consequences:**
-- Phase 1 (skeleton) ✅ — three-panel layout with placeholders
-- Phase 2 (beads) ✅ — Kanban board with real beads data, FSEvents watcher
-- Phase 3 (chat) ✅ — OpenClaw integration with markdown rendering (rewritten in ADR-008)
-- Phase 4 (session monitor) ✅ — tmux inspection and status display
-- Phase 5 (canvas) ✅ — WKWebView rendering, canvas protocol, split mode
-- Phase 6 (polish) ✅ — Dark mode, keyboard shortcuts, git integration, agents/history views
-- Detailed plan in `IMPLEMENTATION-PLAN.md`
+**Status:** Completed  
+**Decision:** Six phases: 1-Skeleton → 2-Beads → 3-Chat → 4-Session Monitor → 5-Canvas → 6-Polish. All phases completed. Rewritten post-ADR-010.
 
 ---
 
 ## ADR-008: Gateway WebSocket RPC protocol for chat
 **Date:** 2026-02-16  
 **Status:** Active  
-**Decision:** Replace the stateless REST `/v1/chat/completions` approach with the gateway's native WebSocket JSON-RPC protocol for chat, sessions, and agent identity.  
-**Context:** The Phase 3 implementation used `POST /v1/chat/completions` which created throwaway sessions per request — the chat never actually talked to the main OpenClaw session. The `/api/sessions` REST endpoint didn't exist. Investigation of the gateway source revealed it uses a WebSocket JSON-RPC protocol with methods like `chat.send`, `chat.history`, `sessions.list`, `sessions.patch`, and streaming via `chat` events.  
+**Decision:** Use the gateway's native WebSocket JSON-RPC protocol for chat, sessions, and agent identity.  
 **Consequences:**
-- New `GatewayClient` actor implements the WebSocket JSON-RPC protocol (request/response with UUIDs, event stream, connect handshake with token auth, protocol version 3)
-- `OpenClawService` simplified to a thin wrapper around `GatewayClient`
-- Chat now connects to the real main session and shows actual conversation history
-- Gateway events stream chat responses (delta messages contain full accumulated text, not incremental)
-- Session switching: users can pick which session to chat with via `sessions.list`
-- Thinking level control via `sessions.patch` (Default/Low/Medium/High)
-- Agent identity loaded via `agent.identity.get` — shows real agent name instead of hardcoded "AgentBoard"
-- Abort button for stopping generation via `chat.abort`
-- Gateway session list refreshes every 15 seconds
-- `JSONPayload` wrapper for `[String: Any]` to satisfy Swift 6 strict concurrency (`@unchecked Sendable`)
-- Spec documented in `docs/CHAT-REWRITE-SPEC.md`
-
----
-
-*To add a new ADR: append with the next number, include date, status, decision, context, and consequences.*
+- `GatewayClient` actor implements the WebSocket JSON-RPC protocol
+- Chat connects to real main session and shows conversation history
+- Gateway events stream chat responses
+- Session switching, thinking level control, abort support
 
 ---
 
 ## ADR-009: Always-fresh gateway config discovery
 **Date:** 2026-02-18  
 **Status:** Active  
-**Decision:** Always re-read gateway URL and auth token from `~/.openclaw/openclaw.json` on launch (in "auto" mode), and allow users to manually configure gateway connection settings.  
-**Context:** After a gateway reinstall, the auth token changed but AgentBoard had cached the old token in `~/.agentboard/config.json`. The `hydrateOpenClawIfNeeded` method only filled nil values, so the stale token was never refreshed — causing silent connection failures. Additionally, `discoverOpenClawConfig` looked for `gateway.url` which doesn't exist in openclaw.json (the URL must be constructed from `gateway.port` + `gateway.bind`). For users running non-standard gateway configurations (remote hosts, custom ports), there was no way to manually enter the connection details.  
+**Decision:** Always re-read gateway config on launch in "auto" mode. Allow manual configuration.  
 **Consequences:**
-- `AppConfig` gains `gatewayConfigSource` field: `"auto"` (default) syncs from openclaw.json every launch; `"manual"` preserves user-entered values
-- `discoverOpenClawConfig` now constructs URL from `gateway.port` (default 18789) and `gateway.bind` (default loopback → 127.0.0.1)
-- In auto mode, gateway URL and token are always refreshed from openclaw.json — never stale
-- Settings UI now has Auto/Manual picker, read-only display with Refresh button (auto mode), editable fields (manual mode), and a Test Connection button
-- `discoverOpenClawConfig` made `func` (not `private`) so SettingsView can call it for refresh
-- Breaking change: none (new field defaults to nil which is treated as "auto")
+- `AppConfig.gatewayConfigSource`: "auto" (default) syncs every launch; "manual" preserves user-entered values
+- Settings UI with Auto/Manual picker and Test Connection button
 
 ---
 
 ## ADR-010: Hermes-first shared SwiftUI rebuild
 **Date:** 2026-04-23  
 **Status:** Active  
-**Decision:** Replace the earlier OpenClaw/beads/macOS-only app with a shared SwiftUI architecture that targets the newest OS releases on both macOS and iOS, backed by `AgentBoardCore`, GitHub Issues, Hermes gateway chat, and a companion service.  
-**Context:** The earlier codebase had become a poor fit for the desired product direction. It was tightly shaped around OpenClaw, beads, tmux monitoring, and a monolithic `AppState`. The rebuild already existed in parallel, so the cleaner long-term move was to promote it into the primary application and retire the old tree.  
+**Decision:** Replace the earlier OpenClaw/beads/macOS-only app with a shared SwiftUI architecture targeting both macOS and iOS, backed by `AgentBoardCore`, GitHub Issues, Hermes gateway chat, and a companion service.  
 **Consequences:**
-- `AgentBoard` is now the macOS app shell and `AgentBoardMobile` is the iOS shell
-- `AgentBoardCore` owns shared state via `ChatStore`, `WorkStore`, `AgentsStore`, `SessionsStore`, and `SettingsStore`
-- Hermes gateway is the chat transport, GitHub Issues are the work tracker, and the companion service is the source of truth for runtime agent state
-- SwiftData caches local snapshots; Observation and Swift Concurrency are used throughout the shared core
-- The old OpenClaw, beads, SwiftTerm, canvas-heavy prototype code was removed from the active source tree
-- `project.yml`, CI, readiness docs, and local test skills now point at the rebuilt targets instead of the retired app
+- `AgentBoard` (macOS) and `AgentBoardMobile` (iOS) app shells
+- `AgentBoardCore` owns shared state via `ChatStore`, `WorkStore`, `AgentsStore`, `SessionsStore`, `SettingsStore`
+- Hermes gateway is the chat transport
+- Old OpenClaw/beads/SwiftTerm/canvas code removed from active tree
+
+---
+
+## ADR-011: Kanban.db as task backend, decommission companion task store
+**Date:** 2026-05-01  
+**Status:** Active  
+**Decision:** Replace `AgentTask`/`AgentTaskDraft`/`AgentTaskPatch` types, the companion server's task CRUD routes, and `AgentBoardCache`'s `CachedTaskRecord` with a single source of truth: `~/.hermes/kanban.db`.
+
+Reads: `KanbanDataService` (SQLite3 open/read/close on kanban.db)  
+Writes: `KanbanCLIWriter` (subprocess → `hermes kanban` CLI)
+
+**Context:** The companion server was doing double duty — monitoring live tmux/agent sessions AND managing task state. Three problems:
+
+1. **Two sources of truth** — tasks existed in both companion SQLite and kanban.db, no sync
+2. **Write contention risk** — both AgentBoard and Hermes dispatcher touching kanban.db
+3. **Ghost REST API** — companion task CRUD existed but wasn't integrated with kanban.db
+
+Hermes gateway already owns kanban.db. Route all writes through the same CLI path. AgentBoard is read-mostly viewer + write-through proxy.
+
+**Consequences:**
+
+*New files:*
+- `AgentBoardCore/Models/KanbanModels.swift` — `KanbanTask`, `KanbanComment`, `KanbanRun`, `KanbanCreateDraft`
+- `AgentBoardCore/Services/KanbanDataService.swift` — read-only SQLite access
+- `AgentBoardCore/Services/KanbanCLIWriter.swift` — `hermes kanban` subprocess writer
+
+*Rewritten:*
+- `AgentBoardCore/Stores/AgentsStore.swift` — kanban columns by status, full task lifecycle
+
+*Removed:*
+- `AgentTaskState`, `AgentTask`, `AgentTaskDraft`, `AgentTaskPatch` from `DomainModels.swift`
+- `CachedTaskRecord` + `loadTasks()`/`replaceTasks()` from `AgentBoardCache.swift`
+- Task CRUD routes from `CompanionServer.swift`
+- Task CRUD methods from `CompanionSQLiteStore.swift` and `CompanionClient.swift`
+- `CompanionEventKind.tasksChanged`
+- `AgentTask` dependency from `CompanionLocalProbe.snapshot()`
+
+*App icon:* Kanban-themed dark icon generated for all 10 macOS sizes in `SharedResources/Assets.xcassets/AppIcon.appiconset/`.
+
+*Quality:* Build verified clean (macOS), SwiftLint 0 violations, SwiftFormat passing, pre-push build gate active.
+
+### Architecture
+
+```
+Read  → KanbanDataService → SQLite (kanban.db)
+Write → KanbanCLIWriter → hermes kanban CLI → Gateway Dispatcher
+Sessions → CompanionServer → tmux/process scanning
+Agents → CompanionServer → FSEvents + ps
+```
+
+---
+
+*To add a new ADR: append with the next number, include date, status, decision, context, and consequences.*
