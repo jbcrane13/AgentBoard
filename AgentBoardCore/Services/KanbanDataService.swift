@@ -85,8 +85,8 @@ public actor KanbanDataService {
 
         var clauses: [String] = []
         if excludeArchived { clauses.append("status != 'archived'") }
-        if let status { clauses.append("status = ?") }
-        if let tenant { clauses.append("tenant = ?") }
+        if status != nil { clauses.append("status = ?") }
+        if tenant != nil { clauses.append("tenant = ?") }
 
         let whereSQL = clauses.isEmpty ? "" : "WHERE " + clauses.joined(separator: " AND ")
         let sql = """

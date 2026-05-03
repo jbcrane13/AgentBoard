@@ -134,3 +134,7 @@ The older OpenClaw/beads/macOS-only prototype has been removed from the active s
 
 ### 2026-04-23
 - Multiple commits: Hermes-first shared SwiftUI rebuild (ADR-010)
+
+## Activity — 2026-05-02
+- d7be5af Refactor CompanionLocalProbe; macOS Kanban guard
+- abb45c0 docs: update AGENTS.md and ADR.md for kanban migration

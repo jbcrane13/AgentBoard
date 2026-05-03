@@ -105,59 +105,59 @@ public actor KanbanCLIWriter {
 
     private func runHermes(_ args: [String]) async throws -> String {
         #if os(macOS)
-        let hermes = try await resolveHermes()
+            let hermes = try await resolveHermes()
 
-        return try await withCheckedThrowingContinuation { continuation in
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: hermes)
-            process.arguments = args
+            return try await withCheckedThrowingContinuation { continuation in
+                let process = Process()
+                process.executableURL = URL(fileURLWithPath: hermes)
+                process.arguments = args
 
-            let stdout = Pipe()
-            let stderr = Pipe()
-            process.standardOutput = stdout
-            process.standardError = stderr
+                let stdout = Pipe()
+                let stderr = Pipe()
+                process.standardOutput = stdout
+                process.standardError = stderr
 
-            // Enforce timeout
-            let timer = DispatchSource.makeTimerSource()
-            timer.schedule(deadline: .now() + timeoutSeconds)
-            timer.setEventHandler {
-                process.terminate()
-                continuation.resume(throwing: WriteError.processTimedOut)
-            }
-            timer.resume()
+                // Enforce timeout
+                let timer = DispatchSource.makeTimerSource()
+                timer.schedule(deadline: .now() + timeoutSeconds)
+                timer.setEventHandler {
+                    process.terminate()
+                    continuation.resume(throwing: WriteError.processTimedOut)
+                }
+                timer.resume()
 
-            process.terminationHandler = { proc in
-                timer.cancel()
-                let exitCode = proc.terminationStatus
-                let outData = stdout.fileHandleForReading.readDataToEndOfFile()
-                let errData = stderr.fileHandleForReading.readDataToEndOfFile()
-                let outStr = String(data: outData, encoding: .utf8) ?? ""
-                let errStr = String(data: errData, encoding: .utf8) ?? ""
+                process.terminationHandler = { proc in
+                    timer.cancel()
+                    let exitCode = proc.terminationStatus
+                    let outData = stdout.fileHandleForReading.readDataToEndOfFile()
+                    let errData = stderr.fileHandleForReading.readDataToEndOfFile()
+                    let outStr = String(data: outData, encoding: .utf8) ?? ""
+                    let errStr = String(data: errData, encoding: .utf8) ?? ""
 
-                if exitCode == 0 {
-                    continuation.resume(returning: outStr)
-                } else {
-                    let msg = errStr.isEmpty ? outStr : errStr
-                    continuation.resume(
-                        throwing: WriteError.commandFailed(
-                            msg.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if exitCode == 0 {
+                        continuation.resume(returning: outStr)
+                    } else {
+                        let msg = errStr.isEmpty ? outStr : errStr
+                        continuation.resume(
+                            throwing: WriteError.commandFailed(
+                                msg.trimmingCharacters(in: .whitespacesAndNewlines)
+                            )
                         )
+                    }
+                }
+
+                do {
+                    try process.run()
+                } catch {
+                    timer.cancel()
+                    continuation.resume(
+                        throwing: WriteError.commandFailed(error.localizedDescription)
                     )
                 }
             }
-
-            do {
-                try process.run()
-            } catch {
-                timer.cancel()
-                continuation.resume(
-                    throwing: WriteError.commandFailed(error.localizedDescription)
-                )
-            }
-        }
         #else
-        _ = args
-        throw WriteError.unsupportedPlatform
+            _ = args
+            throw WriteError.unsupportedPlatform
         #endif
     }
 
@@ -168,7 +168,7 @@ public actor KanbanCLIWriter {
             throw WriteError.invalidJSON("Cannot encode JSON string")
         }
 
-        let decoder = JSONDecoder()
+        _ = JSONDecoder() // reserved for future structured decoding
         guard let raw = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             throw WriteError.invalidJSON("Not a JSON object")
         }

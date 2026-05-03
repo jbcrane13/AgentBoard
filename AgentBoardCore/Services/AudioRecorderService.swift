@@ -26,7 +26,7 @@ public final class AudioRecorderService: NSObject, ObservableObject {
     public func requestPermission() async -> Bool {
         #if os(iOS)
             await withCheckedContinuation { continuation in
-                AVAudioSession.sharedInstance().requestRecordPermission { granted in
+                AVAudioApplication.requestRecordPermission { granted in
                     continuation.resume(returning: granted)
                 }
             }

@@ -224,7 +224,7 @@ public final class AgentsStore {
         return assignees.map { name in
             let agentTasks = tasks.filter { $0.assignee == name }
             let activeCount = agentTasks.filter { $0.status == .running }.count
-            let totalCount = agentTasks.count
+            _ = agentTasks.count // totalCount — reserved for agent health metrics
             let recentTask = agentTasks.max(by: { $0.createdAt < $1.createdAt })
 
             return AgentSummary(

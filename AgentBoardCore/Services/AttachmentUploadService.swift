@@ -83,7 +83,7 @@ public final class AttachmentUploadService {
 
         // Use URLSession upload task for progress tracking
         return try await withCheckedThrowingContinuation { continuation in
-            let task = session.uploadTask(with: request, from: body) { [weak self] data, response, error in
+            let task = session.uploadTask(with: request, from: body) { data, response, error in
                 if let error {
                     if let urlError = error as? URLError, urlError.code == .cancelled {
                         continuation.resume(throwing: AttachmentUploadError.cancelled)
