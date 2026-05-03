@@ -138,3 +138,16 @@ The older OpenClaw/beads/macOS-only prototype has been removed from the active s
 ## Activity — 2026-05-02
 - d7be5af Refactor CompanionLocalProbe; macOS Kanban guard
 - abb45c0 docs: update AGENTS.md and ADR.md for kanban migration
+
+## Activity — 2026-05-03
+- 24d19aa fix: assignee pick list and wait-for-create in kanban task sheet
+- 1dd6d23 test: cover WorkStore.refresh error paths with and without cached items (#83)
+- 08de3ee feat: validate companion URL and gate loopback hosts (#83)
+- 108ea37 test: fix Swift 6 isolation errors blocking AgentBoardTests build (#83)
+- 6425b3c test: add unit test suites for domain, kanban, label, and CRUD coverage (#83)
+- 6bf9763 fix: add accessibility identifiers to issue create/edit sheets (#83)
+- 07b262c fix: handle edge cases for work board drag-drop status updates (#83)
+- 06aa661 fix: resolve 5 compiler warnings
+
+## Activity — 2026-05-06
+- (no commits)

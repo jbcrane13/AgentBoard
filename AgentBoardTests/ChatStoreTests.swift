@@ -42,7 +42,8 @@ struct ChatStoreTests {
         let store = ChatStore(
             hermesClient: hermesClient,
             cache: cache,
-            settingsStore: settingsStore
+            settingsStore: settingsStore,
+            companionClient: CompanionClient()
         )
 
         store.startNewConversation()

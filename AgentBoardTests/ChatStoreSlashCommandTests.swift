@@ -25,7 +25,12 @@ struct ChatStoreSlashCommandTests {
         let settingsStore = SettingsStore(repository: repo)
         settingsStore.hermesGatewayURL = hermesURL
         settingsStore.hermesModelID = "hermes-agent"
-        let store = ChatStore(hermesClient: hermesClient, cache: cache, settingsStore: settingsStore)
+        let store = ChatStore(
+            hermesClient: hermesClient,
+            cache: cache,
+            settingsStore: settingsStore,
+            companionClient: CompanionClient()
+        )
         store.startNewConversation()
         return store
     }

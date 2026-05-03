@@ -31,6 +31,23 @@ public final class SessionsStore {
     public func bootstrap() async {
         guard !didBootstrap else { return }
 
+        if settingsStore.isCompanionConfigured {
+            do {
+                try await companionClient.configure(
+                    baseURL: settingsStore.companionURL,
+                    bearerToken: settingsStore.companionToken.trimmedOrNil
+                )
+                let fetched = try await companionClient.listSessions()
+                sessions = fetched.sorted { $0.lastSeenAt > $1.lastSeenAt }
+                lastFingerprint = fingerprint(sessions)
+                try cache.replaceSessions(sessions)
+                didBootstrap = true
+                return
+            } catch {
+                logger.error("Companion unreachable during bootstrap — falling back to local cache: \(error.localizedDescription, privacy: .public)")
+            }
+        }
+
         do {
             sessions = try cache.loadSessions()
             lastFingerprint = fingerprint(sessions)
@@ -132,6 +149,8 @@ public final class SessionsStore {
             await refresh()
         case .agentsChanged:
             break
+        case .conversationsChanged:
+            break // routed via AgentBoardAppModel → ChatStore
         }
     }
 

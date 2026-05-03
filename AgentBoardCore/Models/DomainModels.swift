@@ -402,9 +402,23 @@ public struct AgentSummary: Codable, Hashable, Identifiable, Sendable {
     }
 }
 
+public struct ConversationSyncPayload: Codable, Hashable, Sendable {
+    public var conversations: [ChatConversation]
+    public var messagesByConversation: [UUID: [ConversationMessage]]
+
+    public init(
+        conversations: [ChatConversation],
+        messagesByConversation: [UUID: [ConversationMessage]]
+    ) {
+        self.conversations = conversations
+        self.messagesByConversation = messagesByConversation
+    }
+}
+
 public enum CompanionEventKind: String, Codable, CaseIterable, Sendable {
     case sessionsChanged
     case agentsChanged
+    case conversationsChanged
     case snapshotRefreshed
 }
 

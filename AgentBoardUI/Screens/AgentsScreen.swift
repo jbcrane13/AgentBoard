@@ -11,6 +11,8 @@ struct AgentsScreen: View {
     @State private var draftAssignee = ""
     @State private var draftBody = ""
     @State private var draftPriority = 2
+    @State private var isCreating = false
+    @State private var createError: String?
 
     private var isCompact: Bool {
         hSizeClass == .compact
@@ -72,6 +74,7 @@ struct AgentsScreen: View {
                 draftAssignee = appModel.agentsStore.summaries.first?.name ?? ""
                 draftBody = ""
                 draftPriority = 2
+                createError = nil
                 isPresentingCreateSheet = true
             } label: {
                 Image(systemName: "plus")
@@ -240,7 +243,12 @@ struct AgentsScreen: View {
             Form {
                 Section("Task") {
                     TextField("Title", text: $draftTitle)
-                    TextField("Assigned agent", text: $draftAssignee)
+                    Picker("Assigned agent", selection: $draftAssignee) {
+                        Text("Unassigned").tag("")
+                        ForEach(appModel.agentsStore.summaries) { agent in
+                            Text(agent.name).tag(agent.name)
+                        }
+                    }
                     TextField("Body", text: $draftBody, axis: .vertical)
                         .lineLimit(3 ... 6)
                 }
@@ -255,6 +263,18 @@ struct AgentsScreen: View {
                     .pickerStyle(.segmented)
                     .tint(NeuPalette.accentOrange)
                 }
+
+                if let error = createError {
+                    Section {
+                        HStack {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundStyle(Color.yellow)
+                            Text(error)
+                                .font(.callout)
+                                .foregroundStyle(NeuPalette.textSecondary)
+                        }
+                    }
+                }
             }
             .formStyle(.grouped)
             .toolbar {
@@ -262,7 +282,9 @@ struct AgentsScreen: View {
                     Button("Cancel") { isPresentingCreateSheet = false }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Create") {
+                    Button {
+                        isCreating = true
+                        createError = nil
                         let draft = KanbanCreateDraft(
                             title: draftTitle.trimmedOrNil ?? "Untitled Task",
                             body: draftBody.trimmedOrNil,
@@ -270,10 +292,27 @@ struct AgentsScreen: View {
                             priority: draftPriority,
                             tenant: "agentboard"
                         )
-                        Task { await appModel.agentsStore.createTask(draft) }
-                        isPresentingCreateSheet = false
+                        Task {
+                            await appModel.agentsStore.createTask(draft)
+                            if appModel.agentsStore.errorMessage != nil {
+                                createError = appModel.agentsStore.errorMessage
+                                isCreating = false
+                            } else {
+                                isCreating = false
+                                isPresentingCreateSheet = false
+                            }
+                        }
+                    } label: {
+                        HStack(spacing: 6) {
+                            if isCreating {
+                                ProgressView()
+                                    .scaleEffect(0.65)
+                                    .controlSize(.small)
+                            }
+                            Text(isCreating ? "Creating…" : "Create")
+                        }
                     }
-                    .disabled(draftTitle.trimmedOrNil == nil)
+                    .disabled(draftTitle.trimmedOrNil == nil || isCreating)
                 }
             }
             .navigationTitle("New Kanban Task")
