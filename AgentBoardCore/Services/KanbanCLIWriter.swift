@@ -9,6 +9,7 @@ public actor KanbanCLIWriter {
         case invalidJSON(String)
         case taskNotFound(String)
         case processTimedOut
+        case unsupportedPlatform
 
         public var errorDescription: String? {
             switch self {
@@ -16,6 +17,7 @@ public actor KanbanCLIWriter {
             case let .invalidJSON(msg): "Kanban CLI returned invalid JSON: \(msg)"
             case let .taskNotFound(id): "Task not found: \(id)"
             case .processTimedOut: "Kanban CLI timed out"
+            case .unsupportedPlatform: "Kanban CLI is only available on macOS"
             }
         }
     }
@@ -102,6 +104,7 @@ public actor KanbanCLIWriter {
     // MARK: - CLI Execution
 
     private func runHermes(_ args: [String]) async throws -> String {
+        #if os(macOS)
         let hermes = try await resolveHermes()
 
         return try await withCheckedThrowingContinuation { continuation in
@@ -152,6 +155,10 @@ public actor KanbanCLIWriter {
                 )
             }
         }
+        #else
+        _ = args
+        throw WriteError.unsupportedPlatform
+        #endif
     }
 
     // MARK: - JSON Parsing

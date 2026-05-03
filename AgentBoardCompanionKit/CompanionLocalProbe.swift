@@ -42,7 +42,7 @@ public actor CompanionLocalProbe {
                 machineName: machineName
             )
         }
-        let summaries = makeSummaries(sessions: sessions, now: now, machineName: machineName)
+        let summaries = Self.makeSummaries(sessions: sessions, now: now, machineName: machineName)
         return CompanionProbeSnapshot(sessions: sessions, agents: summaries)
     }
 
@@ -63,7 +63,7 @@ public actor CompanionLocalProbe {
             status: .running,
             linkedTaskID: nil,
             workItem: nil,
-            model: "hermes-agent",
+            model: signature.name,
             startedAt: now,
             lastSeenAt: now,
             pid: process.pid,
@@ -73,19 +73,28 @@ public actor CompanionLocalProbe {
         )
     }
 
-    private func makeSummaries(
+    static func makeSummaries(
         sessions: [AgentSession],
         now: Date,
         machineName: String
     ) -> [AgentSummary] {
-        let agentNames = Set(sessions.map {
-            signatures
-                .first(where: { $0.keyword == "hermes-agent" || (try? Regex($0.keyword).wholeMatch(in: $0.id)) != nil
-                })?.name ?? "Unknown"
-        })
-        return agentNames
-            .filter { !$0.isEmpty }
-            .map { makeSummary(agentName: $0, sessions: sessions, now: now, machineName: machineName) }
+        let groupedSessions = Dictionary(grouping: sessions) { session in
+            Self.agentName(for: session)
+        }
+        return Array(groupedSessions.keys)
+            .compactMap { agentName -> AgentSummary? in
+                guard let agentName,
+                      !agentName.isEmpty,
+                      let sessions = groupedSessions[agentName] else {
+                    return nil
+                }
+                return Self.makeSummary(
+                    agentName: agentName,
+                    sessions: sessions,
+                    now: now,
+                    machineName: machineName
+                )
+            }
             .sorted {
                 if $0.activeSessionCount != $1.activeSessionCount {
                     return $0.activeSessionCount > $1.activeSessionCount
@@ -94,13 +103,21 @@ public actor CompanionLocalProbe {
             }
     }
 
-    private func makeSummary(
+    private static func agentName(for session: AgentSession) -> String? {
+        if let model = session.model?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !model.isEmpty {
+            return model
+        }
+        return nil
+    }
+
+    private static func makeSummary(
         agentName: String,
         sessions: [AgentSession],
         now: Date,
         machineName: String
     ) -> AgentSummary {
-        let activeSessions = sessions.filter { _ in true } // all matched sessions belong to this agent
+        let activeSessions = sessions
         return AgentSummary(
             id: agentName.lowercased().replacingOccurrences(of: " ", with: "-"),
             name: agentName,
