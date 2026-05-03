@@ -1,3 +1,4 @@
+// swiftlint:disable file_length
 import AgentBoardCore
 import Foundation
 import Testing
@@ -233,6 +234,68 @@ struct WorkStoreTests {
         await store.refresh()
         #expect(store.items.isEmpty)
         #expect(store.errorMessage == nil)
+    }
+
+    /// A failing refetch with cached items must keep the items visible and not surface a
+    /// transient errorMessage, per the explicit contract in `WorkStore.refresh`.
+    @Test func refreshPreservesItemsAndSuppressesErrorWhenFetchFailsWithExistingItems() async throws {
+        final class Phase: @unchecked Sendable { var failNext = false }
+        let phase = Phase()
+        let listPayload = "[" + issueJSON(
+            number: 11,
+            title: "Cached",
+            body: "",
+            labels: ["status:ready"]
+        ) + "]"
+
+        let (store, _) = try makeStore(mockHandler: { request in
+            if phase.failNext {
+                let response = try HTTPURLResponse(
+                    url: request.url!,
+                    statusCode: 500,
+                    httpVersion: nil,
+                    headerFields: nil
+                )!
+                return (response, Data("server down".utf8))
+            }
+            let response = try HTTPURLResponse(
+                url: URL(string: "http://api.github.com/repos/org/repo/issues")!,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            return (response, Data(listPayload.utf8))
+        })
+
+        await store.refresh()
+        #expect(store.items.count == 1)
+        phase.failNext = true
+
+        await store.refresh()
+
+        #expect(store.items.count == 1)
+        #expect(store.items.first?.issueNumber == 11)
+        #expect(store.errorMessage == nil)
+        #expect(store.isLoading == false)
+    }
+
+    /// A failing first refetch with no cached items should surface the error so the user knows.
+    @Test func refreshSetsErrorMessageWhenFetchFailsWithNoItems() async throws {
+        let (store, _) = try makeStore(mockHandler: { request in
+            let response = try HTTPURLResponse(
+                url: request.url!,
+                statusCode: 500,
+                httpVersion: nil,
+                headerFields: nil
+            )!
+            return (response, Data("server down".utf8))
+        })
+
+        await store.refresh()
+
+        #expect(store.items.isEmpty)
+        #expect(store.errorMessage != nil)
+        #expect(store.isLoading == false)
     }
 
     // MARK: - workItem(for:)
