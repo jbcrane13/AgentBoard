@@ -221,6 +221,13 @@ public final class WorkStore {
     }
 
     public func updateStatus(for item: WorkItem, to state: WorkState) async {
+        // Skip when target equals current state — avoids a redundant PATCH and a
+        // misleading "Updated" toast when a card is dropped onto its own column.
+        guard item.status != state else { return }
+
+        errorMessage = nil
+        statusMessage = nil
+
         guard settingsStore.isGitHubConfigured else {
             errorMessage = "Connect GitHub before updating work items."
             return

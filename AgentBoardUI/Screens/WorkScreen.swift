@@ -297,6 +297,7 @@ struct WorkScreen: View {
                 }
             }
         }
+        .accessibilityIdentifier("work_column_\(column.state.rawValue)")
         .onDrop(of: [.plainText], delegate: WorkColumnDropDelegate(
             targetState: column.state,
             workStore: appModel.workStore,
