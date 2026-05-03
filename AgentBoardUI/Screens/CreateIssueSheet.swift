@@ -52,6 +52,7 @@ struct CreateIssueSheet: View {
                                     Text("•").foregroundStyle(.red).font(.caption)
                                 }
                                 NeuTextField(placeholder: "Issue title", text: $title)
+                                    .accessibilityIdentifier("create_issue_textfield_title")
                             }
 
                             // ── Description ──
@@ -63,6 +64,7 @@ struct CreateIssueSheet: View {
                                     .padding(12)
                                     .neuRecessed(cornerRadius: 16, depth: 6)
                                     .foregroundStyle(NeuPalette.textPrimary)
+                                    .accessibilityIdentifier("create_issue_texteditor_body")
                             }
 
                             // ── Type (required) ──
@@ -126,6 +128,7 @@ struct CreateIssueSheet: View {
                             VStack(alignment: .leading, spacing: 6) {
                                 Text("Milestone").font(.headline).foregroundStyle(NeuPalette.textPrimary)
                                 NeuTextField(placeholder: "Optional milestone", text: $milestoneText)
+                                    .accessibilityIdentifier("create_issue_textfield_milestone")
                             }
 
                             // ── Attachment (optional) ──
@@ -149,6 +152,7 @@ struct CreateIssueSheet: View {
                                     .neuRecessed(cornerRadius: 16, depth: 6)
                                 }
                                 .buttonStyle(.plain)
+                                .accessibilityIdentifier("create_issue_button_add_attachment")
                             }
                         }
                         .padding(24)
@@ -174,11 +178,13 @@ struct CreateIssueSheet: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                         .foregroundStyle(NeuPalette.textPrimary)
+                        .accessibilityIdentifier("create_issue_button_cancel")
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Create") { create() }
                         .buttonStyle(NeuButtonTarget(isAccent: true))
                         .disabled(isCreating || title.trimmedOrNil == nil || selectedRepository == nil)
+                        .accessibilityIdentifier("create_issue_button_create")
                 }
             }
         }
