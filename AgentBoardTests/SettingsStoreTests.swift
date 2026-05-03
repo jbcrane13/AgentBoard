@@ -5,12 +5,15 @@ import Testing
 @Suite("SettingsStore", .serialized)
 @MainActor
 struct SettingsStoreTests {
-    private func makeStore() -> SettingsStore {
+    private func makeStore(requiresRemoteCompanionHost: Bool = false) -> SettingsStore {
         let repo = SettingsRepository(
             suiteName: "SettingsStoreTests-\(UUID().uuidString)",
             serviceName: "SettingsStoreTests-\(UUID().uuidString)"
         )
-        return SettingsStore(repository: repo)
+        return SettingsStore(
+            repository: repo,
+            requiresRemoteCompanionHost: requiresRemoteCompanionHost
+        )
     }
 
     // MARK: - isGitHubConfigured
@@ -221,6 +224,27 @@ struct SettingsStoreTests {
         let store = makeStore()
         store.companionURL = ""
         #expect(!store.isCompanionConfigured)
+    }
+
+    @Test func isCompanionConfiguredFalseForLoopbackWhenRemoteHostRequired() {
+        let store = makeStore(requiresRemoteCompanionHost: true)
+        store.companionURL = "http://127.0.0.1:8742"
+        #expect(!store.isCompanionConfigured)
+        #expect(store.companionConfigurationMessage?.contains("LAN or Tailscale") == true)
+    }
+
+    @Test func isCompanionConfiguredTrueForLanHostWhenRemoteHostRequired() {
+        let store = makeStore(requiresRemoteCompanionHost: true)
+        store.companionURL = "http://192.168.1.40:8742"
+        #expect(store.isCompanionConfigured)
+        #expect(store.companionConfigurationMessage == nil)
+    }
+
+    @Test func isCompanionConfiguredFalseForMalformedURL() {
+        let store = makeStore()
+        store.companionURL = "not a url"
+        #expect(!store.isCompanionConfigured)
+        #expect(store.companionConfigurationMessage?.contains("valid companion URL") == true)
     }
 
     // MARK: - settingsSnapshot / secretsSnapshot
