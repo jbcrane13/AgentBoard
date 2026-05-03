@@ -1,4 +1,4 @@
-import AgentBoardCompanionKit
+@testable import AgentBoardCompanionKit
 import AgentBoardCore
 import Foundation
 import Testing

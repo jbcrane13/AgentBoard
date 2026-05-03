@@ -44,7 +44,8 @@ struct WorkStoreCRUDTests {
         """
     }
 
-    private func successResponse(for url: URL?) throws -> HTTPURLResponse {
+    // swiftlint:disable:next modifier_order
+    private nonisolated static func successResponse(for url: URL?) throws -> HTTPURLResponse {
         try HTTPURLResponse(
             url: url ?? URL(string: "http://api.github.com")!,
             statusCode: 200,
@@ -58,7 +59,7 @@ struct WorkStoreCRUDTests {
     @Test func createIssueAppendsToItemsOnSuccess() async throws {
         let createdJSON = issueJSON(number: 100, title: "Brand new", body: "Body here")
         let (store, _) = try makeStore(mockHandler: { request in
-            let response = try self.successResponse(for: request.url)
+            let response = try Self.successResponse(for: request.url)
             if request.httpMethod == "POST" {
                 return (response, Data(createdJSON.utf8))
             }
@@ -87,7 +88,7 @@ struct WorkStoreCRUDTests {
                let json = try? JSONSerialization.jsonObject(with: body) as? [String: Any] {
                 captured.payload = json
             }
-            let response = try self.successResponse(for: request.url)
+            let response = try Self.successResponse(for: request.url)
             return (response, Data(createdJSON.utf8))
         })
         let repo = ConfiguredRepository(owner: "org", name: "repo")
@@ -110,7 +111,7 @@ struct WorkStoreCRUDTests {
 
     @Test func createIssueErrorsWhenGitHubNotConfigured() async throws {
         let (store, settingsStore) = try makeStore(mockHandler: { request in
-            let response = try self.successResponse(for: request.url)
+            let response = try Self.successResponse(for: request.url)
             return (response, Data("{}".utf8))
         })
         settingsStore.githubToken = ""
@@ -137,7 +138,7 @@ struct WorkStoreCRUDTests {
                 )!
                 return (response, Data("oops".utf8))
             }
-            return try (self.successResponse(for: request.url), Data("[]".utf8))
+            return try (Self.successResponse(for: request.url), Data("[]".utf8))
         })
         let repo = ConfiguredRepository(owner: "org", name: "repo")
 
@@ -158,7 +159,7 @@ struct WorkStoreCRUDTests {
                 )!
                 return (response, Data("oops".utf8))
             }
-            return try (self.successResponse(for: request.url), Data("[]".utf8))
+            return try (Self.successResponse(for: request.url), Data("[]".utf8))
         })
         store.statusMessage = "Something old"
 
@@ -177,7 +178,7 @@ struct WorkStoreCRUDTests {
         let listPayload = "[" + issueJSON(number: 50, title: "Old title", body: "Old body") + "]"
         let updatedPayload = issueJSON(number: 50, title: "New title", body: "New body")
         let (store, _) = try makeStore(mockHandler: { request in
-            let response = try self.successResponse(for: request.url)
+            let response = try Self.successResponse(for: request.url)
             let body = request.httpMethod == "PATCH"
                 ? Data(updatedPayload.utf8)
                 : Data(listPayload.utf8)
@@ -207,7 +208,7 @@ struct WorkStoreCRUDTests {
                let json = try? JSONSerialization.jsonObject(with: body) as? [String: Any] {
                 captured.payload = json
             }
-            let response = try self.successResponse(for: request.url)
+            let response = try Self.successResponse(for: request.url)
             let body = request.httpMethod == "PATCH"
                 ? Data(updatedPayload.utf8)
                 : Data(listPayload.utf8)
@@ -229,7 +230,7 @@ struct WorkStoreCRUDTests {
 
     @Test func updateIssueErrorsWhenGitHubNotConfigured() async throws {
         let (store, settingsStore) = try makeStore(mockHandler: { request in
-            try (self.successResponse(for: request.url), Data("[]".utf8))
+            try (Self.successResponse(for: request.url), Data("[]".utf8))
         })
         settingsStore.githubToken = ""
         settingsStore.repositories = []
@@ -267,7 +268,7 @@ struct WorkStoreCRUDTests {
                 )!
                 return (response, Data("oops".utf8))
             }
-            return try (self.successResponse(for: request.url), Data(listPayload.utf8))
+            return try (Self.successResponse(for: request.url), Data(listPayload.utf8))
         })
         await store.refresh()
         let item = try #require(store.items.first)
@@ -283,7 +284,7 @@ struct WorkStoreCRUDTests {
     @Test func workItemForReferenceReturnsMatchingItem() async throws {
         let listPayload = "[" + issueJSON(number: 5, title: "Findable") + "]"
         let (store, _) = try makeStore(mockHandler: { request in
-            try (self.successResponse(for: request.url), Data(listPayload.utf8))
+            try (Self.successResponse(for: request.url), Data(listPayload.utf8))
         })
         await store.refresh()
         let reference = WorkReference(
@@ -299,7 +300,7 @@ struct WorkStoreCRUDTests {
     @Test func workItemForReferenceReturnsNilWhenNoMatch() async throws {
         let listPayload = "[" + issueJSON(number: 5, title: "Only one") + "]"
         let (store, _) = try makeStore(mockHandler: { request in
-            try (self.successResponse(for: request.url), Data(listPayload.utf8))
+            try (Self.successResponse(for: request.url), Data(listPayload.utf8))
         })
         await store.refresh()
         let reference = WorkReference(
