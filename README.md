@@ -7,16 +7,17 @@ Hermes-first AgentBoard is a native SwiftUI workspace for iOS and macOS. It give
 - `AgentBoard` is the macOS app shell built with `NavigationSplitView`.
 - `AgentBoardMobile` is the iOS app shell built with `TabView` and `NavigationStack`.
 - `AgentBoardCore` holds the shared stores, models, services, persistence, and bootstrap logic.
-- `AgentBoardCompanion` is a local Swift service for agent tasks, sessions, and live events.
+- `AgentBoardCompanion` is a local Swift service for agent session monitoring and live events.
 
 The old OpenClaw/beads/macOS-only prototype has been retired from the codebase. The active app is the SwiftUI rebuild.
 
 ## Product shape
 
-- Hermes gateway powers chat only.
-- GitHub Issues are the source of truth for work items.
-- The companion service owns agent tasks, sessions, and live execution state.
-- SwiftData caches local snapshots for chat, work, agents, and sessions.
+- **Hermes gateway** powers chat (WebSocket JSON-RPC) and is the write authority for kanban tasks via the `hermes kanban` CLI.
+- **`~/.hermes/kanban.db`** is the source of truth for the Kanban board — tasks, comments, and runs all live here.
+- **GitHub Issues** are tracked as work items for issue triage and reference.
+- **AgentBoardCompanion** owns agent session monitoring (tmux/process discovery) and live execution state.
+- SwiftData caches local snapshots for chat, work items, and sessions.
 - Observation and Swift Concurrency are used throughout the shared core.
 
 ## Repo layout
@@ -95,8 +96,9 @@ flowchart TD
         CompanionKit["AgentBoardCompanionKit"]
     end
 
-    subgraph Services["External Services"]
+    subgraph External["External Systems"]
         Hermes["Hermes Gateway"]
+        KanbanDB["~/.hermes/kanban.db"]
         GitHub["GitHub Issues"]
         Companion["AgentBoardCompanion"]
     end
@@ -104,23 +106,37 @@ flowchart TD
     Mac --> UI
     Mobile --> UI
     UI --> Core
-    Core --> Hermes
-    Core --> GitHub
-    Core --> Companion
+    Core -->|chat WebSocket| Hermes
+    Core -->|read SQLite| KanbanDB
+    Core -->|write via CLI| Hermes
+    Core -->|work items| GitHub
+    Core -->|sessions & agents| Companion
     Companion --> CompanionKit
+    Hermes -->|owns writes| KanbanDB
 ```
 
 ## Core stores
 
 - `ChatStore` handles Hermes configuration, health, history, streaming, and reconnect.
 - `WorkStore` aggregates GitHub issues into neutral `WorkItem` models.
-- `AgentsStore` tracks agent summaries and task grouping from the companion service.
-- `SessionsStore` tracks live sessions and session details from the companion service.
+- `AgentsStore` manages the Kanban board — reads tasks from `~/.hermes/kanban.db` via `KanbanDataService` and writes via `KanbanCLIWriter` (`hermes kanban` CLI subprocess).
+- `SessionsStore` tracks live agent sessions and session details from the companion service.
 - `SettingsStore` persists Hermes, GitHub, and companion configuration.
+
+## Kanban backend
+
+Task state lives entirely in `~/.hermes/kanban.db`. AgentBoard is a read-mostly viewer with write-through via the Hermes CLI:
+
+```
+Read  → KanbanDataService  → SQLite (kanban.db, direct open/read/close)
+Write → KanbanCLIWriter    → hermes kanban CLI → Hermes Gateway Dispatcher
+```
+
+Key model types: `KanbanTask`, `KanbanComment`, `KanbanRun`, `KanbanCreateDraft`.
 
 ## Companion service
 
-`AgentBoardCompanion` is a local Swift executable backed by SQLite. It exposes REST plus a live event stream for session and task updates. The app treats it as the source of truth for runtime activity while GitHub remains the source of truth for tickets.
+`AgentBoardCompanion` is a local Swift executable backed by SQLite. It exposes REST plus a live event stream for session monitoring. It discovers running agent processes via `ps` and captures tmux pane output. The companion is the source of truth for **live session state**; kanban task state lives in `~/.hermes/kanban.db`.
 
 ## Notes for contributors
 
