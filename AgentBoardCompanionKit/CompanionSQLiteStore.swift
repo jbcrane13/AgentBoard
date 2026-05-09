@@ -120,15 +120,29 @@ public actor CompanionSQLiteStore {
     }
 
     private func runMigrations() {
-        let sessionMigrations = [
-            "ALTER TABLE sessions ADD COLUMN pid INTEGER;",
-            "ALTER TABLE sessions ADD COLUMN tmux_session TEXT;",
-            "ALTER TABLE sessions ADD COLUMN tmux_pane_id TEXT;",
-            "ALTER TABLE sessions ADD COLUMN last_output TEXT;"
+        guard let existingColumns = try? existingSessionColumns() else { return }
+
+        let sessionMigrations: [(column: String, type: String)] = [
+            ("pid", "INTEGER"),
+            ("tmux_session", "TEXT"),
+            ("tmux_pane_id", "TEXT"),
+            ("last_output", "TEXT")
         ]
-        for sql in sessionMigrations {
-            try? execute(sql)
+        for (column, type) in sessionMigrations {
+            guard !existingColumns.contains(column) else { continue }
+            try? execute("ALTER TABLE sessions ADD COLUMN \(column) \(type);")
         }
+    }
+
+    private func existingSessionColumns() throws -> Set<String> {
+        let statement = try prepare("PRAGMA table_info(sessions);")
+        defer { sqlite3_finalize(statement) }
+
+        var columns: Set<String> = []
+        while sqlite3_step(statement) == SQLITE_ROW {
+            columns.insert(string(statement, index: 1)) // column 1 = name
+        }
+        return columns
     }
 
     // MARK: - Sessions
