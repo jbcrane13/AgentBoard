@@ -7,7 +7,7 @@ import os
 public final class AgentsStore {
     private let logger = Logger(subsystem: "com.agentboard.modern", category: "AgentsStore")
     private let kanbanData: KanbanDataService
-    private let cliWriter: KanbanCLIWriter
+    private let cliWriter: any KanbanCLIWriting
     private let settingsStore: SettingsStore
 
     public private(set) var tasks: [KanbanTask] = []
@@ -21,7 +21,7 @@ public final class AgentsStore {
 
     public init(
         kanbanData: KanbanDataService = KanbanDataService(),
-        cliWriter: KanbanCLIWriter = KanbanCLIWriter(),
+        cliWriter: any KanbanCLIWriting = KanbanCLIWriter(),
         settingsStore: SettingsStore
     ) {
         self.kanbanData = kanbanData
@@ -73,7 +73,7 @@ public final class AgentsStore {
 
             // Build pseudo agent summaries from task assignees (companion still
             // handles real agent health / session data separately)
-            let freshSummaries = buildAgentSummaries(from: freshTasks)
+            let freshSummaries = Self.buildAgentSummaries(from: freshTasks)
 
             let newFingerprint = fingerprint(tasks: freshTasks, summaries: freshSummaries)
             if newFingerprint != lastFingerprint {
@@ -218,13 +218,13 @@ public final class AgentsStore {
 
     /// Build lightweight agent summaries from task assignees.
     /// The companion service still owns actual agent health / session data.
-    private func buildAgentSummaries(from tasks: [KanbanTask]) -> [AgentSummary] {
-        let assignees = Set(tasks.compactMap(\.assignee)).filter { !$0.isEmpty }
+    /// Internal so the kanban picker data source can be unit tested directly.
+    nonisolated static func buildAgentSummaries(from tasks: [KanbanTask]) -> [AgentSummary] {
+        let assignees = Set(tasks.compactMap { $0.assignee?.trimmedOrNil })
 
         return assignees.map { name in
             let agentTasks = tasks.filter { $0.assignee == name }
             let activeCount = agentTasks.filter { $0.status == .running }.count
-            _ = agentTasks.count // totalCount — reserved for agent health metrics
             let recentTask = agentTasks.max(by: { $0.createdAt < $1.createdAt })
 
             return AgentSummary(
