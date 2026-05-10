@@ -13,6 +13,11 @@ struct AgentsScreen: View {
     @State private var draftPriority = 2
     @State private var isCreating = false
     @State private var createError: String?
+    /// Increments whenever a create attempt is started, cancelled, or the sheet
+    /// is reopened. The in-flight Task captures the value at launch and bails
+    /// out before mutating view state if the counter has moved on, so a
+    /// dismissed-then-reopened sheet can't be slammed shut by a stale write.
+    @State private var createGeneration = 0
 
     private var isCompact: Bool {
         hSizeClass == .compact
@@ -75,6 +80,8 @@ struct AgentsScreen: View {
                 draftBody = ""
                 draftPriority = 2
                 createError = nil
+                isCreating = false
+                createGeneration &+= 1
                 isPresentingCreateSheet = true
             } label: {
                 Image(systemName: "plus")
@@ -284,11 +291,19 @@ struct AgentsScreen: View {
             .formStyle(.grouped)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { isPresentingCreateSheet = false }
-                        .accessibilityIdentifier("kanban_button_cancel")
+                    Button("Cancel") {
+                        // Abandon any in-flight create so its completion can't
+                        // dismiss a sheet the user has since reopened.
+                        createGeneration &+= 1
+                        isCreating = false
+                        isPresentingCreateSheet = false
+                    }
+                    .accessibilityIdentifier("kanban_button_cancel")
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button {
+                        createGeneration &+= 1
+                        let generation = createGeneration
                         isCreating = true
                         createError = nil
                         let draft = KanbanCreateDraft(
@@ -300,6 +315,9 @@ struct AgentsScreen: View {
                         )
                         Task {
                             await appModel.agentsStore.createTask(draft)
+                            // Bail if the user cancelled, reopened the sheet,
+                            // or kicked off another attempt while we awaited.
+                            guard generation == createGeneration else { return }
                             if appModel.agentsStore.errorMessage != nil {
                                 createError = appModel.agentsStore.errorMessage
                                 isCreating = false
