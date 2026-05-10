@@ -29,16 +29,19 @@ struct QuickLaunchSheet: View {
                             VStack(alignment: .leading, spacing: 6) {
                                 Text("Task Title").font(.headline).foregroundStyle(NeuPalette.textPrimary)
                                 NeuTextField(placeholder: "e.g. Implement feature X", text: $taskTitle)
+                                    .accessibilityIdentifier("quick_launch_textfield_task_title")
                             }
 
                             HStack(spacing: 16) {
                                 VStack(alignment: .leading, spacing: 6) {
                                     Text("Issue #").font(.headline).foregroundStyle(NeuPalette.textPrimary)
                                     NeuTextField(placeholder: "72", text: $issueNumber)
+                                        .accessibilityIdentifier("quick_launch_textfield_issue_number")
                                 }
                                 VStack(alignment: .leading, spacing: 6) {
                                     Text("Repository").font(.headline).foregroundStyle(NeuPalette.textPrimary)
                                     NeuTextField(placeholder: "AgentBoard", text: $repoName)
+                                        .accessibilityIdentifier("quick_launch_textfield_repo_name")
                                 }
                             }
 
@@ -73,6 +76,7 @@ struct QuickLaunchSheet: View {
                                         )
                                     }
                                     .buttonStyle(.plain)
+                                    .accessibilityIdentifier("quick_launch_button_agent_\(agent.id)")
                                 }
                             }
 
@@ -114,6 +118,7 @@ struct QuickLaunchSheet: View {
                                         )
                                     }
                                     .buttonStyle(.plain)
+                                    .accessibilityIdentifier("quick_launch_button_preset_\(preset.id)")
                                 }
                             }
 
@@ -125,6 +130,7 @@ struct QuickLaunchSheet: View {
                                     .padding(12)
                                     .neuRecessed(cornerRadius: 16, depth: 6)
                                     .foregroundStyle(NeuPalette.textPrimary)
+                                    .accessibilityIdentifier("quick_launch_texteditor_custom_instructions")
                             }
                         }
                         .padding(24)
@@ -150,14 +156,17 @@ struct QuickLaunchSheet: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                         .foregroundStyle(NeuPalette.textPrimary)
+                        .accessibilityIdentifier("quick_launch_button_cancel")
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Launch") { launch() }
                         .buttonStyle(NeuButtonTarget(isAccent: true))
                         .disabled(isLaunching || repoName.trimmedOrNil == nil || taskTitle.trimmedOrNil == nil)
+                        .accessibilityIdentifier("quick_launch_button_launch")
                 }
             }
         }
+        .accessibilityIdentifier("screen_quick_launch")
     }
 
     private func launch() {

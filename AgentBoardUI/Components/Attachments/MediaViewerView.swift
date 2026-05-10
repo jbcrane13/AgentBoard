@@ -23,11 +23,13 @@ struct MediaViewerView: View {
                 ForEach(Array(attachments.enumerated()), id: \.element.id) { index, attachment in
                     mediaPage(for: attachment)
                         .tag(index)
+                        .accessibilityIdentifier("media_viewer_page_\(index)")
                 }
             }
             #if os(iOS)
             .tabViewStyle(.page(indexDisplayMode: .automatic))
             #endif
+            .accessibilityIdentifier("media_viewer_tabview")
 
             // Top bar with dismiss and counter
             VStack {

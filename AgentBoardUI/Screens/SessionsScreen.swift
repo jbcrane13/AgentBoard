@@ -39,6 +39,7 @@ struct SessionsScreen: View {
                                     SessionCardNeu(session: session)
                                 }
                                 .buttonStyle(.plain)
+                                .accessibilityIdentifier("sessions_cell_session_\(session.id)")
                             }
                         }
                         .padding(isCompact ? 16 : 24)
@@ -53,6 +54,7 @@ struct SessionsScreen: View {
                                     SessionCardNeu(session: session)
                                 }
                                 .buttonStyle(.plain)
+                                .accessibilityIdentifier("sessions_cell_session_\(session.id)")
                             }
                         }
                         .padding(24)
@@ -68,6 +70,7 @@ struct SessionsScreen: View {
             SessionDetailSheet(session: session)
                 .environment(appModel)
         }
+        .accessibilityIdentifier("screen_sessions")
     }
 
     private var header: some View {
@@ -86,6 +89,7 @@ struct SessionsScreen: View {
                 Image(systemName: "arrow.clockwise")
             }
             .buttonStyle(NeuButtonTarget(isAccent: false))
+            .accessibilityIdentifier("sessions_button_refresh")
         }
     }
 }

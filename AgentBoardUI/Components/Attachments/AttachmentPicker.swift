@@ -58,6 +58,7 @@ struct AttachmentPickerSheet: View {
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("Cancel") { dismiss() }
+                            .accessibilityIdentifier("attachment_picker_button_cancel")
                     }
                 }
             }
@@ -105,6 +106,7 @@ struct AttachmentPickerSheet: View {
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("Cancel") { dismiss() }
+                            .accessibilityIdentifier("attachment_picker_button_cancel")
                     }
                 }
             }

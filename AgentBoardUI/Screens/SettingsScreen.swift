@@ -45,6 +45,7 @@ struct SettingsScreen: View {
         }
         .agentBoardNavigationBarHidden(true)
         .agentBoardKeyboardDismissToolbar()
+        .accessibilityIdentifier("screen_settings")
     }
 
     // MARK: - Appearance
@@ -61,6 +62,7 @@ struct SettingsScreen: View {
                 }
                 .pickerStyle(.segmented)
                 .tint(NeuPalette.accentCyan)
+                .accessibilityIdentifier("settings_picker_theme")
 
                 HStack(spacing: 10) {
                     ForEach(AgentBoardDesignTheme.allCases) { theme in
@@ -81,8 +83,11 @@ struct SettingsScreen: View {
             sectionHeader("HERMES GATEWAY")
             VStack(spacing: 20) {
                 NeuTextField(placeholder: "Gateway URL", text: $s.hermesGatewayURL)
+                    .accessibilityIdentifier("settings_textfield_hermes_gateway_url")
                 NeuTextField(placeholder: "Preferred model", text: $s.hermesModelID)
+                    .accessibilityIdentifier("settings_textfield_hermes_model")
                 NeuSecureField(placeholder: "API key (optional)", text: $s.hermesAPIKey)
+                    .accessibilityIdentifier("settings_securefield_hermes_api_key")
                 profilesSection(s: s)
             }
             .padding(24)
@@ -110,10 +115,12 @@ struct SettingsScreen: View {
                             Spacer()
                             Button("Use") { s.selectHermesProfile(id: profile.id) }
                                 .buttonStyle(NeuButtonTarget(isAccent: s.selectedHermesProfileID == profile.id))
+                                .accessibilityIdentifier("settings_button_use_hermes_profile_\(profile.id)")
                             Button(role: .destructive) { s.removeHermesProfile(profile) } label: {
                                 Image(systemName: "trash.fill").foregroundStyle(.red).padding(10)
                             }
                             .background(Circle().fill(NeuPalette.background)).buttonStyle(.plain)
+                            .accessibilityIdentifier("settings_button_remove_hermes_profile_\(profile.id)")
                         }
                         .padding(.horizontal, 16).padding(.vertical, 10)
                         .neuRecessed(cornerRadius: 16, depth: 4)
@@ -123,12 +130,14 @@ struct SettingsScreen: View {
 
             HStack(spacing: 12) {
                 NeuTextField(placeholder: "Profile name", text: $hermesProfileName)
+                    .accessibilityIdentifier("settings_textfield_hermes_profile_name")
                 Button("Save Current") {
                     s.saveCurrentHermesProfile(named: hermesProfileName)
                     if s.errorMessage == nil { hermesProfileName = "" }
                 }
                 .buttonStyle(NeuButtonTarget(isAccent: !hermesProfileName.isEmpty))
                 .disabled(hermesProfileName.isEmpty)
+                .accessibilityIdentifier("settings_button_save_hermes_profile")
             }
         }
     }
@@ -141,6 +150,7 @@ struct SettingsScreen: View {
             sectionHeader("GITHUB ISSUES")
             VStack(alignment: .leading, spacing: 20) {
                 NeuSecureField(placeholder: "GitHub token", text: $s.githubToken)
+                    .accessibilityIdentifier("settings_securefield_github_token")
                 if !s.repositories.isEmpty {
                     VStack(spacing: 12) {
                         ForEach(s.repositories) { repo in
@@ -152,6 +162,7 @@ struct SettingsScreen: View {
                                     Image(systemName: "trash.fill").foregroundStyle(.red).padding(10)
                                 }
                                 .background(Circle().fill(NeuPalette.background)).buttonStyle(.plain)
+                                .accessibilityIdentifier("settings_button_remove_repository_\(repo.id)")
                             }
                             .padding(.horizontal, 16).padding(.vertical, 8)
                             .neuRecessed(cornerRadius: 16, depth: 4)
@@ -160,7 +171,9 @@ struct SettingsScreen: View {
                 }
                 HStack(spacing: 12) {
                     NeuTextField(placeholder: "Owner", text: $repositoryOwner)
+                        .accessibilityIdentifier("settings_textfield_repository_owner")
                     NeuTextField(placeholder: "Repo", text: $repositoryName)
+                        .accessibilityIdentifier("settings_textfield_repository_name")
                     Button {
                         s.addRepository(owner: repositoryOwner, name: repositoryName)
                         repositoryOwner = ""
@@ -168,6 +181,7 @@ struct SettingsScreen: View {
                     } label: { Image(systemName: "plus") }
                         .buttonStyle(NeuButtonTarget(isAccent: !(repositoryOwner.isEmpty || repositoryName.isEmpty)))
                         .disabled(repositoryOwner.isEmpty || repositoryName.isEmpty)
+                        .accessibilityIdentifier("settings_button_add_repository")
                 }
             }
             .padding(24)
@@ -183,7 +197,9 @@ struct SettingsScreen: View {
             sectionHeader("COMPANION SERVICE")
             VStack(spacing: 20) {
                 NeuTextField(placeholder: "Companion URL", text: $s.companionURL)
+                    .accessibilityIdentifier("settings_textfield_companion_url")
                 NeuSecureField(placeholder: "Companion token", text: $s.companionToken)
+                    .accessibilityIdentifier("settings_securefield_companion_token")
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
                         Text("Auto refresh").font(.subheadline).foregroundStyle(NeuPalette.textPrimary)
@@ -193,6 +209,7 @@ struct SettingsScreen: View {
                     }
                     Slider(value: $s.autoRefreshInterval, in: 30 ... 300, step: 30)
                         .tint(NeuPalette.accentCyan)
+                        .accessibilityIdentifier("settings_slider_auto_refresh")
                 }
             }
             .padding(24)
@@ -218,6 +235,7 @@ struct SettingsScreen: View {
                             .font(.subheadline.weight(.medium))
                     }
                     .buttonStyle(NeuButtonTarget(isAccent: true))
+                    .accessibilityIdentifier("settings_button_export_config")
 
                     Button {
                         showImportPicker = true
@@ -226,6 +244,7 @@ struct SettingsScreen: View {
                             .font(.subheadline.weight(.medium))
                     }
                     .buttonStyle(NeuButtonTarget(isAccent: false))
+                    .accessibilityIdentifier("settings_button_import_config")
                 }
 
                 if let summary = backupSummary {
@@ -240,6 +259,7 @@ struct SettingsScreen: View {
                             Task { await applyPendingBackup() }
                         }
                         .buttonStyle(NeuButtonTarget(isAccent: true))
+                        .accessibilityIdentifier("settings_button_apply_backup")
                     }
                     .padding(12)
                     .neuRecessed(cornerRadius: 12, depth: 4)
@@ -271,42 +291,42 @@ struct SettingsScreen: View {
         }
         .sheet(isPresented: $showExportShare) {
             if let url = exportedFileURL {
-                #if os(iOS)
-                    ShareSheet(items: [url])
-                #else
-                    VStack(spacing: 16) {
-                        Text("Backup exported to:")
-                            .font(.headline)
-                        Text(url.lastPathComponent)
-                            .font(.caption)
-                            .foregroundStyle(NeuPalette.textSecondary)
-                        HStack {
-                            Button("Copy Path") {
-                                #if os(macOS)
-                                    NSPasteboard.general.clearContents()
-                                    NSPasteboard.general.setString(url.path, forType: .string)
-                                #endif
-                            }
-                            .buttonStyle(NeuButtonTarget(isAccent: false))
-
-                            Button("Open in Finder") {
-                                #if os(macOS)
-                                    NSWorkspace.shared.activateFileViewerSelecting([url])
-                                #endif
-                            }
-                            .buttonStyle(NeuButtonTarget(isAccent: true))
-
-                            Button("Close") {
-                                showExportShare = false
-                            }
-                            .buttonStyle(NeuButtonTarget(isAccent: false))
-                        }
-                    }
-                    .padding(32)
-                    .frame(minWidth: 400)
-                #endif
+                exportShareSheet(for: url)
             }
         }
+    }
+
+    @ViewBuilder
+    private func exportShareSheet(for url: URL) -> some View {
+        #if os(iOS)
+            ShareSheet(items: [url])
+        #else
+            VStack(spacing: 16) {
+                Text("Backup exported to:").font(.headline)
+                Text(url.lastPathComponent).font(.caption)
+                    .foregroundStyle(NeuPalette.textSecondary)
+                HStack {
+                    Button("Copy Path") {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(url.path, forType: .string)
+                    }
+                    .buttonStyle(NeuButtonTarget(isAccent: false))
+                    .accessibilityIdentifier("settings_button_copy_export_path")
+
+                    Button("Open in Finder") {
+                        NSWorkspace.shared.activateFileViewerSelecting([url])
+                    }
+                    .buttonStyle(NeuButtonTarget(isAccent: true))
+                    .accessibilityIdentifier("settings_button_open_in_finder")
+
+                    Button("Close") { showExportShare = false }
+                        .buttonStyle(NeuButtonTarget(isAccent: false))
+                        .accessibilityIdentifier("settings_button_close_export_share")
+                }
+            }
+            .padding(32)
+            .frame(minWidth: 400)
+        #endif
     }
 
     private func exportBackup() async {
@@ -366,6 +386,7 @@ struct SettingsScreen: View {
                 Task { await appModel.saveSettingsAndReconnect() }
             }
             .buttonStyle(NeuButtonTarget(isAccent: true))
+            .accessibilityIdentifier("settings_button_save_and_refresh")
 
             Button("Refresh Hermes") {
                 Task {
@@ -374,11 +395,13 @@ struct SettingsScreen: View {
                 }
             }
             .buttonStyle(NeuButtonTarget(isAccent: false))
+            .accessibilityIdentifier("settings_button_refresh_hermes")
 
             Button("Diagnose Hermes") {
                 Task { await appModel.chatStore.diagnoseConnection() }
             }
             .buttonStyle(NeuButtonTarget(isAccent: false))
+            .accessibilityIdentifier("settings_button_diagnose_hermes")
 
             if let msg = appModel.settingsStore.errorMessage
                 ?? appModel.settingsStore.statusMessage
