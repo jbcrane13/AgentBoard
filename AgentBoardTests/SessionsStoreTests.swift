@@ -1,5 +1,6 @@
 import AgentBoardCore
 import Foundation
+import os
 import Testing
 
 @Suite(.serialized)
@@ -100,9 +101,9 @@ struct SessionsStoreTests {
 
         // Bootstrap calls listSessions twice on failure path
         // (companion-first then refresh fallback). Fail both, succeed on the 3rd call.
-        let counter = MutableCounter()
+        let counter = SyncCounter()
         let companionClient = CompanionClient(session: makeMockSession { request in
-            let attempt = await counter.increment()
+            let attempt = counter.increment()
             if attempt <= 2 {
                 throw URLError(.cannotConnectToHost)
             }
@@ -142,9 +143,9 @@ struct SessionsStoreTests {
             lastSeenAt: .now
         )
 
-        let shouldFail = MutableFlag(value: false)
+        let shouldFail = SyncFlag(value: false)
         let companionClient = CompanionClient(session: makeMockSession { request in
-            if await shouldFail.snapshot() {
+            if shouldFail.snapshot() {
                 throw URLError(.cannotConnectToHost)
             }
             let response = try HTTPURLResponse(
@@ -166,7 +167,7 @@ struct SessionsStoreTests {
         await store.bootstrap()
         #expect(store.syncStatus == .live)
 
-        await shouldFail.set(true)
+        shouldFail.set(true)
         await store.refresh()
 
         #expect(store.syncStatus == .cached)
@@ -199,27 +200,29 @@ struct SessionsStoreTests {
     }
 }
 
-private actor MutableFlag {
-    private var value: Bool
+private struct SyncFlag: Sendable {
+    private let storage: OSAllocatedUnfairLock<Bool>
 
     init(value: Bool) {
-        self.value = value
+        storage = OSAllocatedUnfairLock(initialState: value)
     }
 
     func snapshot() -> Bool {
-        value
+        storage.withLock { $0 }
     }
 
     func set(_ newValue: Bool) {
-        value = newValue
+        storage.withLock { $0 = newValue }
     }
 }
 
-private actor MutableCounter {
-    private var count = 0
+private struct SyncCounter: Sendable {
+    private let storage = OSAllocatedUnfairLock(initialState: 0)
 
     func increment() -> Int {
-        count += 1
-        return count
+        storage.withLock { count in
+            count += 1
+            return count
+        }
     }
 }
