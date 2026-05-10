@@ -80,6 +80,7 @@ struct AgentsScreen: View {
                 Image(systemName: "plus")
             }
             .buttonStyle(NeuButtonTarget(isAccent: true))
+            .accessibilityIdentifier("kanban_button_new_task")
         }
     }
 
@@ -243,14 +244,17 @@ struct AgentsScreen: View {
             Form {
                 Section("Task") {
                     TextField("Title", text: $draftTitle)
+                        .accessibilityIdentifier("kanban_textfield_title")
                     Picker("Assigned agent", selection: $draftAssignee) {
                         Text("Unassigned").tag("")
                         ForEach(appModel.agentsStore.summaries) { agent in
                             Text(agent.name).tag(agent.name)
                         }
                     }
+                    .accessibilityIdentifier("kanban_picker_assignee")
                     TextField("Body", text: $draftBody, axis: .vertical)
                         .lineLimit(3 ... 6)
+                        .accessibilityIdentifier("kanban_textfield_body")
                 }
 
                 Section("Priority") {
@@ -262,6 +266,7 @@ struct AgentsScreen: View {
                     }
                     .pickerStyle(.segmented)
                     .tint(NeuPalette.accentOrange)
+                    .accessibilityIdentifier("kanban_picker_priority")
                 }
 
                 if let error = createError {
@@ -280,6 +285,7 @@ struct AgentsScreen: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { isPresentingCreateSheet = false }
+                        .accessibilityIdentifier("kanban_button_cancel")
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button {
@@ -313,6 +319,7 @@ struct AgentsScreen: View {
                         }
                     }
                     .disabled(draftTitle.trimmedOrNil == nil || isCreating)
+                    .accessibilityIdentifier("kanban_button_create")
                 }
             }
             .navigationTitle("New Kanban Task")
