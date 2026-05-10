@@ -37,6 +37,7 @@
 		2E95ECA2CB484B2089146AD0 /* QuickLaunchSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FFDF3222AEE5530E6C58DFC /* QuickLaunchSheet.swift */; };
 		2EFC8887C151538585798677 /* SessionDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A145F7A1A70B53DF066DBD /* SessionDetailSheet.swift */; };
 		30B2D9B7D1BFC77B6964A96C /* AgentBoardDesignTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4542E208AACDF95595A0B0D4 /* AgentBoardDesignTheme.swift */; };
+		31F4BD470BD142ABB72D00E8 /* AgentsStoreCreateTaskTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5C500C7AF3B484DBB847E3A /* AgentsStoreCreateTaskTests.swift */; };
 		37F82839F098968527158CC9 /* EmbeddedTerminalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A978B41E9572538A1E74E5C /* EmbeddedTerminalView.swift */; };
 		38E1089316EEC57E444A6FB1 /* MockURLProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 957114148477B05585A13D7C /* MockURLProtocol.swift */; };
 		3D5547FD2C8499B8C8FA087B /* AudioRecorderService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39E1BE6A2B2B66CFAF5F4AC0 /* AudioRecorderService.swift */; };
@@ -312,6 +313,7 @@
 		E84FB91863EEFC0DABE3E113 /* AgentsStoreSummariesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentsStoreSummariesTests.swift; sourceTree = "<group>"; };
 		EA26177C115F337F0AC82395 /* SlashCommandHandlerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlashCommandHandlerTests.swift; sourceTree = "<group>"; };
 		F31C11E46072F7E4A9FFADDB /* AttachmentInteractions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentInteractions.swift; sourceTree = "<group>"; };
+		F5C500C7AF3B484DBB847E3A /* AgentsStoreCreateTaskTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentsStoreCreateTaskTests.swift; sourceTree = "<group>"; };
 		F6FDDFF5030B377E6973E969 /* ChatScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatScreen.swift; sourceTree = "<group>"; };
 		F876603AEC9BE7B94289CA01 /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
 		FA4BD1071B801A6A1C9E1CEF /* NeumorphicTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NeumorphicTheme.swift; sourceTree = "<group>"; };
@@ -372,6 +374,7 @@
 			isa = PBXGroup;
 			children = (
 				C8ECD5A8D1C4F9C4099CBB9C /* AgentBoardCacheTests.swift */,
+				F5C500C7AF3B484DBB847E3A /* AgentsStoreCreateTaskTests.swift */,
 				E84FB91863EEFC0DABE3E113 /* AgentsStoreSummariesTests.swift */,
 				6FCC4B5C12958567A1D6D69E /* AppDestinationTests.swift */,
 				376B52FEC631A3F6F0383459 /* AttachmentModelsTests.swift */,
@@ -883,6 +886,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				BAFAE9A54D7EB126DB951F33 /* AgentBoardCacheTests.swift in Sources */,
+				31F4BD470BD142ABB72D00E8 /* AgentsStoreCreateTaskTests.swift in Sources */,
 				A66CDAEC61CF81C8BC905B61 /* AgentsStoreSummariesTests.swift in Sources */,
 				E931C3D8A3044AEA6C7F36BD /* AppDestinationTests.swift in Sources */,
 				96C502A1BD49F2AE81F03313 /* AttachmentModelsTests.swift in Sources */,
