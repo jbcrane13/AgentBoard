@@ -60,15 +60,22 @@ struct AgentBoardCacheTests {
         let initial = [ConversationMessage(conversationID: convID, role: .user, content: "First")]
         try cache.saveConversationSnapshot(conversation: conv, messages: initial)
 
+        let base = Date(timeIntervalSinceReferenceDate: 0)
         let updated = [
-            ConversationMessage(conversationID: convID, role: .user, content: "Second"),
-            ConversationMessage(conversationID: convID, role: .assistant, content: "Reply")
+            ConversationMessage(conversationID: convID, role: .user, content: "Second", createdAt: base),
+            ConversationMessage(
+                conversationID: convID,
+                role: .assistant,
+                content: "Reply",
+                createdAt: base.addingTimeInterval(1)
+            )
         ]
         try cache.saveConversationSnapshot(conversation: conv, messages: updated)
 
         let loaded = try cache.loadMessages(conversationID: convID)
         #expect(loaded.count == 2)
         #expect(loaded[0].content == "Second")
+        #expect(loaded[1].content == "Reply")
     }
 
     @Test func deleteConversationRemovesConversationAndMessages() throws {
