@@ -61,6 +61,22 @@ struct KanbanModelsTests {
         #expect(makeTask(assignee: "daneel").displayAssignee == "daneel")
     }
 
+    @Test func kanbanTaskDisplayAssigneeFallsBackToUnassignedWhenEmpty() {
+        // The kanban picker normalizes empty selections to nil via
+        // `trimmedOrNil`, but external CLI writes and legacy db rows can
+        // surface empty/whitespace assignees. The row label must still read
+        // "unassigned" instead of a blank gap next to the person icon.
+        #expect(makeTask(assignee: "").displayAssignee == "unassigned")
+        #expect(makeTask(assignee: "   ").displayAssignee == "unassigned")
+        #expect(makeTask(assignee: "\t\n").displayAssignee == "unassigned")
+    }
+
+    @Test func kanbanTaskDisplayAssigneeTrimsSurroundingWhitespace() {
+        // Surrounding whitespace from CLI/db writes shouldn't leak into the
+        // row label.
+        #expect(makeTask(assignee: "  daneel  ").displayAssignee == "daneel")
+    }
+
     // MARK: - KanbanRun.duration
 
     @Test func kanbanRunDurationIsNilWhenStillRunning() {

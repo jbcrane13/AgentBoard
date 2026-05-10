@@ -223,7 +223,10 @@ public final class AgentsStore {
         let assignees = Set(tasks.compactMap { $0.assignee?.trimmedOrNil })
 
         return assignees.map { name in
-            let agentTasks = tasks.filter { $0.assignee == name }
+            // Filter by trimmed value so tasks whose assignee carries
+            // surrounding whitespace (CLI/db writes) still count toward the
+            // matching summary's totals and recent activity.
+            let agentTasks = tasks.filter { $0.assignee?.trimmedOrNil == name }
             let activeCount = agentTasks.filter { $0.status == .running }.count
             let recentTask = agentTasks.max(by: { $0.createdAt < $1.createdAt })
 

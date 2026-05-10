@@ -220,6 +220,6 @@ public extension KanbanTask {
     }
 
     var displayAssignee: String {
-        assignee ?? "unassigned"
+        assignee?.trimmedOrNil ?? "unassigned"
     }
 }

@@ -74,6 +74,61 @@ struct AgentsStoreSummariesTests {
         #expect(summary?.activeTaskCount == 0)
     }
 
+    // MARK: - Edge cases
+
+    @Test func buildAgentSummariesCountsTasksWithSurroundingWhitespaceAssignee() {
+        // CLI/db writes can produce assignees with surrounding whitespace
+        // (e.g. "  daneel  "). The Set-of-trimmed-names path must agree with
+        // the per-summary task filter so those tasks still count toward the
+        // agent's totals — otherwise the picker shows an agent with zero
+        // active tasks even when one is running.
+        let tasks = [
+            makeTask(id: "1", assignee: "  daneel  ", status: .running),
+            makeTask(id: "2", assignee: "daneel", status: .todo),
+            makeTask(id: "3", assignee: "\tdaneel\n", status: .done)
+        ]
+        let summaries = AgentsStore.buildAgentSummaries(from: tasks)
+        let summary = summaries.first
+        #expect(summaries.count == 1)
+        #expect(summary?.name == "daneel")
+        #expect(summary?.activeTaskCount == 1)
+        #expect(summary?.health == .online)
+    }
+
+    @Test func buildAgentSummariesPicksRecentActivityFromWhitespacePaddedTask() {
+        // recentActivity must reflect the task title even when the assignee
+        // is padded — the picker rail surfaces this string under the agent.
+        let recentDate = Date(timeIntervalSince1970: 2_000_000_000)
+        let olderDate = Date(timeIntervalSince1970: 1_000_000_000)
+        let tasks = [
+            KanbanTask(
+                id: "1",
+                title: "older",
+                assignee: "daneel",
+                createdAt: olderDate
+            ),
+            KanbanTask(
+                id: "2",
+                title: "newer",
+                assignee: "  daneel  ",
+                createdAt: recentDate
+            )
+        ]
+        let summaries = AgentsStore.buildAgentSummaries(from: tasks)
+        #expect(summaries.first?.recentActivity == "newer")
+    }
+
+    @Test func buildAgentSummariesPreservesDistinctCasingAfterTrimming() {
+        // Different casings remain distinct picker entries; trimming must
+        // not collapse them into a single summary.
+        let tasks = [
+            makeTask(id: "1", assignee: "  Claude  "),
+            makeTask(id: "2", assignee: "claude")
+        ]
+        let summaries = AgentsStore.buildAgentSummaries(from: tasks)
+        #expect(Set(summaries.map(\.name)) == ["Claude", "claude"])
+    }
+
     // MARK: - Helpers
 
     private func makeTask(
