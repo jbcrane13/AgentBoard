@@ -119,11 +119,91 @@ struct AccessibilityIdentifierTests {
         #expect(cancelOccurrences >= 2, "expected attachment_picker_button_cancel on both iOS and macOS branches")
     }
 
+    @Test("Attachment preview strip tags each remove button with its row id")
+    func attachmentPreviewStripIdentifiers() throws {
+        let source = try readUISource("Components/Attachments/AttachmentPicker.swift")
+        #expect(source.contains(#"attachment_preview_button_remove_\(attachment.id)"#))
+    }
+
+    @Test("Image and video attachment taps expose per-attachment identifiers")
+    func attachmentTapIdentifiers() throws {
+        let source = try readUISource("Components/Attachments/AttachmentViews.swift")
+        #expect(source.contains(#"attachment_image_\(attachment.id)"#))
+        #expect(source.contains(#"attachment_video_\(attachment.id)"#))
+    }
+
+    @Test("Chat bubble tags each rendered attachment with its id")
+    func chatBubbleAttachmentIdentifiers() throws {
+        let source = try readUISource("Components/ChatBubble.swift")
+        #expect(source.contains(#"chat_bubble_attachment_\(attachment.id)"#))
+    }
+
     @Test("Media viewer tags the pager and each page")
     func mediaViewerIdentifiers() throws {
         let source = try readUISource("Components/Attachments/MediaViewerView.swift")
         #expect(source.contains("media_viewer_tabview"))
         #expect(source.contains(#"media_viewer_page_\(index)"#))
+    }
+
+    @Test("Chat screen exposes identifiers for header, compose, and conversation rail controls")
+    func chatScreenIdentifiers() throws {
+        let source = try readUISource("Screens/ChatScreen.swift")
+        let required = [
+            "chat_button_toggle_chat_only",
+            "chat_button_refresh",
+            "chat_menu_session",
+            "chat_menu_profile",
+            "chat_menu_session_desktop",
+            "chat_menu_profile_desktop",
+            "chat_menuitem_session_new",
+            "chat_textfield_rename_conversation",
+            "chat_button_confirm_rename",
+            "chat_menuitem_rename_conversation",
+            "chat_menuitem_delete_conversation",
+            "chat_button_attach",
+            "chat_textfield_draft",
+            "chat_button_send"
+        ]
+        assertIdentifiers(required, in: source)
+        #expect(source.contains(#"chat_menuitem_session_\(conversation.id.uuidString)"#))
+        #expect(source.contains(#"chat_menuitem_profile_\(profile.id)"#))
+        #expect(source.contains(#"chat_button_conversation_\(conversation.id.uuidString)"#))
+        #expect(source.contains(#"chat_button_slashcmd_\(cmd.name.dropFirst())"#))
+    }
+
+    @Test("Kanban board exposes identifiers for create flow and per-row actions")
+    func agentsScreenIdentifiers() throws {
+        let source = try readUISource("Screens/AgentsScreen.swift")
+        let required = [
+            "kanban_button_new_task",
+            "kanban_textfield_title",
+            "kanban_picker_assignee",
+            "kanban_textfield_body",
+            "kanban_picker_priority",
+            "kanban_button_cancel",
+            "kanban_button_create",
+            "kanban_menuitem_launch_session",
+            "kanban_menuitem_archive",
+            "kanban_alert_button_archive",
+            "kanban_alert_button_cancel"
+        ]
+        assertIdentifiers(required, in: source)
+        #expect(source.contains(#"kanban_cell_task_\(task.id)"#))
+    }
+
+    @Test("Launch session sheet exposes identifiers for every interactive control")
+    func launchSessionSheetIdentifiers() throws {
+        let source = try readUISource("Screens/LaunchSessionSheet.swift")
+        let required = [
+            "screen_launchSession",
+            "launchSession_textfield_repoName",
+            "launchSession_textEditor_customInstructions",
+            "launchSession_button_cancel",
+            "launchSession_button_launch"
+        ]
+        assertIdentifiers(required, in: source)
+        #expect(source.contains(#"launchSession_button_agent_\(agent.id)"#))
+        #expect(source.contains(#"launchSession_button_preset_\(preset.id)"#))
     }
 
     // MARK: - Helpers
