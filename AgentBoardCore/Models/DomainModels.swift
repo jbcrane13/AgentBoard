@@ -422,6 +422,22 @@ public enum CompanionEventKind: String, Codable, CaseIterable, Sendable {
     case snapshotRefreshed
 }
 
+public enum SessionsSyncStatus: String, Codable, CaseIterable, Sendable {
+    case offline
+    case loading
+    case live
+    case cached
+
+    public var title: String {
+        switch self {
+        case .offline: "Offline"
+        case .loading: "Syncing"
+        case .live: "Live"
+        case .cached: "Cached"
+        }
+    }
+}
+
 public struct CompanionEvent: Codable, Hashable, Identifiable, Sendable {
     public let id: UUID
     public let kind: CompanionEventKind

@@ -12,6 +12,8 @@ public final class SessionsStore {
 
     public private(set) var sessions: [AgentSession] = []
     public private(set) var isLoading = false
+    public private(set) var syncStatus: SessionsSyncStatus = .offline
+    public private(set) var lastSyncedAt: Date?
     public var errorMessage: String?
     public var statusMessage: String?
 
@@ -32,6 +34,7 @@ public final class SessionsStore {
         guard !didBootstrap else { return }
 
         if settingsStore.isCompanionConfigured {
+            syncStatus = .loading
             do {
                 try await companionClient.configure(
                     baseURL: settingsStore.companionURL,
@@ -41,10 +44,15 @@ public final class SessionsStore {
                 sessions = fetched.sorted { $0.lastSeenAt > $1.lastSeenAt }
                 lastFingerprint = fingerprint(sessions)
                 try cache.replaceSessions(sessions)
+                syncStatus = .live
+                lastSyncedAt = .now
                 didBootstrap = true
                 return
             } catch {
-                logger.error("Companion unreachable during bootstrap — falling back to local cache: \(error.localizedDescription, privacy: .public)")
+                logger
+                    .error(
+                        "Companion unreachable during bootstrap — falling back to local cache: \(error.localizedDescription, privacy: .public)"
+                    )
             }
         }
 
@@ -57,7 +65,10 @@ public final class SessionsStore {
         }
 
         if settingsStore.isCompanionConfigured {
+            syncStatus = .cached
             await refresh()
+        } else {
+            syncStatus = .offline
         }
 
         didBootstrap = true
@@ -65,6 +76,7 @@ public final class SessionsStore {
 
     public func refresh() async {
         guard settingsStore.isCompanionConfigured else {
+            syncStatus = .offline
             if sessions.isEmpty {
                 statusMessage = "Connect the companion service in Settings to load sessions."
             }
@@ -87,8 +99,11 @@ public final class SessionsStore {
                 lastFingerprint = newFingerprint
                 try cache.replaceSessions(sessions)
             }
+            syncStatus = .live
+            lastSyncedAt = .now
         } catch {
             logger.error("Failed to refresh sessions: \(error.localizedDescription, privacy: .public)")
+            syncStatus = .cached
             if sessions.isEmpty {
                 errorMessage = error.localizedDescription
             }

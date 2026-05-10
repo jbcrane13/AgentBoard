@@ -20,6 +20,12 @@ struct SessionsScreen: View {
                     .padding(isCompact ? 16 : 24)
                     .padding(.bottom, 8)
 
+                if let banner = syncBanner {
+                    banner
+                        .padding(.horizontal, isCompact ? 16 : 24)
+                        .padding(.bottom, 12)
+                }
+
                 if appModel.sessionsStore.sessions.isEmpty {
                     EmptyStateCard(
                         title: "No sessions yet",
@@ -71,6 +77,29 @@ struct SessionsScreen: View {
                 .environment(appModel)
         }
         .accessibilityIdentifier("screen_sessions")
+    }
+
+    private var syncBanner: SyncStatusBanner? {
+        switch appModel.sessionsStore.syncStatus {
+        case .cached:
+            SyncStatusBanner(
+                icon: "wifi.slash",
+                title: "Showing cached sessions",
+                message: "Companion service is unreachable. Sessions will sync when it reconnects.",
+                tone: .warning,
+                identifier: "sessions_banner_cached"
+            )
+        case .offline:
+            SyncStatusBanner(
+                icon: "antenna.radiowaves.left.and.right.slash",
+                title: "Companion not connected",
+                message: "Connect the companion service in Settings to sync sessions across devices.",
+                tone: .info,
+                identifier: "sessions_banner_offline"
+            )
+        case .loading, .live:
+            nil
+        }
     }
 
     private var header: some View {
@@ -176,6 +205,54 @@ private struct SessionCardNeu: View {
         }
         .padding(20)
         .neuExtruded(cornerRadius: 24, elevation: 8)
+    }
+}
+
+struct SyncStatusBanner: View {
+    enum Tone {
+        case warning
+        case info
+    }
+
+    let icon: String
+    let title: String
+    let message: String
+    let tone: Tone
+    let identifier: String
+
+    private var accentColor: Color {
+        switch tone {
+        case .warning: NeuPalette.accentOrange
+        case .info: NeuPalette.textSecondary
+        }
+    }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: icon)
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(accentColor)
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(NeuPalette.textPrimary)
+
+                Text(message)
+                    .font(.caption)
+                    .foregroundStyle(NeuPalette.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .neuRecessed(cornerRadius: 16, depth: 4)
+        .accessibilityIdentifier(identifier)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title). \(message)")
     }
 }
 
