@@ -68,6 +68,7 @@ struct ImageAttachmentView: View {
         .frame(maxWidth: 280, maxHeight: 200)
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .onTapGesture { onTap?() }
+        .accessibilityIdentifier("attachment_image_\(attachment.id)")
     }
 
     private var remoteURL: URL? {
@@ -155,6 +156,7 @@ struct VideoAttachmentView: View {
         .frame(maxWidth: 280, maxHeight: 180)
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .onTapGesture { onTap?() }
+        .accessibilityIdentifier("attachment_video_\(attachment.id)")
     }
 
     private var thumbnailURL: URL? {
