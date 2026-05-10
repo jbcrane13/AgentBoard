@@ -12,6 +12,7 @@
 		011B0517E71FDF2B9BB75A97 /* ChatBubble.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAFBB71134457F46E6F2B247 /* ChatBubble.swift */; };
 		02A1ED4D473E2364438AEF82 /* Nuke in Frameworks */ = {isa = PBXBuildFile; productRef = AD7CA2BAC6FD5DFD28FC0BCD /* Nuke */; };
 		06B09775C2F43ADB9D2A7DDB /* CreateIssueSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 702A0D71A27F07711AF96C4A /* CreateIssueSheet.swift */; };
+		0B3C6DC24A36FE8A19357506 /* KanbanAssigneePickerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A0D9C21BA312AB952D0E48B /* KanbanAssigneePickerTests.swift */; };
 		0C635EBBEF9AD782093F5594 /* BoardPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63376B7513D3E5CFE45372D6 /* BoardPalette.swift */; };
 		0CE0E873675F3D87FC974CB1 /* AttachmentUploadService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E035F81810040D898374ACEF /* AttachmentUploadService.swift */; };
 		0D4B6287FB492E255C4E927C /* Nuke in Frameworks */ = {isa = PBXBuildFile; productRef = 8E67F37D82C33338077E4371 /* Nuke */; };
@@ -261,6 +262,7 @@
 		5F60733BA5BCAD5BD388E855 /* AgentBoardMobile.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = AgentBoardMobile.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		63376B7513D3E5CFE45372D6 /* BoardPalette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardPalette.swift; sourceTree = "<group>"; };
 		651B64AF0921713BAE550D2D /* TaskDetailSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskDetailSheet.swift; sourceTree = "<group>"; };
+		6A0D9C21BA312AB952D0E48B /* KanbanAssigneePickerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KanbanAssigneePickerTests.swift; sourceTree = "<group>"; };
 		6C0ED2A504BC7E3CA18E4094 /* GitHubWorkServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubWorkServiceTests.swift; sourceTree = "<group>"; };
 		6D876290D32059BAB65A9F02 /* WorkScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkScreen.swift; sourceTree = "<group>"; };
 		6FCC4B5C12958567A1D6D69E /* AppDestinationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDestinationTests.swift; sourceTree = "<group>"; };
@@ -381,6 +383,7 @@
 				3B9B576059ADDC3B5D219868 /* FoundationExtrasTests.swift */,
 				6C0ED2A504BC7E3CA18E4094 /* GitHubWorkServiceTests.swift */,
 				1F06E0C2FFE9CAC90D48662B /* HermesGatewayClientTests.swift */,
+				6A0D9C21BA312AB952D0E48B /* KanbanAssigneePickerTests.swift */,
 				AE3F349D2B17FA90738CCDD5 /* KanbanModelsTests.swift */,
 				8562113DB3BC11316C4B4A50 /* LabelSchemaTests.swift */,
 				957114148477B05585A13D7C /* MockURLProtocol.swift */,
@@ -890,6 +893,7 @@
 				E069DEDCB71500BCB3DA43A4 /* FoundationExtrasTests.swift in Sources */,
 				D2F03218C8433B59598A04D5 /* GitHubWorkServiceTests.swift in Sources */,
 				62108DFBD6C8CF3265C4F8A5 /* HermesGatewayClientTests.swift in Sources */,
+				0B3C6DC24A36FE8A19357506 /* KanbanAssigneePickerTests.swift in Sources */,
 				DAAA6677EBC51F4C7796E505 /* KanbanModelsTests.swift in Sources */,
 				E9D09CAC0D952EE1295DFA60 /* LabelSchemaTests.swift in Sources */,
 				38E1089316EEC57E444A6FB1 /* MockURLProtocol.swift in Sources */,
