@@ -129,6 +129,7 @@
 		E9D09CAC0D952EE1295DFA60 /* LabelSchemaTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8562113DB3BC11316C4B4A50 /* LabelSchemaTests.swift */; };
 		EB912DFB4FD8ED106AE6C02C /* ChatBubble.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAFBB71134457F46E6F2B247 /* ChatBubble.swift */; };
 		EEE501D250CCB4E6D2D60418 /* NukeUI in Frameworks */ = {isa = PBXBuildFile; productRef = 28BE44876742C1F619FDD2CA /* NukeUI */; };
+		F18232EF1BD587C14FCCD06F /* SessionsStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92E0CE9F3A8E9CA87A6C3B95 /* SessionsStoreTests.swift */; };
 		F22F4D3D2D3D20A5B3DD6B20 /* AgentBoardAppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4C9640747C8B7AE6E92BB20 /* AgentBoardAppModel.swift */; };
 		F374477884080894A1322DCE /* AppDestination.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78ED2576E35E0964839427AD /* AppDestination.swift */; };
 		F3D458595223FE83DD26EDC5 /* NukeUI in Frameworks */ = {isa = PBXBuildFile; productRef = AA403A62FC0CC3B341A2D00B /* NukeUI */; };
@@ -277,6 +278,7 @@
 		7F925ACBB136730BD7852D8B /* ChatStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatStoreTests.swift; sourceTree = "<group>"; };
 		8562113DB3BC11316C4B4A50 /* LabelSchemaTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabelSchemaTests.swift; sourceTree = "<group>"; };
 		87B288F1A4879578BDDED47F /* DesktopTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesktopTab.swift; sourceTree = "<group>"; };
+		92E0CE9F3A8E9CA87A6C3B95 /* SessionsStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionsStoreTests.swift; sourceTree = "<group>"; };
 		957114148477B05585A13D7C /* MockURLProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockURLProtocol.swift; sourceTree = "<group>"; };
 		959F1DE11FF3233AB9029B6D /* MobileRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileRootView.swift; sourceTree = "<group>"; };
 		A06C1DAB866C77FF3A634D71 /* WorkStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkStore.swift; sourceTree = "<group>"; };
@@ -397,6 +399,7 @@
 				8562113DB3BC11316C4B4A50 /* LabelSchemaTests.swift */,
 				957114148477B05585A13D7C /* MockURLProtocol.swift */,
 				CE1B1DC901AD1D60B3855D38 /* SessionLauncherTests.swift */,
+				92E0CE9F3A8E9CA87A6C3B95 /* SessionsStoreTests.swift */,
 				B4813FBD80F9AC10D1A51841 /* SettingsStoreTests.swift */,
 				EA26177C115F337F0AC82395 /* SlashCommandHandlerTests.swift */,
 				7863E93C0B04059321066BCD /* WorkStoreCRUDTests.swift */,
@@ -910,6 +913,7 @@
 				E9D09CAC0D952EE1295DFA60 /* LabelSchemaTests.swift in Sources */,
 				38E1089316EEC57E444A6FB1 /* MockURLProtocol.swift in Sources */,
 				9A90C5EF45CA6630C7EA64CD /* SessionLauncherTests.swift in Sources */,
+				F18232EF1BD587C14FCCD06F /* SessionsStoreTests.swift in Sources */,
 				D4674853A5F6064FC3E65542 /* SettingsStoreTests.swift in Sources */,
 				2525C93CDB9C86D825831FC9 /* SlashCommandHandlerTests.swift in Sources */,
 				293FC2DA4D1A99F6056A3C91 /* WorkStoreCRUDTests.swift in Sources */,
