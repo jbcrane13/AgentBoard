@@ -405,15 +405,19 @@ private struct KanbanTaskRow: View {
         .contextMenu {
             if let onLaunch {
                 Button { onLaunch() } label: { Label("Launch Session", systemImage: "bolt.fill") }
+                    .accessibilityIdentifier("kanban_menuitem_launch_session")
                 Divider()
             }
             Button(role: .destructive) { showDeleteConfirm = true } label: {
                 Label("Archive", systemImage: "archivebox")
             }
+            .accessibilityIdentifier("kanban_menuitem_archive")
         }
         .alert("Archive Task", isPresented: $showDeleteConfirm) {
             Button("Archive", role: .destructive) { Task { await appModel.agentsStore.archiveTask(id: task.id) } }
+                .accessibilityIdentifier("kanban_alert_button_archive")
             Button("Cancel", role: .cancel) {}
+                .accessibilityIdentifier("kanban_alert_button_cancel")
         }
     }
 }

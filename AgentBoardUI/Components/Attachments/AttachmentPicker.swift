@@ -300,6 +300,7 @@ struct AttachmentPreviewStrip: View {
                                     .background(Circle().fill(Color.black.opacity(0.6)))
                             }
                             .offset(x: 4, y: -4)
+                            .accessibilityIdentifier("attachment_preview_button_remove_\(attachment.id)")
                         }
                     }
                 }

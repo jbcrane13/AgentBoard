@@ -101,6 +101,7 @@ struct ChatScreen: View {
                 .accessibilityLabel("Refresh Hermes connection and models")
                 .accessibilityHint("Reconnects to Hermes and reloads the available models.")
                 .buttonStyle(NeuButtonTarget(isAccent: false))
+                .accessibilityIdentifier("chat_button_refresh")
             }
         }
     }
@@ -324,6 +325,7 @@ struct ChatScreen: View {
                             appModel.chatStore.renameConversation(id: conversation.id, title: editingTitle)
                             editingConversationID = nil
                         }
+                        .accessibilityIdentifier("chat_textfield_rename_conversation")
 
                     Button {
                         appModel.chatStore.renameConversation(id: conversation.id, title: editingTitle)
@@ -333,6 +335,7 @@ struct ChatScreen: View {
                             .foregroundStyle(NeuPalette.accentCyan)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("chat_button_confirm_rename")
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
@@ -354,6 +357,7 @@ struct ChatScreen: View {
                             ))
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("chat_button_conversation_\(conversation.id.uuidString)")
                 .contextMenu {
                     Button {
                         editingTitle = conversation.title
@@ -361,11 +365,13 @@ struct ChatScreen: View {
                     } label: {
                         Label("Rename", systemImage: "pencil")
                     }
+                    .accessibilityIdentifier("chat_menuitem_rename_conversation")
                     Button(role: .destructive) {
                         appModel.chatStore.deleteConversation(id: conversation.id)
                     } label: {
                         Label("Delete", systemImage: "trash")
                     }
+                    .accessibilityIdentifier("chat_menuitem_delete_conversation")
                 }
             }
         }
@@ -467,6 +473,7 @@ struct ChatScreen: View {
                     .foregroundStyle(NeuPalette.textPrimary)
                     .textFieldStyle(.plain)
                     .submitLabel(.send)
+                    .accessibilityIdentifier("chat_textfield_draft")
                     .onSubmit {
                         guard chatStore.canSendDraft else { return }
                         isTextFieldFocused = false
