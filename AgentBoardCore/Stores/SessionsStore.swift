@@ -3,11 +3,19 @@ import Observation
 import os
 
 @MainActor
+public protocol SessionsCacheStoring {
+    func loadSessions() throws -> [AgentSession]
+    func replaceSessions(_ sessions: [AgentSession]) throws
+}
+
+extension AgentBoardCache: SessionsCacheStoring {}
+
+@MainActor
 @Observable
 public final class SessionsStore {
     private let logger = Logger(subsystem: "com.agentboard.modern", category: "SessionsStore")
     private let companionClient: CompanionClient
-    private let cache: AgentBoardCache
+    private let cache: any SessionsCacheStoring
     private let settingsStore: SettingsStore
 
     public private(set) var sessions: [AgentSession] = []
@@ -22,7 +30,7 @@ public final class SessionsStore {
 
     public init(
         companionClient: CompanionClient,
-        cache: AgentBoardCache,
+        cache: any SessionsCacheStoring,
         settingsStore: SettingsStore
     ) {
         self.companionClient = companionClient
@@ -43,7 +51,7 @@ public final class SessionsStore {
                 let fetched = try await companionClient.listSessions()
                 sessions = fetched.sorted { $0.lastSeenAt > $1.lastSeenAt }
                 lastFingerprint = fingerprint(sessions)
-                try cache.replaceSessions(sessions)
+                persistSessions(sessions)
                 syncStatus = .live
                 lastSyncedAt = .now
                 didBootstrap = true
@@ -97,7 +105,7 @@ public final class SessionsStore {
             if newFingerprint != lastFingerprint {
                 sessions = newSessions
                 lastFingerprint = newFingerprint
-                try cache.replaceSessions(sessions)
+                persistSessions(sessions)
             }
             syncStatus = .live
             lastSyncedAt = .now
@@ -171,5 +179,13 @@ public final class SessionsStore {
 
     private func fingerprint(_ sessions: [AgentSession]) -> String {
         sessions.map { "\($0.id):\($0.status.rawValue):\($0.lastSeenAt)" }.joined(separator: "|")
+    }
+
+    private func persistSessions(_ sessions: [AgentSession]) {
+        do {
+            try cache.replaceSessions(sessions)
+        } catch {
+            logger.error("Failed to persist sessions to cache: \(error.localizedDescription, privacy: .public)")
+        }
     }
 }

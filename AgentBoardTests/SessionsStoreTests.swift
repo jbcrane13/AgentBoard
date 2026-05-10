@@ -134,6 +134,50 @@ struct SessionsStoreTests {
 
     @Test
     @MainActor
+    func bootstrapStaysLiveWhenCacheWriteFails() async throws {
+        // If the companion responds with fresh data but the local cache write
+        // fails (e.g. SwiftData under disk pressure), we should still mark the
+        // store as .live and surface the fetched data — losing persistence is
+        // not a reason to discard known-fresh in-memory state.
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let session = AgentSession(
+            id: "remote-1",
+            source: "Tailscale Mac",
+            status: .running,
+            model: "Codex",
+            startedAt: now,
+            lastSeenAt: now
+        )
+
+        let companionClient = CompanionClient(session: makeMockSession { request in
+            let response = try HTTPURLResponse(
+                url: #require(request.url),
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .iso8601
+            return try (response, encoder.encode([session]))
+        })
+
+        let cache = FailingSessionsCache(failOnReplace: true)
+        let store = try await makeStore(
+            cache: cache,
+            companionClient: companionClient,
+            companionURL: "http://test.local:8742"
+        )
+
+        await store.bootstrap()
+
+        #expect(store.syncStatus == .live)
+        #expect(store.lastSyncedAt != nil)
+        #expect(store.sessions.count == 1)
+        #expect(store.sessions.first?.id == "remote-1")
+    }
+
+    @Test
+    @MainActor
     func refreshMarksCachedWhenCompanionDropsAfterLive() async throws {
         let session = AgentSession(
             id: "remote-3",
@@ -178,7 +222,7 @@ struct SessionsStoreTests {
 
     @MainActor
     private func makeStore(
-        cache: AgentBoardCache? = nil,
+        cache: (any SessionsCacheStoring)? = nil,
         companionClient: CompanionClient = CompanionClient(),
         companionURL: String
     ) async throws -> SessionsStore {
@@ -191,12 +235,34 @@ struct SessionsStoreTests {
         settingsStore.companionURL = companionURL
         settingsStore.companionToken = ""
 
-        let resolvedCache = try cache ?? AgentBoardCache(inMemory: true)
+        let resolvedCache: any SessionsCacheStoring = try cache ?? AgentBoardCache(inMemory: true)
         return SessionsStore(
             companionClient: companionClient,
             cache: resolvedCache,
             settingsStore: settingsStore
         )
+    }
+}
+
+@MainActor
+private final class FailingSessionsCache: SessionsCacheStoring {
+    private var stored: [AgentSession]
+    private let failOnReplace: Bool
+
+    init(stored: [AgentSession] = [], failOnReplace: Bool) {
+        self.stored = stored
+        self.failOnReplace = failOnReplace
+    }
+
+    func loadSessions() throws -> [AgentSession] {
+        stored
+    }
+
+    func replaceSessions(_ sessions: [AgentSession]) throws {
+        if failOnReplace {
+            throw CocoaError(.fileWriteOutOfSpace)
+        }
+        stored = sessions
     }
 }
 
