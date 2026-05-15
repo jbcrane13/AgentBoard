@@ -47,6 +47,7 @@ struct NeuChatBubble: View {
                     ForEach(message.attachments) { attachment in
                         AttachmentContainerView(attachment: attachment)
                             .attachmentContextMenu(for: attachment)
+                            .accessibilityIdentifier("chat_bubble_attachment_\(attachment.id)")
                     }
                 }
             }

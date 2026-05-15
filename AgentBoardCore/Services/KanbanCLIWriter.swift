@@ -1,9 +1,21 @@
 import Foundation
 
+/// Abstraction over kanban write operations so consumers can be unit-tested
+/// without invoking the real `hermes` CLI.
+public protocol KanbanCLIWriting: Sendable {
+    func create(_ draft: KanbanCreateDraft) async throws -> KanbanTask
+    func comment(taskID: String, body: String) async throws
+    func complete(taskID: String, summary: String) async throws
+    func block(taskID: String, reason: String) async throws
+    func unblock(taskID: String) async throws
+    func archive(taskID: String) async throws
+    func assign(taskID: String, assignee: String) async throws
+}
+
 /// Thin wrapper around `hermes kanban` CLI for write operations.
 /// Mutations go through the CLI so the gateway/dispatcher owns the write path
 /// and we never contend with the SQLite claim/reclaim cycle.
-public actor KanbanCLIWriter {
+public actor KanbanCLIWriter: KanbanCLIWriting {
     public enum WriteError: LocalizedError, Equatable {
         case commandFailed(String)
         case invalidJSON(String)

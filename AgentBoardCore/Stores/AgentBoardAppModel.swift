@@ -127,6 +127,11 @@ public final class AgentBoardAppModel {
     private func handle(event: CompanionEvent) async {
         statusMessage = "Companion update: \(event.kind.rawValue)"
         await sessionsStore.handle(event: event.kind)
+
+        // Route conversation sync events to ChatStore for cross-device sync
+        if event.kind == .conversationsChanged {
+            await chatStore.refreshConversationsFromCompanion()
+        }
     }
 }
 
@@ -155,7 +160,8 @@ public enum AgentBoardBootstrap {
         let chatStore = ChatStore(
             hermesClient: hermesClient,
             cache: cache,
-            settingsStore: settingsStore
+            settingsStore: settingsStore,
+            companionClient: companionClient
         )
         let workStore = WorkStore(
             service: gitHubService,

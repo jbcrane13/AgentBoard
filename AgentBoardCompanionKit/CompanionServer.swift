@@ -303,6 +303,18 @@ public final class CompanionServer: @unchecked Sendable {
         case ("GET", ["v1", "agents"]):
             try sendJSON(await store.listAgents(), over: connection)
 
+        case ("GET", ["v1", "conversations"]):
+            try sendJSON(await store.listConversations(), over: connection)
+
+        case let ("DELETE", components)
+            where components.count == 4 &&
+            components[0] == "v1" &&
+            components[1] == "conversations" &&
+            UUID(uuidString: components[2]) != nil:
+            try await store.deleteConversation(id: UUID(uuidString: components[2])!)
+            try sendJSON(["ok": true], over: connection)
+            await broker.publish(CompanionEvent(kind: .conversationsChanged))
+
         case ("GET", ["v1", "events"]):
             await registerSSESubscriber(over: connection)
 
@@ -332,6 +344,45 @@ public final class CompanionServer: @unchecked Sendable {
         sendSSEHeaders(over: connection)
         await broker.register(subscriber)
         subscriber.send(event: CompanionEvent(kind: .snapshotRefreshed))
+    }
+
+    // MARK: - Conversation Actions
+
+    private func handleConversationAction(
+        components: [String],
+        body: Data,
+        over connection: NWConnection
+    ) async throws {
+        let action = components.count > 2 ? components[2] : "sync"
+        switch action {
+        case "sync":
+            guard let payload = try? JSONDecoder().decode(ConversationSyncPayload.self, from: body) else {
+                try sendJSON(["error": "invalid_body"], over: connection)
+                return
+            }
+            try await store.replaceConversations(payload.conversations)
+            for conv in payload.conversations {
+                if let messages = payload.messagesByConversation[conv.id] {
+                    try await store.saveConversationSnapshot(
+                        conversation: conv,
+                        messages: messages
+                    )
+                }
+            }
+            try sendJSON(["ok": true], over: connection)
+
+        case "delete":
+            guard components.count >= 4,
+                  let id = UUID(uuidString: components[3]) else {
+                try sendJSON(["error": "invalid_id"], over: connection)
+                return
+            }
+            try await store.deleteConversation(id: id)
+            try sendJSON(["ok": true], over: connection)
+
+        default:
+            try sendJSON(["error": "not_found"], over: connection)
+        }
     }
 
     private func handleSessionAction(

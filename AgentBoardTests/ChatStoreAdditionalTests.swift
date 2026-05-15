@@ -28,7 +28,12 @@ struct ChatStoreAdditionalTests {
         settingsStore.hermesGatewayURL = hermesURL
         settingsStore.companionURL = companionURL
         settingsStore.hermesModelID = "hermes-agent"
-        return ChatStore(hermesClient: hermesClient, cache: cache, settingsStore: settingsStore)
+        return ChatStore(
+            hermesClient: hermesClient,
+            cache: cache,
+            settingsStore: settingsStore,
+            companionClient: CompanionClient()
+        )
     }
 
     // MARK: - bootstrap
@@ -249,7 +254,12 @@ struct ChatStoreAdditionalTests {
             return (response, Data())
         })
         settings.hermesGatewayURL = "http://127.0.0.1:8642"
-        let s = ChatStore(hermesClient: client, cache: cache, settingsStore: settings)
+        let s = ChatStore(
+            hermesClient: client,
+            cache: cache,
+            settingsStore: settings,
+            companionClient: CompanionClient()
+        )
         s.startNewConversation()
         s.selectModel("hermes-pro")
         #expect(settings.hermesModelID == "hermes-pro")

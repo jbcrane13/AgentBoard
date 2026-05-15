@@ -402,10 +402,40 @@ public struct AgentSummary: Codable, Hashable, Identifiable, Sendable {
     }
 }
 
+public struct ConversationSyncPayload: Codable, Hashable, Sendable {
+    public var conversations: [ChatConversation]
+    public var messagesByConversation: [UUID: [ConversationMessage]]
+
+    public init(
+        conversations: [ChatConversation],
+        messagesByConversation: [UUID: [ConversationMessage]]
+    ) {
+        self.conversations = conversations
+        self.messagesByConversation = messagesByConversation
+    }
+}
+
 public enum CompanionEventKind: String, Codable, CaseIterable, Sendable {
     case sessionsChanged
     case agentsChanged
+    case conversationsChanged
     case snapshotRefreshed
+}
+
+public enum SessionsSyncStatus: String, Codable, CaseIterable, Sendable {
+    case offline
+    case loading
+    case live
+    case cached
+
+    public var title: String {
+        switch self {
+        case .offline: "Offline"
+        case .loading: "Syncing"
+        case .live: "Live"
+        case .cached: "Cached"
+        }
+    }
 }
 
 public struct CompanionEvent: Codable, Hashable, Identifiable, Sendable {

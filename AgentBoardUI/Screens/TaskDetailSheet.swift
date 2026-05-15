@@ -37,19 +37,25 @@ struct TaskDetailSheet: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close") { dismiss() }
                         .foregroundStyle(NeuPalette.textPrimary)
+                        .accessibilityIdentifier("task_detail_button_close")
                 }
                 ToolbarItem(placement: .primaryAction) {
                     Menu {
                         Button { presentComment() } label: { Label("Add Comment", systemImage: "bubble.left") }
+                            .accessibilityIdentifier("task_detail_button_add_comment")
                         Divider()
                         Button { complete() } label: { Label("Complete", systemImage: "checkmark") }
+                            .accessibilityIdentifier("task_detail_button_complete")
                         Button { block() } label: { Label("Block", systemImage: "hand.raised") }
+                            .accessibilityIdentifier("task_detail_button_block")
                         Divider()
                         Button(role: .destructive) { archive() } label: { Label("Archive", systemImage: "archivebox") }
+                            .accessibilityIdentifier("task_detail_button_archive")
                     } label: {
                         Image(systemName: "ellipsis.circle")
                     }
                     .buttonStyle(NeuButtonTarget(isAccent: false))
+                    .accessibilityIdentifier("task_detail_menu_actions")
                 }
             }
             .sheet(isPresented: $isCommenting) {
@@ -58,6 +64,7 @@ struct TaskDetailSheet: View {
             }
             .task { await loadDetails() }
         }
+        .accessibilityIdentifier("screen_task_detail")
     }
 
     // MARK: - Sections
@@ -272,12 +279,14 @@ struct TaskDetailSheet: View {
             Form {
                 TextField("Comment", text: $commentText, axis: .vertical)
                     .lineLimit(3 ... 8)
+                    .accessibilityIdentifier("task_detail_textfield_comment")
             }
             .formStyle(.grouped)
             .navigationTitle("Add Comment")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { isCommenting = false }
+                        .accessibilityIdentifier("task_detail_button_cancel_comment")
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Post") {
@@ -289,6 +298,7 @@ struct TaskDetailSheet: View {
                         isCommenting = false
                     }
                     .disabled(commentText.trimmedOrNil == nil)
+                    .accessibilityIdentifier("task_detail_button_post_comment")
                 }
             }
         }

@@ -43,24 +43,29 @@ struct IssueDetailSheet: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close") { dismiss() }
                         .foregroundStyle(NeuPalette.textPrimary)
+                        .accessibilityIdentifier("issue_detail_button_close")
                 }
                 ToolbarItemGroup(placement: .primaryAction) {
                     if isEditing {
                         Button("Save") { save() }
                             .buttonStyle(NeuButtonTarget(isAccent: true))
                             .disabled(isSaving || editTitle.trimmedOrNil == nil)
+                            .accessibilityIdentifier("issue_detail_button_save")
                     } else {
                         if item.status == .done {
                             Button("Reopen") { closeOrReopen() }
                                 .buttonStyle(NeuButtonTarget(isAccent: false))
                                 .disabled(isClosing)
+                                .accessibilityIdentifier("issue_detail_button_toolbar_reopen")
                         } else {
                             Button("Close Issue") { closeOrReopen() }
                                 .buttonStyle(NeuButtonTarget(isAccent: true))
                                 .disabled(isClosing)
+                                .accessibilityIdentifier("issue_detail_button_toolbar_close_issue")
                         }
                         Button("Edit") { beginEditing() }
                             .buttonStyle(NeuButtonTarget(isAccent: false))
+                            .accessibilityIdentifier("issue_detail_button_edit")
                     }
                 }
             }
@@ -201,6 +206,7 @@ struct IssueDetailSheet: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Title").font(.headline).foregroundStyle(NeuPalette.textPrimary)
                     NeuTextField(placeholder: "Issue title", text: $editTitle)
+                        .accessibilityIdentifier("issue_detail_textfield_title")
                 }
 
                 // Description
@@ -212,6 +218,7 @@ struct IssueDetailSheet: View {
                         .padding(12)
                         .neuRecessed(cornerRadius: 16, depth: 6)
                         .foregroundStyle(NeuPalette.textPrimary)
+                        .accessibilityIdentifier("issue_detail_texteditor_body")
                 }
 
                 // Type (required)
@@ -263,6 +270,7 @@ struct IssueDetailSheet: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Milestone").font(.headline).foregroundStyle(NeuPalette.textPrimary)
                     NeuTextField(placeholder: "Optional milestone", text: $editMilestone)
+                        .accessibilityIdentifier("issue_detail_textfield_milestone")
                 }
 
                 // Attachment (optional)
@@ -286,6 +294,7 @@ struct IssueDetailSheet: View {
                         .neuRecessed(cornerRadius: 16, depth: 6)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("issue_detail_button_add_attachment")
                 }
             }
             .padding(24)
@@ -331,6 +340,7 @@ struct IssueDetailSheet: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(isClosing)
+                .accessibilityIdentifier("issue_detail_button_card_reopen")
             } else {
                 Button {
                     closeOrReopen()
@@ -361,6 +371,7 @@ struct IssueDetailSheet: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(isClosing)
+                .accessibilityIdentifier("issue_detail_button_card_close_issue")
             }
         }
         .padding(24)

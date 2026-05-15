@@ -58,6 +58,7 @@ struct AttachmentPickerSheet: View {
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("Cancel") { dismiss() }
+                            .accessibilityIdentifier("attachment_picker_button_cancel")
                     }
                 }
             }
@@ -105,6 +106,7 @@ struct AttachmentPickerSheet: View {
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("Cancel") { dismiss() }
+                            .accessibilityIdentifier("attachment_picker_button_cancel")
                     }
                 }
             }
@@ -298,6 +300,7 @@ struct AttachmentPreviewStrip: View {
                                     .background(Circle().fill(Color.black.opacity(0.6)))
                             }
                             .offset(x: 4, y: -4)
+                            .accessibilityIdentifier("attachment_preview_button_remove_\(attachment.id)")
                         }
                     }
                 }

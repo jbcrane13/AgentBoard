@@ -11,6 +11,13 @@ struct AgentsScreen: View {
     @State private var draftAssignee = ""
     @State private var draftBody = ""
     @State private var draftPriority = 2
+    @State private var isCreating = false
+    @State private var createError: String?
+    /// Increments whenever a create attempt is started, cancelled, or the sheet
+    /// is reopened. The in-flight Task captures the value at launch and bails
+    /// out before mutating view state if the counter has moved on, so a
+    /// dismissed-then-reopened sheet can't be slammed shut by a stale write.
+    @State private var createGeneration = 0
 
     private var isCompact: Bool {
         hSizeClass == .compact
@@ -72,11 +79,15 @@ struct AgentsScreen: View {
                 draftAssignee = appModel.agentsStore.summaries.first?.name ?? ""
                 draftBody = ""
                 draftPriority = 2
+                createError = nil
+                isCreating = false
+                createGeneration &+= 1
                 isPresentingCreateSheet = true
             } label: {
                 Image(systemName: "plus")
             }
             .buttonStyle(NeuButtonTarget(isAccent: true))
+            .accessibilityIdentifier("kanban_button_new_task")
         }
     }
 
@@ -240,9 +251,17 @@ struct AgentsScreen: View {
             Form {
                 Section("Task") {
                     TextField("Title", text: $draftTitle)
-                    TextField("Assigned agent", text: $draftAssignee)
+                        .accessibilityIdentifier("kanban_textfield_title")
+                    Picker("Assigned agent", selection: $draftAssignee) {
+                        Text("Unassigned").tag("")
+                        ForEach(appModel.agentsStore.summaries) { agent in
+                            Text(agent.name).tag(agent.name)
+                        }
+                    }
+                    .accessibilityIdentifier("kanban_picker_assignee")
                     TextField("Body", text: $draftBody, axis: .vertical)
                         .lineLimit(3 ... 6)
+                        .accessibilityIdentifier("kanban_textfield_body")
                 }
 
                 Section("Priority") {
@@ -254,15 +273,39 @@ struct AgentsScreen: View {
                     }
                     .pickerStyle(.segmented)
                     .tint(NeuPalette.accentOrange)
+                    .accessibilityIdentifier("kanban_picker_priority")
+                }
+
+                if let error = createError {
+                    Section {
+                        HStack {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundStyle(Color.yellow)
+                            Text(error)
+                                .font(.callout)
+                                .foregroundStyle(NeuPalette.textSecondary)
+                        }
+                    }
                 }
             }
             .formStyle(.grouped)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { isPresentingCreateSheet = false }
+                    Button("Cancel") {
+                        // Abandon any in-flight create so its completion can't
+                        // dismiss a sheet the user has since reopened.
+                        createGeneration &+= 1
+                        isCreating = false
+                        isPresentingCreateSheet = false
+                    }
+                    .accessibilityIdentifier("kanban_button_cancel")
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Create") {
+                    Button {
+                        createGeneration &+= 1
+                        let generation = createGeneration
+                        isCreating = true
+                        createError = nil
                         let draft = KanbanCreateDraft(
                             title: draftTitle.trimmedOrNil ?? "Untitled Task",
                             body: draftBody.trimmedOrNil,
@@ -270,10 +313,31 @@ struct AgentsScreen: View {
                             priority: draftPriority,
                             tenant: "agentboard"
                         )
-                        Task { await appModel.agentsStore.createTask(draft) }
-                        isPresentingCreateSheet = false
+                        Task {
+                            await appModel.agentsStore.createTask(draft)
+                            // Bail if the user cancelled, reopened the sheet,
+                            // or kicked off another attempt while we awaited.
+                            guard generation == createGeneration else { return }
+                            if appModel.agentsStore.errorMessage != nil {
+                                createError = appModel.agentsStore.errorMessage
+                                isCreating = false
+                            } else {
+                                isCreating = false
+                                isPresentingCreateSheet = false
+                            }
+                        }
+                    } label: {
+                        HStack(spacing: 6) {
+                            if isCreating {
+                                ProgressView()
+                                    .scaleEffect(0.65)
+                                    .controlSize(.small)
+                            }
+                            Text(isCreating ? "Creating…" : "Create")
+                        }
                     }
-                    .disabled(draftTitle.trimmedOrNil == nil)
+                    .disabled(draftTitle.trimmedOrNil == nil || isCreating)
+                    .accessibilityIdentifier("kanban_button_create")
                 }
             }
             .navigationTitle("New Kanban Task")
@@ -341,15 +405,19 @@ private struct KanbanTaskRow: View {
         .contextMenu {
             if let onLaunch {
                 Button { onLaunch() } label: { Label("Launch Session", systemImage: "bolt.fill") }
+                    .accessibilityIdentifier("kanban_menuitem_launch_session")
                 Divider()
             }
             Button(role: .destructive) { showDeleteConfirm = true } label: {
                 Label("Archive", systemImage: "archivebox")
             }
+            .accessibilityIdentifier("kanban_menuitem_archive")
         }
         .alert("Archive Task", isPresented: $showDeleteConfirm) {
             Button("Archive", role: .destructive) { Task { await appModel.agentsStore.archiveTask(id: task.id) } }
+                .accessibilityIdentifier("kanban_alert_button_archive")
             Button("Cancel", role: .cancel) {}
+                .accessibilityIdentifier("kanban_alert_button_cancel")
         }
     }
 }

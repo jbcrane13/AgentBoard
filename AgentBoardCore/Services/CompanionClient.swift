@@ -151,6 +151,39 @@ public actor CompanionClient {
         }
     }
 
+    // MARK: - Conversations
+
+    public func listConversations() async throws -> [ChatConversation] {
+        try await fetch(path: "v1/conversations")
+    }
+
+    public func loadMessages(conversationID: UUID) async throws -> [ConversationMessage] {
+        try await fetch(path: "v1/conversations/\\(conversationID.uuidString)/messages")
+    }
+
+    public func syncConversations(
+        conversations: [ChatConversation],
+        messagesByConversation: [UUID: [ConversationMessage]]
+    ) async throws {
+        let payload = ConversationSyncPayload(
+            conversations: conversations,
+            messagesByConversation: messagesByConversation
+        )
+        var request = makeRequest(path: "v1/conversations/sync")
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try encoder.encode(payload)
+        let (data, response) = try await session.data(for: request)
+        try validate(response: response, data: data)
+    }
+
+    public func deleteConversationOnServer(id: UUID) async throws {
+        var request = makeRequest(path: "v1/conversations/delete/\\(id.uuidString)")
+        request.httpMethod = "POST"
+        let (data, response) = try await session.data(for: request)
+        try validate(response: response, data: data)
+    }
+
     // MARK: - Internal
 
     private func fetch<Value: Decodable>(path: String) async throws -> Value {

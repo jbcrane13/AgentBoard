@@ -27,6 +27,7 @@ struct SessionDetailSheet: View {
                     .pickerStyle(.segmented)
                     .padding(.horizontal, 24)
                     .padding(.bottom, 24)
+                    .accessibilityIdentifier("session_detail_picker_mode")
 
                     if selectedTab == 0 {
                         overviewTab
@@ -41,6 +42,7 @@ struct SessionDetailSheet: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close") { dismiss() }
                         .foregroundStyle(NeuPalette.textPrimary)
+                        .accessibilityIdentifier("session_detail_button_close")
                 }
                 ToolbarItem(placement: .primaryAction) {
                     Menu {
@@ -51,14 +53,17 @@ struct SessionDetailSheet: View {
                                     dismiss()
                                 }
                             }
+                            .accessibilityIdentifier("session_detail_button_stop")
                         }
                     } label: {
                         Image(systemName: "ellipsis.circle")
                             .foregroundStyle(NeuPalette.textPrimary)
                     }
+                    .accessibilityIdentifier("session_detail_menu_actions")
                 }
             }
         }
+        .accessibilityIdentifier("screen_session_detail")
     }
 
     private var headerCard: some View {

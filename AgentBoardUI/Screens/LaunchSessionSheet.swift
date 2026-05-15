@@ -110,6 +110,7 @@ struct LaunchSessionSheet: View {
                                         )
                                     }
                                     .buttonStyle(.plain)
+                                    .accessibilityIdentifier("launchSession_button_agent_\(agent.id)")
                                 }
                             }
 
@@ -151,6 +152,7 @@ struct LaunchSessionSheet: View {
                                         )
                                     }
                                     .buttonStyle(.plain)
+                                    .accessibilityIdentifier("launchSession_button_preset_\(preset.id)")
                                 }
                             }
 
@@ -162,6 +164,7 @@ struct LaunchSessionSheet: View {
                                     .padding(12)
                                     .neuRecessed(cornerRadius: 16, depth: 6)
                                     .foregroundStyle(NeuPalette.textPrimary)
+                                    .accessibilityIdentifier("launchSession_textEditor_customInstructions")
                             }
                         }
                         .padding(24)
@@ -187,11 +190,13 @@ struct LaunchSessionSheet: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                         .foregroundStyle(NeuPalette.textPrimary)
+                        .accessibilityIdentifier("launchSession_button_cancel")
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Launch") { launch() }
                         .buttonStyle(NeuButtonTarget(isAccent: true))
                         .disabled(isLaunching || repoName.trimmedOrNil == nil)
+                        .accessibilityIdentifier("launchSession_button_launch")
                 }
             }
             .onAppear {
@@ -201,6 +206,7 @@ struct LaunchSessionSheet: View {
                 selectedAgent = selectedPreset.agent
             }
         }
+        .accessibilityIdentifier("screen_launchSession")
     }
 
     private func launch() {

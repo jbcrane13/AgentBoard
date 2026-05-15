@@ -7,6 +7,7 @@ import os
 public final class SettingsStore {
     private let logger = Logger(subsystem: "com.agentboard.modern", category: "SettingsStore")
     private let repository: SettingsRepository
+    private let requiresRemoteCompanionHost: Bool
 
     public var hermesGatewayURL = "http://127.0.0.1:8642"
     public var hermesModelID = "hermes-agent"
@@ -26,8 +27,9 @@ public final class SettingsStore {
     public var statusMessage: String?
     public var errorMessage: String?
 
-    public init(repository: SettingsRepository) {
+    public init(repository: SettingsRepository, requiresRemoteCompanionHost: Bool = false) {
         self.repository = repository
+        self.requiresRemoteCompanionHost = requiresRemoteCompanionHost
     }
 
     public var settingsSnapshot: AgentBoardSettings {
@@ -75,7 +77,27 @@ public final class SettingsStore {
     }
 
     public var isCompanionConfigured: Bool {
-        companionURL.trimmedOrNil != nil
+        companionConfigurationMessage == nil
+    }
+
+    public var companionConfigurationMessage: String? {
+        guard let trimmed = companionURL.trimmedOrNil else {
+            return "Enter a valid companion URL."
+        }
+        guard let url = URL(string: trimmed),
+              let host = url.host(percentEncoded: false),
+              !host.isEmpty else {
+            return "Enter a valid companion URL."
+        }
+        if requiresRemoteCompanionHost, Self.isLoopbackHost(host) {
+            return "Companion host must be reachable on LAN or Tailscale, not loopback."
+        }
+        return nil
+    }
+
+    private static func isLoopbackHost(_ host: String) -> Bool {
+        let lowered = host.lowercased()
+        return lowered == "127.0.0.1" || lowered == "localhost" || lowered == "::1"
     }
 
     public func bootstrap() async {

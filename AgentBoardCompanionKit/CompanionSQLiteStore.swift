@@ -15,6 +15,7 @@ private final class SQLiteHandle: @unchecked Sendable {
     }
 }
 
+// swiftlint:disable:next type_body_length
 public actor CompanionSQLiteStore {
     public enum StoreError: LocalizedError {
         case openFailed(String)
@@ -90,19 +91,58 @@ public actor CompanionSQLiteStore {
             """
         )
 
+        try execute(
+            """
+            CREATE TABLE IF NOT EXISTS conversations (
+                id TEXT PRIMARY KEY NOT NULL,
+                title TEXT NOT NULL,
+                model_id TEXT,
+                updated_at REAL NOT NULL
+            );
+            """
+        )
+
+        try execute(
+            """
+            CREATE TABLE IF NOT EXISTS conversation_messages (
+                id TEXT PRIMARY KEY NOT NULL,
+                conversation_id TEXT NOT NULL,
+                role TEXT NOT NULL,
+                content TEXT NOT NULL,
+                created_at REAL NOT NULL,
+                is_streaming INTEGER NOT NULL DEFAULT 0,
+                FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
+            );
+            """
+        )
+
         runMigrations()
     }
 
     private func runMigrations() {
-        let sessionMigrations = [
-            "ALTER TABLE sessions ADD COLUMN pid INTEGER;",
-            "ALTER TABLE sessions ADD COLUMN tmux_session TEXT;",
-            "ALTER TABLE sessions ADD COLUMN tmux_pane_id TEXT;",
-            "ALTER TABLE sessions ADD COLUMN last_output TEXT;"
+        guard let existingColumns = try? existingSessionColumns() else { return }
+
+        let sessionMigrations: [(column: String, type: String)] = [
+            ("pid", "INTEGER"),
+            ("tmux_session", "TEXT"),
+            ("tmux_pane_id", "TEXT"),
+            ("last_output", "TEXT")
         ]
-        for sql in sessionMigrations {
-            try? execute(sql)
+        for (column, type) in sessionMigrations {
+            guard !existingColumns.contains(column) else { continue }
+            try? execute("ALTER TABLE sessions ADD COLUMN \(column) \(type);")
         }
+    }
+
+    private func existingSessionColumns() throws -> Set<String> {
+        let statement = try prepare("PRAGMA table_info(sessions);")
+        defer { sqlite3_finalize(statement) }
+
+        var columns: Set<String> = []
+        while sqlite3_step(statement) == SQLITE_ROW {
+            columns.insert(string(statement, index: 1)) // column 1 = name
+        }
+        return columns
     }
 
     // MARK: - Sessions
@@ -252,6 +292,163 @@ public actor CompanionSQLiteStore {
         }
 
         return agents
+    }
+
+    // MARK: - Conversations
+
+    public func replaceConversations(_ conversations: [ChatConversation]) throws {
+        try execute("DELETE FROM conversation_messages;")
+        try execute("DELETE FROM conversations;")
+
+        for conversation in conversations {
+            let statement = try prepare(
+                """
+                INSERT INTO conversations (id, title, model_id, updated_at)
+                VALUES (?, ?, ?, ?);
+                """
+            )
+            defer { sqlite3_finalize(statement) }
+
+            bind(conversation.id.uuidString, to: 1, in: statement)
+            bind(conversation.title, to: 2, in: statement)
+            bind(conversation.modelID, to: 3, in: statement)
+            sqlite3_bind_double(statement, 4, conversation.updatedAt.timeIntervalSince1970)
+
+            guard sqlite3_step(statement) == SQLITE_DONE else {
+                throw StoreError.stepFailed(Self.sqliteMessage(handle.raw))
+            }
+        }
+    }
+
+    public func listConversations() throws -> [ChatConversation] {
+        let statement = try prepare(
+            """
+            SELECT id, title, model_id, updated_at
+            FROM conversations
+            ORDER BY updated_at DESC;
+            """
+        )
+        defer { sqlite3_finalize(statement) }
+
+        var conversations: [ChatConversation] = []
+        while sqlite3_step(statement) == SQLITE_ROW {
+            guard let id = UUID(uuidString: string(statement, index: 0)) else { continue }
+            conversations.append(
+                ChatConversation(
+                    id: id,
+                    title: string(statement, index: 1),
+                    modelID: nullableString(statement, index: 2),
+                    updatedAt: date(statement, index: 3)
+                )
+            )
+        }
+
+        return conversations
+    }
+
+    public func saveConversationSnapshot(conversation: ChatConversation, messages: [ConversationMessage]) throws {
+        let deleteConv = try prepare("DELETE FROM conversations WHERE id = ?;")
+        defer { sqlite3_finalize(deleteConv) }
+        bind(conversation.id.uuidString, to: 1, in: deleteConv)
+        guard sqlite3_step(deleteConv) == SQLITE_DONE else {
+            throw StoreError.stepFailed(Self.sqliteMessage(handle.raw))
+        }
+
+        let deleteMsgs = try prepare("DELETE FROM conversation_messages WHERE conversation_id = ?;")
+        defer { sqlite3_finalize(deleteMsgs) }
+        bind(conversation.id.uuidString, to: 1, in: deleteMsgs)
+        guard sqlite3_step(deleteMsgs) == SQLITE_DONE else {
+            throw StoreError.stepFailed(Self.sqliteMessage(handle.raw))
+        }
+
+        let insertConv = try prepare(
+            """
+            INSERT INTO conversations (id, title, model_id, updated_at)
+            VALUES (?, ?, ?, ?);
+            """
+        )
+        defer { sqlite3_finalize(insertConv) }
+
+        bind(conversation.id.uuidString, to: 1, in: insertConv)
+        bind(conversation.title, to: 2, in: insertConv)
+        bind(conversation.modelID, to: 3, in: insertConv)
+        sqlite3_bind_double(insertConv, 4, conversation.updatedAt.timeIntervalSince1970)
+
+        guard sqlite3_step(insertConv) == SQLITE_DONE else {
+            throw StoreError.stepFailed(Self.sqliteMessage(handle.raw))
+        }
+
+        for message in messages {
+            let insertMsg = try prepare(
+                """
+                INSERT INTO conversation_messages (id, conversation_id, role, content, created_at, is_streaming)
+                VALUES (?, ?, ?, ?, ?, ?);
+                """
+            )
+            defer { sqlite3_finalize(insertMsg) }
+
+            bind(message.id.uuidString, to: 1, in: insertMsg)
+            bind(message.conversationID.uuidString, to: 2, in: insertMsg)
+            bind(message.role.rawValue, to: 3, in: insertMsg)
+            bind(message.content, to: 4, in: insertMsg)
+            sqlite3_bind_double(insertMsg, 5, message.createdAt.timeIntervalSince1970)
+            sqlite3_bind_int(insertMsg, 6, message.isStreaming ? 1 : 0)
+
+            guard sqlite3_step(insertMsg) == SQLITE_DONE else {
+                throw StoreError.stepFailed(Self.sqliteMessage(handle.raw))
+            }
+        }
+    }
+
+    public func loadMessages(conversationID: UUID) throws -> [ConversationMessage] {
+        let statement = try prepare(
+            """
+            SELECT id, conversation_id, role, content, created_at, is_streaming
+            FROM conversation_messages
+            WHERE conversation_id = ?
+            ORDER BY created_at ASC;
+            """
+        )
+        defer { sqlite3_finalize(statement) }
+
+        bind(conversationID.uuidString, to: 1, in: statement)
+
+        var messages: [ConversationMessage] = []
+        while sqlite3_step(statement) == SQLITE_ROW {
+            guard
+                let id = UUID(uuidString: string(statement, index: 0)),
+                let cid = UUID(uuidString: string(statement, index: 1)),
+                let role = MessageRole(rawValue: string(statement, index: 2)) else { continue }
+
+            messages.append(
+                ConversationMessage(
+                    id: id,
+                    conversationID: cid,
+                    role: role,
+                    content: string(statement, index: 3),
+                    createdAt: date(statement, index: 4),
+                    isStreaming: sqlite3_column_int(statement, 5) != 0
+                )
+            )
+        }
+
+        return messages
+    }
+
+    public func deleteConversation(id: UUID) throws {
+        let deleteMsgs = try prepare("DELETE FROM conversation_messages WHERE conversation_id = ?;")
+        defer { sqlite3_finalize(deleteMsgs) }
+        bind(id.uuidString, to: 1, in: deleteMsgs)
+        guard sqlite3_step(deleteMsgs) == SQLITE_DONE else {
+            throw StoreError.stepFailed(Self.sqliteMessage(handle.raw))
+        }
+
+        let deleteConv = try prepare("DELETE FROM conversations WHERE id = ?;")
+        defer { sqlite3_finalize(deleteConv) }
+        bind(id.uuidString, to: 1, in: deleteConv)
+        guard sqlite3_step(deleteConv) == SQLITE_DONE else {
+            throw StoreError.stepFailed(Self.sqliteMessage(handle.raw))
+        }
     }
 
     // MARK: - Helpers

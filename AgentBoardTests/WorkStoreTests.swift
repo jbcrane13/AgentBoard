@@ -1,9 +1,11 @@
+// swiftlint:disable file_length
 import AgentBoardCore
 import Foundation
 import Testing
 
 @Suite("WorkStore", .serialized)
 @MainActor
+// swiftlint:disable:next type_body_length
 struct WorkStoreTests {
     // MARK: - Helpers
 
@@ -234,6 +236,68 @@ struct WorkStoreTests {
         #expect(store.errorMessage == nil)
     }
 
+    /// A failing refetch with cached items must keep the items visible and not surface a
+    /// transient errorMessage, per the explicit contract in `WorkStore.refresh`.
+    @Test func refreshPreservesItemsAndSuppressesErrorWhenFetchFailsWithExistingItems() async throws {
+        final class Phase: @unchecked Sendable { var failNext = false }
+        let phase = Phase()
+        let listPayload = "[" + issueJSON(
+            number: 11,
+            title: "Cached",
+            body: "",
+            labels: ["status:ready"]
+        ) + "]"
+
+        let (store, _) = try makeStore(mockHandler: { request in
+            if phase.failNext {
+                let response = try HTTPURLResponse(
+                    url: request.url!,
+                    statusCode: 500,
+                    httpVersion: nil,
+                    headerFields: nil
+                )!
+                return (response, Data("server down".utf8))
+            }
+            let response = try HTTPURLResponse(
+                url: URL(string: "http://api.github.com/repos/org/repo/issues")!,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            return (response, Data(listPayload.utf8))
+        })
+
+        await store.refresh()
+        #expect(store.items.count == 1)
+        phase.failNext = true
+
+        await store.refresh()
+
+        #expect(store.items.count == 1)
+        #expect(store.items.first?.issueNumber == 11)
+        #expect(store.errorMessage == nil)
+        #expect(store.isLoading == false)
+    }
+
+    /// A failing first refetch with no cached items should surface the error so the user knows.
+    @Test func refreshSetsErrorMessageWhenFetchFailsWithNoItems() async throws {
+        let (store, _) = try makeStore(mockHandler: { request in
+            let response = try HTTPURLResponse(
+                url: request.url!,
+                statusCode: 500,
+                httpVersion: nil,
+                headerFields: nil
+            )!
+            return (response, Data("server down".utf8))
+        })
+
+        await store.refresh()
+
+        #expect(store.items.isEmpty)
+        #expect(store.errorMessage != nil)
+        #expect(store.isLoading == false)
+    }
+
     // MARK: - workItem(for:)
 
     @Test func workItemForReferenceReturnsMatchingItem() async throws {
@@ -252,5 +316,323 @@ struct WorkStoreTests {
             issueNumber: 99
         )
         #expect(store.workItem(for: ref) == nil)
+    }
+
+    // MARK: - updateStatus edge cases
+
+    /// Dropping a card on its current column must not issue a network call.
+    @Test func updateStatusSkipsRequestWhenAlreadyAtTargetState() async throws {
+        final class Counter: @unchecked Sendable { var patches = 0 }
+        let counter = Counter()
+        let listPayload = "[" + issueJSON(
+            number: 1,
+            title: "Same-state",
+            body: "",
+            labels: ["status:ready"]
+        ) + "]"
+
+        let (store, _) = try makeStore(mockHandler: { request in
+            if request.httpMethod == "PATCH" {
+                counter.patches += 1
+            }
+            let response = try HTTPURLResponse(
+                url: URL(string: "http://api.github.com/repos/org/repo/issues")!,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            return (response, Data(listPayload.utf8))
+        })
+        await store.refresh()
+        #expect(store.items.count == 1)
+        let item = try #require(store.items.first)
+        #expect(item.status == .ready)
+
+        await store.updateStatus(for: item, to: .ready)
+
+        #expect(counter.patches == 0)
+        #expect(store.errorMessage == nil)
+    }
+
+    @Test func updateStatusUpdatesItemAndStatusMessageOnSuccess() async throws {
+        let listPayload = "[" + issueJSON(
+            number: 7,
+            title: "Move me",
+            body: "",
+            labels: ["status:ready", "area:ui"]
+        ) + "]"
+        let updatedPayload = issueJSON(
+            number: 7,
+            title: "Move me",
+            body: "",
+            labels: ["status:in-progress", "area:ui"]
+        )
+
+        let (store, _) = try makeStore(mockHandler: { request in
+            let body = (request.httpMethod == "PATCH")
+                ? Data(updatedPayload.utf8)
+                : Data(listPayload.utf8)
+            let response = try HTTPURLResponse(
+                url: request.url ?? URL(string: "http://api.github.com")!,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            return (response, body)
+        })
+        await store.refresh()
+        let item = try #require(store.items.first)
+
+        await store.updateStatus(for: item, to: .inProgress)
+
+        #expect(store.items.first?.status == .inProgress)
+        #expect(store.statusMessage?.contains("In Progress") == true)
+        #expect(store.errorMessage == nil)
+    }
+
+    @Test func updateStatusReplacesStatusLabelsAndPreservesOthers() async throws {
+        final class Capture: @unchecked Sendable { var labels: [String] = [] }
+        let captured = Capture()
+        let listPayload = "[" + issueJSON(
+            number: 12,
+            title: "Sticky labels",
+            body: "",
+            labels: ["status:ready", "area:ui", "topic:onboarding"]
+        ) + "]"
+        let updatedPayload = issueJSON(
+            number: 12,
+            title: "Sticky labels",
+            body: "",
+            labels: ["status:in-progress", "area:ui", "topic:onboarding"]
+        )
+
+        let (store, _) = try makeStore(mockHandler: { request in
+            if request.httpMethod == "PATCH",
+               let body = request.httpBody ?? request.bodyStreamData(),
+               let json = try? JSONSerialization.jsonObject(with: body) as? [String: Any],
+               let labels = json["labels"] as? [String] {
+                captured.labels = labels
+            }
+            let response = try HTTPURLResponse(
+                url: request.url ?? URL(string: "http://api.github.com")!,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            let body = request.httpMethod == "PATCH"
+                ? Data(updatedPayload.utf8)
+                : Data(listPayload.utf8)
+            return (response, body)
+        })
+        await store.refresh()
+        let item = try #require(store.items.first)
+
+        await store.updateStatus(for: item, to: .inProgress)
+
+        let lowered = captured.labels.map { $0.lowercased() }
+        #expect(lowered.contains("status:in-progress"))
+        #expect(!lowered.contains("status:ready"))
+        #expect(lowered.contains("area:ui"))
+        #expect(lowered.contains("topic:onboarding"))
+    }
+
+    @Test func updateStatusErrorsWhenGitHubNotConfigured() async throws {
+        let (store, settingsStore) = try makeStore()
+        settingsStore.githubToken = ""
+        settingsStore.repositories = []
+
+        let item = WorkItem(
+            repository: ConfiguredRepository(owner: "org", name: "repo"),
+            issueNumber: 1,
+            title: "Stub",
+            bodySummary: "",
+            isClosed: false,
+            assignees: [],
+            milestone: nil,
+            labels: ["status:ready"],
+            status: .ready,
+            priority: .p2,
+            agentHint: nil,
+            createdAt: .now,
+            updatedAt: .now
+        )
+
+        await store.updateStatus(for: item, to: .inProgress)
+
+        #expect(store.errorMessage == "Connect GitHub before updating work items.")
+    }
+
+    @Test func updateStatusClearsStaleErrorMessageOnSuccess() async throws {
+        let listPayload = "[" + issueJSON(
+            number: 3,
+            title: "Recovery",
+            body: "",
+            labels: ["status:ready"]
+        ) + "]"
+        let updatedPayload = issueJSON(
+            number: 3,
+            title: "Recovery",
+            body: "",
+            labels: ["status:done"]
+        )
+
+        let (store, _) = try makeStore(mockHandler: { request in
+            let body = (request.httpMethod == "PATCH")
+                ? Data(updatedPayload.utf8)
+                : Data(listPayload.utf8)
+            let response = try HTTPURLResponse(
+                url: request.url ?? URL(string: "http://api.github.com")!,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            return (response, body)
+        })
+        await store.refresh()
+        store.errorMessage = "Previous failure"
+        let item = try #require(store.items.first)
+
+        await store.updateStatus(for: item, to: .done)
+
+        #expect(store.errorMessage == nil)
+        #expect(store.items.first?.status == .done)
+    }
+
+    @Test func updateStatusSetsErrorMessageOnNetworkFailure() async throws {
+        let listPayload = "[" + issueJSON(
+            number: 9,
+            title: "Will fail",
+            body: "",
+            labels: ["status:ready"]
+        ) + "]"
+
+        let (store, _) = try makeStore(mockHandler: { request in
+            if request.httpMethod == "PATCH" {
+                let response = try HTTPURLResponse(
+                    url: request.url!,
+                    statusCode: 500,
+                    httpVersion: nil,
+                    headerFields: nil
+                )!
+                return (response, Data("oops".utf8))
+            }
+            let response = try HTTPURLResponse(
+                url: URL(string: "http://api.github.com/repos/org/repo/issues")!,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            return (response, Data(listPayload.utf8))
+        })
+        await store.refresh()
+        let item = try #require(store.items.first)
+
+        await store.updateStatus(for: item, to: .inProgress)
+
+        #expect(store.errorMessage != nil)
+        // Item state should not have changed locally after a failed PATCH.
+        #expect(store.items.first?.status == .ready)
+    }
+
+    @Test func closeIssueTransitionsToDone() async throws {
+        let listPayload = "[" + issueJSON(
+            number: 21,
+            title: "Closeable",
+            body: "",
+            labels: ["status:ready"]
+        ) + "]"
+        let updatedPayload = issueJSON(
+            number: 21,
+            title: "Closeable",
+            body: "",
+            labels: ["status:done"]
+        )
+        let (store, _) = try makeStore(mockHandler: { request in
+            let body = (request.httpMethod == "PATCH")
+                ? Data(updatedPayload.utf8)
+                : Data(listPayload.utf8)
+            let response = try HTTPURLResponse(
+                url: request.url ?? URL(string: "http://api.github.com")!,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            return (response, body)
+        })
+        await store.refresh()
+        let item = try #require(store.items.first)
+
+        await store.closeIssue(item)
+
+        #expect(store.items.first?.status == .done)
+    }
+
+    @Test func reopenIssueTransitionsFromDoneToReady() async throws {
+        let listPayload = "[" + makeClosedIssueJSON(
+            number: 33,
+            title: "Reopen me",
+            labels: ["status:done"]
+        ) + "]"
+        let updatedPayload = issueJSON(
+            number: 33,
+            title: "Reopen me",
+            body: "",
+            labels: ["status:ready"]
+        )
+        let (store, _) = try makeStore(mockHandler: { request in
+            let body = (request.httpMethod == "PATCH")
+                ? Data(updatedPayload.utf8)
+                : Data(listPayload.utf8)
+            let response = try HTTPURLResponse(
+                url: request.url ?? URL(string: "http://api.github.com")!,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            return (response, body)
+        })
+        await store.refresh()
+        let item = try #require(store.items.first)
+        #expect(item.status == .done)
+
+        await store.reopenIssue(item)
+
+        #expect(store.items.first?.status == .ready)
+    }
+
+    private func makeClosedIssueJSON(number: Int, title: String, labels: [String]) -> String {
+        let labelsJSON = labels.map { #"{"name": "\#($0)"}"# }.joined(separator: ", ")
+        return """
+        {
+            "number": \(number),
+            "title": "\(title)",
+            "body": "",
+            "state": "closed",
+            "labels": [\(labelsJSON)],
+            "assignees": [],
+            "milestone": null,
+            "created_at": "2026-04-01T00:00:00Z",
+            "updated_at": "2026-04-02T00:00:00Z"
+        }
+        """
+    }
+}
+
+private extension URLRequest {
+    /// `URLProtocol` strips `httpBody` when a request streams; mirror it back from the stream.
+    func bodyStreamData() -> Data? {
+        guard let stream = httpBodyStream else { return nil }
+        stream.open()
+        defer { stream.close() }
+        var data = Data()
+        let bufferSize = 1024
+        let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
+        defer { buffer.deallocate() }
+        while stream.hasBytesAvailable {
+            let read = stream.read(buffer, maxLength: bufferSize)
+            if read <= 0 { break }
+            data.append(buffer, count: read)
+        }
+        return data
     }
 }

@@ -31,7 +31,12 @@ struct ChatHeaderPickerTests {
         }
         let hermesClient = HermesGatewayClient(session: session)
         let cache = try AgentBoardCache(inMemory: true)
-        return ChatStore(hermesClient: hermesClient, cache: cache, settingsStore: settingsStore)
+        return ChatStore(
+            hermesClient: hermesClient,
+            cache: cache,
+            settingsStore: settingsStore,
+            companionClient: CompanionClient()
+        )
     }
 
     // MARK: - Profile picker contract
