@@ -144,6 +144,7 @@ public final class CompanionServer: @unchecked Sendable {
     private let queue = DispatchQueue(label: "com.agentboard.modern.companion")
 
     private let encoder: JSONEncoder
+    private let decoder: JSONDecoder
 
     private var listener: NWListener?
     private var refreshTask: Task<Void, Never>?
@@ -158,6 +159,8 @@ public final class CompanionServer: @unchecked Sendable {
         self.probe = probe
         encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
+        decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
     }
 
     deinit {
@@ -306,14 +309,42 @@ public final class CompanionServer: @unchecked Sendable {
         case ("GET", ["v1", "conversations"]):
             try sendJSON(await store.listConversations(), over: connection)
 
-        case let ("DELETE", components)
+        case let ("GET", components)
             where components.count == 4 &&
+            components[0] == "v1" &&
+            components[1] == "conversations" &&
+            components[3] == "messages" &&
+            UUID(uuidString: components[2]) != nil:
+            try sendJSON(await store.loadMessages(conversationID: UUID(uuidString: components[2])!), over: connection)
+
+        case ("POST", ["v1", "conversations", "sync"]):
+            try await handleConversationAction(
+                action: "sync",
+                conversationID: nil,
+                body: request.body,
+                over: connection
+            )
+
+        case let ("DELETE", components)
+            where components.count == 3 &&
             components[0] == "v1" &&
             components[1] == "conversations" &&
             UUID(uuidString: components[2]) != nil:
             try await store.deleteConversation(id: UUID(uuidString: components[2])!)
             try sendJSON(["ok": true], over: connection)
             await broker.publish(CompanionEvent(kind: .conversationsChanged))
+
+        case let ("POST", components)
+            where components.count == 4 &&
+            components[0] == "v1" &&
+            components[1] == "conversations" &&
+            components[2] == "delete":
+            try await handleConversationAction(
+                action: "delete",
+                conversationID: UUID(uuidString: components[3]),
+                body: request.body,
+                over: connection
+            )
 
         case ("GET", ["v1", "events"]):
             await registerSSESubscriber(over: connection)
@@ -349,14 +380,14 @@ public final class CompanionServer: @unchecked Sendable {
     // MARK: - Conversation Actions
 
     private func handleConversationAction(
-        components: [String],
+        action: String,
+        conversationID: UUID?,
         body: Data,
         over connection: NWConnection
     ) async throws {
-        let action = components.count > 2 ? components[2] : "sync"
         switch action {
         case "sync":
-            guard let payload = try? JSONDecoder().decode(ConversationSyncPayload.self, from: body) else {
+            guard let payload = try? decoder.decode(ConversationSyncPayload.self, from: body) else {
                 try sendJSON(["error": "invalid_body"], over: connection)
                 return
             }
@@ -370,15 +401,16 @@ public final class CompanionServer: @unchecked Sendable {
                 }
             }
             try sendJSON(["ok": true], over: connection)
+            await broker.publish(CompanionEvent(kind: .conversationsChanged))
 
         case "delete":
-            guard components.count >= 4,
-                  let id = UUID(uuidString: components[3]) else {
+            guard let id = conversationID else {
                 try sendJSON(["error": "invalid_id"], over: connection)
                 return
             }
             try await store.deleteConversation(id: id)
             try sendJSON(["ok": true], over: connection)
+            await broker.publish(CompanionEvent(kind: .conversationsChanged))
 
         default:
             try sendJSON(["error": "not_found"], over: connection)

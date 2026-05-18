@@ -163,4 +163,20 @@ Agents → CompanionServer → FSEvents + ps
 
 ---
 
+## ADR-012: Companion-backed cross-device session and chat sync
+**Date:** 2026-05-18
+**Status:** Active
+**Decision:** Treat the companion service as the cross-device source of truth for live sessions and chat history, while preserving local SwiftData as the offline cache.
+
+**Context:** macOS and iOS can point at the same companion service over loopback, LAN, or Tailscale. Loading sessions or conversations from only device-local SwiftData makes each device show stale or incomplete state.
+
+**Consequences:**
+- `SessionsStore.bootstrap()` fetches companion sessions first and falls back to cache only when companion is unreachable.
+- `ChatStore.bootstrap()` fetches companion conversations and messages first, then writes snapshots back to local cache.
+- `CompanionSQLiteStore` owns companion conversation/message persistence, including message attachments.
+- `CompanionServer` exposes conversation list, message list, sync, and delete routes, and publishes `conversationsChanged` events for cross-device refresh.
+- `CompanionClient` is the shared app-side API for session and conversation sync.
+
+---
+
 *To add a new ADR: append with the next number, include date, status, decision, context, and consequences.*

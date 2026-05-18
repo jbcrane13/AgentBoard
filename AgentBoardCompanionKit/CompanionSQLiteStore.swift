@@ -111,6 +111,7 @@ public actor CompanionSQLiteStore {
                 content TEXT NOT NULL,
                 created_at REAL NOT NULL,
                 is_streaming INTEGER NOT NULL DEFAULT 0,
+                attachments_json TEXT,
                 FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
             );
             """
@@ -132,10 +133,19 @@ public actor CompanionSQLiteStore {
             guard !existingColumns.contains(column) else { continue }
             try? execute("ALTER TABLE sessions ADD COLUMN \(column) \(type);")
         }
+
+        if let messageColumns = try? existingColumns(table: "conversation_messages"),
+           !messageColumns.contains("attachments_json") {
+            try? execute("ALTER TABLE conversation_messages ADD COLUMN attachments_json TEXT;")
+        }
     }
 
     private func existingSessionColumns() throws -> Set<String> {
-        let statement = try prepare("PRAGMA table_info(sessions);")
+        try existingColumns(table: "sessions")
+    }
+
+    private func existingColumns(table: String) throws -> Set<String> {
+        let statement = try prepare("PRAGMA table_info(\(table));")
         defer { sqlite3_finalize(statement) }
 
         var columns: Set<String> = []
@@ -381,8 +391,10 @@ public actor CompanionSQLiteStore {
         for message in messages {
             let insertMsg = try prepare(
                 """
-                INSERT INTO conversation_messages (id, conversation_id, role, content, created_at, is_streaming)
-                VALUES (?, ?, ?, ?, ?, ?);
+                INSERT INTO conversation_messages (
+                    id, conversation_id, role, content, created_at, is_streaming, attachments_json
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?);
                 """
             )
             defer { sqlite3_finalize(insertMsg) }
@@ -393,6 +405,7 @@ public actor CompanionSQLiteStore {
             bind(message.content, to: 4, in: insertMsg)
             sqlite3_bind_double(insertMsg, 5, message.createdAt.timeIntervalSince1970)
             sqlite3_bind_int(insertMsg, 6, message.isStreaming ? 1 : 0)
+            bind(attachmentsJSON(for: message), to: 7, in: insertMsg)
 
             guard sqlite3_step(insertMsg) == SQLITE_DONE else {
                 throw StoreError.stepFailed(Self.sqliteMessage(handle.raw))
@@ -403,7 +416,7 @@ public actor CompanionSQLiteStore {
     public func loadMessages(conversationID: UUID) throws -> [ConversationMessage] {
         let statement = try prepare(
             """
-            SELECT id, conversation_id, role, content, created_at, is_streaming
+            SELECT id, conversation_id, role, content, created_at, is_streaming, attachments_json
             FROM conversation_messages
             WHERE conversation_id = ?
             ORDER BY created_at ASC;
@@ -427,7 +440,8 @@ public actor CompanionSQLiteStore {
                     role: role,
                     content: string(statement, index: 3),
                     createdAt: date(statement, index: 4),
-                    isStreaming: sqlite3_column_int(statement, 5) != 0
+                    isStreaming: sqlite3_column_int(statement, 5) != 0,
+                    attachments: attachments(from: nullableString(statement, index: 6))
                 )
             )
         }
@@ -491,6 +505,23 @@ public actor CompanionSQLiteStore {
 
     private func date(_ statement: OpaquePointer?, index: Int32) -> Date {
         Date(timeIntervalSince1970: sqlite3_column_double(statement, index))
+    }
+
+    private func attachmentsJSON(for message: ConversationMessage) -> String? {
+        guard !message.attachments.isEmpty,
+              let data = try? JSONEncoder().encode(message.attachments) else {
+            return nil
+        }
+        return String(data: data, encoding: .utf8)
+    }
+
+    private func attachments(from json: String?) -> [ChatAttachment] {
+        guard let json,
+              let data = json.data(using: .utf8),
+              let attachments = try? JSONDecoder().decode([ChatAttachment].self, from: data) else {
+            return []
+        }
+        return attachments
     }
 
     private static func sqliteMessage(_ handle: OpaquePointer?) -> String {

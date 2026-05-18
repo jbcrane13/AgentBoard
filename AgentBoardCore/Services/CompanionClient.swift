@@ -158,7 +158,7 @@ public actor CompanionClient {
     }
 
     public func loadMessages(conversationID: UUID) async throws -> [ConversationMessage] {
-        try await fetch(path: "v1/conversations/\\(conversationID.uuidString)/messages")
+        try await fetch(path: "v1/conversations/\(conversationID.uuidString)/messages")
     }
 
     public func syncConversations(
@@ -178,8 +178,8 @@ public actor CompanionClient {
     }
 
     public func deleteConversationOnServer(id: UUID) async throws {
-        var request = makeRequest(path: "v1/conversations/delete/\\(id.uuidString)")
-        request.httpMethod = "POST"
+        var request = makeRequest(path: "v1/conversations/\(id.uuidString)")
+        request.httpMethod = "DELETE"
         let (data, response) = try await session.data(for: request)
         try validate(response: response, data: data)
     }

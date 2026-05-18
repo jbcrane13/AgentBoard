@@ -151,3 +151,35 @@ The older OpenClaw/beads/macOS-only prototype has been removed from the active s
 
 ## Activity — 2026-05-06
 - (no commits)
+
+## Activity — 2026-05-10
+- f9d8052 fix: keep sessions live when cache persistence fails (#90)
+- 0b2e524 test: switch session sync test fakes to OSAllocatedUnfairLock
+- 8a75e74 chore: regenerate xcodeproj for SessionsStoreTests file
+- 5726251 feat: surface companion sync state on sessions screen (#90)
+
+## Activity — 2026-05-11
+- (no commits)
+
+## Activity — 2026-05-12
+- (no commits)
+
+## Activity — 2026-05-13
+- (no commits)
+
+## Activity — 2026-05-14
+- (no commits)
+
+## Activity — 2026-05-15
+- (no commits)
+
+## Activity — 2026-05-16
+- (no commits)
+
+## Activity — 2026-05-17
+- (no commits)
+
+## Activity — 2026-05-18
+- Completed cross-device session sync follow-up for #90 and companion-backed chat history sync for #91.
+- Added companion conversation/message routes, app client fixes, attachment-preserving SQLite message storage, and focused tests.
+- Documented companion-backed cross-device sync in ADR-012.
