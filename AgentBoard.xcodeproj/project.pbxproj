@@ -82,6 +82,7 @@
 		8304F715858D01DEFB812754 /* DesktopSidebar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F7D59DE18AF7B3E0D84EF9A /* DesktopSidebar.swift */; };
 		86474D9EDB4C400C89B3F5FF /* QuickLaunchSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FFDF3222AEE5530E6C58DFC /* QuickLaunchSheet.swift */; };
 		87A19AEDBCBE0206D4D71EFE /* DemoFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = E20006E3DE0937110157F9D1 /* DemoFixtures.swift */; };
+		886FDFB4B573415A77495631 /* SwiftLintGateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76721B0A4C5C5902D6384255 /* SwiftLintGateTests.swift */; };
 		891566BE5B53801826DE8CF0 /* LaunchSessionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03AD61915721952F19190205 /* LaunchSessionSheet.swift */; };
 		8AD4D2CC8A4C831C10AD484D /* MediaViewerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33A8E745C7552F0B5FDF7C25 /* MediaViewerView.swift */; };
 		8E7838693E07455607245B77 /* WorkScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D876290D32059BAB65A9F02 /* WorkScreen.swift */; };
@@ -271,6 +272,7 @@
 		6D876290D32059BAB65A9F02 /* WorkScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkScreen.swift; sourceTree = "<group>"; };
 		6FCC4B5C12958567A1D6D69E /* AppDestinationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDestinationTests.swift; sourceTree = "<group>"; };
 		702A0D71A27F07711AF96C4A /* CreateIssueSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateIssueSheet.swift; sourceTree = "<group>"; };
+		76721B0A4C5C5902D6384255 /* SwiftLintGateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftLintGateTests.swift; sourceTree = "<group>"; };
 		7863E93C0B04059321066BCD /* WorkStoreCRUDTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkStoreCRUDTests.swift; sourceTree = "<group>"; };
 		78ED2576E35E0964839427AD /* AppDestination.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDestination.swift; sourceTree = "<group>"; };
 		7ABBA014D0943EA3DA8EEB96 /* FoundationExtras.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoundationExtras.swift; sourceTree = "<group>"; };
@@ -402,6 +404,7 @@
 				92E0CE9F3A8E9CA87A6C3B95 /* SessionsStoreTests.swift */,
 				B4813FBD80F9AC10D1A51841 /* SettingsStoreTests.swift */,
 				EA26177C115F337F0AC82395 /* SlashCommandHandlerTests.swift */,
+				76721B0A4C5C5902D6384255 /* SwiftLintGateTests.swift */,
 				7863E93C0B04059321066BCD /* WorkStoreCRUDTests.swift */,
 				BB9701D71214407E75807732 /* WorkStoreTests.swift */,
 			);
@@ -916,6 +919,7 @@
 				F18232EF1BD587C14FCCD06F /* SessionsStoreTests.swift in Sources */,
 				D4674853A5F6064FC3E65542 /* SettingsStoreTests.swift in Sources */,
 				2525C93CDB9C86D825831FC9 /* SlashCommandHandlerTests.swift in Sources */,
+				886FDFB4B573415A77495631 /* SwiftLintGateTests.swift in Sources */,
 				293FC2DA4D1A99F6056A3C91 /* WorkStoreCRUDTests.swift in Sources */,
 				6F28FCEEB172015EFF5AFC70 /* WorkStoreTests.swift in Sources */,
 			);
