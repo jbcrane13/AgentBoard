@@ -15,7 +15,7 @@ echo "Running quality checks on staged Swift files..."
 # SwiftLint — enforce code style rules
 if command -v swiftlint >/dev/null 2>&1; then
     echo "  Running SwiftLint..."
-    swiftlint lint --config .swiftlint.yml --strict AgentBoard AgentBoardTests 2>&1 || {
+    swiftlint lint --config .swiftlint.yml --strict AgentBoard AgentBoardMobile AgentBoardUI AgentBoardCore AgentBoardCompanion AgentBoardCompanionKit AgentBoardTests 2>&1 || {
         echo ""
         echo "❌ SwiftLint found errors. Fix them or run:"
         echo "  swiftlint lint --fix --config .swiftlint.yml"
