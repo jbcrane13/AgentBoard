@@ -121,7 +121,7 @@ public actor CompanionSQLiteStore {
     }
 
     private func runMigrations() {
-        guard let existingColumns = try? existingSessionColumns() else { return }
+        guard let sessionColumns = try? existingSessionColumns() else { return }
 
         let sessionMigrations: [(column: String, type: String)] = [
             ("pid", "INTEGER"),
@@ -130,7 +130,7 @@ public actor CompanionSQLiteStore {
             ("last_output", "TEXT")
         ]
         for (column, type) in sessionMigrations {
-            guard !existingColumns.contains(column) else { continue }
+            guard !sessionColumns.contains(column) else { continue }
             try? execute("ALTER TABLE sessions ADD COLUMN \(column) \(type);")
         }
 

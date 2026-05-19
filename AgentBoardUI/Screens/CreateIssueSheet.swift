@@ -193,6 +193,7 @@ struct CreateIssueSheet: View {
                 pendingAttachments.append(attachment)
             }
         }
+        .accessibilityIdentifier("screen_create_issue")
     }
 
     // MARK: - Actions

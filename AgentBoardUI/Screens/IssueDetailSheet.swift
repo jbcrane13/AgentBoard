@@ -79,6 +79,7 @@ struct IssueDetailSheet: View {
                 pendingAttachments.append(attachment)
             }
         }
+        .accessibilityIdentifier("screen_issue_detail")
     }
 
     // MARK: - Read View

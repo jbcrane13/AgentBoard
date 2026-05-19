@@ -43,6 +43,7 @@ struct SessionTerminalView: View {
                 }
             }
         }
+        .accessibilityIdentifier("screen_session_terminal")
     }
 
     // MARK: - Header

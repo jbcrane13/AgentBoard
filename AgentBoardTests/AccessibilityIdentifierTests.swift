@@ -191,6 +191,80 @@ struct AccessibilityIdentifierTests {
         #expect(source.contains(#"kanban_cell_task_\(task.id)"#))
     }
 
+    @Test("Work screen exposes identifiers for header, search, repo picker, and create flow")
+    func workScreenIdentifiers() throws {
+        let source = try readUISource("Screens/WorkScreen.swift")
+        let required = [
+            "screen_work",
+            "work_section_header",
+            "work_button_search",
+            "work_textfield_search",
+            "work_button_create_issue",
+            "work_picker_repository"
+        ]
+        assertIdentifiers(required, in: source)
+        #expect(source.contains(#"work_column_\(column.state.rawValue)"#))
+    }
+
+    @Test("Create issue sheet exposes identifiers for every interactive control")
+    func createIssueSheetIdentifiers() throws {
+        let source = try readUISource("Screens/CreateIssueSheet.swift")
+        let required = [
+            "create_issue_picker_repository",
+            "create_issue_textfield_title",
+            "create_issue_texteditor_body",
+            "create_issue_picker_type",
+            "create_issue_picker_priority",
+            "create_issue_picker_status",
+            "create_issue_picker_agent",
+            "create_issue_textfield_milestone",
+            "create_issue_button_add_attachment",
+            "create_issue_button_cancel",
+            "create_issue_button_create"
+        ]
+        assertIdentifiers(required, in: source)
+    }
+
+    @Test("Issue detail sheet exposes identifiers for view, edit, and lifecycle controls")
+    func issueDetailSheetIdentifiers() throws {
+        let source = try readUISource("Screens/IssueDetailSheet.swift")
+        let required = [
+            "issue_detail_button_close",
+            "issue_detail_button_save",
+            "issue_detail_button_edit",
+            "issue_detail_button_toolbar_reopen",
+            "issue_detail_button_toolbar_close_issue",
+            "issue_detail_launch_session",
+            "issue_detail_textfield_title",
+            "issue_detail_texteditor_body",
+            "issue_detail_textfield_milestone",
+            "issue_detail_button_add_attachment",
+            "issue_detail_button_card_reopen",
+            "issue_detail_button_card_close_issue",
+            "edit_issue_picker_type",
+            "edit_issue_picker_priority",
+            "edit_issue_picker_status",
+            "edit_issue_picker_agent"
+        ]
+        assertIdentifiers(required, in: source)
+    }
+
+    @Test("Session terminal view exposes identifiers for embedded, failed, and stalled states")
+    func sessionTerminalViewIdentifiers() throws {
+        let source = try readUISource("Screens/SessionTerminalView.swift")
+        let required = [
+            "session_terminal_toggle_expand",
+            "session_terminal_open_terminal",
+            "session_terminal_close",
+            "session_terminal_embedded",
+            "session_terminal_failed_open_terminal",
+            "session_terminal_failed_close",
+            "session_terminal_stalled_open_terminal",
+            "session_terminal_stalled_close"
+        ]
+        assertIdentifiers(required, in: source)
+    }
+
     @Test("Launch session sheet exposes identifiers for every interactive control")
     func launchSessionSheetIdentifiers() throws {
         let source = try readUISource("Screens/LaunchSessionSheet.swift")
