@@ -1,0 +1,14 @@
+{
+  "tasks": {
+    "markdown:docs/PRD-issue-90.md:6": {
+      "count": 2,
+      "last": "2026-05-18T18:37:56.741Z",
+      "title": "Implement Cross-device session sync via companion server"
+    },
+    "markdown:docs/PRD-issue-91.md:6": {
+      "count": 1,
+      "last": "2026-05-18T18:37:08.624Z",
+      "title": "Implement Cross-device chat history sync via companion server"
+    }
+  }
+}

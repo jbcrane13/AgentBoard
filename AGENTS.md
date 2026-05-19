@@ -183,3 +183,7 @@ The older OpenClaw/beads/macOS-only prototype has been removed from the active s
 - Completed cross-device session sync follow-up for #90 and companion-backed chat history sync for #91.
 - Added companion conversation/message routes, app client fixes, attachment-preserving SQLite message storage, and focused tests.
 - Documented companion-backed cross-device sync in ADR-012.
+
+## Activity — 2026-05-18
+- 9ecdf1d feat: complete companion sync for sessions and chat
+- beaf928 fix: keep sessions live when cache persistence fails (#90)
