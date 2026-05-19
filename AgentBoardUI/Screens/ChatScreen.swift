@@ -48,6 +48,7 @@ struct ChatScreen: View {
         }
         .agentBoardNavigationBarHidden(true)
         .agentBoardKeyboardDismissToolbar()
+        .accessibilityIdentifier("screen_chat")
         #if os(iOS)
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
                 Task { await appModel.chatStore.autoReconnectIfNeeded() }

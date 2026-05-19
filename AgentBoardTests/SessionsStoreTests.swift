@@ -218,6 +218,140 @@ struct SessionsStoreTests {
         #expect(store.sessions.first?.id == "remote-3")
     }
 
+    @Test
+    @MainActor
+    func handleSessionsChangedEventRefreshesFromCompanion() async throws {
+        let counter = SyncCounter()
+        let session = AgentSession(
+            id: "remote-evt",
+            source: "Tailscale Mac",
+            status: .running,
+            startedAt: .now,
+            lastSeenAt: .now
+        )
+
+        let companionClient = CompanionClient(session: makeMockSession { request in
+            _ = counter.increment()
+            let response = try HTTPURLResponse(
+                url: #require(request.url),
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .iso8601
+            return try (response, encoder.encode([session]))
+        })
+
+        let store = try await makeStore(
+            companionClient: companionClient,
+            companionURL: "http://test.local:8742"
+        )
+
+        await store.bootstrap()
+        let baseline = counter.snapshot()
+
+        await store.handle(event: .sessionsChanged)
+
+        #expect(counter.snapshot() == baseline + 1)
+        #expect(store.syncStatus == .live)
+    }
+
+    @Test
+    @MainActor
+    func handleSnapshotRefreshedEventRefreshesFromCompanion() async throws {
+        let counter = SyncCounter()
+        let session = AgentSession(
+            id: "remote-evt",
+            source: "Tailscale Mac",
+            status: .running,
+            startedAt: .now,
+            lastSeenAt: .now
+        )
+
+        let companionClient = CompanionClient(session: makeMockSession { request in
+            _ = counter.increment()
+            let response = try HTTPURLResponse(
+                url: #require(request.url),
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .iso8601
+            return try (response, encoder.encode([session]))
+        })
+
+        let store = try await makeStore(
+            companionClient: companionClient,
+            companionURL: "http://test.local:8742"
+        )
+
+        await store.bootstrap()
+        let baseline = counter.snapshot()
+
+        await store.handle(event: .snapshotRefreshed)
+
+        #expect(counter.snapshot() == baseline + 1)
+        #expect(store.syncStatus == .live)
+    }
+
+    @Test
+    @MainActor
+    func handleAgentsChangedEventDoesNotRefreshSessions() async throws {
+        let counter = SyncCounter()
+        let companionClient = CompanionClient(session: makeMockSession { request in
+            _ = counter.increment()
+            let response = try HTTPURLResponse(
+                url: #require(request.url),
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            return (response, Data("[]".utf8))
+        })
+
+        let store = try await makeStore(
+            companionClient: companionClient,
+            companionURL: "http://test.local:8742"
+        )
+
+        await store.bootstrap()
+        let baseline = counter.snapshot()
+
+        await store.handle(event: .agentsChanged)
+
+        #expect(counter.snapshot() == baseline)
+    }
+
+    @Test
+    @MainActor
+    func handleConversationsChangedEventDoesNotRefreshSessions() async throws {
+        let counter = SyncCounter()
+        let companionClient = CompanionClient(session: makeMockSession { request in
+            _ = counter.increment()
+            let response = try HTTPURLResponse(
+                url: #require(request.url),
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            return (response, Data("[]".utf8))
+        })
+
+        let store = try await makeStore(
+            companionClient: companionClient,
+            companionURL: "http://test.local:8742"
+        )
+
+        await store.bootstrap()
+        let baseline = counter.snapshot()
+
+        await store.handle(event: .conversationsChanged)
+
+        #expect(counter.snapshot() == baseline)
+    }
+
     // MARK: - Helpers
 
     @MainActor
@@ -290,5 +424,9 @@ private struct SyncCounter: Sendable {
             count += 1
             return count
         }
+    }
+
+    func snapshot() -> Int {
+        storage.withLock { $0 }
     }
 }

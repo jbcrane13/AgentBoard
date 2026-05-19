@@ -62,6 +62,7 @@ struct AgentsScreen: View {
             LaunchSessionSheet(task: task)
                 .environment(appModel)
         }
+        .accessibilityIdentifier("screen_kanban")
     }
 
     private var header: some View {
