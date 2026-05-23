@@ -118,6 +118,7 @@
 		D4674853A5F6064FC3E65542 /* SettingsStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4813FBD80F9AC10D1A51841 /* SettingsStoreTests.swift */; };
 		D5FE06BE70E2B8AFB20C40B5 /* DesktopSidebar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F7D59DE18AF7B3E0D84EF9A /* DesktopSidebar.swift */; };
 		D66940F899C73350695B1CDE /* AccessibilityIdentifierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F57CF813491E81109CBBEE1 /* AccessibilityIdentifierTests.swift */; };
+		D806724D20A2D1EC0A81416B /* ProcessAsync.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10B0893112C597A1F745A53 /* ProcessAsync.swift */; };
 		DAAA6677EBC51F4C7796E505 /* KanbanModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE3F349D2B17FA90738CCDD5 /* KanbanModelsTests.swift */; };
 		DB87AF9AF4B7456FBDD3F011 /* SettingsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7A095E80382BA922486329A /* SettingsScreen.swift */; };
 		DC38BD815D6E073F6D62E1D7 /* NeumorphicTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA4BD1071B801A6A1C9E1CEF /* NeumorphicTheme.swift */; };
@@ -306,6 +307,7 @@
 		C9679A2004F1CFD39A588CC7 /* ConfigBackupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigBackupService.swift; sourceTree = "<group>"; };
 		C9D42E5CA1B251EA0284E8C6 /* AttachmentModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentModels.swift; sourceTree = "<group>"; };
 		CE1B1DC901AD1D60B3855D38 /* SessionLauncherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionLauncherTests.swift; sourceTree = "<group>"; };
+		D10B0893112C597A1F745A53 /* ProcessAsync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessAsync.swift; sourceTree = "<group>"; };
 		D165293786CA5ACAB31F2F12 /* CompanionClientEventsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompanionClientEventsTests.swift; sourceTree = "<group>"; };
 		D4C9640747C8B7AE6E92BB20 /* AgentBoardAppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentBoardAppModel.swift; sourceTree = "<group>"; };
 		D7A095E80382BA922486329A /* SettingsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsScreen.swift; sourceTree = "<group>"; };
@@ -496,6 +498,7 @@
 			isa = PBXGroup;
 			children = (
 				7ABBA014D0943EA3DA8EEB96 /* FoundationExtras.swift */,
+				D10B0893112C597A1F745A53 /* ProcessAsync.swift */,
 			);
 			path = Support;
 			sourceTree = "<group>";
@@ -954,6 +957,7 @@
 				B05AB72D9955BEF4CD1E3B7A /* KanbanModels.swift in Sources */,
 				CB10A2005C3CAEE8253B7324 /* LabelSchema.swift in Sources */,
 				BCE6371A2B658B37FE0C3124 /* LinkPreviewService.swift in Sources */,
+				D806724D20A2D1EC0A81416B /* ProcessAsync.swift in Sources */,
 				9EAAAF4FFBF10F8A576AF5BD /* SessionLauncher.swift in Sources */,
 				5407CC8EF71865713E95B1BF /* SessionsStore.swift in Sources */,
 				5B810A52F3C78D394BE76608 /* SettingsRepository.swift in Sources */,
