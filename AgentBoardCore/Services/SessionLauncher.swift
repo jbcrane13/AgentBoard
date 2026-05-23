@@ -2,12 +2,14 @@ import Foundation
 import os
 
 /// Manages launching agent sessions from task cards.
-/// Creates tmux sessions pre-loaded with issue context and execution presets.
+/// Composes a `PRDComposer` (Markdown PRD generation), a `TmuxControlling`
+/// (tmux subprocess invocations), and a polling status monitor.
 @MainActor
 @Observable
-// swiftlint:disable:next type_body_length
 public final class SessionLauncher {
     private let logger = Logger(subsystem: "com.agentboard.modern", category: "SessionLauncher")
+    private let prdComposer: PRDComposer
+    private let tmux: any TmuxControlling
 
     // MARK: - Models
 
@@ -92,7 +94,7 @@ public final class SessionLauncher {
         }
     }
 
-    public struct LaunchConfig {
+    public struct LaunchConfig: Sendable {
         public let taskTitle: String
         public let issueNumber: Int
         public let repo: String
@@ -168,12 +170,34 @@ public final class SessionLauncher {
         }
     }
 
+    public enum LaunchError: LocalizedError {
+        case tmuxFailed(String)
+        case unsupportedPlatform
+
+        public var errorDescription: String? {
+            switch self {
+            case let .tmuxFailed(msg): return "tmux launch failed: \(msg)"
+            case .unsupportedPlatform: return "Session launching is only supported on macOS."
+            }
+        }
+    }
+
     // MARK: - State
 
     public var activeSessions: [ActiveSession] = []
     public var isLaunching = false
     public var lastError: String?
     private var monitorTask: Task<Void, Never>?
+
+    // MARK: - Init
+
+    public init(
+        prdComposer: PRDComposer = PRDComposer(),
+        tmux: any TmuxControlling = LiveTmuxController()
+    ) {
+        self.prdComposer = prdComposer
+        self.tmux = tmux
+    }
 
     // MARK: - Launch
 
@@ -189,19 +213,23 @@ public final class SessionLauncher {
         let prdPath = "docs/PRD-issue-\(config.issueNumber).md"
 
         do {
-            // 1. Generate PRD
-            let prd = generatePRD(config: config)
+            let prd = prdComposer.compose(config: config)
             try writePRD(repo: config.repo, path: prdPath, content: prd)
 
-            // 2. Launch tmux session
-            try await launchTmuxSession(
-                sessionName: sessionName,
-                repo: config.repo,
-                agentType: config.agentType,
-                prdPath: prdPath
-            )
+            let repoPath = Self.repoPath(for: config.repo)
+            do {
+                try await tmux.launchSession(
+                    name: sessionName,
+                    repoPath: repoPath,
+                    agentLaunchFlag: config.agentType.launchFlag,
+                    prdPath: prdPath
+                )
+            } catch let TmuxError.launchFailed(msg) {
+                throw LaunchError.tmuxFailed(msg)
+            } catch TmuxError.unsupportedPlatform {
+                throw LaunchError.unsupportedPlatform
+            }
 
-            // 3. Track session
             let session = ActiveSession(
                 id: UUID().uuidString,
                 sessionName: sessionName,
@@ -217,7 +245,6 @@ public final class SessionLauncher {
             logger.info("Launched session: \(sessionName)")
             startMonitoring()
             return sessionName
-
         } catch {
             lastError = error.localizedDescription
             isLaunching = false
@@ -226,243 +253,37 @@ public final class SessionLauncher {
         }
     }
 
-    // MARK: - PRD Generation
+    // MARK: - Tmux pass-throughs (used by SessionTerminalView)
 
-    private func generatePRD(config: LaunchConfig) -> String {
-        var prd = """
-        # PRD: \(config.taskTitle)
-
-        ## Issue
-        #\(config.issueNumber) in \(config.fullRepo)
-
-        """
-
-        switch config.preset {
-        case .ralphLoop:
-            prd += """
-            ## Tasks
-            - [ ] Implement \(config.taskTitle)
-            - [ ] Handle edge cases and error states
-            - [ ] Add accessibilityIdentifier to every interactive element
-            - [ ] Build verify: xcodebuild -scheme AgentBoard -destination 'platform=macOS' build
-
-            """
-        case .tddSuperpowers:
-            prd += """
-            ## Tasks
-            - [ ] Write failing tests that define expected behavior
-            - [ ] Implement \(config.taskTitle) to pass tests
-            - [ ] Handle edge cases
-            - [ ] Add accessibilityIdentifier to every interactive element
-            - [ ] Run full test suite — all tests must pass
-
-            """
-        case .claudeToCodex:
-            prd += """
-            ## Phase 1: Implementation (Claude Code)
-            - [ ] Implement \(config.taskTitle)
-            - [ ] Handle edge cases
-            - [ ] Build verify: xcodebuild -scheme AgentBoard -destination 'platform=macOS' build
-            - [ ] Commit to feature branch
-
-            ## Phase 2: Test Validation (Codex — auto-handoff)
-            - [ ] Run full test suite
-            - [ ] Add missing tests if coverage gaps found
-            - [ ] Run linter — no new warnings
-            - [ ] Report results
-
-            """
-        case .codexReview:
-            prd += """
-            ## Tasks
-            - [ ] Implement \(config.taskTitle)
-            - [ ] Run full test suite
-            - [ ] Review code quality and suggest improvements
-            - [ ] Add accessibilityIdentifier to every interactive element
-            - [ ] Build verify: xcodebuild -scheme AgentBoard -destination 'platform=macOS' build
-
-            """
-        case .opencodeSession:
-            prd += """
-            ## Tasks
-            - [ ] Analyze codebase for \(config.taskTitle)
-            - [ ] Implement with multi-model approach
-            - [ ] Cross-validate with different models
-            - [ ] Add accessibilityIdentifier to every interactive element
-            - [ ] Build verify: xcodebuild -scheme AgentBoard -destination 'platform=macOS' build
-
-            """
-        }
-
-        prd += """
-        ## Constraints
-        - Swift 6 strict concurrency
-        - @Observable not ObservableObject
-        - accessibilityIdentifier on every interactive element
-
-        ## Anti-Stall Rules
-        - Never wait for input. Never pause for confirmation. Keep moving.
-        - When done: commit, push to feature branch, STOP.
-        - Report: "DONE: [accomplished] | BLOCKED: [anything open]"
-        """
-
-        if !config.customInstructions.isEmpty {
-            prd += "\n## Custom Instructions\n\(config.customInstructions)\n"
-        }
-
-        return prd
+    public func checkSession(_ session: ActiveSession) async -> ActiveSession.SessionStatus {
+        let alive = await tmux.hasSession(name: session.sessionName)
+        return alive ? .running : .completed
     }
 
-    // MARK: - tmux Launch
-
-    private func writePRD(repo: String, path: String, content: String) throws {
-        #if os(macOS)
-            let home = FileManager.default.homeDirectoryForCurrentUser
-            let projectDir = home.appendingPathComponent("Projects").appendingPathComponent(repo)
-            let prdDir = projectDir.appendingPathComponent("docs")
-
-            try FileManager.default.createDirectory(at: prdDir, withIntermediateDirectories: true)
-
-            let prdFile = prdDir.appendingPathComponent(URL(fileURLWithPath: path).lastPathComponent)
-            try content.write(to: prdFile, atomically: true, encoding: .utf8)
-        #else
-            throw LaunchError.unsupportedPlatform
-        #endif
+    public func capturePane(sessionName: String) async -> String? {
+        await tmux.capturePane(name: sessionName)
     }
 
-    private func launchTmuxSession(
-        sessionName: String,
-        repo: String,
-        agentType: AgentType,
-        prdPath: String
-    ) async throws {
-        #if os(macOS)
-            let home = FileManager.default.homeDirectoryForCurrentUser
-            let projectDir = home.appendingPathComponent("Projects").appendingPathComponent(repo).path
-            let socket = home.appendingPathComponent(".tmux/sock").path
-            let agent = agentType.launchFlag
+    public func openInTerminal(sessionName: String) {
+        tmux.openInTerminal(name: sessionName)
+    }
 
-            // Use enriched shell variables that harvest PATH and credentials from
-            // the user's login shell (sources .zprofile + .zshrc for nvm/Homebrew).
-            // tmux new-session receives this so node, ralphy, etc. are on PATH.
-            let shellEnv = await ShellEnvironment.enrichedEnvironment()
+    // MARK: - Static tmux paths (referenced by EmbeddedTerminalView)
 
-            let shellCmd = "/opt/homebrew/bin/tmux -S \(socket) new -d -s \(sessionName)" +
-                " \"cd \(projectDir)" +
-                " && unset ANTHROPIC_API_KEY" +
-                " && /opt/homebrew/bin/ralphy --\(agent) --prd \(prdPath)" +
-                "; EXIT_CODE=\\$?; echo EXITED: \\$EXIT_CODE; sleep 999999\""
+    public static var tmuxExecutablePath: String {
+        LiveTmuxController.tmuxExecutablePath
+    }
 
-            let result: ProcessResult
-            do {
-                result = try await Process.runAsync(
-                    executablePath: "/bin/zsh",
-                    arguments: ["-l", "-c", shellCmd],
-                    environment: shellEnv
-                )
-            } catch let ProcessRunError.launchFailed(msg) {
-                throw LaunchError.tmuxFailed(msg)
-            }
+    public static var tmuxSocketPath: String {
+        LiveTmuxController.tmuxSocketPath
+    }
 
-            if !result.succeeded {
-                let output = result.stderrString.isEmpty ? result.stdoutString : result.stderrString
-                throw LaunchError.tmuxFailed(output.isEmpty ? "unknown error" : output)
-            }
-        #else
-            throw LaunchError.unsupportedPlatform
-        #endif
+    public static func attachCommand(for sessionName: String) -> (executable: String, arguments: [String]) {
+        LiveTmuxController.attachCommand(for: sessionName)
     }
 
     // MARK: - Monitoring
 
-    public func checkSession(_ session: ActiveSession) async -> ActiveSession.SessionStatus {
-        #if os(macOS)
-            let home = FileManager.default.homeDirectoryForCurrentUser
-            let socket = home.appendingPathComponent(".tmux/sock").path
-
-            do {
-                let result = try await Process.runAsync(
-                    executablePath: "/opt/homebrew/bin/tmux",
-                    arguments: ["-S", socket, "has-session", "-t", session.sessionName],
-                    environment: await ShellEnvironment.enrichedEnvironment()
-                )
-                return result.succeeded ? .running : .completed
-            } catch {
-                return .failed
-            }
-        #else
-            return .failed
-        #endif
-    }
-
-    /// Path to the tmux executable used for app-managed sessions.
-    public static let tmuxExecutablePath = "/opt/homebrew/bin/tmux"
-
-    /// Path to the tmux socket used for app-managed sessions.
-    public static var tmuxSocketPath: String {
-        URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true)
-            .appendingPathComponent(".tmux/sock")
-            .path
-    }
-
-    /// Build the `tmux attach` command for a given session — used to spawn an
-    /// interactive PTY-backed terminal inside the app.
-    public static func attachCommand(for sessionName: String) -> (executable: String, arguments: [String]) {
-        (tmuxExecutablePath, ["-S", tmuxSocketPath, "attach", "-t", sessionName])
-    }
-
-    /// Capture the current visible content of a tmux session pane.
-    public func capturePane(sessionName: String) async -> String? {
-        #if os(macOS)
-            let home = FileManager.default.homeDirectoryForCurrentUser
-            let socket = home.appendingPathComponent(".tmux/sock").path
-
-            do {
-                let result = try await Process.runAsync(
-                    executablePath: "/opt/homebrew/bin/tmux",
-                    arguments: ["-S", socket, "capture-pane", "-t", sessionName, "-p", "-J"],
-                    environment: await ShellEnvironment.enrichedEnvironment()
-                )
-                guard result.succeeded else { return nil }
-                return result.stdoutString.trimmingCharacters(in: .whitespacesAndNewlines)
-            } catch {
-                return nil
-            }
-        #else
-            return nil
-        #endif
-    }
-
-    /// Open a tmux session in the system Terminal.app.
-    public func openInTerminal(sessionName: String) {
-        #if os(macOS)
-            let home = FileManager.default.homeDirectoryForCurrentUser
-            let socket = home.appendingPathComponent(".tmux/sock").path
-
-            // Use /opt/homebrew/bin/tmux explicitly and source shell profile
-            // so PATH is correct inside the terminal.
-            let cmd = "source ~/.zshrc 2>/dev/null; /opt/homebrew/bin/tmux -S \(socket) attach -t \(sessionName)"
-
-            let appleScript = """
-            tell application "Terminal"
-                activate
-                do script "\(cmd)"
-            end tell
-            """
-
-            let scriptProcess = Process()
-            scriptProcess.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
-            scriptProcess.arguments = ["-e", appleScript]
-
-            do {
-                try scriptProcess.run()
-            } catch {
-                logger.error("Failed to open Terminal.app: \(error.localizedDescription)")
-            }
-        #endif
-    }
-
-    /// Start monitoring active sessions for status changes.
     public func startMonitoring() {
         monitorTask?.cancel()
         monitorTask = Task { [weak self] in
@@ -483,23 +304,34 @@ public final class SessionLauncher {
         }
     }
 
-    /// Stop the active-session polling loop.
     public func stopMonitoring() {
         monitorTask?.cancel()
         monitorTask = nil
     }
 
-    // MARK: - Errors
+    // MARK: - PRD file I/O
 
-    enum LaunchError: LocalizedError {
-        case tmuxFailed(String)
-        case unsupportedPlatform
+    private func writePRD(repo: String, path: String, content: String) throws {
+        #if os(macOS)
+            let home = FileManager.default.homeDirectoryForCurrentUser
+            let projectDir = home.appendingPathComponent("Projects").appendingPathComponent(repo)
+            let prdDir = projectDir.appendingPathComponent("docs")
 
-        var errorDescription: String? {
-            switch self {
-            case let .tmuxFailed(msg): return "tmux launch failed: \(msg)"
-            case .unsupportedPlatform: return "Session launching is only supported on macOS."
-            }
-        }
+            try FileManager.default.createDirectory(at: prdDir, withIntermediateDirectories: true)
+
+            let prdFile = prdDir.appendingPathComponent(URL(fileURLWithPath: path).lastPathComponent)
+            try content.write(to: prdFile, atomically: true, encoding: .utf8)
+        #else
+            throw LaunchError.unsupportedPlatform
+        #endif
+    }
+
+    private static func repoPath(for repo: String) -> String {
+        #if os(macOS)
+            let home = FileManager.default.homeDirectoryForCurrentUser
+            return home.appendingPathComponent("Projects").appendingPathComponent(repo).path
+        #else
+            return "/" // unreachable — launch() throws unsupportedPlatform via tmux on iOS
+        #endif
     }
 }
