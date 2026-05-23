@@ -168,7 +168,7 @@ struct DesktopSidebar: View {
 
     private func projectColor(_ shortName: String) -> Color {
         let colors: [Color] = [.blue, .orange, .purple]
-        let index = abs(shortName.hashValue) % colors.count
+        let index = Int(shortName.hashValue.magnitude % UInt(colors.count))
         return colors[index]
     }
 
