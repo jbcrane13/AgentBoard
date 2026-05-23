@@ -176,6 +176,13 @@ public enum AgentBoardBootstrap {
         )
         let sessionLauncher = SessionLauncher()
 
+        // Pre-warm the shell-environment probe in the background so it's ready
+        // by the time the user launches a session — replaces the previous
+        // synchronous static-initializer that could hang the UI for up to 5s.
+        #if os(macOS)
+            ShellEnvironment.warm()
+        #endif
+
         return AgentBoardAppModel(
             settingsRepository: settingsRepository,
             settingsStore: settingsStore,

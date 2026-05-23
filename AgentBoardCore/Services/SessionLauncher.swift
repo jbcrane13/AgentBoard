@@ -345,7 +345,7 @@ public final class SessionLauncher {
             // Use enriched shell variables that harvest PATH and credentials from
             // the user's login shell (sources .zprofile + .zshrc for nvm/Homebrew).
             // tmux new-session receives this so node, ralphy, etc. are on PATH.
-            let shellEnv = ShellEnvironment.enrichedEnvironment()
+            let shellEnv = await ShellEnvironment.enrichedEnvironment()
 
             let shellCmd = "/opt/homebrew/bin/tmux -S \(socket) new -d -s \(sessionName)" +
                 " \"cd \(projectDir)" +
@@ -384,7 +384,7 @@ public final class SessionLauncher {
                 let result = try await Process.runAsync(
                     executablePath: "/opt/homebrew/bin/tmux",
                     arguments: ["-S", socket, "has-session", "-t", session.sessionName],
-                    environment: ShellEnvironment.enrichedEnvironment()
+                    environment: await ShellEnvironment.enrichedEnvironment()
                 )
                 return result.succeeded ? .running : .completed
             } catch {
@@ -421,7 +421,7 @@ public final class SessionLauncher {
                 let result = try await Process.runAsync(
                     executablePath: "/opt/homebrew/bin/tmux",
                     arguments: ["-S", socket, "capture-pane", "-t", sessionName, "-p", "-J"],
-                    environment: ShellEnvironment.enrichedEnvironment()
+                    environment: await ShellEnvironment.enrichedEnvironment()
                 )
                 guard result.succeeded else { return nil }
                 return result.stdoutString.trimmingCharacters(in: .whitespacesAndNewlines)
