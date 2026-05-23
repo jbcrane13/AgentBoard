@@ -2,86 +2,61 @@ import AgentBoardCore
 import SwiftUI
 
 struct MobileRootView: View {
-    @Environment(AgentBoardAppModel.self) private var appModel
-
-    init() {
-        Self.applyTabBarAppearance(.blue)
-    }
-
-    static func applyTabBarAppearance(_ designTheme: AgentBoardDesignTheme) {
-        let backgroundColor: UIColor
-        let selectedColor: UIColor
-        switch designTheme {
-        case .blue:
-            backgroundColor = UIColor(red: 0.086, green: 0.110, blue: 0.153, alpha: 1.0)
-            selectedColor = UIColor(red: 0.310, green: 0.851, blue: 0.773, alpha: 1.0)
-        case .grey:
-            backgroundColor = UIColor(red: 0.169, green: 0.180, blue: 0.196, alpha: 1.0)
-            selectedColor = UIColor(red: 0.910, green: 0.647, blue: 0.455, alpha: 1.0)
-        }
-
-        let appearance = UITabBarAppearance()
-        appearance.configureWithOpaqueBackground()
-        appearance.backgroundColor = backgroundColor
-
-        appearance.stackedLayoutAppearance.normal.iconColor = UIColor(red: 0.494, green: 0.522, blue: 0.584, alpha: 1.0)
-        appearance.stackedLayoutAppearance.normal.titleTextAttributes = [.foregroundColor: UIColor(
-            red: 0.494,
-            green: 0.522,
-            blue: 0.584,
-            alpha: 1.0
-        )]
-
-        appearance.stackedLayoutAppearance.selected.iconColor = selectedColor
-        appearance.stackedLayoutAppearance.selected.titleTextAttributes = [.foregroundColor: selectedColor]
-
-        UITabBar.appearance().standardAppearance = appearance
-        UITabBar.appearance().scrollEdgeAppearance = appearance
-    }
+    @State private var selectedDestination: AppDestination = .chat
 
     var body: some View {
-        TabView {
+        TabView(selection: $selectedDestination) {
             NavigationStack {
                 ChatScreen()
+                    .navigationTitle(AppDestination.chat.title)
             }
             .tabItem {
                 Label(AppDestination.chat.title, systemImage: AppDestination.chat.systemImage)
             }
+            .tag(AppDestination.chat)
             .accessibilityIdentifier("mobile_tab_chat")
 
             NavigationStack {
                 WorkScreen()
+                    .navigationTitle(AppDestination.work.title)
             }
             .tabItem {
                 Label(AppDestination.work.title, systemImage: AppDestination.work.systemImage)
             }
+            .tag(AppDestination.work)
             .accessibilityIdentifier("mobile_tab_work")
 
             NavigationStack {
                 AgentsScreen()
+                    .navigationTitle(AppDestination.agents.title)
             }
             .tabItem {
                 Label(AppDestination.agents.title, systemImage: AppDestination.agents.systemImage)
             }
+            .tag(AppDestination.agents)
             .accessibilityIdentifier("mobile_tab_agents")
 
             NavigationStack {
                 SessionsScreen()
+                    .navigationTitle(AppDestination.sessions.title)
             }
             .tabItem {
                 Label(AppDestination.sessions.title, systemImage: AppDestination.sessions.systemImage)
             }
+            .tag(AppDestination.sessions)
             .accessibilityIdentifier("mobile_tab_sessions")
 
             NavigationStack {
                 SettingsScreen()
+                    .navigationTitle(AppDestination.settings.title)
             }
             .tabItem {
                 Label(AppDestination.settings.title, systemImage: AppDestination.settings.systemImage)
             }
+            .tag(AppDestination.settings)
             .accessibilityIdentifier("mobile_tab_settings")
         }
-        .tint(NeuPalette.accentCyan)
+        .tint(.accentColor)
         .accessibilityIdentifier("screen_mobileRoot")
     }
 }

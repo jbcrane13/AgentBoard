@@ -32,7 +32,6 @@ struct AgentBoardMobileApp: App {
 
     private func applyTheme(_ designTheme: AgentBoardDesignTheme) {
         NeuPalette.apply(designTheme)
-        MobileRootView.applyTabBarAppearance(designTheme)
         appliedTheme = designTheme
     }
 

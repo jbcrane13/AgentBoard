@@ -116,6 +116,7 @@ Located in `SharedResources/Assets.xcassets/AppIcon.appiconset/`. All 10 macOS s
 ## Design decisions
 
 See `docs/ADR.md` for the full architecture decision record. Key recent ADRs:
+- **ADR-013** (2026-05-23): Native SwiftUI app shell controls
 - **ADR-011** (2026-05-01): Kanban.db as task backend
 - **ADR-010** (2026-04-23): Hermes-first shared SwiftUI rebuild
 
@@ -187,6 +188,10 @@ The older OpenClaw/beads/macOS-only prototype has been removed from the active s
 ## Activity — 2026-05-18
 - 9ecdf1d feat: complete companion sync for sessions and chat
 - beaf928 fix: keep sessions live when cache persistence fails (#90)
+
+## Activity — 2026-05-23
+- Native SwiftUI shell migration for #97-#100: macOS app shell now uses `NavigationSplitView`, source-list sidebar rows, toolbar actions, and a chat inspector; iOS root uses tagged SwiftUI `TabView(selection:)` without UIKit tab-bar overrides.
+- Added `NativeSwiftUIInterfaceTests` to guard the app-shell contracts and documented the decision in ADR-013.
 
 ## Imported Claude Cowork project instructions
 
