@@ -187,3 +187,9 @@ The older OpenClaw/beads/macOS-only prototype has been removed from the active s
 ## Activity — 2026-05-18
 - 9ecdf1d feat: complete companion sync for sessions and chat
 - beaf928 fix: keep sessions live when cache persistence fails (#90)
+
+## Activity — 2026-05-21
+- (no commits)
+
+## Activity — 2026-05-22
+- (no commits)

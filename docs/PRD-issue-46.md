@@ -4,7 +4,8 @@
 #46 in jbcrane13/agentboard
 ## Tasks
 - [ ] Implement Expand modern AgentBoard coverage for companion events and UI smoke flows
-- [ ] Handle edge cases and error states
+- [ ] Run full test suite
+- [ ] Review code quality and suggest improvements
 - [ ] Add accessibilityIdentifier to every interactive element
 - [ ] Build verify: xcodebuild -scheme AgentBoard -destination 'platform=macOS' build
 ## Constraints
