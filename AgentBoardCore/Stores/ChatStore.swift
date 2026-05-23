@@ -31,7 +31,7 @@ private enum ChatStoreError: LocalizedError {
 public final class ChatStore {
     private let logger = Logger(subsystem: "com.agentboard.modern", category: "ChatStore")
     private let hermesClient: HermesGatewayClient
-    private let cache: AgentBoardCache
+    private let cache: any AgentBoardCacheProtocol
     private let settingsStore: SettingsStore
     private let companionClient: CompanionClient
     private let uploadService = AttachmentUploadService()
@@ -55,7 +55,7 @@ public final class ChatStore {
 
     public init(
         hermesClient: HermesGatewayClient,
-        cache: AgentBoardCache,
+        cache: any AgentBoardCacheProtocol,
         settingsStore: SettingsStore,
         companionClient: CompanionClient
     ) {
@@ -80,23 +80,23 @@ public final class ChatStore {
 
         if settingsStore.isCompanionConfigured {
             do {
-                try await companionClient.configure(
-                    baseURL: settingsStore.companionURL,
-                    bearerToken: settingsStore.companionToken.trimmedOrNil
-                )
                 let companionConvos = try await companionClient.listConversations()
                 conversations = companionConvos
 
                 var loadedMessages: [UUID: [ConversationMessage]] = [:]
                 for conversation in companionConvos {
-                    loadedMessages[conversation.id] = try? await companionClient.loadMessages(conversationID: conversation.id)
+                    loadedMessages[conversation.id] = try? await companionClient
+                        .loadMessages(conversationID: conversation.id)
                 }
                 messagesByConversationID = loadedMessages
                 selectedConversationID = companionConvos.first?.id
 
                 try syncToLocalCache()
             } catch {
-                logger.error("Companion unreachable during chat bootstrap — falling back to local cache: \(error.localizedDescription, privacy: .public)")
+                logger
+                    .error(
+                        "Companion unreachable during chat bootstrap — falling back to local cache: \(error.localizedDescription, privacy: .public)"
+                    )
                 loadCachedConversations()
             }
         } else {
@@ -157,13 +157,12 @@ public final class ChatStore {
         if settingsStore.isCompanionConfigured {
             Task {
                 do {
-                    try await companionClient.configure(
-                        baseURL: settingsStore.companionURL,
-                        bearerToken: settingsStore.companionToken.trimmedOrNil
-                    )
                     try await companionClient.deleteConversationOnServer(id: id)
                 } catch {
-                    logger.error("Failed to delete conversation from companion: \(error.localizedDescription, privacy: .public)")
+                    logger
+                        .error(
+                            "Failed to delete conversation from companion: \(error.localizedDescription, privacy: .public)"
+                        )
                 }
             }
         }
@@ -225,16 +224,13 @@ public final class ChatStore {
         guard settingsStore.isCompanionConfigured, didBootstrap else { return }
 
         do {
-            try await companionClient.configure(
-                baseURL: settingsStore.companionURL,
-                bearerToken: settingsStore.companionToken.trimmedOrNil
-            )
             let companionConvos = try await companionClient.listConversations()
             conversations = companionConvos
 
             var loadedMessages: [UUID: [ConversationMessage]] = [:]
             for conversation in companionConvos {
-                loadedMessages[conversation.id] = try? await companionClient.loadMessages(conversationID: conversation.id)
+                loadedMessages[conversation.id] = try? await companionClient
+                    .loadMessages(conversationID: conversation.id)
             }
             messagesByConversationID = loadedMessages
 
@@ -247,7 +243,10 @@ public final class ChatStore {
             let count = conversations.count
             logger.info("Conversations refreshed from companion: \(count) conversations")
         } catch {
-            logger.error("Failed to refresh conversations from companion: \(error.localizedDescription, privacy: .public)")
+            logger
+                .error(
+                    "Failed to refresh conversations from companion: \(error.localizedDescription, privacy: .public)"
+                )
         }
     }
 
@@ -580,16 +579,13 @@ public final class ChatStore {
 
         Task {
             do {
-                try await companionClient.configure(
-                    baseURL: settingsStore.companionURL,
-                    bearerToken: settingsStore.companionToken.trimmedOrNil
-                )
                 try await companionClient.syncConversations(
                     conversations: conversations,
                     messagesByConversation: messagesByConv
                 )
             } catch {
-                logger.error("Failed to sync conversations to companion: \(error.localizedDescription, privacy: .public)")
+                logger
+                    .error("Failed to sync conversations to companion: \(error.localizedDescription, privacy: .public)")
             }
         }
     }

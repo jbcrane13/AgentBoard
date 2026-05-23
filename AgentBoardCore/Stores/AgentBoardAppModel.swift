@@ -49,6 +49,7 @@ public final class AgentBoardAppModel {
         isBootstrapping = true
 
         await settingsStore.bootstrap()
+        await applyCompanionConfiguration()
         await chatStore.bootstrap()
         await workStore.bootstrap()
         await agentsStore.bootstrap()
@@ -72,9 +73,27 @@ public final class AgentBoardAppModel {
 
     public func saveSettingsAndReconnect() async {
         await settingsStore.persist()
+        await applyCompanionConfiguration()
         await refreshAll()
         startCompanionEvents()
         startRefreshLoop()
+    }
+
+    /// Apply the current companion URL + token to the shared CompanionClient.
+    /// Centralizes what used to be repeated configure-before-every-call blocks
+    /// scattered across ChatStore and SessionsStore. Swallows configure errors
+    /// (e.g., invalid URL) and logs them — downstream companion calls will
+    /// throw and the stores already handle that by falling back to cache.
+    private func applyCompanionConfiguration() async {
+        guard settingsStore.isCompanionConfigured else { return }
+        do {
+            try await companionClient.configure(
+                baseURL: settingsStore.companionURL,
+                bearerToken: settingsStore.companionToken.trimmedOrNil
+            )
+        } catch {
+            logger.error("Companion configure failed: \(error.localizedDescription, privacy: .public)")
+        }
     }
 
     private func startCompanionEvents() {

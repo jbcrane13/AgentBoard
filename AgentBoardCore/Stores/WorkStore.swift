@@ -7,7 +7,7 @@ import os
 public final class WorkStore {
     private let logger = Logger(subsystem: "com.agentboard.modern", category: "WorkStore")
     private let service: GitHubWorkService
-    private let cache: AgentBoardCache
+    private let cache: any AgentBoardCacheProtocol
     private let settingsStore: SettingsStore
 
     public private(set) var items: [WorkItem] = []
@@ -24,7 +24,7 @@ public final class WorkStore {
 
     public init(
         service: GitHubWorkService,
-        cache: AgentBoardCache,
+        cache: any AgentBoardCacheProtocol,
         settingsStore: SettingsStore
     ) {
         self.service = service
