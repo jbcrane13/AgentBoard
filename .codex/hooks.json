@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "'/Users/blake/Projects/AgentBoard/.codex/hooks/supervisor/on-stop.sh'"
+          }
+        ]
+      }
+    ]
+  }
+}

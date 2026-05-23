@@ -179,4 +179,19 @@ Agents → CompanionServer → FSEvents + ps
 
 ---
 
+## ADR-013: Native SwiftUI app shell controls
+**Date:** 2026-05-23
+**Status:** Active
+**Decision:** Use platform-native SwiftUI shell controls for the macOS and iOS apps, and reserve bespoke styling for feature content rather than the app frame.
+
+**Context:** The Hermes-first rebuild shipped with a heavily custom app shell: manual desktop sidebars, custom tab buttons, UIKit tab-bar appearance overrides, and hidden macOS title-bar behavior. That visual direction made the app feel less native on both macOS and iOS and made shell-level regression coverage hard to state.
+
+**Consequences:**
+- `AgentBoard` uses `NavigationSplitView`, a source-list `List`, SwiftUI toolbar actions, and an inspector-style chat panel.
+- `AgentBoardMobile` uses tagged SwiftUI `TabView(selection:)` navigation and no UIKit tab-bar appearance override.
+- macOS keeps standard window chrome instead of hiding the title bar.
+- `NativeSwiftUIInterfaceTests` guards the shell-level native SwiftUI contracts.
+
+---
+
 *To add a new ADR: append with the next number, include date, status, decision, context, and consequences.*
