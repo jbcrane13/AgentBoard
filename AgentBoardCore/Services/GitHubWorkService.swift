@@ -110,6 +110,16 @@ public actor GitHubWorkService {
     private var repositories: [ConfiguredRepository] = []
     private var token: String?
 
+    // Hoist decoder + date formatter to actor properties — both are expensive
+    // to construct (ISO8601DateFormatter spins up locale/timezone/calendar)
+    // and they're hit on every issue field.
+    private let decoder = JSONDecoder()
+    private let iso8601Formatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter
+    }()
+
     public init(session: URLSession = .shared) {
         self.session = session
     }
@@ -166,7 +176,7 @@ public actor GitHubWorkService {
 
         let (data, response) = try await session.data(for: request)
         try validateResponse(response, data: data)
-        let issue = try JSONDecoder().decode(RawIssue.self, from: data)
+        let issue = try decoder.decode(RawIssue.self, from: data)
         return map(issue: issue, repository: repository)
     }
 
@@ -205,7 +215,7 @@ public actor GitHubWorkService {
 
         let (data, response) = try await session.data(for: request)
         try validateResponse(response, data: data)
-        let issue = try JSONDecoder().decode(RawIssue.self, from: data)
+        let issue = try decoder.decode(RawIssue.self, from: data)
         return map(issue: issue, repository: repository)
     }
 
@@ -250,7 +260,7 @@ public actor GitHubWorkService {
             let (data, response) = try await session.data(for: authorizedRequest(url: url, token: token))
             try validateResponse(response, data: data)
 
-            let issues = try JSONDecoder().decode([RawIssue].self, from: data)
+            let issues = try decoder.decode([RawIssue].self, from: data)
             if issues.isEmpty { break }
             allIssues.append(contentsOf: issues)
             if issues.count < 100 { break }
@@ -290,7 +300,7 @@ public actor GitHubWorkService {
             let data = stdout.fileHandleForReading.readDataToEndOfFile()
             guard !data.isEmpty else { return [] }
 
-            let issues = try JSONDecoder().decode([RawIssue].self, from: data)
+            let issues = try decoder.decode([RawIssue].self, from: data)
             return issues.map { map(issue: $0, repository: repository) }
         }
     #endif
@@ -369,7 +379,7 @@ public actor GitHubWorkService {
     }
 
     private func parseDate(_ rawValue: String) -> Date {
-        ISO8601DateFormatter().date(from: rawValue) ?? .now
+        iso8601Formatter.date(from: rawValue) ?? .now
     }
 
     private func buildURL(

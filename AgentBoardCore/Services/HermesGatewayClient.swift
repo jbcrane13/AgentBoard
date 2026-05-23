@@ -89,6 +89,11 @@ public actor HermesGatewayClient {
         return (response as? HTTPURLResponse)?.statusCode == 200
     }
 
+    private struct ModelListResponse: Decodable, Sendable {
+        struct Entry: Decodable, Sendable { let id: String }
+        let data: [Entry]
+    }
+
     public func fetchModels() async throws -> [String] {
         var request = URLRequest(url: endpointURL("v1/models"))
         request.timeoutInterval = 10
@@ -97,12 +102,14 @@ public actor HermesGatewayClient {
         let (data, response) = try await data(for: request)
         try validate(response: response, fallbackBody: data)
 
-        guard let payload = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let models = payload["data"] as? [[String: Any]] else {
+        let payload: ModelListResponse
+        do {
+            payload = try JSONDecoder().decode(ModelListResponse.self, from: data)
+        } catch {
             throw ClientError.invalidResponse
         }
 
-        let ids = models.compactMap { $0["id"] as? String }
+        let ids = payload.data.map(\.id)
         return ids.isEmpty ? [configuration.preferredModelID ?? "hermes-agent"] : ids
     }
 

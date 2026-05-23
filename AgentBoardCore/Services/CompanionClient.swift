@@ -88,16 +88,21 @@ public actor CompanionClient {
         try await fetch(path: "v1/agents")
     }
 
+    private struct OkResponse: Decodable, Sendable { let ok: Bool }
+    private struct SessionOutputResponse: Decodable, Sendable { let output: String? }
+
     public func stopSession(id: String) async throws {
         var request = makeRequest(path: "v1/sessions/\(id)/stop")
         request.httpMethod = "POST"
         let (data, response) = try await session.data(for: request)
         try validate(response: response, data: data)
-        guard let payload = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let ok = payload["ok"] as? Bool else {
+        let payload: OkResponse
+        do {
+            payload = try decoder.decode(OkResponse.self, from: data)
+        } catch {
             throw ClientError.invalidResponse
         }
-        if !ok {
+        if !payload.ok {
             throw ClientError.operationFailed("Failed to stop session — the session may no longer be running.")
         }
     }
@@ -107,11 +112,13 @@ public actor CompanionClient {
         request.httpMethod = "POST"
         let (data, response) = try await session.data(for: request)
         try validate(response: response, data: data)
-        guard let payload = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let ok = payload["ok"] as? Bool else {
+        let payload: OkResponse
+        do {
+            payload = try decoder.decode(OkResponse.self, from: data)
+        } catch {
             throw ClientError.invalidResponse
         }
-        if !ok {
+        if !payload.ok {
             throw ClientError.operationFailed("Failed to nudge session — the session may no longer be running.")
         }
     }
@@ -119,10 +126,13 @@ public actor CompanionClient {
     public func fetchSessionOutput(id: String) async throws -> String? {
         let (data, response) = try await session.data(for: makeRequest(path: "v1/sessions/\(id)/output"))
         try validate(response: response, data: data)
-        guard let payload = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let output = payload["output"] as? String else {
+        let payload: SessionOutputResponse
+        do {
+            payload = try decoder.decode(SessionOutputResponse.self, from: data)
+        } catch {
             return nil
         }
+        guard let output = payload.output else { return nil }
         return output.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : output
     }
 
