@@ -28,7 +28,9 @@ public protocol TmuxControlling: Sendable {
     ) async throws
 
     /// Returns true if a tmux session with the given name is currently alive.
-    func hasSession(name: String) async -> Bool
+    /// Throws when tmux probing itself fails so callers can distinguish a
+    /// completed session from an unhealthy tmux/socket environment.
+    func hasSession(name: String) async throws -> Bool
 
     /// Capture the visible content of a tmux session pane, or `nil` if the
     /// session is gone or capture failed.
@@ -91,20 +93,23 @@ public actor LiveTmuxController: TmuxControlling {
         #endif
     }
 
-    public func hasSession(name: String) async -> Bool {
+    public func hasSession(name: String) async throws -> Bool {
         #if os(macOS)
+            let result: ProcessResult
             do {
-                let result = try await Process.runAsync(
+                result = try await Process.runAsync(
                     executablePath: Self.tmuxExecutablePath,
                     arguments: ["-S", Self.tmuxSocketPath, "has-session", "-t", name],
                     environment: await ShellEnvironment.enrichedEnvironment()
                 )
-                return result.succeeded
+            } catch let ProcessRunError.launchFailed(msg) {
+                throw TmuxError.launchFailed(msg)
             } catch {
-                return false
+                throw error
             }
+            return result.succeeded
         #else
-            return false
+            throw TmuxError.unsupportedPlatform
         #endif
     }
 

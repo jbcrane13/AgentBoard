@@ -256,8 +256,13 @@ public final class SessionLauncher {
     // MARK: - Tmux pass-throughs (used by SessionTerminalView)
 
     public func checkSession(_ session: ActiveSession) async -> ActiveSession.SessionStatus {
-        let alive = await tmux.hasSession(name: session.sessionName)
-        return alive ? .running : .completed
+        do {
+            let alive = try await tmux.hasSession(name: session.sessionName)
+            return alive ? .running : .completed
+        } catch {
+            logger.error("Failed to check tmux session: \(error.localizedDescription, privacy: .public)")
+            return .failed
+        }
     }
 
     public func capturePane(sessionName: String) async -> String? {

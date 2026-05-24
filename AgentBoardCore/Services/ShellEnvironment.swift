@@ -25,7 +25,7 @@ import os
 
         /// Keys to harvest from the login shell. PATH always included;
         /// the rest are AI-provider credentials that GUI apps never see.
-        fileprivate static let shellEnvKeys: [String] = [
+        private static let shellEnvKeys: [String] = [
             "PATH",
             "ANTHROPIC_API_KEY", "ANTHROPIC_TOKEN", "ANTHROPIC_BASE_URL",
             "OPENAI_API_KEY", "OPENAI_BASE_URL",
