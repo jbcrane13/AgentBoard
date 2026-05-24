@@ -37,52 +37,129 @@ public enum ProcessRunError: Error, Sendable {
             environment: [String: String]? = nil,
             timeout: TimeInterval? = nil
         ) async throws -> ProcessResult {
-            try await withCheckedThrowingContinuation { continuation in
-                let process = Process()
-                process.executableURL = URL(fileURLWithPath: executablePath)
-                process.arguments = arguments
-                if let environment {
-                    process.setValue(environment, forKey: "environment")
+            final class RunState: @unchecked Sendable {
+                private let lock = NSLock()
+                private var didResume = false
+                private var isCancelled = false
+                private weak var process: Process?
+                private var timer: DispatchSourceTimer?
+
+                func setProcess(_ process: Process) {
+                    lock.lock()
+                    defer { lock.unlock() }
+                    self.process = process
                 }
 
-                let stdoutPipe = Pipe()
-                let stderrPipe = Pipe()
-                process.standardOutput = stdoutPipe
-                process.standardError = stderrPipe
+                func setTimer(_ timer: DispatchSourceTimer?) {
+                    lock.lock()
+                    defer { lock.unlock() }
+                    self.timer = timer
+                }
 
-                let timer: DispatchSourceTimer?
-                if let timeout {
-                    let source = DispatchSource.makeTimerSource()
-                    source.schedule(deadline: .now() + timeout)
-                    source.setEventHandler {
-                        process.terminate()
-                        continuation.resume(throwing: ProcessRunError.timedOut)
+                func cancelForTaskCancellation() {
+                    let process: Process?
+                    let timer: DispatchSourceTimer?
+                    lock.lock()
+                    isCancelled = true
+                    process = self.process
+                    timer = self.timer
+                    lock.unlock()
+                    timer?.cancel()
+                    process?.terminate()
+                }
+
+                func cancelTimer() {
+                    let timer: DispatchSourceTimer?
+                    lock.lock()
+                    timer = self.timer
+                    lock.unlock()
+                    timer?.cancel()
+                }
+
+                func wasCancelled() -> Bool {
+                    lock.lock()
+                    defer { lock.unlock() }
+                    return isCancelled
+                }
+
+                func resumeOnce(_ block: () -> Void) {
+                    lock.lock()
+                    guard !didResume else {
+                        lock.unlock()
+                        return
                     }
-                    source.resume()
-                    timer = source
-                } else {
-                    timer = nil
+                    didResume = true
+                    lock.unlock()
+                    block()
                 }
+            }
 
-                process.terminationHandler = { proc in
-                    timer?.cancel()
-                    let outData = (try? stdoutPipe.fileHandleForReading.readToEnd()) ?? Data()
-                    let errData = (try? stderrPipe.fileHandleForReading.readToEnd()) ?? Data()
-                    continuation.resume(
-                        returning: ProcessResult(
-                            exitCode: proc.terminationStatus,
-                            stdout: outData,
-                            stderr: errData
-                        )
-                    )
-                }
+            let state = RunState()
 
-                do {
-                    try process.run()
-                } catch {
-                    timer?.cancel()
-                    continuation.resume(throwing: ProcessRunError.launchFailed(error.localizedDescription))
+            return try await withTaskCancellationHandler {
+                try Task.checkCancellation()
+
+                return try await withCheckedThrowingContinuation { continuation in
+                    let process = Process()
+                    state.setProcess(process)
+                    process.executableURL = URL(fileURLWithPath: executablePath)
+                    process.arguments = arguments
+                    if let environment {
+                        process.setValue(environment, forKey: "environment")
+                    }
+
+                    let stdoutPipe = Pipe()
+                    let stderrPipe = Pipe()
+                    process.standardOutput = stdoutPipe
+                    process.standardError = stderrPipe
+
+                    let timer: DispatchSourceTimer?
+                    if let timeout {
+                        let source = DispatchSource.makeTimerSource()
+                        source.schedule(deadline: .now() + timeout)
+                        source.setEventHandler {
+                            process.terminate()
+                            state.resumeOnce {
+                                continuation.resume(throwing: ProcessRunError.timedOut)
+                            }
+                        }
+                        source.resume()
+                        timer = source
+                    } else {
+                        timer = nil
+                    }
+                    state.setTimer(timer)
+
+                    process.terminationHandler = { proc in
+                        state.cancelTimer()
+                        state.resumeOnce {
+                            if state.wasCancelled() {
+                                continuation.resume(throwing: CancellationError())
+                                return
+                            }
+                            let outData = (try? stdoutPipe.fileHandleForReading.readToEnd()) ?? Data()
+                            let errData = (try? stderrPipe.fileHandleForReading.readToEnd()) ?? Data()
+                            continuation.resume(
+                                returning: ProcessResult(
+                                    exitCode: proc.terminationStatus,
+                                    stdout: outData,
+                                    stderr: errData
+                                )
+                            )
+                        }
+                    }
+
+                    do {
+                        try process.run()
+                    } catch {
+                        state.cancelTimer()
+                        state.resumeOnce {
+                            continuation.resume(throwing: ProcessRunError.launchFailed(error.localizedDescription))
+                        }
+                    }
                 }
+            } onCancel: {
+                state.cancelForTaskCancellation()
             }
         }
     }
