@@ -130,7 +130,7 @@ public actor CompanionClient {
         do {
             payload = try decoder.decode(SessionOutputResponse.self, from: data)
         } catch {
-            return nil
+            throw ClientError.invalidResponse
         }
         guard let output = payload.output else { return nil }
         return output.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : output

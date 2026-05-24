@@ -36,6 +36,17 @@ jobs:
       - name: Duplicate Code Detection (jscpd)
         run: npx --yes jscpd@4.0.5 --config .jscpd.json "AgentBoardCore" "AgentBoardUI" "AgentBoardCompanionKit" "AgentBoardMobile" "AgentBoardCompanion" "AgentBoard" "AgentBoardTests"
 
+      - name: Enforce jscpd Threshold (≤ 3.0%)
+        run: |
+          REPORT=reports/jscpd/jscpd-report.json
+          if [ ! -f "$REPORT" ]; then
+            echo "jscpd report not found at $REPORT"
+            exit 1
+          fi
+          PCT=$(python3 -c "import json; d=json.load(open('$REPORT')); print('{:.2f}'.format(d.get('statistics',{}).get('total',{}).get('percentage',0)))")
+          echo "Duplicate code: ${PCT}%"
+          python3 -c "import sys; pct=float('${PCT}'); sys.exit(1 if pct > 3.0 else 0); print('PASS: {:.2f}% <= {}%'.format(pct, 3.0))"
+
       - name: Upload jscpd Report
         uses: actions/upload-artifact@v4
         if: always()
