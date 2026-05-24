@@ -290,11 +290,11 @@ public final class WorkStore {
             token: settingsStore.githubToken.trimmedOrNil
         )
         guard configuration != appliedConfiguration else { return }
+        appliedConfiguration = configuration
         await service.configure(
             repositories: configuration.repositories,
             token: configuration.token
         )
-        appliedConfiguration = configuration
     }
 
     private struct GitHubConfiguration: Equatable {
