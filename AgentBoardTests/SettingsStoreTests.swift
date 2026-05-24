@@ -163,6 +163,34 @@ struct SettingsStoreTests {
         #expect(store.hermesGatewayURL == "http://127.0.0.1:8642")
         #expect(store.hermesModelID == "hermes-agent")
         #expect(store.selectedHermesProfileID == localID)
+        #expect(store.statusMessage == "Switched to Local.")
+    }
+
+    @Test func bootstrapSilentlyAppliesSelectedHermesProfile() async throws {
+        let repository = SettingsRepository(
+            suiteName: "SettingsStoreTests-bootstrap-\(UUID().uuidString)",
+            serviceName: "SettingsStoreTests-bootstrap-\(UUID().uuidString)"
+        )
+        let profile = HermesProfile(
+            id: "local",
+            name: "Local",
+            gatewayURL: "http://127.0.0.1:8642",
+            modelID: "hermes-local"
+        )
+        try await repository.saveSettings(AgentBoardSettings(
+            hermesGatewayURL: "http://127.0.0.1:9000",
+            hermesModelID: "hermes-fallback",
+            hermesProfiles: [profile],
+            selectedHermesProfileID: profile.id
+        ))
+        let store = SettingsStore(repository: repository)
+
+        await store.bootstrap()
+
+        #expect(store.hermesGatewayURL == profile.gatewayURL)
+        #expect(store.hermesModelID == profile.modelID)
+        #expect(store.selectedHermesProfileID == profile.id)
+        #expect(store.statusMessage == "Settings loaded.")
     }
 
     @Test func removeHermesProfileDeletesIt() {

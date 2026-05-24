@@ -6,7 +6,7 @@ import os
 @Observable
 public final class WorkStore {
     private let logger = Logger(subsystem: "com.agentboard.modern", category: "WorkStore")
-    private let service: GitHubWorkService
+    private let service: any GitHubWorkServicing
     private let cache: any AgentBoardCacheProtocol
     private let settingsStore: SettingsStore
 
@@ -17,13 +17,14 @@ public final class WorkStore {
     public var statusMessage: String?
 
     private var didBootstrap = false
+    private var appliedConfiguration: GitHubConfiguration?
 
     /// Tracks the data fingerprint from the last successful refresh.
     /// Used to skip SwiftUI updates when the data hasn't actually changed.
     private var lastFingerprint: String = ""
 
     public init(
-        service: GitHubWorkService,
+        service: any GitHubWorkServicing,
         cache: any AgentBoardCacheProtocol,
         settingsStore: SettingsStore
     ) {
@@ -81,10 +82,7 @@ public final class WorkStore {
         // Don't flash the loading state — keep existing data visible during refresh
         isLoading = true
 
-        await service.configure(
-            repositories: settingsStore.repositories,
-            token: settingsStore.githubToken.trimmedOrNil
-        )
+        await configureServiceIfNeeded()
 
         do {
             let fresh = try await service.fetchWorkItems()
@@ -151,10 +149,7 @@ public final class WorkStore {
             errorMessage = "Connect GitHub before creating issues."
             return
         }
-        await service.configure(
-            repositories: settingsStore.repositories,
-            token: settingsStore.githubToken.trimmedOrNil
-        )
+        await configureServiceIfNeeded()
         do {
             let item = try await service.createIssue(
                 repository: repository,
@@ -192,10 +187,7 @@ public final class WorkStore {
             errorMessage = "Connect GitHub before updating issues."
             return
         }
-        await service.configure(
-            repositories: settingsStore.repositories,
-            token: settingsStore.githubToken.trimmedOrNil
-        )
+        await configureServiceIfNeeded()
         let patch = GitHubIssuePatch(
             title: title,
             body: body,
@@ -233,10 +225,7 @@ public final class WorkStore {
             return
         }
 
-        await service.configure(
-            repositories: settingsStore.repositories,
-            token: settingsStore.githubToken.trimmedOrNil
-        )
+        await configureServiceIfNeeded()
 
         let labels = replacingStatusLabels(in: item.labels, with: state)
         let patch = GitHubIssuePatch(
@@ -293,6 +282,24 @@ public final class WorkStore {
         }
         result.append(state.labelValue)
         return Array(Set(result)).sortedCaseInsensitive()
+    }
+
+    private func configureServiceIfNeeded() async {
+        let configuration = GitHubConfiguration(
+            repositories: settingsStore.repositories,
+            token: settingsStore.githubToken.trimmedOrNil
+        )
+        guard configuration != appliedConfiguration else { return }
+        await service.configure(
+            repositories: configuration.repositories,
+            token: configuration.token
+        )
+        appliedConfiguration = configuration
+    }
+
+    private struct GitHubConfiguration: Equatable {
+        let repositories: [ConfiguredRepository]
+        let token: String?
     }
 
     #if DEBUG

@@ -39,6 +39,7 @@ public final class AttachmentUploadService {
     private let logger = Logger(subsystem: "com.agentboard", category: "AttachmentUpload")
     private let session: URLSession
     private var activeUploads: [String: URLSessionUploadTask] = [:]
+    private var progressObservations: [Int: NSKeyValueObservation] = [:]
 
     public init(session: URLSession = .shared) {
         self.session = session
@@ -83,7 +84,11 @@ public final class AttachmentUploadService {
 
         // Use URLSession upload task for progress tracking
         return try await withCheckedThrowingContinuation { continuation in
-            let task = session.uploadTask(with: request, from: body) { data, response, error in
+            let task = session.uploadTask(with: request, from: body) { [weak self] data, response, error in
+                Task { @MainActor in
+                    self?.finishUpload(attachmentID: attachment.id)
+                }
+
                 if let error {
                     if let urlError = error as? URLError, urlError.code == .cancelled {
                         continuation.resume(throwing: AttachmentUploadError.cancelled)
@@ -132,26 +137,28 @@ public final class AttachmentUploadService {
             }
 
             activeUploads[attachment.id] = task
+            progressObservations[task.taskIdentifier] = observation
             task.resume()
-
-            // Clean up observation when done
-            Task { @MainActor [weak self] in
-                _ = observation // retain
-                self?.activeUploads.removeValue(forKey: attachment.id)
-            }
         }
     }
 
     /// Cancel an in-progress upload
     public func cancelUpload(attachmentID: String) {
-        activeUploads[attachmentID]?.cancel()
-        activeUploads.removeValue(forKey: attachmentID)
+        guard let task = activeUploads.removeValue(forKey: attachmentID) else { return }
+        task.cancel()
+        progressObservations.removeValue(forKey: task.taskIdentifier)
     }
 
     /// Cancel all active uploads
     public func cancelAll() {
         activeUploads.values.forEach { $0.cancel() }
         activeUploads.removeAll()
+        progressObservations.removeAll()
+    }
+
+    private func finishUpload(attachmentID: String) {
+        guard let task = activeUploads.removeValue(forKey: attachmentID) else { return }
+        progressObservations.removeValue(forKey: task.taskIdentifier)
     }
 }
 

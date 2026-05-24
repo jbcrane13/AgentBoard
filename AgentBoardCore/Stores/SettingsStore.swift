@@ -180,7 +180,7 @@ public final class SettingsStore {
         errorMessage = nil
     }
 
-    public func selectHermesProfile(id: String) {
+    public func selectHermesProfile(id: String, silent: Bool = false) {
         guard let profile = hermesProfiles.first(where: { $0.id == id }) else { return }
         selectedHermesProfileID = profile.id
         hermesGatewayURL = profile.gatewayURL
@@ -188,7 +188,9 @@ public final class SettingsStore {
             hermesModelID = modelID
         }
         errorMessage = nil
-        statusMessage = "Switched to \(profile.name)."
+        if !silent {
+            statusMessage = "Switched to \(profile.name)."
+        }
     }
 
     public func removeHermesProfile(_ profile: HermesProfile) {
@@ -217,7 +219,7 @@ public final class SettingsStore {
         selectedHermesProfileID = settings.selectedHermesProfileID
         if let selectedHermesProfileID,
            hermesProfiles.contains(where: { $0.id == selectedHermesProfileID }) {
-            selectHermesProfile(id: selectedHermesProfileID)
+            selectHermesProfile(id: selectedHermesProfileID, silent: true)
         }
 
         companionURL = settings.companionURL

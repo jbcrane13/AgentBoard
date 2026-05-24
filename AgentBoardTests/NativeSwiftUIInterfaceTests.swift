@@ -29,11 +29,34 @@ struct NativeSwiftUIInterfaceTests {
         let appSource = try Self.source("AgentBoardMobile/AgentBoardMobileApp.swift")
 
         #expect(rootSource.contains("TabView(selection:"))
-        #expect(rootSource.contains(".tag(AppDestination.chat)"))
-        #expect(rootSource.contains(".tag(AppDestination.settings)"))
+        #expect(rootSource.contains("Tab(value: AppDestination.chat)"))
+        #expect(rootSource.contains("Tab(value: AppDestination.settings)"))
+        #expect(rootSource.contains(".tabViewStyle(.sidebarAdaptable)"))
+        #expect(!rootSource.contains(".tabItem"))
+        #expect(!rootSource.contains(".tag(AppDestination"))
         #expect(!rootSource.contains("UITabBarAppearance"))
         #expect(!rootSource.contains("UITabBar.appearance()"))
         #expect(!appSource.contains("applyTabBarAppearance"))
+    }
+
+    @Test func cacheReplacesCollectionsWithoutDeleteAllWriteAmplification() throws {
+        let source = try Self.source("AgentBoardCore/Persistence/AgentBoardCache.swift")
+
+        #expect(source.contains("func update(from item: WorkItem"))
+        #expect(source.contains("func update(from session: AgentSession"))
+        #expect(source.contains("func update(from agent: AgentSummary"))
+        #expect(!source.contains("replaceAll(CachedWorkItemRecord.self)"))
+        #expect(!source.contains("replaceAll(CachedSessionRecord.self)"))
+        #expect(!source.contains("replaceAll(CachedAgentRecord.self)"))
+    }
+
+    @Test func attachmentUploadRetainsProgressObservationUntilTaskCleanup() throws {
+        let source = try Self.source("AgentBoardCore/Services/AttachmentUploadService.swift")
+
+        #expect(source.contains("progressObservations: [Int: NSKeyValueObservation]"))
+        #expect(source.contains("progressObservations[task.taskIdentifier] = observation"))
+        #expect(source.contains("finishUpload(attachmentID:"))
+        #expect(!source.contains("_ = observation"))
     }
 
     private static func source(_ relativePath: String) throws -> String {

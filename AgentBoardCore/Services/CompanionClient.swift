@@ -43,6 +43,12 @@ public actor CompanionClient {
     private let decoder = JSONDecoder()
     private let encoder = JSONEncoder()
 
+    private enum RequestTimeout {
+        static let list: TimeInterval = 15
+        static let mutation: TimeInterval = 30
+        static let stream: TimeInterval = .greatestFiniteMagnitude
+    }
+
     public init(session: URLSession = .shared) {
         self.session = session
         decoder.dateDecodingStrategy = .iso8601
@@ -98,7 +104,7 @@ public actor CompanionClient {
     private struct SessionOutputResponse: Decodable, Sendable { let output: String? }
 
     public func stopSession(id: String) async throws {
-        var request = makeRequest(path: "v1/sessions/\(id)/stop")
+        var request = makeRequest(path: "v1/sessions/\(id)/stop", timeout: RequestTimeout.mutation)
         request.httpMethod = "POST"
         let (data, response) = try await session.data(for: request)
         try validate(response: response, data: data)
@@ -114,7 +120,7 @@ public actor CompanionClient {
     }
 
     public func nudgeSession(id: String) async throws {
-        var request = makeRequest(path: "v1/sessions/\(id)/nudge")
+        var request = makeRequest(path: "v1/sessions/\(id)/nudge", timeout: RequestTimeout.mutation)
         request.httpMethod = "POST"
         let (data, response) = try await session.data(for: request)
         try validate(response: response, data: data)
@@ -143,7 +149,7 @@ public actor CompanionClient {
     }
 
     public func events() async throws -> AsyncThrowingStream<CompanionEvent, Error> {
-        var request = makeRequest(path: "v1/events")
+        var request = makeRequest(path: "v1/events", timeout: RequestTimeout.stream)
         request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
 
         return AsyncThrowingStream { continuation in
@@ -188,7 +194,7 @@ public actor CompanionClient {
             conversations: conversations,
             messagesByConversation: messagesByConversation
         )
-        var request = makeRequest(path: "v1/conversations/sync")
+        var request = makeRequest(path: "v1/conversations/sync", timeout: RequestTimeout.mutation)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try encoder.encode(payload)
@@ -197,7 +203,10 @@ public actor CompanionClient {
     }
 
     public func deleteConversationOnServer(id: UUID) async throws {
-        var request = makeRequest(path: "v1/conversations/\(id.uuidString)")
+        var request = makeRequest(
+            path: "v1/conversations/\(id.uuidString)",
+            timeout: RequestTimeout.mutation
+        )
         request.httpMethod = "DELETE"
         let (data, response) = try await session.data(for: request)
         try validate(response: response, data: data)
@@ -211,9 +220,10 @@ public actor CompanionClient {
         return try decoder.decode(Value.self, from: data)
     }
 
-    private func makeRequest(path: String) -> URLRequest {
+    private func makeRequest(path: String, timeout: TimeInterval = RequestTimeout.list) -> URLRequest {
         let baseURL = URL(string: configuration.baseURL) ?? URL(string: "http://127.0.0.1:8742")!
         var request = URLRequest(url: baseURL.appending(path: path))
+        request.timeoutInterval = timeout
         if let bearerToken = configuration.bearerToken, !bearerToken.isEmpty {
             request.setValue("Bearer \(bearerToken)", forHTTPHeaderField: "Authorization")
         }

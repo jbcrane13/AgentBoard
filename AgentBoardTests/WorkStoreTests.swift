@@ -298,6 +298,30 @@ struct WorkStoreTests {
         #expect(store.isLoading == false)
     }
 
+    @Test func refreshConfiguresServiceOnlyWhenSettingsChange() async throws {
+        let service = CountingGitHubWorkService()
+        let cache = try AgentBoardCache(inMemory: true)
+        let repo = SettingsRepository(
+            suiteName: "refresh-config-\(UUID().uuidString)",
+            serviceName: "refresh-config-\(UUID().uuidString)"
+        )
+        let settingsStore = SettingsStore(repository: repo)
+        settingsStore.githubToken = "ghp_test"
+        settingsStore.repositories = [ConfiguredRepository(owner: "org", name: "repo")]
+        let store = WorkStore(service: service, cache: cache, settingsStore: settingsStore)
+
+        await store.refresh()
+        await store.refresh()
+
+        #expect(await service.configurationCount() == 1)
+
+        settingsStore.repositories.append(ConfiguredRepository(owner: "org", name: "second"))
+        await store.refresh()
+
+        #expect(await service.configurationCount() == 2)
+        #expect(await service.latestRepositories() == settingsStore.repositories)
+    }
+
     // MARK: - workItem(for:)
 
     @Test func workItemForReferenceReturnsMatchingItem() async throws {
@@ -615,6 +639,45 @@ struct WorkStoreTests {
             "updated_at": "2026-04-02T00:00:00Z"
         }
         """
+    }
+}
+
+private enum CountingServiceError: Error {
+    case unsupportedOperation
+}
+
+private actor CountingGitHubWorkService: GitHubWorkServicing {
+    private var configurations: [([ConfiguredRepository], String?)] = []
+
+    func configure(repositories: [ConfiguredRepository], token: String?) {
+        configurations.append((repositories, token))
+    }
+
+    func fetchWorkItems() async throws -> [WorkItem] {
+        []
+    }
+
+    func createIssue(
+        repository _: ConfiguredRepository,
+        draft _: GitHubIssueDraft
+    ) async throws -> WorkItem {
+        throw CountingServiceError.unsupportedOperation
+    }
+
+    func updateIssue(
+        repository _: ConfiguredRepository,
+        issueNumber _: Int,
+        patch _: GitHubIssuePatch
+    ) async throws -> WorkItem {
+        throw CountingServiceError.unsupportedOperation
+    }
+
+    func configurationCount() -> Int {
+        configurations.count
+    }
+
+    func latestRepositories() -> [ConfiguredRepository] {
+        configurations.last?.0 ?? []
     }
 }
 
