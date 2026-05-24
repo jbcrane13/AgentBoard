@@ -1,0 +1,110 @@
+import AgentBoardCore
+import SwiftUI
+
+struct DesktopRootView: View {
+    @Environment(AgentBoardAppModel.self) private var appModel
+    @State private var columnVisibility: NavigationSplitViewVisibility = .all
+    @State private var activeTab: DesktopTab? = .work
+    @State private var activeSessionTerminal: SessionLauncher.ActiveSession?
+    @State private var isTerminalExpanded = false
+    @State private var isChatInspectorPresented = true
+    @State private var isPresentingQuickLaunch = false
+
+    var body: some View {
+        NavigationSplitView(columnVisibility: $columnVisibility) {
+            DesktopSidebar(
+                selection: tabSelection,
+                onSessionTap: { session in
+                    activeSessionTerminal = session
+                    isTerminalExpanded = false
+                },
+                onQuickLaunch: { isPresentingQuickLaunch = true }
+            )
+            .navigationSplitViewColumnWidth(min: 220, ideal: 250, max: 320)
+        } detail: {
+            centerPanel
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .navigationTitle(navigationTitle)
+                .toolbar {
+                    ToolbarItemGroup(placement: .primaryAction) {
+                        Button {
+                            isPresentingQuickLaunch = true
+                        } label: {
+                            Label("Quick Launch", systemImage: "plus")
+                        }
+                        .help("Launch a new agent session")
+                        .accessibilityIdentifier("toolbar_button_quick_launch")
+
+                        Button {
+                            isChatInspectorPresented.toggle()
+                        } label: {
+                            Label(
+                                isChatInspectorPresented ? "Hide Chat" : "Show Chat",
+                                systemImage: "sidebar.trailing"
+                            )
+                        }
+                        .disabled(isTerminalExpanded)
+                        .help(isChatInspectorPresented ? "Hide chat inspector" : "Show chat inspector")
+                        .accessibilityIdentifier("toolbar_button_toggle_chat_inspector")
+                    }
+                }
+        }
+        .inspector(isPresented: chatInspectorVisibility) {
+            ChatScreen()
+                .inspectorColumnWidth(min: 320, ideal: 360, max: 460)
+        }
+        .sheet(isPresented: $isPresentingQuickLaunch) {
+            QuickLaunchSheet()
+                .environment(appModel)
+        }
+    }
+
+    private var tabSelection: Binding<DesktopTab?> {
+        Binding {
+            activeTab
+        } set: { newValue in
+            activeTab = newValue ?? .work
+            activeSessionTerminal = nil
+            isTerminalExpanded = false
+        }
+    }
+
+    private var chatInspectorVisibility: Binding<Bool> {
+        Binding {
+            isChatInspectorPresented && !isTerminalExpanded
+        } set: { newValue in
+            isChatInspectorPresented = newValue
+        }
+    }
+
+    private var navigationTitle: String {
+        if activeSessionTerminal != nil {
+            return "Session Terminal"
+        }
+        return (activeTab ?? .work).title
+    }
+
+    @ViewBuilder
+    private var centerPanel: some View {
+        if let session = activeSessionTerminal {
+            SessionTerminalView(
+                session: session,
+                isExpanded: $isTerminalExpanded
+            ) {
+                activeSessionTerminal = nil
+                isTerminalExpanded = false
+            }
+        } else {
+            switch activeTab ?? .work {
+            case .work:
+                WorkScreen()
+            case .agents:
+                AgentsScreen()
+            case .sessions:
+                SessionsScreen()
+            case .settings:
+                SettingsScreen()
+            }
+        }
+    }
+}

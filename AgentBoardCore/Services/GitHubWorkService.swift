@@ -1,0 +1,431 @@
+import Foundation
+
+public struct GitHubIssuePatch: Sendable {
+    public var title: String?
+    public var body: String?
+    public var labels: [String]?
+    public var assignees: [String]?
+    public var milestone: Int?
+    public var state: WorkState?
+
+    public init(
+        title: String? = nil,
+        body: String? = nil,
+        labels: [String]? = nil,
+        assignees: [String]? = nil,
+        milestone: Int? = nil,
+        state: WorkState? = nil
+    ) {
+        self.title = title
+        self.body = body
+        self.labels = labels
+        self.assignees = assignees
+        self.milestone = milestone
+        self.state = state
+    }
+}
+
+public struct GitHubIssueDraft: Sendable {
+    public let title: String
+    public let body: String
+    public let labels: [String]
+    public let assignees: [String]
+    public let milestone: Int?
+
+    public init(
+        title: String,
+        body: String,
+        labels: [String],
+        assignees: [String],
+        milestone: Int?
+    ) {
+        self.title = title
+        self.body = body
+        self.labels = labels
+        self.assignees = assignees
+        self.milestone = milestone
+    }
+}
+
+public actor GitHubWorkService {
+    public enum ServiceError: LocalizedError, Sendable {
+        case unauthorized
+        case notFound
+        case rateLimited
+        case serverError(Int)
+        case invalidResponse
+        case missingConfiguration
+
+        public var errorDescription: String? {
+            switch self {
+            case .unauthorized:
+                return "GitHub token is invalid or missing."
+            case .notFound:
+                return "GitHub repository not found."
+            case .rateLimited:
+                return "GitHub API rate limit exceeded. Try again later."
+            case let .serverError(code):
+                return "GitHub server error (\(code))."
+            case .invalidResponse:
+                return "Unexpected response from GitHub API."
+            case .missingConfiguration:
+                return "GitHub repositories or token are not configured."
+            }
+        }
+    }
+
+    private struct RawIssue: Decodable, Sendable {
+        let number: Int
+        let title: String
+        let body: String?
+        let state: String
+        let labels: [RawLabel]
+        let assignees: [RawUser]
+        let milestone: RawMilestone?
+        let pullRequest: RawPullRequest?
+        let createdAt: String
+        let updatedAt: String
+
+        var isPullRequest: Bool {
+            pullRequest != nil
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case number, title, body, state, labels, assignees, milestone
+            case pullRequest = "pull_request"
+            case createdAt = "created_at"
+            case updatedAt = "updated_at"
+        }
+    }
+
+    private struct RawPullRequest: Decodable, Sendable {}
+    private struct RawUser: Decodable, Sendable { let login: String }
+    private struct RawLabel: Decodable, Sendable { let name: String }
+    private struct RawMilestone: Decodable, Sendable {
+        let number: Int
+        let title: String
+    }
+
+    private let session: URLSession
+    private var repositories: [ConfiguredRepository] = []
+    private var token: String?
+
+    // Hoist decoder + date formatter to actor properties — both are expensive
+    // to construct (ISO8601DateFormatter spins up locale/timezone/calendar)
+    // and they're hit on every issue field.
+    private let decoder = JSONDecoder()
+    private let iso8601Formatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter
+    }()
+
+    public init(session: URLSession = .shared) {
+        self.session = session
+    }
+
+    public func configure(
+        repositories: [ConfiguredRepository],
+        token: String?
+    ) {
+        self.repositories = repositories
+        self.token = token?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
+    }
+
+    public func fetchWorkItems() async throws -> [WorkItem] {
+        guard !repositories.isEmpty, let token, !token.isEmpty else {
+            throw ServiceError.missingConfiguration
+        }
+
+        var mapped: [WorkItem] = []
+        for repository in repositories {
+            try mapped.append(contentsOf: await fetchIssues(for: repository, token: token))
+        }
+
+        return mapped.sorted { lhs, rhs in
+            if lhs.priority.rank != rhs.priority.rank {
+                return lhs.priority.rank < rhs.priority.rank
+            }
+            return lhs.updatedAt > rhs.updatedAt
+        }
+    }
+
+    public func createIssue(
+        repository: ConfiguredRepository,
+        draft: GitHubIssueDraft
+    ) async throws -> WorkItem {
+        guard let token, !token.isEmpty else {
+            throw ServiceError.missingConfiguration
+        }
+
+        let url = try buildURL(repository: repository, endpoint: "issues")
+        var request = authorizedRequest(url: url, token: token)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        var payload: [String: Any] = [
+            "title": draft.title,
+            "body": draft.body,
+            "labels": draft.labels,
+            "assignees": draft.assignees
+        ]
+        if let milestone = draft.milestone {
+            payload["milestone"] = milestone
+        }
+        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+
+        let (data, response) = try await session.data(for: request)
+        try validateResponse(response, data: data)
+        let issue = try decoder.decode(RawIssue.self, from: data)
+        return map(issue: issue, repository: repository)
+    }
+
+    public func updateIssue(
+        repository: ConfiguredRepository,
+        issueNumber: Int,
+        patch: GitHubIssuePatch
+    ) async throws -> WorkItem {
+        guard let token, !token.isEmpty else {
+            throw ServiceError.missingConfiguration
+        }
+
+        let url = try buildURL(repository: repository, endpoint: "issues/\(issueNumber)")
+        var request = authorizedRequest(url: url, token: token)
+        request.httpMethod = "PATCH"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        var payload: [String: Any] = [:]
+        if let title = patch.title { payload["title"] = title }
+        if let body = patch.body { payload["body"] = body }
+        if let labels = patch.labels { payload["labels"] = labels }
+        if let assignees = patch.assignees { payload["assignees"] = assignees }
+        if let milestone = patch.milestone { payload["milestone"] = milestone }
+        if let state = patch.state {
+            payload["state"] = state.githubState
+            // Always swap status labels when changing state:
+            // Remove any existing status:* labels and add the new one.
+            // This ensures the GitHub label matches the WorkState.
+            if var currentLabels = patch.labels {
+                currentLabels.removeAll { $0.lowercased().hasPrefix("status:") }
+                currentLabels.append(state.labelValue)
+                payload["labels"] = currentLabels
+            }
+        }
+        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+
+        let (data, response) = try await session.data(for: request)
+        try validateResponse(response, data: data)
+        let issue = try decoder.decode(RawIssue.self, from: data)
+        return map(issue: issue, repository: repository)
+    }
+
+    private func fetchIssues(
+        for repository: ConfiguredRepository,
+        token: String
+    ) async throws -> [WorkItem] {
+        do {
+            return try await fetchIssuesViaAPI(for: repository, token: token)
+        } catch let error as ServiceError {
+            switch error {
+            case .notFound, .unauthorized:
+                #if os(macOS)
+                    // Token may be missing scopes or misconfigured — fall back to gh CLI
+                    return try await fetchIssuesViaCLI(for: repository)
+                #else
+                    throw error
+                #endif
+            default:
+                throw error
+            }
+        }
+    }
+
+    private func fetchIssuesViaAPI(
+        for repository: ConfiguredRepository,
+        token: String
+    ) async throws -> [WorkItem] {
+        var page = 1
+        var allIssues: [RawIssue] = []
+
+        while true {
+            // Bail out if the caller cancelled — otherwise we'd keep paging
+            // through every issue page after the user switched away.
+            try Task.checkCancellation()
+            let url = try buildURL(
+                repository: repository,
+                endpoint: "issues",
+                queryItems: [
+                    URLQueryItem(name: "state", value: "all"),
+                    URLQueryItem(name: "per_page", value: "100"),
+                    URLQueryItem(name: "page", value: "\(page)")
+                ]
+            )
+            let (data, response) = try await session.data(for: authorizedRequest(url: url, token: token))
+            try validateResponse(response, data: data)
+
+            let issues = try decoder.decode([RawIssue].self, from: data)
+            if issues.isEmpty { break }
+            allIssues.append(contentsOf: issues)
+            if issues.count < 100 { break }
+            page += 1
+        }
+
+        return allIssues
+            .filter { !$0.isPullRequest }
+            .map { map(issue: $0, repository: repository) }
+    }
+
+    #if os(macOS)
+        private func fetchIssuesViaCLI(
+            for repository: ConfiguredRepository
+        ) async throws -> [WorkItem] {
+            let result: ProcessResult
+            do {
+                result = try await Process.runAsync(
+                    executablePath: "/usr/local/bin/gh",
+                    arguments: [
+                        "api", "repos/\(repository.owner)/\(repository.name)/issues",
+                        "-f", "state=all",
+                        "-f", "per_page=100",
+                        "-q", "[.[] | select(.pull_request == null)]"
+                    ]
+                )
+            } catch {
+                throw ServiceError.notFound
+            }
+
+            guard result.succeeded else { throw ServiceError.notFound }
+            guard !result.stdout.isEmpty else { return [] }
+
+            let issues = try decoder.decode([RawIssue].self, from: result.stdout)
+            return issues.map { map(issue: $0, repository: repository) }
+        }
+    #endif
+
+    private func map(issue: RawIssue, repository: ConfiguredRepository) -> WorkItem {
+        let labels = issue.labels.map(\.name)
+        return WorkItem(
+            repository: repository,
+            issueNumber: issue.number,
+            title: issue.title,
+            bodySummary: bodySummary(from: issue.body),
+            isClosed: issue.state == "closed",
+            assignees: issue.assignees.map(\.login),
+            milestone: issue.milestone.map { WorkMilestone(number: $0.number, title: $0.title) },
+            labels: labels,
+            status: derivedStatus(issueState: issue.state, labels: labels),
+            priority: derivedPriority(labels: labels),
+            agentHint: labels
+                .first { $0.lowercased().hasPrefix("agent:") }
+                .map { String($0.dropFirst("agent:".count)) },
+            createdAt: parseDate(issue.createdAt),
+            updatedAt: parseDate(issue.updatedAt)
+        )
+    }
+
+    private func derivedStatus(issueState: String, labels: [String]) -> WorkState {
+        // Closed GitHub issues map to .done
+        if issueState == "closed" {
+            return .done
+        }
+
+        for label in labels {
+            switch label.lowercased() {
+            case "status:blocked":
+                return .blocked
+            case "status:in-progress", "status:in_progress", "status:doing":
+                return .inProgress
+            case "status:review", "status:in-review":
+                return .review
+            case "status:done", "status:closed":
+                return .done
+            case "status:ready", "status:open":
+                return .ready
+            default:
+                continue
+            }
+        }
+
+        return .ready
+    }
+
+    private func derivedPriority(labels: [String]) -> WorkPriority {
+        let normalized = labels.map { $0.lowercased() }
+        if normalized.contains("priority:p0") || normalized.contains("priority:critical") || normalized
+            .contains("priority:urgent") {
+            return .p0
+        }
+        if normalized.contains("priority:p1") || normalized.contains("priority:high") {
+            return .p1
+        }
+        if normalized.contains("priority:p3") || normalized.contains("priority:low") {
+            return .p3
+        }
+        return .p2
+    }
+
+    private func bodySummary(from body: String?) -> String {
+        guard let body else { return "" }
+        let trimmed = body.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "" }
+        let firstLine = trimmed
+            .components(separatedBy: .newlines)
+            .first(where: { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty })
+            ?? trimmed
+        return String(firstLine.prefix(240))
+    }
+
+    private func parseDate(_ rawValue: String) -> Date {
+        iso8601Formatter.date(from: rawValue) ?? .now
+    }
+
+    private func buildURL(
+        repository: ConfiguredRepository,
+        endpoint: String,
+        queryItems: [URLQueryItem] = []
+    ) throws -> URL {
+        var components =
+            URLComponents(string: "https://api.github.com/repos/\(repository.owner)/\(repository.name)/\(endpoint)")
+        components?.queryItems = queryItems.isEmpty ? nil : queryItems
+        guard let url = components?.url else {
+            throw ServiceError.invalidResponse
+        }
+        return url
+    }
+
+    private func authorizedRequest(url: URL, token: String) -> URLRequest {
+        var request = URLRequest(url: url)
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+        request.setValue("AgentBoard", forHTTPHeaderField: "User-Agent")
+        return request
+    }
+
+    private func validateResponse(_ response: URLResponse, data: Data) throws {
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw ServiceError.invalidResponse
+        }
+
+        let responseBody = String(data: data, encoding: .utf8) ?? ""
+
+        switch httpResponse.statusCode {
+        case 200 ... 299:
+            return
+        case 401 where responseBody.contains("rate limit"),
+             403 where responseBody.contains("rate limit"):
+            throw ServiceError.rateLimited
+        case 401:
+            throw ServiceError.unauthorized
+        case 404:
+            throw ServiceError.notFound
+        default:
+            throw ServiceError.serverError(httpResponse.statusCode)
+        }
+    }
+}
+
+private extension String {
+    var nilIfEmpty: String? {
+        isEmpty ? nil : self
+    }
+}

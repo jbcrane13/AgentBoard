@@ -1,0 +1,87 @@
+import AgentBoardCore
+import SwiftUI
+
+// MARK: - NeuChatBubble
+
+struct NeuChatBubble: View {
+    let message: ConversationMessage
+
+    var body: some View {
+        HStack(alignment: .top) {
+            if message.role == .assistant {
+                bubble
+                Spacer(minLength: 40)
+            } else {
+                Spacer(minLength: 40)
+                bubble
+            }
+        }
+    }
+
+    private var bubble: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Text(message.role == .assistant ? "Hermes" : "You")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(message.role == .assistant ? NeuPalette.accentCyan : NeuPalette.accentOrange)
+                    .tracking(1)
+
+                if message.isStreaming {
+                    ProgressView()
+                        .controlSize(.mini)
+                        .tint(NeuPalette.accentCyan)
+                }
+            }
+
+            if message.isStreaming, message.content.isEmpty {
+                Text("typing...")
+                    .foregroundStyle(NeuPalette.textSecondary)
+            } else {
+                MarkdownText(content: message.content)
+                    .foregroundStyle(NeuPalette.textPrimary)
+            }
+
+            // Render attachments
+            if !message.attachments.isEmpty {
+                VStack(spacing: 8) {
+                    ForEach(message.attachments) { attachment in
+                        AttachmentContainerView(attachment: attachment)
+                            .attachmentContextMenu(for: attachment)
+                            .accessibilityIdentifier("chat_bubble_attachment_\(attachment.id)")
+                    }
+                }
+            }
+        }
+        .padding(20)
+        .background(
+            message.role == .assistant
+                ? RoundedRectangle(cornerRadius: 24, style: .continuous).fill(NeuPalette.surfaceRaised)
+                : RoundedRectangle(cornerRadius: 24, style: .continuous).fill(NeuPalette.surfaceHover)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(NeuPalette.borderSoft, lineWidth: 1)
+        )
+        .shadow(color: NeuPalette.shadowDark.opacity(0.6), radius: 8, x: 0, y: 4)
+    }
+}
+
+// MARK: - AnyViewModifier
+
+struct AnyViewModifier: ViewModifier {
+    let modifier: Any
+
+    init<M: ViewModifier>(_ modifier: M) {
+        self.modifier = modifier
+    }
+
+    func body(content: Content) -> some View {
+        if let neuromod = modifier as? NeuExtrudedModifier {
+            content.modifier(neuromod)
+        } else if let neuromod = modifier as? NeuRecessedModifier {
+            content.modifier(neuromod)
+        } else {
+            content
+        }
+    }
+}

@@ -1,5 +1,7 @@
 # AgentBoard — Design Document
 
+> Archived design: this document describes the retired OpenClaw/beads prototype. The active Hermes-first app architecture is documented in `README.md`, `docs/architecture.md`, and `docs/ADR.md`.
+
 **Version:** 0.1 (Draft)
 **Date:** 2026-02-14
 **Author:** Blake Crane + R. Daneel Olivaw

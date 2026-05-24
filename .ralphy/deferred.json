@@ -1,0 +1,24 @@
+{
+  "tasks": {
+    "markdown:docs/PRD-issue-90.md:6": {
+      "count": 2,
+      "last": "2026-05-18T18:37:56.741Z",
+      "title": "Implement Cross-device session sync via companion server"
+    },
+    "markdown:docs/PRD-issue-91.md:6": {
+      "count": 1,
+      "last": "2026-05-18T18:37:08.624Z",
+      "title": "Implement Cross-device chat history sync via companion server"
+    },
+    "markdown:docs/PRD-issue-46.md:6": {
+      "count": 1,
+      "last": "2026-05-19T03:37:05.399Z",
+      "title": "Implement Expand modern AgentBoard coverage for companion events and UI smoke flows"
+    },
+    "markdown:docs/PRD-issue-47.md:8": {
+      "count": 1,
+      "last": "2026-05-19T03:37:24.818Z",
+      "title": "Add accessibilityIdentifier to every interactive element"
+    }
+  }
+}

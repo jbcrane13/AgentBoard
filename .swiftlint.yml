@@ -1,5 +1,5 @@
 disabled_rules:
-  - todo                      # TODOs tracked in beads, not enforced here
+  - todo                      # TODOs tracked in GitHub Issues, not enforced here
   - multiple_closures_with_trailing_closure  # common SwiftUI pattern
   - force_try                 # acceptable in test contexts
   - large_tuple               # used in existing service APIs
@@ -29,8 +29,12 @@ opt_in_rules:
 
 included:
   - AgentBoard
+  - AgentBoardMobile
+  - AgentBoardUI
+  - AgentBoardCore
+  - AgentBoardCompanion
+  - AgentBoardCompanionKit
   - AgentBoardTests
-  - AgentBoardUITests
 
 excluded:
   - DerivedData

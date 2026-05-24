@@ -46,3 +46,7 @@ beads.db
 # Claude Code
 .claude/
 */.beads
+
+# jscpd duplicate code detection reports
+reports/
+.jscpd-report/
