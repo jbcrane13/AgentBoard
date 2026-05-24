@@ -50,38 +50,63 @@ public enum ProcessRunError: Error, Sendable {
                 process.standardOutput = stdoutPipe
                 process.standardError = stderrPipe
 
-                let timer: DispatchSourceTimer?
-                if let timeout {
-                    let source = DispatchSource.makeTimerSource()
-                    source.schedule(deadline: .now() + timeout)
-                    source.setEventHandler {
-                        process.terminate()
-                        continuation.resume(throwing: ProcessRunError.timedOut)
+                let stateLock = NSLock()
+                var didResume = false
+                var timer: DispatchSourceTimer?
+
+                func resumeOnce(_ result: Result<ProcessResult, Error>) {
+                    stateLock.lock()
+                    guard !didResume else {
+                        stateLock.unlock()
+                        return
                     }
-                    source.resume()
-                    timer = source
-                } else {
+                    didResume = true
+                    let activeTimer = timer
                     timer = nil
+                    process.terminationHandler = nil
+                    stateLock.unlock()
+
+                    activeTimer?.setEventHandler {}
+                    activeTimer?.cancel()
+
+                    switch result {
+                    case let .success(processResult):
+                        continuation.resume(returning: processResult)
+                    case let .failure(error):
+                        continuation.resume(throwing: error)
+                    }
                 }
 
                 process.terminationHandler = { proc in
-                    timer?.cancel()
                     let outData = (try? stdoutPipe.fileHandleForReading.readToEnd()) ?? Data()
                     let errData = (try? stderrPipe.fileHandleForReading.readToEnd()) ?? Data()
-                    continuation.resume(
-                        returning: ProcessResult(
-                            exitCode: proc.terminationStatus,
-                            stdout: outData,
-                            stderr: errData
+                    resumeOnce(
+                        .success(
+                            ProcessResult(
+                                exitCode: proc.terminationStatus,
+                                stdout: outData,
+                                stderr: errData
+                            )
                         )
                     )
                 }
 
                 do {
                     try process.run()
+                    if let timeout {
+                        let source = DispatchSource.makeTimerSource()
+                        source.schedule(deadline: .now() + timeout)
+                        source.setEventHandler {
+                            process.terminate()
+                            resumeOnce(.failure(ProcessRunError.timedOut))
+                        }
+                        stateLock.lock()
+                        timer = source
+                        stateLock.unlock()
+                        source.resume()
+                    }
                 } catch {
-                    timer?.cancel()
-                    continuation.resume(throwing: ProcessRunError.launchFailed(error.localizedDescription))
+                    resumeOnce(.failure(ProcessRunError.launchFailed(error.localizedDescription)))
                 }
             }
         }
