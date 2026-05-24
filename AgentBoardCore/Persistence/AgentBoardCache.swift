@@ -457,3 +457,7 @@ public final class AgentBoardCache {
         (try? decoder.decode([String].self, from: data)) ?? []
     }
 }
+
+// MARK: - Protocol conformance
+
+extension AgentBoardCache: AgentBoardCacheProtocol {}

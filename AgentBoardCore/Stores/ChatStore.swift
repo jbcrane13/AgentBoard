@@ -31,7 +31,7 @@ private enum ChatStoreError: LocalizedError {
 public final class ChatStore {
     private let logger = Logger(subsystem: "com.agentboard.modern", category: "ChatStore")
     private let hermesClient: HermesGatewayClient
-    private let cache: AgentBoardCache
+    private let cache: any AgentBoardCacheProtocol
     private let settingsStore: SettingsStore
     private let companionClient: CompanionClient
     private let uploadService: AttachmentUploadService
@@ -55,7 +55,7 @@ public final class ChatStore {
 
     public init(
         hermesClient: HermesGatewayClient,
-        cache: AgentBoardCache,
+        cache: any AgentBoardCacheProtocol,
         settingsStore: SettingsStore,
         companionClient: CompanionClient,
         uploadService: AttachmentUploadService = AttachmentUploadService(),
@@ -84,10 +84,6 @@ public final class ChatStore {
 
         if settingsStore.isCompanionConfigured {
             do {
-                try await companionClient.configure(
-                    baseURL: settingsStore.companionURL,
-                    bearerToken: settingsStore.companionToken.trimmedOrNil
-                )
                 let companionConvos = try await companionClient.listConversations()
                 conversations = companionConvos
 
@@ -163,10 +159,6 @@ public final class ChatStore {
         if settingsStore.isCompanionConfigured {
             Task {
                 do {
-                    try await companionClient.configure(
-                        baseURL: settingsStore.companionURL,
-                        bearerToken: settingsStore.companionToken.trimmedOrNil
-                    )
                     try await companionClient.deleteConversationOnServer(id: id)
                 } catch {
                     logger
@@ -234,10 +226,6 @@ public final class ChatStore {
         guard settingsStore.isCompanionConfigured, didBootstrap else { return }
 
         do {
-            try await companionClient.configure(
-                baseURL: settingsStore.companionURL,
-                bearerToken: settingsStore.companionToken.trimmedOrNil
-            )
             let companionConvos = try await companionClient.listConversations()
             conversations = companionConvos
 
@@ -591,10 +579,6 @@ public final class ChatStore {
 
         Task {
             do {
-                try await companionClient.configure(
-                    baseURL: settingsStore.companionURL,
-                    bearerToken: settingsStore.companionToken.trimmedOrNil
-                )
                 try await companionClient.syncConversations(
                     conversations: conversations,
                     messagesByConversation: messagesByConv
