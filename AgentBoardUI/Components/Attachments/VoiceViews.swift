@@ -5,7 +5,7 @@ import SwiftUI
 
 /// Microphone button that toggles voice recording mode.
 struct VoiceRecordingButton: View {
-    @ObservedObject var recorder: AudioRecorderService
+    @Bindable var recorder: AudioRecorderService
     var onRecorded: (VoiceRecordingResult) -> Void
     var onCancel: () -> Void
 
