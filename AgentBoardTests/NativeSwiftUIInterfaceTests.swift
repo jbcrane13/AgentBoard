@@ -59,6 +59,62 @@ struct NativeSwiftUIInterfaceTests {
         #expect(!source.contains("_ = observation"))
     }
 
+    @Test func desktopTabSelectionUsesAppModelAsSingleSourceOfTruth() throws {
+        let rootSource = try Self.source("AgentBoard/DesktopRootView.swift")
+        let appModelSource = try Self.source("AgentBoardCore/Stores/AgentBoardAppModel.swift")
+
+        #expect(appModelSource.contains("selectedDestination"))
+        #expect(rootSource.contains("appModel.selectedDestination"))
+        #expect(!rootSource.contains("activeTab"))
+    }
+
+    @Test func workBoardDragAndDropUsesTransferableAPI() throws {
+        let source = try Self.source("AgentBoardUI/Screens/WorkScreen.swift")
+
+        #expect(source.contains("Transferable"))
+        #expect(source.contains(".draggable(WorkItemID(item.id))"))
+        #expect(source.contains(".dropDestination(for: WorkItemID.self)"))
+        #expect(!source.contains("WorkColumnDropDelegate"))
+        #expect(!source.contains("loadItem(forTypeIdentifier:"))
+    }
+
+    @Test func nilIfEmptyHasSingleSharedDefinition() throws {
+        let coreURL = Self.repositoryRoot.appending(path: "AgentBoardCore")
+        let fileURLs = try FileManager.default.subpathsOfDirectory(atPath: coreURL.path)
+            .filter { $0.hasSuffix(".swift") }
+            .map { coreURL.appending(path: $0) }
+        let sources = try fileURLs.map { try String(contentsOf: $0, encoding: .utf8) }.joined(separator: "\n")
+
+        #expect(sources.components(separatedBy: "var nilIfEmpty: String?").count - 1 == 1)
+    }
+
+    @Test func chatStoreDelegatesLargeResponsibilitiesToCoordinators() throws {
+        let source = try Self.source("AgentBoardCore/Stores/ChatStore.swift")
+        let lineCount = source.split(separator: "\n").count
+
+        #expect(lineCount < 300)
+        #expect(!source.contains("swiftlint:disable file_length"))
+        #expect(!source.contains("type_body_length"))
+        #expect(source.contains("ChatEndpointValidator"))
+        #expect(source.contains("ChatConversationSyncCoordinator"))
+        #expect(source.contains("ChatStreamCoordinator"))
+    }
+
+    @Test func chatScreenIsSplitIntoFocusedSubviews() throws {
+        let source = try Self.source("AgentBoardUI/Screens/ChatScreen.swift")
+        let composeSource = try Self.source("AgentBoardUI/Screens/ChatComposeBar.swift")
+        let messageListSource = try Self.source("AgentBoardUI/Screens/ChatMessageList.swift")
+
+        #expect(source.split(separator: "\n").count < 250)
+        #expect(!source.contains("swiftlint:disable"))
+        #expect(!source.contains(".onReceive("))
+        #expect(source.contains("notifications("))
+        #expect(composeSource.contains("@ViewBuilder"))
+        #expect(!composeSource.contains("AnyView"))
+        #expect(messageListSource.contains(".scrollPosition(id:"))
+        #expect(messageListSource.contains(".defaultScrollAnchor(.bottom)"))
+    }
+
     private static func source(_ relativePath: String) throws -> String {
         try String(contentsOf: repositoryRoot.appending(path: relativePath), encoding: .utf8)
     }

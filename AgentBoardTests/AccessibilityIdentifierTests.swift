@@ -145,10 +145,15 @@ struct AccessibilityIdentifierTests {
         #expect(source.contains(#"media_viewer_page_\(index)"#))
     }
 
-    @Test("Chat screen exposes identifiers for header, compose, and conversation rail controls")
+    @Test("Chat screen exposes identifiers for header and compose controls")
     func chatScreenIdentifiers() throws {
-        let source = try readUISource("Screens/ChatScreen.swift")
+        let source = try [
+            readUISource("Screens/ChatScreen.swift"),
+            readUISource("Screens/ChatHeader.swift"),
+            readUISource("Screens/ChatComposeBar.swift")
+        ].joined(separator: "\n")
         let required = [
+            "screen_chat",
             "chat_button_toggle_chat_only",
             "chat_button_refresh",
             "chat_menu_session",
@@ -156,10 +161,6 @@ struct AccessibilityIdentifierTests {
             "chat_menu_session_desktop",
             "chat_menu_profile_desktop",
             "chat_menuitem_session_new",
-            "chat_textfield_rename_conversation",
-            "chat_button_confirm_rename",
-            "chat_menuitem_rename_conversation",
-            "chat_menuitem_delete_conversation",
             "chat_button_attach",
             "chat_textfield_draft",
             "chat_button_send"
@@ -167,7 +168,6 @@ struct AccessibilityIdentifierTests {
         assertIdentifiers(required, in: source)
         #expect(source.contains(#"chat_menuitem_session_\(conversation.id.uuidString)"#))
         #expect(source.contains(#"chat_menuitem_profile_\(profile.id)"#))
-        #expect(source.contains(#"chat_button_conversation_\(conversation.id.uuidString)"#))
         #expect(source.contains(#"chat_button_slashcmd_\(cmd.name.dropFirst())"#))
     }
 

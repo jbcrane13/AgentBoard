@@ -30,4 +30,8 @@ public enum AppDestination: String, CaseIterable, Identifiable, Sendable {
         case .settings: "slider.horizontal.3"
         }
     }
+
+    public static var desktopTabs: [AppDestination] {
+        [.work, .agents, .sessions, .settings]
+    }
 }

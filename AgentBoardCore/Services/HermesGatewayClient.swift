@@ -425,9 +425,3 @@ public actor HermesGatewayClient {
         return components.url ?? url
     }
 }
-
-private extension String {
-    var nilIfEmpty: String? {
-        isEmpty ? nil : self
-    }
-}

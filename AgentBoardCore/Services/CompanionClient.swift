@@ -46,8 +46,8 @@ public actor CompanionClient {
     private enum RequestTimeout {
         static let list: TimeInterval = 15
         static let mutation: TimeInterval = 30
-        // Long-lived streaming requests should use a large but finite timeout so
-        // URLSession retains predictable timeout and cancellation behavior.
+        /// Long-lived streaming requests should use a large but finite timeout so
+        /// URLSession retains predictable timeout and cancellation behavior.
         static let stream: TimeInterval = 24 * 60 * 60
     }
 
@@ -260,11 +260,5 @@ public actor CompanionClient {
             }
             throw ClientError.httpError(statusCode: httpResponse.statusCode, body: responseBody)
         }
-    }
-}
-
-private extension String {
-    var nilIfEmpty: String? {
-        isEmpty ? nil : self
     }
 }

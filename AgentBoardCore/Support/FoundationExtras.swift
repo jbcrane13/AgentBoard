@@ -9,6 +9,10 @@ public extension String {
     var trimmed: String {
         trimmingCharacters(in: .whitespacesAndNewlines)
     }
+
+    var nilIfEmpty: String? {
+        isEmpty ? nil : self
+    }
 }
 
 public extension Sequence where Element == String {

@@ -1,4 +1,5 @@
 import AgentBoardCore
+import CoreTransferable
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -18,7 +19,6 @@ struct WorkScreen: View {
     @State private var selectedItem: WorkItem?
     @State private var isPresentingCreate = false
     @State private var selectedRepo: String = "all"
-    @State private var draggedItemID: String?
 
     private var isCompact: Bool {
         #if os(macOS)
@@ -287,10 +287,7 @@ struct WorkScreen: View {
                     LazyVStack(spacing: 8) {
                         ForEach(column.items) { item in
                             WorkCardNeu(item: item) { selectedItem = item }
-                                .onDrag {
-                                    draggedItemID = item.id
-                                    return NSItemProvider(object: item.id as NSString)
-                                }
+                                .draggable(WorkItemID(item.id))
                         }
                     }
                     .padding(.bottom, 12)
@@ -298,12 +295,17 @@ struct WorkScreen: View {
             }
         }
         .accessibilityIdentifier("work_column_\(column.state.rawValue)")
-        .onDrop(of: [.plainText], delegate: WorkColumnDropDelegate(
-            targetState: column.state,
-            workStore: appModel.workStore,
-            items: filteredItems,
-            draggedItemID: $draggedItemID
-        ))
+        .dropDestination(for: WorkItemID.self) { ids, _ in
+            guard let id = ids.first?.rawValue,
+                  let item = filteredItems.first(where: { $0.id == id }) else {
+                return false
+            }
+
+            Task { @MainActor in
+                await appModel.workStore.updateStatus(for: item, to: column.state)
+            }
+            return true
+        }
     }
 
     private var listLayout: some View {
@@ -439,45 +441,14 @@ private func priorityColor(_ priority: WorkPriority) -> Color {
     }
 }
 
-// MARK: - Drag & Drop Delegate
+private struct WorkItemID: Codable, Hashable, Transferable {
+    let rawValue: String
 
-struct WorkColumnDropDelegate: DropDelegate {
-    let targetState: WorkState
-    let workStore: WorkStore
-    let items: [WorkItem]
-    @Binding var draggedItemID: String?
-
-    func validateDrop(info: DropInfo) -> Bool {
-        info.hasItemsConforming(to: [.plainText])
+    init(_ rawValue: String) {
+        self.rawValue = rawValue
     }
 
-    func performDrop(info: DropInfo) -> Bool {
-        guard let provider = info.itemProviders(for: [.plainText]).first else { return false }
-
-        provider.loadItem(forTypeIdentifier: "public.plain-text", options: nil) { data, _ in
-            // data can be Data, NSString, or NSAttributedString depending on platform
-            let idString: String?
-            if let data = data as? Data {
-                idString = String(data: data, encoding: .utf8)
-            } else if let str = data as? String {
-                idString = str
-            } else if let attrStr = data as? NSAttributedString {
-                idString = attrStr.string
-            } else {
-                idString = nil
-            }
-            guard let id = idString,
-                  let item = items.first(where: { $0.id == id })
-            else { return }
-            Task { @MainActor in
-                await workStore.updateStatus(for: item, to: targetState)
-            }
-        }
-        draggedItemID = nil
-        return true
-    }
-
-    func dropExited(info _: DropInfo) {
-        draggedItemID = nil
+    static var transferRepresentation: some TransferRepresentation {
+        CodableRepresentation(contentType: .plainText)
     }
 }

@@ -448,9 +448,3 @@ public actor GitHubWorkService: GitHubWorkServicing {
         }
     }
 }
-
-private extension String {
-    var nilIfEmpty: String? {
-        isEmpty ? nil : self
-    }
-}

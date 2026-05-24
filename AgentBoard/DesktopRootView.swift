@@ -4,7 +4,6 @@ import SwiftUI
 struct DesktopRootView: View {
     @Environment(AgentBoardAppModel.self) private var appModel
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
-    @State private var activeTab: DesktopTab? = .work
     @State private var activeSessionTerminal: SessionLauncher.ActiveSession?
     @State private var isTerminalExpanded = false
     @State private var isChatInspectorPresented = true
@@ -59,11 +58,11 @@ struct DesktopRootView: View {
         }
     }
 
-    private var tabSelection: Binding<DesktopTab?> {
+    private var tabSelection: Binding<AppDestination?> {
         Binding {
-            activeTab
+            appModel.selectedDestination
         } set: { newValue in
-            activeTab = newValue ?? .work
+            appModel.selectedDestination = desktopDestination(for: newValue)
             activeSessionTerminal = nil
             isTerminalExpanded = false
         }
@@ -81,7 +80,7 @@ struct DesktopRootView: View {
         if activeSessionTerminal != nil {
             return "Session Terminal"
         }
-        return (activeTab ?? .work).title
+        return desktopDestination(for: appModel.selectedDestination).title
     }
 
     @ViewBuilder
@@ -95,7 +94,7 @@ struct DesktopRootView: View {
                 isTerminalExpanded = false
             }
         } else {
-            switch activeTab ?? .work {
+            switch desktopDestination(for: appModel.selectedDestination) {
             case .work:
                 WorkScreen()
             case .agents:
@@ -104,7 +103,16 @@ struct DesktopRootView: View {
                 SessionsScreen()
             case .settings:
                 SettingsScreen()
+            case .chat:
+                WorkScreen()
             }
         }
+    }
+
+    private func desktopDestination(for destination: AppDestination?) -> AppDestination {
+        guard let destination, AppDestination.desktopTabs.contains(destination) else {
+            return .work
+        }
+        return destination
     }
 }
