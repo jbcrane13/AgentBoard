@@ -5,7 +5,7 @@ import Foundation
 /// in without a real `ModelContainer`. The concrete `AgentBoardCache` conforms
 /// to it via an extension in AgentBoardCache.swift.
 @MainActor
-public protocol AgentBoardCacheProtocol {
+public protocol AgentBoardCacheProtocol: Sendable {
     // MARK: - Conversations (ChatStore)
 
     func loadConversations() throws -> [ChatConversation]

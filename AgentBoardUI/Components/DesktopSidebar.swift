@@ -3,14 +3,14 @@ import SwiftUI
 
 struct DesktopSidebar: View {
     @Environment(AgentBoardAppModel.self) private var appModel
-    @Binding var selection: DesktopTab?
+    @Binding var selection: AppDestination?
     let onSessionTap: (SessionLauncher.ActiveSession) -> Void
     let onQuickLaunch: () -> Void
 
     var body: some View {
         List(selection: $selection) {
             Section("Views") {
-                ForEach(DesktopTab.allCases) { tab in
+                ForEach(AppDestination.desktopTabs) { tab in
                     tabRow(tab)
                         .tag(tab)
                         .accessibilityIdentifier("desktop_sidebar_tab_\(tab.rawValue)")
@@ -71,7 +71,7 @@ struct DesktopSidebar: View {
     }
 
     @ViewBuilder
-    private func tabRow(_ tab: DesktopTab) -> some View {
+    private func tabRow(_ tab: AppDestination) -> some View {
         if let count = tabCount(tab) {
             Label(tab.title, systemImage: tab.systemImage)
                 .badge(count)
@@ -157,12 +157,12 @@ struct DesktopSidebar: View {
         }
     }
 
-    private func tabCount(_ tab: DesktopTab) -> Int? {
+    private func tabCount(_ tab: AppDestination) -> Int? {
         switch tab {
         case .work: appModel.workStore.items.count
         case .agents: appModel.agentsStore.summaries.count
         case .sessions: appModel.sessionsStore.sessions.count
-        case .settings: nil
+        case .chat, .settings: nil
         }
     }
 
