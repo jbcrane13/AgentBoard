@@ -46,7 +46,9 @@ public actor CompanionClient {
     private enum RequestTimeout {
         static let list: TimeInterval = 15
         static let mutation: TimeInterval = 30
-        static let stream: TimeInterval = .greatestFiniteMagnitude
+        // Long-lived streaming requests should use a large but finite timeout so
+        // URLSession retains predictable timeout and cancellation behavior.
+        static let stream: TimeInterval = 24 * 60 * 60
     }
 
     public init(session: URLSession = .shared) {
