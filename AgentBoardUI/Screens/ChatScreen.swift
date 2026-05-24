@@ -9,7 +9,7 @@ struct ChatScreen: View {
     @State private var editingConversationID: UUID?
     @State private var editingTitle = ""
     @State private var showAttachmentPicker = false
-    @StateObject private var audioRecorder = AudioRecorderService()
+    @State private var audioRecorder = AudioRecorderService()
 
     /// When set, ChatScreen renders a "chat-only" toggle in its header.
     /// The hosting view manages the actual hide/show and window-resize logic.
