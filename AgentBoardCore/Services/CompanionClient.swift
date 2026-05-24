@@ -137,7 +137,7 @@ public actor CompanionClient {
         request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
 
         return AsyncThrowingStream { continuation in
-            Task {
+            let task = Task {
                 do {
                     let (bytes, response) = try await self.session.bytes(for: request)
                     try await self.validateStreamingResponse(response: response, bytes: bytes)
@@ -154,6 +154,9 @@ public actor CompanionClient {
                     continuation.finish(throwing: error)
                 }
             }
+            // Cancel the inner Task when the consumer stops iterating —
+            // otherwise the SSE connection leaks until the companion closes it.
+            continuation.onTermination = { _ in task.cancel() }
         }
     }
 

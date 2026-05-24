@@ -30,17 +30,20 @@ public actor CompanionLocalProbe {
 
     /// Snapshot the local machine — session discovery is purely process-based.
     /// Tasks now live in kanban.db; the companion snapshots sessions + agents only.
-    public func snapshot() -> CompanionProbeSnapshot {
+    public func snapshot() async -> CompanionProbeSnapshot {
         let now = Date()
         let machineName = Host.current().localizedName ?? "Local Machine"
-        let tmuxPanes = listTmuxPanes()
-        let sessions = runningProcesses().compactMap {
-            makeSession(
-                process: $0,
+        let tmuxPanes = await listTmuxPanes()
+        var sessions: [AgentSession] = []
+        for proc in await runningProcesses() {
+            if let session = await makeSession(
+                process: proc,
                 tmuxPanes: tmuxPanes,
                 now: now,
                 machineName: machineName
-            )
+            ) {
+                sessions.append(session)
+            }
         }
         let summaries = Self.makeSummaries(sessions: sessions, now: now, machineName: machineName)
         return CompanionProbeSnapshot(sessions: sessions, agents: summaries)
@@ -51,12 +54,17 @@ public actor CompanionLocalProbe {
         tmuxPanes: [TmuxPane],
         now: Date,
         machineName: String
-    ) -> AgentSession? {
+    ) async -> AgentSession? {
         guard let signature = signatures.first(where: { process.commandLine.contains($0.keyword) }) else {
             return nil
         }
         let matchedPane = tmuxPanes.first { $0.pid == process.pid }
-        let output = matchedPane.flatMap { capturePane(paneID: $0.paneID) }
+        let output: String?
+        if let matchedPane {
+            output = await capturePane(paneID: matchedPane.paneID)
+        } else {
+            output = nil
+        }
         return AgentSession(
             id: "proc-\(process.pid)",
             source: machineName,
@@ -132,17 +140,17 @@ public actor CompanionLocalProbe {
         )
     }
 
-    public func captureOutput(for session: AgentSession) -> String? {
+    public func captureOutput(for session: AgentSession) async -> String? {
         let target = session.tmuxPaneID ?? session.tmuxSession
         guard let target else { return nil }
-        return shell("/usr/bin/env", ["tmux", "capture-pane", "-t", target, "-p", "-S", "-200"])
-            .flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0 }
+        let raw = await shell("/usr/bin/env", ["tmux", "capture-pane", "-t", target, "-p", "-S", "-200"])
+        return raw.flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0 }
     }
 
-    public func nudge(session: AgentSession) -> Bool {
+    public func nudge(session: AgentSession) async -> Bool {
         let target = session.tmuxPaneID ?? session.tmuxSession
         if let target {
-            return shell("/usr/bin/env", ["tmux", "send-keys", "-t", target, "", "Enter"]) != nil
+            return await shell("/usr/bin/env", ["tmux", "send-keys", "-t", target, "", "Enter"]) != nil
         }
         if let pid = session.pid {
             return kill(Int32(pid), SIGCONT) == 0
@@ -150,9 +158,9 @@ public actor CompanionLocalProbe {
         return false
     }
 
-    public func stop(session: AgentSession) -> Bool {
+    public func stop(session: AgentSession) async -> Bool {
         if let tmuxSession = session.tmuxSession {
-            return shell("/usr/bin/env", ["tmux", "kill-session", "-t", tmuxSession]) != nil
+            return await shell("/usr/bin/env", ["tmux", "kill-session", "-t", tmuxSession]) != nil
         }
         if let pid = session.pid {
             return kill(Int32(pid), SIGTERM) == 0
@@ -166,8 +174,8 @@ public actor CompanionLocalProbe {
         let paneID: String
     }
 
-    private func listTmuxPanes() -> [TmuxPane] {
-        guard let output = shell(
+    private func listTmuxPanes() async -> [TmuxPane] {
+        guard let output = await shell(
             "/usr/bin/env",
             ["tmux", "list-panes", "-a", "-F", "#{pane_pid} #{session_name} #{pane_id}"]
         ) else {
@@ -190,32 +198,23 @@ public actor CompanionLocalProbe {
             }
     }
 
-    private func capturePane(paneID: String) -> String? {
-        shell("/usr/bin/env", ["tmux", "capture-pane", "-t", paneID, "-p", "-S", "-200"])
-            .flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0 }
+    private func capturePane(paneID: String) async -> String? {
+        let raw = await shell("/usr/bin/env", ["tmux", "capture-pane", "-t", paneID, "-p", "-S", "-200"])
+        return raw.flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0 }
     }
 
-    private func runningProcesses() -> [(pid: Int, commandLine: String)] {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/bin/ps")
-        process.arguments = ["-axo", "pid=,args="]
-
-        let output = Pipe()
-        process.standardOutput = output
-        process.standardError = Pipe()
-
+    private func runningProcesses() async -> [(pid: Int, commandLine: String)] {
+        let result: ProcessResult
         do {
-            try process.run()
-            process.waitUntilExit()
+            result = try await Process.runAsync(
+                executablePath: "/bin/ps",
+                arguments: ["-axo", "pid=,args="]
+            )
         } catch {
             return []
         }
-
-        guard let data = try? output.fileHandleForReading.readToEnd(),
-              let raw = String(data: data, encoding: .utf8) else {
-            return []
-        }
-
+        guard result.succeeded else { return [] }
+        let raw = result.stdoutString
         return raw
             .split(separator: "\n")
             .compactMap { line -> (Int, String)? in
@@ -233,24 +232,16 @@ public actor CompanionLocalProbe {
     }
 
     @discardableResult
-    private func shell(_ executable: String, _ arguments: [String]) -> String? {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: executable)
-        process.arguments = arguments
-
-        let output = Pipe()
-        let errorPipe = Pipe()
-        process.standardOutput = output
-        process.standardError = errorPipe
-
+    private func shell(_ executable: String, _ arguments: [String]) async -> String? {
         do {
-            try process.run()
-            process.waitUntilExit()
+            let result = try await Process.runAsync(
+                executablePath: executable,
+                arguments: arguments
+            )
+            guard result.succeeded else { return nil }
+            return result.stdoutString
         } catch {
             return nil
         }
-
-        guard let data = try? output.fileHandleForReading.readToEnd() else { return nil }
-        return String(data: data, encoding: .utf8)
     }
 }

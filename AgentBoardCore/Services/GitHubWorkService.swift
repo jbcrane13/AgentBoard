@@ -238,6 +238,9 @@ public actor GitHubWorkService {
         var allIssues: [RawIssue] = []
 
         while true {
+            // Bail out if the caller cancelled — otherwise we'd keep paging
+            // through every issue page after the user switched away.
+            try Task.checkCancellation()
             let url = try buildURL(
                 repository: repository,
                 endpoint: "issues",
@@ -266,31 +269,25 @@ public actor GitHubWorkService {
         private func fetchIssuesViaCLI(
             for repository: ConfiguredRepository
         ) async throws -> [WorkItem] {
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: "/usr/local/bin/gh")
-            process.arguments = [
-                "api", "repos/\(repository.owner)/\(repository.name)/issues",
-                "-f", "state=all",
-                "-f", "per_page=100",
-                "-q", "[.[] | select(.pull_request == null)]"
-            ]
-
-            let stdout = Pipe()
-            let stderr = Pipe()
-            process.standardOutput = stdout
-            process.standardError = stderr
-
-            try process.run()
-            process.waitUntilExit()
-
-            guard process.terminationStatus == 0 else {
+            let result: ProcessResult
+            do {
+                result = try await Process.runAsync(
+                    executablePath: "/usr/local/bin/gh",
+                    arguments: [
+                        "api", "repos/\(repository.owner)/\(repository.name)/issues",
+                        "-f", "state=all",
+                        "-f", "per_page=100",
+                        "-q", "[.[] | select(.pull_request == null)]"
+                    ]
+                )
+            } catch {
                 throw ServiceError.notFound
             }
 
-            let data = stdout.fileHandleForReading.readDataToEndOfFile()
-            guard !data.isEmpty else { return [] }
+            guard result.succeeded else { throw ServiceError.notFound }
+            guard !result.stdout.isEmpty else { return [] }
 
-            let issues = try JSONDecoder().decode([RawIssue].self, from: data)
+            let issues = try JSONDecoder().decode([RawIssue].self, from: result.stdout)
             return issues.map { map(issue: $0, repository: repository) }
         }
     #endif

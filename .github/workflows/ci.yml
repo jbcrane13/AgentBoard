@@ -36,7 +36,6 @@ jobs:
       - name: Duplicate Code Detection (jscpd)
         run: npx --yes jscpd@4.0.5 --config .jscpd.json "AgentBoardCore" "AgentBoardUI" "AgentBoardCompanionKit" "AgentBoardMobile" "AgentBoardCompanion" "AgentBoard" "AgentBoardTests"
 
-
       - name: Enforce jscpd Threshold (≤ 3.0%)
         run: |
           REPORT=reports/jscpd/jscpd-report.json
