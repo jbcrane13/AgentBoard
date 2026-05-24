@@ -96,6 +96,26 @@ private final class CachedWorkItemRecord {
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
+
+    func update(from item: WorkItem, assigneesData: Data, labelsData: Data) -> Bool {
+        var didChange = false
+        didChange = assignIfNeeded(self, \.repositoryOwner, to: item.repository.owner) || didChange
+        didChange = assignIfNeeded(self, \.repositoryName, to: item.repository.name) || didChange
+        didChange = assignIfNeeded(self, \.issueNumber, to: item.issueNumber) || didChange
+        didChange = assignIfNeeded(self, \.title, to: item.title) || didChange
+        didChange = assignIfNeeded(self, \.bodySummary, to: item.bodySummary) || didChange
+        didChange = assignIfNeeded(self, \.isClosed, to: item.isClosed) || didChange
+        didChange = assignIfNeeded(self, \.assigneesData, to: assigneesData) || didChange
+        didChange = assignIfNeeded(self, \.milestoneNumber, to: item.milestone?.number) || didChange
+        didChange = assignIfNeeded(self, \.milestoneTitle, to: item.milestone?.title) || didChange
+        didChange = assignIfNeeded(self, \.labelsData, to: labelsData) || didChange
+        didChange = assignIfNeeded(self, \.status, to: item.status.rawValue) || didChange
+        didChange = assignIfNeeded(self, \.priority, to: item.priority.rawValue) || didChange
+        didChange = assignIfNeeded(self, \.agentHint, to: item.agentHint) || didChange
+        didChange = assignIfNeeded(self, \.createdAt, to: item.createdAt) || didChange
+        didChange = assignIfNeeded(self, \.updatedAt, to: item.updatedAt) || didChange
+        return didChange
+    }
 }
 
 @Model
@@ -146,6 +166,24 @@ private final class CachedSessionRecord {
         self.tmuxPaneID = tmuxPaneID
         self.lastOutput = lastOutput
     }
+
+    func update(from session: AgentSession) -> Bool {
+        var didChange = false
+        didChange = assignIfNeeded(self, \.source, to: session.source) || didChange
+        didChange = assignIfNeeded(self, \.status, to: session.status.rawValue) || didChange
+        didChange = assignIfNeeded(self, \.linkedTaskID, to: session.linkedTaskID) || didChange
+        didChange = assignIfNeeded(self, \.repositoryOwner, to: session.workItem?.repository.owner) || didChange
+        didChange = assignIfNeeded(self, \.repositoryName, to: session.workItem?.repository.name) || didChange
+        didChange = assignIfNeeded(self, \.issueNumber, to: session.workItem?.issueNumber) || didChange
+        didChange = assignIfNeeded(self, \.model, to: session.model) || didChange
+        didChange = assignIfNeeded(self, \.startedAt, to: session.startedAt) || didChange
+        didChange = assignIfNeeded(self, \.lastSeenAt, to: session.lastSeenAt) || didChange
+        didChange = assignIfNeeded(self, \.pid, to: session.pid) || didChange
+        didChange = assignIfNeeded(self, \.tmuxSession, to: session.tmuxSession) || didChange
+        didChange = assignIfNeeded(self, \.tmuxPaneID, to: session.tmuxPaneID) || didChange
+        didChange = assignIfNeeded(self, \.lastOutput, to: session.lastOutput) || didChange
+        return didChange
+    }
 }
 
 @Model
@@ -175,6 +213,27 @@ private final class CachedAgentRecord {
         self.recentActivity = recentActivity
         self.updatedAt = updatedAt
     }
+
+    func update(from agent: AgentSummary) -> Bool {
+        var didChange = false
+        didChange = assignIfNeeded(self, \.name, to: agent.name) || didChange
+        didChange = assignIfNeeded(self, \.health, to: agent.health.rawValue) || didChange
+        didChange = assignIfNeeded(self, \.activeTaskCount, to: agent.activeTaskCount) || didChange
+        didChange = assignIfNeeded(self, \.activeSessionCount, to: agent.activeSessionCount) || didChange
+        didChange = assignIfNeeded(self, \.recentActivity, to: agent.recentActivity) || didChange
+        didChange = assignIfNeeded(self, \.updatedAt, to: agent.updatedAt) || didChange
+        return didChange
+    }
+}
+
+private func assignIfNeeded<Record: AnyObject, Value: Equatable>(
+    _ record: Record,
+    _ keyPath: ReferenceWritableKeyPath<Record, Value>,
+    to value: Value
+) -> Bool {
+    guard record[keyPath: keyPath] != value else { return false }
+    record[keyPath: keyPath] = value
+    return true
 }
 
 @MainActor
@@ -309,30 +368,36 @@ public final class AgentBoardCache {
     }
 
     public func replaceWorkItems(_ items: [WorkItem]) throws {
-        try replaceAll(CachedWorkItemRecord.self)
+        let existing = try context.fetch(FetchDescriptor<CachedWorkItemRecord>())
+        let existingByID = Dictionary(uniqueKeysWithValues: existing.map { ($0.id, $0) })
+        var incomingIDs = Set<String>()
+        var didChange = false
+
         for item in items {
-            context.insert(
-                CachedWorkItemRecord(
-                    id: item.id,
-                    repositoryOwner: item.repository.owner,
-                    repositoryName: item.repository.name,
-                    issueNumber: item.issueNumber,
-                    title: item.title,
-                    bodySummary: item.bodySummary,
-                    isClosed: item.isClosed,
-                    assigneesData: encodeStrings(item.assignees),
-                    milestoneNumber: item.milestone?.number,
-                    milestoneTitle: item.milestone?.title,
-                    labelsData: encodeStrings(item.labels),
-                    status: item.status.rawValue,
-                    priority: item.priority.rawValue,
-                    agentHint: item.agentHint,
-                    createdAt: item.createdAt,
-                    updatedAt: item.updatedAt
-                )
-            )
+            incomingIDs.insert(item.id)
+            let assigneesData = encodeStrings(item.assignees)
+            let labelsData = encodeStrings(item.labels)
+
+            if let record = existingByID[item.id] {
+                didChange = record.update(
+                    from: item,
+                    assigneesData: assigneesData,
+                    labelsData: labelsData
+                ) || didChange
+            } else {
+                context.insert(makeWorkItemRecord(item, assigneesData: assigneesData, labelsData: labelsData))
+                didChange = true
+            }
         }
-        try context.save()
+
+        for record in existing where !incomingIDs.contains(record.id) {
+            context.delete(record)
+            didChange = true
+        }
+
+        if didChange {
+            try context.save()
+        }
     }
 
     public func loadSessions() throws -> [AgentSession] {
@@ -368,28 +433,29 @@ public final class AgentBoardCache {
     }
 
     public func replaceSessions(_ sessions: [AgentSession]) throws {
-        try replaceAll(CachedSessionRecord.self)
+        let existing = try context.fetch(FetchDescriptor<CachedSessionRecord>())
+        let existingByID = Dictionary(uniqueKeysWithValues: existing.map { ($0.id, $0) })
+        var incomingIDs = Set<String>()
+        var didChange = false
+
         for session in sessions {
-            context.insert(
-                CachedSessionRecord(
-                    id: session.id,
-                    source: session.source,
-                    status: session.status.rawValue,
-                    linkedTaskID: session.linkedTaskID,
-                    repositoryOwner: session.workItem?.repository.owner,
-                    repositoryName: session.workItem?.repository.name,
-                    issueNumber: session.workItem?.issueNumber,
-                    model: session.model,
-                    startedAt: session.startedAt,
-                    lastSeenAt: session.lastSeenAt,
-                    pid: session.pid,
-                    tmuxSession: session.tmuxSession,
-                    tmuxPaneID: session.tmuxPaneID,
-                    lastOutput: session.lastOutput
-                )
-            )
+            incomingIDs.insert(session.id)
+            if let record = existingByID[session.id] {
+                didChange = record.update(from: session) || didChange
+            } else {
+                context.insert(makeSessionRecord(session))
+                didChange = true
+            }
         }
-        try context.save()
+
+        for record in existing where !incomingIDs.contains(record.id) {
+            context.delete(record)
+            didChange = true
+        }
+
+        if didChange {
+            try context.save()
+        }
     }
 
     public func deleteConversation(id: UUID) throws {
@@ -427,26 +493,85 @@ public final class AgentBoardCache {
     }
 
     public func replaceAgentSummaries(_ agents: [AgentSummary]) throws {
-        try replaceAll(CachedAgentRecord.self)
+        let existing = try context.fetch(FetchDescriptor<CachedAgentRecord>())
+        let existingByID = Dictionary(uniqueKeysWithValues: existing.map { ($0.id, $0) })
+        var incomingIDs = Set<String>()
+        var didChange = false
+
         for agent in agents {
-            context.insert(
-                CachedAgentRecord(
-                    id: agent.id,
-                    name: agent.name,
-                    health: agent.health.rawValue,
-                    activeTaskCount: agent.activeTaskCount,
-                    activeSessionCount: agent.activeSessionCount,
-                    recentActivity: agent.recentActivity,
-                    updatedAt: agent.updatedAt
-                )
-            )
+            incomingIDs.insert(agent.id)
+            if let record = existingByID[agent.id] {
+                didChange = record.update(from: agent) || didChange
+            } else {
+                context.insert(makeAgentRecord(agent))
+                didChange = true
+            }
         }
-        try context.save()
+
+        for record in existing where !incomingIDs.contains(record.id) {
+            context.delete(record)
+            didChange = true
+        }
+
+        if didChange {
+            try context.save()
+        }
     }
 
-    private func replaceAll<Model: PersistentModel>(_: Model.Type) throws {
-        let existing = try context.fetch(FetchDescriptor<Model>())
-        existing.forEach(context.delete)
+    private func makeWorkItemRecord(
+        _ item: WorkItem,
+        assigneesData: Data,
+        labelsData: Data
+    ) -> CachedWorkItemRecord {
+        CachedWorkItemRecord(
+            id: item.id,
+            repositoryOwner: item.repository.owner,
+            repositoryName: item.repository.name,
+            issueNumber: item.issueNumber,
+            title: item.title,
+            bodySummary: item.bodySummary,
+            isClosed: item.isClosed,
+            assigneesData: assigneesData,
+            milestoneNumber: item.milestone?.number,
+            milestoneTitle: item.milestone?.title,
+            labelsData: labelsData,
+            status: item.status.rawValue,
+            priority: item.priority.rawValue,
+            agentHint: item.agentHint,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt
+        )
+    }
+
+    private func makeSessionRecord(_ session: AgentSession) -> CachedSessionRecord {
+        CachedSessionRecord(
+            id: session.id,
+            source: session.source,
+            status: session.status.rawValue,
+            linkedTaskID: session.linkedTaskID,
+            repositoryOwner: session.workItem?.repository.owner,
+            repositoryName: session.workItem?.repository.name,
+            issueNumber: session.workItem?.issueNumber,
+            model: session.model,
+            startedAt: session.startedAt,
+            lastSeenAt: session.lastSeenAt,
+            pid: session.pid,
+            tmuxSession: session.tmuxSession,
+            tmuxPaneID: session.tmuxPaneID,
+            lastOutput: session.lastOutput
+        )
+    }
+
+    private func makeAgentRecord(_ agent: AgentSummary) -> CachedAgentRecord {
+        CachedAgentRecord(
+            id: agent.id,
+            name: agent.name,
+            health: agent.health.rawValue,
+            activeTaskCount: agent.activeTaskCount,
+            activeSessionCount: agent.activeSessionCount,
+            recentActivity: agent.recentActivity,
+            updatedAt: agent.updatedAt
+        )
     }
 
     private func encodeStrings(_ values: [String]) -> Data {

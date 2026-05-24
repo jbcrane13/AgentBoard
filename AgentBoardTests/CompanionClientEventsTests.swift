@@ -27,6 +27,7 @@ struct CompanionClientEventsTests {
         let client = CompanionClient(session: makeMockSession { request in
             #expect(request.url?.path == "/v1/events")
             #expect(request.value(forHTTPHeaderField: "Accept") == "text/event-stream")
+            #expect(request.timeoutInterval > 3600)
             let response = try HTTPURLResponse(
                 url: #require(request.url),
                 statusCode: 200,
@@ -46,6 +47,45 @@ struct CompanionClientEventsTests {
 
         #expect(received.map(\.id) == [firstID, secondID])
         #expect(received.map(\.kind) == [.sessionsChanged, .conversationsChanged])
+    }
+
+    @Test
+    func listRequestsUseFifteenSecondTimeout() async throws {
+        let client = CompanionClient(session: makeMockSession { request in
+            #expect(request.url?.path == "/v1/sessions")
+            #expect(request.timeoutInterval == 15)
+            let response = try HTTPURLResponse(
+                url: #require(request.url),
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            return (response, Data("[]".utf8))
+        })
+
+        try await client.configure(baseURL: "http://companion.test:8742", bearerToken: nil)
+
+        let sessions = try await client.listSessions()
+        #expect(sessions.isEmpty)
+    }
+
+    @Test
+    func mutationRequestsUseThirtySecondTimeout() async throws {
+        let client = CompanionClient(session: makeMockSession { request in
+            #expect(request.url?.path == "/v1/sessions/session-1/stop")
+            #expect(request.timeoutInterval == 30)
+            let response = try HTTPURLResponse(
+                url: #require(request.url),
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            return (response, Data(#"{"ok": true}"#.utf8))
+        })
+
+        try await client.configure(baseURL: "http://companion.test:8742", bearerToken: nil)
+
+        try await client.stopSession(id: "session-1")
     }
 
     @Test

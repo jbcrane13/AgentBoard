@@ -47,7 +47,24 @@ public struct GitHubIssueDraft: Sendable {
     }
 }
 
-public actor GitHubWorkService {
+public protocol GitHubWorkServicing: Actor {
+    func configure(
+        repositories: [ConfiguredRepository],
+        token: String?
+    )
+    func fetchWorkItems() async throws -> [WorkItem]
+    func createIssue(
+        repository: ConfiguredRepository,
+        draft: GitHubIssueDraft
+    ) async throws -> WorkItem
+    func updateIssue(
+        repository: ConfiguredRepository,
+        issueNumber: Int,
+        patch: GitHubIssuePatch
+    ) async throws -> WorkItem
+}
+
+public actor GitHubWorkService: GitHubWorkServicing {
     public enum ServiceError: LocalizedError, Sendable {
         case unauthorized
         case notFound
@@ -159,7 +176,7 @@ public actor GitHubWorkService {
         }
 
         let url = try buildURL(repository: repository, endpoint: "issues")
-        var request = authorizedRequest(url: url, token: token)
+        var request = authorizedRequest(url: url, token: token, timeout: Self.mutationTimeout)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
@@ -190,7 +207,7 @@ public actor GitHubWorkService {
         }
 
         let url = try buildURL(repository: repository, endpoint: "issues/\(issueNumber)")
-        var request = authorizedRequest(url: url, token: token)
+        var request = authorizedRequest(url: url, token: token, timeout: Self.mutationTimeout)
         request.httpMethod = "PATCH"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
@@ -393,8 +410,16 @@ public actor GitHubWorkService {
         return url
     }
 
-    private func authorizedRequest(url: URL, token: String) -> URLRequest {
+    private static let listTimeout: TimeInterval = 15
+    private static let mutationTimeout: TimeInterval = 30
+
+    private func authorizedRequest(
+        url: URL,
+        token: String,
+        timeout: TimeInterval = GitHubWorkService.listTimeout
+    ) -> URLRequest {
         var request = URLRequest(url: url)
+        request.timeoutInterval = timeout
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
         request.setValue("AgentBoard", forHTTPHeaderField: "User-Agent")

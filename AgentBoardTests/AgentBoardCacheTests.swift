@@ -151,6 +151,37 @@ struct AgentBoardCacheTests {
         #expect(loaded[0].issueNumber == 1)
     }
 
+    @Test func replaceWorkItemsUpdatesExistingRecord() throws {
+        let cache = try AgentBoardCache(inMemory: true)
+        let repo = ConfiguredRepository(owner: "org", name: "repo")
+        let createdAt = Date(timeIntervalSinceReferenceDate: 10)
+        let updatedAt = Date(timeIntervalSinceReferenceDate: 20)
+        let item = WorkItem(
+            repository: repo, issueNumber: 1, title: "Original",
+            bodySummary: "", isClosed: false, assignees: [],
+            milestone: nil, labels: ["status:ready"], status: .ready, priority: .p2,
+            agentHint: nil, createdAt: createdAt, updatedAt: updatedAt
+        )
+        let updated = WorkItem(
+            repository: repo, issueNumber: 1, title: "Updated",
+            bodySummary: "Changed", isClosed: false, assignees: ["blake"],
+            milestone: nil, labels: ["status:review"], status: .review, priority: .p1,
+            agentHint: "codex", createdAt: createdAt, updatedAt: updatedAt.addingTimeInterval(1)
+        )
+
+        try cache.replaceWorkItems([item])
+        try cache.replaceWorkItems([updated])
+
+        let loaded = try #require(cache.loadWorkItems().first)
+        #expect(loaded.id == item.id)
+        #expect(loaded.title == "Updated")
+        #expect(loaded.bodySummary == "Changed")
+        #expect(loaded.assignees == ["blake"])
+        #expect(loaded.status == .review)
+        #expect(loaded.priority == .p1)
+        #expect(loaded.agentHint == "codex")
+    }
+
     @Test func workItemWithNilMilestoneRoundTrips() throws {
         let cache = try AgentBoardCache(inMemory: true)
         let repo = ConfiguredRepository(owner: "org", name: "repo")
