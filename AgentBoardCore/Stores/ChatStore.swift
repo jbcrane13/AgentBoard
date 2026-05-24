@@ -34,8 +34,8 @@ public final class ChatStore {
     private let cache: any AgentBoardCacheProtocol
     private let settingsStore: SettingsStore
     private let companionClient: CompanionClient
-    private let uploadService = AttachmentUploadService()
-    private let linkPreviewService = LinkPreviewService()
+    private let uploadService: AttachmentUploadService
+    private let linkPreviewService: LinkPreviewService
     public private(set) var conversations: [ChatConversation] = []
     public var selectedConversationID: UUID?
     public private(set) var availableModels: [String] = []
@@ -57,12 +57,16 @@ public final class ChatStore {
         hermesClient: HermesGatewayClient,
         cache: any AgentBoardCacheProtocol,
         settingsStore: SettingsStore,
-        companionClient: CompanionClient
+        companionClient: CompanionClient,
+        uploadService: AttachmentUploadService = AttachmentUploadService(),
+        linkPreviewService: LinkPreviewService = LinkPreviewService()
     ) {
         self.hermesClient = hermesClient
         self.cache = cache
         self.settingsStore = settingsStore
         self.companionClient = companionClient
+        self.uploadService = uploadService
+        self.linkPreviewService = linkPreviewService
     }
 
     public var messages: [ConversationMessage] {
@@ -83,12 +87,10 @@ public final class ChatStore {
                 let companionConvos = try await companionClient.listConversations()
                 conversations = companionConvos
 
-                var loadedMessages: [UUID: [ConversationMessage]] = [:]
-                for conversation in companionConvos {
-                    loadedMessages[conversation.id] = try? await companionClient
-                        .loadMessages(conversationID: conversation.id)
-                }
-                messagesByConversationID = loadedMessages
+                messagesByConversationID = await Self.fetchMessagesInParallel(
+                    for: companionConvos,
+                    using: companionClient
+                )
                 selectedConversationID = companionConvos.first?.id
 
                 try syncToLocalCache()
@@ -227,12 +229,10 @@ public final class ChatStore {
             let companionConvos = try await companionClient.listConversations()
             conversations = companionConvos
 
-            var loadedMessages: [UUID: [ConversationMessage]] = [:]
-            for conversation in companionConvos {
-                loadedMessages[conversation.id] = try? await companionClient
-                    .loadMessages(conversationID: conversation.id)
-            }
-            messagesByConversationID = loadedMessages
+            messagesByConversationID = await Self.fetchMessagesInParallel(
+                for: companionConvos,
+                using: companionClient
+            )
 
             // Preserve selected conversation if it still exists; otherwise pick first
             if selectedConversationID == nil || !companionConvos.contains(where: { $0.id == selectedConversationID }) {
@@ -729,5 +729,44 @@ public final class ChatStore {
         guard var messages = messagesByConversationID[conversationID] else { return }
         messages.removeAll { $0.id == id }
         messagesByConversationID[conversationID] = messages
+    }
+
+    /// Concurrently fetches the message list for every conversation. Replaces
+    /// the previous serial `for await` loop that fired N sequential round-trips
+    /// on every companion bootstrap or `.conversationsChanged` refresh.
+    /// Per-conversation failures fall through as an empty array — matches the
+    /// `try?` semantics of the original loop. Fetches are chunked to avoid
+    /// creating unbounded child tasks when a companion has a large history.
+    private static func fetchMessagesInParallel(
+        for conversations: [ChatConversation],
+        using companion: CompanionClient,
+        maxConcurrentFetches: Int = 8
+    ) async -> [UUID: [ConversationMessage]] {
+        var result: [UUID: [ConversationMessage]] = [:]
+        let batchSize = max(1, maxConcurrentFetches)
+
+        for batchStart in stride(from: 0, to: conversations.count, by: batchSize) {
+            let batchEnd = min(batchStart + batchSize, conversations.count)
+            let batch = conversations[batchStart ..< batchEnd]
+            let batchMessages = await withTaskGroup(
+                of: (UUID, [ConversationMessage]).self
+            ) { group -> [UUID: [ConversationMessage]] in
+                for conversation in batch {
+                    group.addTask {
+                        let messages = (try? await companion.loadMessages(conversationID: conversation.id)) ?? []
+                        return (conversation.id, messages)
+                    }
+                }
+
+                var messagesByID: [UUID: [ConversationMessage]] = [:]
+                for await (id, messages) in group {
+                    messagesByID[id] = messages
+                }
+                return messagesByID
+            }
+            result.merge(batchMessages) { _, new in new }
+        }
+
+        return result
     }
 }
