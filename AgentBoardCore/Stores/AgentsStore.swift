@@ -6,7 +6,7 @@ import os
 @Observable
 public final class AgentsStore {
     private let logger = Logger(subsystem: "com.agentboard.modern", category: "AgentsStore")
-    private let kanbanData: KanbanDataService
+    private let kanbanData: any KanbanDataReading
     private let cliWriter: any KanbanCLIWriting
     private let settingsStore: SettingsStore
 
@@ -20,7 +20,7 @@ public final class AgentsStore {
     private var lastFingerprint: String = ""
 
     public init(
-        kanbanData: KanbanDataService = KanbanDataService(),
+        kanbanData: any KanbanDataReading = KanbanDataService(),
         cliWriter: any KanbanCLIWriting = KanbanCLIWriter(),
         settingsStore: SettingsStore
     ) {

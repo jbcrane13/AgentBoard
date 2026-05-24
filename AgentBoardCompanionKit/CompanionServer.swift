@@ -141,13 +141,25 @@ public final class CompanionServer: @unchecked Sendable {
     private let store: CompanionSQLiteStore
     private let probe: CompanionLocalProbe
     private let broker = CompanionEventBroker()
+    /// Required by NWListener.start(queue:) and NWConnection.start(queue:).
+    /// Network framework demands a DispatchQueue for its internal callbacks;
+    /// handlers hop back via Task { await ... } where actor isolation is needed.
     private let queue = DispatchQueue(label: "com.agentboard.modern.companion")
 
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
 
-    private var listener: NWListener?
-    private var refreshTask: Task<Void, Never>?
+    /// Guards mutable lifecycle state. The class is @unchecked Sendable because
+    /// Network framework callbacks fire on `queue` while public API can be
+    /// invoked from any actor; without this lock, start/stop/refresh-loop
+    /// setter races (including a deinit racing with stop) could nil-deref the
+    /// listener or leak the refresh task.
+    private struct LifecycleState: Sendable {
+        var listener: NWListener?
+        var refreshTask: Task<Void, Never>?
+    }
+
+    private let lifecycle = OSAllocatedUnfairLock(initialState: LifecycleState())
 
     public init(
         configuration: CompanionServerConfiguration,
@@ -164,29 +176,49 @@ public final class CompanionServer: @unchecked Sendable {
     }
 
     deinit {
-        stop()
+        // deinit is nonisolated and can fire on any thread — must use the lock
+        // to safely tear down listener + refreshTask.
+        let snapshot = lifecycle.withLock { state -> LifecycleState in
+            let copy = state
+            state.listener = nil
+            state.refreshTask = nil
+            return copy
+        }
+        snapshot.refreshTask?.cancel()
+        snapshot.listener?.cancel()
     }
 
     public func start() throws {
-        guard listener == nil else { return }
-
-        let port = NWEndpoint.Port(rawValue: configuration.port) ?? 8742
-        let listener = try NWListener(using: .tcp, on: port)
-        listener.newConnectionHandler = { [weak self] connection in
-            self?.accept(connection: connection)
-        }
-        listener.stateUpdateHandler = { [logger] state in
-            switch state {
-            case .ready:
-                logger.info("Companion server ready.")
-            case let .failed(error):
-                logger.error("Companion listener failed: \(error.localizedDescription, privacy: .public)")
-            default:
-                break
+        // Build the listener inside the lock so two concurrent start() calls
+        // don't both create listeners. NWListener.start(queue:) is called
+        // outside the lock since it doesn't touch our state.
+        let listenerToStart: NWListener?
+        do {
+            listenerToStart = try lifecycle.withLock { state -> NWListener? in
+                guard state.listener == nil else { return nil }
+                let port = NWEndpoint.Port(rawValue: configuration.port) ?? 8742
+                let newListener = try NWListener(using: .tcp, on: port)
+                newListener.newConnectionHandler = { [weak self] connection in
+                    self?.accept(connection: connection)
+                }
+                newListener.stateUpdateHandler = { [logger] state in
+                    switch state {
+                    case .ready:
+                        logger.info("Companion server ready.")
+                    case let .failed(error):
+                        logger.error("Companion listener failed: \(error.localizedDescription, privacy: .public)")
+                    default:
+                        break
+                    }
+                }
+                state.listener = newListener
+                return newListener
             }
+        } catch {
+            throw error
         }
+        guard let listener = listenerToStart else { return }
         listener.start(queue: queue)
-        self.listener = listener
 
         startRefreshLoop()
         Task { [weak self] in
@@ -195,14 +227,18 @@ public final class CompanionServer: @unchecked Sendable {
     }
 
     public func stop() {
-        refreshTask?.cancel()
-        listener?.cancel()
-        listener = nil
+        let snapshot = lifecycle.withLock { state -> LifecycleState in
+            let copy = state
+            state.listener = nil
+            state.refreshTask = nil
+            return copy
+        }
+        snapshot.refreshTask?.cancel()
+        snapshot.listener?.cancel()
     }
 
     private func startRefreshLoop() {
-        refreshTask?.cancel()
-        refreshTask = Task { [weak self] in
+        let task = Task { [weak self] in
             guard let self else { return }
 
             while !Task.isCancelled {
@@ -210,6 +246,12 @@ public final class CompanionServer: @unchecked Sendable {
                 try? await Task.sleep(for: .seconds(max(5, self.configuration.refreshInterval)))
             }
         }
+        let previous = lifecycle.withLock { state -> Task<Void, Never>? in
+            let prior = state.refreshTask
+            state.refreshTask = task
+            return prior
+        }
+        previous?.cancel()
     }
 
     private func refreshProbeSnapshot() async throws {

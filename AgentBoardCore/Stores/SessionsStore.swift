@@ -44,10 +44,6 @@ public final class SessionsStore {
         if settingsStore.isCompanionConfigured {
             syncStatus = .loading
             do {
-                try await companionClient.configure(
-                    baseURL: settingsStore.companionURL,
-                    bearerToken: settingsStore.companionToken.trimmedOrNil
-                )
                 let fetched = try await companionClient.listSessions()
                 sessions = fetched.sorted { $0.lastSeenAt > $1.lastSeenAt }
                 lastFingerprint = fingerprint(sessions)
@@ -94,10 +90,6 @@ public final class SessionsStore {
         isLoading = true
 
         do {
-            try await companionClient.configure(
-                baseURL: settingsStore.companionURL,
-                bearerToken: settingsStore.companionToken.trimmedOrNil
-            )
             let newSessions = try await companionClient.listSessions().sorted { lhs, rhs in
                 lhs.lastSeenAt > rhs.lastSeenAt
             }
@@ -123,10 +115,6 @@ public final class SessionsStore {
     public func stopSession(id: String) async {
         guard settingsStore.isCompanionConfigured else { return }
         do {
-            try await companionClient.configure(
-                baseURL: settingsStore.companionURL,
-                bearerToken: settingsStore.companionToken.trimmedOrNil
-            )
             try await companionClient.stopSession(id: id)
             await refresh()
             statusMessage = "Session stopped."
@@ -139,10 +127,6 @@ public final class SessionsStore {
     public func nudgeSession(id: String) async {
         guard settingsStore.isCompanionConfigured else { return }
         do {
-            try await companionClient.configure(
-                baseURL: settingsStore.companionURL,
-                bearerToken: settingsStore.companionToken.trimmedOrNil
-            )
             try await companionClient.nudgeSession(id: id)
             statusMessage = "Session nudged."
         } catch {
@@ -154,10 +138,6 @@ public final class SessionsStore {
     public func fetchOutput(sessionID: String) async -> String? {
         guard settingsStore.isCompanionConfigured else { return nil }
         do {
-            try await companionClient.configure(
-                baseURL: settingsStore.companionURL,
-                bearerToken: settingsStore.companionToken.trimmedOrNil
-            )
             return try await companionClient.fetchSessionOutput(id: sessionID)
         } catch {
             logger.error("Failed to fetch session output: \(error.localizedDescription, privacy: .public)")

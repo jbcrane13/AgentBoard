@@ -85,6 +85,8 @@ public final class SettingsStore {
             return "Enter a valid companion URL."
         }
         guard let url = URL(string: trimmed),
+              let scheme = url.scheme?.lowercased(),
+              ["http", "https"].contains(scheme),
               let host = url.host(percentEncoded: false),
               !host.isEmpty else {
             return "Enter a valid companion URL."

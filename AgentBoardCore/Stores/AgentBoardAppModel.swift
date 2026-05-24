@@ -49,6 +49,7 @@ public final class AgentBoardAppModel {
         isBootstrapping = true
 
         await settingsStore.bootstrap()
+        await applyCompanionConfiguration()
         await chatStore.bootstrap()
         await workStore.bootstrap()
         await agentsStore.bootstrap()
@@ -72,9 +73,34 @@ public final class AgentBoardAppModel {
 
     public func saveSettingsAndReconnect() async {
         await settingsStore.persist()
+        await applyCompanionConfiguration()
         await refreshAll()
         startCompanionEvents()
         startRefreshLoop()
+    }
+
+    /// Apply the current companion URL + token to the shared CompanionClient.
+    ///
+    /// `SettingsStore.companionConfigurationMessage` intentionally mirrors
+    /// `CompanionClient.configure` URL validation, so a configured settings
+    /// state should not fail here and leave a previous client configuration in
+    /// place. If validation still fails, reset the client to its safe loopback
+    /// default so subsequent store calls cannot hit a stale endpoint.
+    private func applyCompanionConfiguration() async {
+        guard settingsStore.isCompanionConfigured else {
+            await companionClient.resetConfiguration()
+            return
+        }
+        do {
+            try await companionClient.configure(
+                baseURL: settingsStore.companionURL,
+                bearerToken: settingsStore.companionToken.trimmedOrNil
+            )
+        } catch {
+            await companionClient.resetConfiguration()
+            logger.error("Companion configure failed: \(error.localizedDescription, privacy: .public)")
+            statusMessage = "Companion configuration failed."
+        }
     }
 
     private func startCompanionEvents() {
@@ -175,6 +201,13 @@ public enum AgentBoardBootstrap {
             settingsStore: settingsStore
         )
         let sessionLauncher = SessionLauncher()
+
+        // Pre-warm the shell-environment probe in the background so it's ready
+        // by the time the user launches a session — replaces the previous
+        // synchronous static-initializer that could hang the UI for up to 5s.
+        #if os(macOS)
+            ShellEnvironment.warm()
+        #endif
 
         return AgentBoardAppModel(
             settingsRepository: settingsRepository,
