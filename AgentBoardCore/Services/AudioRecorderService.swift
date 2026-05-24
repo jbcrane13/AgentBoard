@@ -132,7 +132,8 @@ public final class AudioRecorderService: NSObject {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .milliseconds(100))
                 guard !Task.isCancelled else { return }
-                self?.updateMeter()
+                guard let self else { return }
+                self.updateMeter()
             }
         }
     }
