@@ -34,5 +34,5 @@
   "silent": false,
   "verbose": false,
   "skipLocal": false,
-  "exitCode": 1
+  "exitCode": 0
 }
