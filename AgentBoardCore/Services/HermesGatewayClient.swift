@@ -116,7 +116,7 @@ public actor HermesGatewayClient {
         let request = try makeChatRequest(conversation: conversation)
 
         return AsyncThrowingStream { continuation in
-            Task {
+            let task = Task {
                 do {
                     let (bytes, response) = try await self.session.bytes(for: request)
                     try await self.validateStreamingResponse(response: response, bytes: bytes)
@@ -125,6 +125,10 @@ public actor HermesGatewayClient {
                     continuation.finish(throwing: Self.enrichedTransportError(error, requestURL: request.url))
                 }
             }
+            // Cancel the inner Task when the consumer stops iterating —
+            // otherwise the URLSession bytes task (and the underlying socket)
+            // leaks until the server closes the connection.
+            continuation.onTermination = { _ in task.cancel() }
         }
     }
 

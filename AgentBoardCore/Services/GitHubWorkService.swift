@@ -238,6 +238,9 @@ public actor GitHubWorkService {
         var allIssues: [RawIssue] = []
 
         while true {
+            // Bail out if the caller cancelled — otherwise we'd keep paging
+            // through every issue page after the user switched away.
+            try Task.checkCancellation()
             let url = try buildURL(
                 repository: repository,
                 endpoint: "issues",
