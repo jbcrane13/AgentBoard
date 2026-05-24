@@ -89,6 +89,14 @@ public actor HermesGatewayClient {
         return (response as? HTTPURLResponse)?.statusCode == 200
     }
 
+    private let decoder = JSONDecoder()
+    private let encoder = JSONEncoder()
+
+    private struct ModelListResponse: Decodable, Sendable {
+        struct Entry: Decodable, Sendable { let id: String }
+        let data: [Entry]
+    }
+
     public func fetchModels() async throws -> [String] {
         var request = URLRequest(url: endpointURL("v1/models"))
         request.timeoutInterval = 10
@@ -97,12 +105,14 @@ public actor HermesGatewayClient {
         let (data, response) = try await data(for: request)
         try validate(response: response, fallbackBody: data)
 
-        guard let payload = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let models = payload["data"] as? [[String: Any]] else {
+        let payload: ModelListResponse
+        do {
+            payload = try decoder.decode(ModelListResponse.self, from: data)
+        } catch {
             throw ClientError.invalidResponse
         }
 
-        let ids = models.compactMap { $0["id"] as? String }
+        let ids = payload.data.map(\.id)
         return ids.isEmpty ? [configuration.preferredModelID ?? "hermes-agent"] : ids
     }
 
@@ -150,6 +160,78 @@ public actor HermesGatewayClient {
         )
     }
 
+    // MARK: - Typed request/response models
+
+    private struct ChatCompletionRequest: Encodable, Sendable {
+        struct Message: Encodable, Sendable {
+            struct Attachment: Encodable, Sendable {
+                let type: String
+                var url: String?
+                var title: String?
+                var description: String?
+            }
+
+            let role: String
+            let content: String
+            var attachments: [Attachment]?
+        }
+
+        let model: String
+        let messages: [Message]
+        let stream: Bool
+    }
+
+    private struct ChatCompletionChunk: Decodable, Sendable {
+        struct Choice: Decodable, Sendable {
+            struct Delta: Decodable, Sendable {
+                let content: String?
+            }
+
+            struct Message: Decodable, Sendable {
+                let content: String?
+            }
+
+            let delta: Delta?
+            let message: Message?
+            let text: String?
+            let finishReason: String?
+
+            var assistantContent: String? {
+                delta?.content ?? message?.content ?? text
+            }
+
+            enum CodingKeys: String, CodingKey {
+                case delta, message, text
+                case finishReason = "finish_reason"
+            }
+        }
+
+        let choices: [Choice]?
+    }
+
+    private struct ChatCompletionResponse: Decodable, Sendable {
+        struct Choice: Decodable, Sendable {
+            struct Message: Decodable, Sendable {
+                let content: String?
+            }
+
+            let message: Message?
+            let text: String?
+
+            var assistantContent: String? {
+                message?.content ?? text
+            }
+        }
+
+        struct MessageContent: Decodable, Sendable {
+            let content: String?
+        }
+
+        let choices: [Choice]?
+        let content: String?
+        let message: MessageContent?
+    }
+
     private func makeChatRequest(
         conversation: [ConversationMessage]
     ) throws -> URLRequest {
@@ -159,39 +241,42 @@ public actor HermesGatewayClient {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         setAuth(&request)
 
-        let messages = conversation
+        let messages: [ChatCompletionRequest.Message] = conversation
             .filter { !$0.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !$0.attachments.isEmpty }
-            .map { msg -> [String: Any] in
-                var messageDict: [String: Any] = ["role": msg.role.rawValue, "content": msg.content]
-
-                if !msg.attachments.isEmpty {
-                    let attachmentData: [[String: Any]] = msg.attachments.compactMap { attachment in
-                        var dict: [String: Any] = ["type": attachment.type.rawValue]
+            .map { msg in
+                let attachments: [ChatCompletionRequest.Message.Attachment]? = msg.attachments.isEmpty ? nil : msg
+                    .attachments.map { attachment in
+                        var url: String?
                         if let remoteURL = attachment.remoteURL {
-                            dict["url"] = remoteURL.absoluteString
+                            url = remoteURL.absoluteString
                         }
+                        var title: String?
+                        var description: String?
                         if case let .linkPreview(payload) = attachment.payload {
-                            dict["url"] = payload.url.absoluteString
-                            if let title = payload.title {
-                                dict["title"] = title
-                            }
-                            if let description = payload.description {
-                                dict["description"] = description
-                            }
+                            url = payload.url.absoluteString
+                            title = payload.title
+                            description = payload.description
                         }
-                        return dict
+                        return ChatCompletionRequest.Message.Attachment(
+                            type: attachment.type.rawValue,
+                            url: url,
+                            title: title,
+                            description: description
+                        )
                     }
-                    messageDict["attachments"] = attachmentData
-                }
-
-                return messageDict
+                return ChatCompletionRequest.Message(
+                    role: msg.role.rawValue,
+                    content: msg.content,
+                    attachments: attachments
+                )
             }
-        let payload: [String: Any] = [
-            "model": configuration.preferredModelID ?? "hermes-agent",
-            "messages": messages,
-            "stream": true
-        ]
-        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+
+        let payload = ChatCompletionRequest(
+            model: configuration.preferredModelID ?? "hermes-agent",
+            messages: messages,
+            stream: true
+        )
+        request.httpBody = try encoder.encode(payload)
         return request
     }
 
@@ -223,20 +308,24 @@ public actor HermesGatewayClient {
                 return
             }
 
-            guard let jsonData = rawData.data(using: .utf8),
-                  let payload = try JSONSerialization.jsonObject(with: jsonData) as? [String: Any],
-                  let choices = payload["choices"] as? [[String: Any]],
-                  let firstChoice = choices.first else {
+            guard let jsonData = rawData.data(using: .utf8) else { continue }
+
+            let chunk: ChatCompletionChunk
+            do {
+                chunk = try decoder.decode(ChatCompletionChunk.self, from: jsonData)
+            } catch {
                 continue
             }
 
-            if let finishReason = firstChoice["finish_reason"] as? String,
+            guard let firstChoice = chunk.choices?.first else { continue }
+
+            if let finishReason = firstChoice.finishReason,
                finishReason == "stop" {
                 continuation.finish()
                 return
             }
 
-            if let content = Self.extractAssistantContent(from: firstChoice), !content.isEmpty {
+            if let content = firstChoice.assistantContent, !content.isEmpty {
                 didYieldContent = true
                 continuation.yield(content)
             }
@@ -244,7 +333,7 @@ public actor HermesGatewayClient {
 
         if !sawServerSentEvent {
             let fallbackBody = fallbackBodyLines.joined(separator: "\n")
-            if let content = try Self.extractFallbackAssistantContent(from: fallbackBody), !content.isEmpty {
+            if let content = try extractFallbackAssistantContent(from: fallbackBody), !content.isEmpty {
                 didYieldContent = true
                 continuation.yield(content)
             }
@@ -257,41 +346,26 @@ public actor HermesGatewayClient {
         continuation.finish()
     }
 
-    private static func extractFallbackAssistantContent(from body: String) throws -> String? {
+    private func extractFallbackAssistantContent(from body: String) throws -> String? {
         guard let data = body.data(using: .utf8), !data.isEmpty else { return nil }
-        guard let payload = try JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
 
-        if let choices = payload["choices"] as? [[String: Any]],
-           let firstChoice = choices.first,
-           let content = extractAssistantContent(from: firstChoice) {
+        let response: ChatCompletionResponse
+        do {
+            response = try decoder.decode(ChatCompletionResponse.self, from: data)
+        } catch {
+            return nil
+        }
+
+        if let content = response.choices?.first?.assistantContent {
             return content
         }
 
-        if let content = payload["content"] as? String {
+        if let content = response.content {
             return content
         }
 
-        if let message = payload["message"] as? [String: Any],
-           let content = message["content"] as? String {
+        if let content = response.message?.content {
             return content
-        }
-
-        return nil
-    }
-
-    private static func extractAssistantContent(from choice: [String: Any]) -> String? {
-        if let delta = choice["delta"] as? [String: Any],
-           let content = delta["content"] as? String {
-            return content
-        }
-
-        if let message = choice["message"] as? [String: Any],
-           let content = message["content"] as? String {
-            return content
-        }
-
-        if let text = choice["text"] as? String {
-            return text
         }
 
         return nil
