@@ -165,12 +165,10 @@ public final class AudioRecorderService: NSObject {
 
 extension AudioRecorderService: AVAudioRecorderDelegate {
     // swiftlint:disable:next modifier_order
-    public nonisolated func audioRecorderDidFinishRecording(_: AVAudioRecorder, successfully flag: Bool) {
-        if !flag {
-            Task { @MainActor in
-                isRecording = false
-                stopMetering()
-            }
+    public nonisolated func audioRecorderDidFinishRecording(_: AVAudioRecorder, successfully _: Bool) {
+        Task { @MainActor in
+            isRecording = false
+            stopMetering()
         }
     }
 
