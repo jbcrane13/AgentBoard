@@ -173,6 +173,7 @@ public final class SessionLauncher {
     public var activeSessions: [ActiveSession] = []
     public var isLaunching = false
     public var lastError: String?
+    private var monitorTask: Task<Void, Never>?
 
     // MARK: - Launch
 
@@ -341,10 +342,10 @@ public final class SessionLauncher {
             let socket = home.appendingPathComponent(".tmux/sock").path
             let agent = agentType.launchFlag
 
-            // Use enriched environment that harvests PATH and credentials from
+            // Use enriched shell variables that harvest PATH and credentials from
             // the user's login shell (sources .zprofile + .zshrc for nvm/Homebrew).
-            // tmux new-session receives this env so node, ralphy, etc. are on PATH.
-            let env = ShellEnvironment.enrichedEnvironment()
+            // tmux new-session receives this so node, ralphy, etc. are on PATH.
+            let shellEnv = ShellEnvironment.enrichedEnvironment()
 
             let shellCmd = "/opt/homebrew/bin/tmux -S \(socket) new -d -s \(sessionName)" +
                 " \"cd \(projectDir)" +
@@ -352,22 +353,20 @@ public final class SessionLauncher {
                 " && /opt/homebrew/bin/ralphy --\(agent) --prd \(prdPath)" +
                 "; EXIT_CODE=\\$?; echo EXITED: \\$EXIT_CODE; sleep 999999\""
 
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: "/bin/zsh")
-            process.arguments = ["-l", "-c", shellCmd]
-            process.environment = env
+            let result: ProcessResult
+            do {
+                result = try await Process.runAsync(
+                    executablePath: "/bin/zsh",
+                    arguments: ["-l", "-c", shellCmd],
+                    environment: shellEnv
+                )
+            } catch let ProcessRunError.launchFailed(msg) {
+                throw LaunchError.tmuxFailed(msg)
+            }
 
-            let pipe = Pipe()
-            process.standardOutput = pipe
-            process.standardError = pipe
-
-            try process.run()
-            process.waitUntilExit()
-
-            if process.terminationStatus != 0 {
-                let data = pipe.fileHandleForReading.readDataToEndOfFile()
-                let output = String(data: data, encoding: .utf8) ?? "unknown error"
-                throw LaunchError.tmuxFailed(output)
+            if !result.succeeded {
+                let output = result.stderrString.isEmpty ? result.stdoutString : result.stderrString
+                throw LaunchError.tmuxFailed(output.isEmpty ? "unknown error" : output)
             }
         #else
             throw LaunchError.unsupportedPlatform
@@ -381,19 +380,13 @@ public final class SessionLauncher {
             let home = FileManager.default.homeDirectoryForCurrentUser
             let socket = home.appendingPathComponent(".tmux/sock").path
 
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: "/opt/homebrew/bin/tmux")
-            process.arguments = ["-S", socket, "has-session", "-t", session.sessionName]
-            process.environment = ShellEnvironment.enrichedEnvironment()
-
-            let pipe = Pipe()
-            process.standardOutput = pipe
-            process.standardError = pipe
-
             do {
-                try process.run()
-                process.waitUntilExit()
-                return process.terminationStatus == 0 ? .running : .completed
+                let result = try await Process.runAsync(
+                    executablePath: "/opt/homebrew/bin/tmux",
+                    arguments: ["-S", socket, "has-session", "-t", session.sessionName],
+                    environment: ShellEnvironment.enrichedEnvironment()
+                )
+                return result.succeeded ? .running : .completed
             } catch {
                 return .failed
             }
@@ -419,26 +412,19 @@ public final class SessionLauncher {
     }
 
     /// Capture the current visible content of a tmux session pane.
-    public func capturePane(sessionName: String) -> String? {
+    public func capturePane(sessionName: String) async -> String? {
         #if os(macOS)
             let home = FileManager.default.homeDirectoryForCurrentUser
             let socket = home.appendingPathComponent(".tmux/sock").path
 
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: "/opt/homebrew/bin/tmux")
-            process.arguments = ["-S", socket, "capture-pane", "-t", sessionName, "-p", "-J"]
-            process.environment = ShellEnvironment.enrichedEnvironment()
-
-            let pipe = Pipe()
-            process.standardOutput = pipe
-            process.standardError = Pipe()
-
             do {
-                try process.run()
-                process.waitUntilExit()
-                guard process.terminationStatus == 0 else { return nil }
-                let data = pipe.fileHandleForReading.readDataToEndOfFile()
-                return String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
+                let result = try await Process.runAsync(
+                    executablePath: "/opt/homebrew/bin/tmux",
+                    arguments: ["-S", socket, "capture-pane", "-t", sessionName, "-p", "-J"],
+                    environment: ShellEnvironment.enrichedEnvironment()
+                )
+                guard result.succeeded else { return nil }
+                return result.stdoutString.trimmingCharacters(in: .whitespacesAndNewlines)
             } catch {
                 return nil
             }
@@ -456,9 +442,6 @@ public final class SessionLauncher {
             // Use /opt/homebrew/bin/tmux explicitly and source shell profile
             // so PATH is correct inside the terminal.
             let cmd = "source ~/.zshrc 2>/dev/null; /opt/homebrew/bin/tmux -S \(socket) attach -t \(sessionName)"
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
-            process.arguments = ["-a", "Terminal.app"]
 
             let appleScript = """
             tell application "Terminal"
@@ -481,7 +464,8 @@ public final class SessionLauncher {
 
     /// Start monitoring active sessions for status changes.
     public func startMonitoring() {
-        Task { [weak self] in
+        monitorTask?.cancel()
+        monitorTask = Task { [weak self] in
             guard let self else { return }
             while !Task.isCancelled {
                 for index in activeSessions.indices {
@@ -497,6 +481,12 @@ public final class SessionLauncher {
                 try? await Task.sleep(for: .seconds(30))
             }
         }
+    }
+
+    /// Stop the active-session polling loop.
+    public func stopMonitoring() {
+        monitorTask?.cancel()
+        monitorTask = nil
     }
 
     // MARK: - Errors
