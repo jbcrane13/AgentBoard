@@ -20,6 +20,7 @@
 		10A2BF960BB432E046A8392E /* DesignSemanticsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19CE389F4A620817A309F601 /* DesignSemanticsTests.swift */; };
 		15369C112AA2304F032D157F /* MarkdownText.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A2BE598EEDA7A998AEA8DE /* MarkdownText.swift */; };
 		171A150F155917F5196D7647 /* ChatHeaderPickerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E01910C75287C5F3B6650B2A /* ChatHeaderPickerTests.swift */; };
+		18479A684D668F5C137C5C86 /* TmuxController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B80C98C4E1D5870D7ED4E2D /* TmuxController.swift */; };
 		18513E9340A65D8111F82D18 /* DomainPills.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A169A5D550028B6D20B397D /* DomainPills.swift */; };
 		1C711E565B9941FC998F8265 /* WorkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A06C1DAB866C77FF3A634D71 /* WorkStore.swift */; };
 		1C7E32DFC4B2295F98363820 /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F876603AEC9BE7B94289CA01 /* SettingsStore.swift */; };
@@ -95,6 +96,7 @@
 		9EAAAF4FFBF10F8A576AF5BD /* SessionLauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08B7CE4C138A75D87781C1DB /* SessionLauncher.swift */; };
 		A51107E477749B979572DD17 /* AttachmentModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9D42E5CA1B251EA0284E8C6 /* AttachmentModels.swift */; };
 		A66CDAEC61CF81C8BC905B61 /* AgentsStoreSummariesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E84FB91863EEFC0DABE3E113 /* AgentsStoreSummariesTests.swift */; };
+		A86A0A76B46CE6265194C0A6 /* PRDComposer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A04B1F730472F1F23A283354 /* PRDComposer.swift */; };
 		AB66AFF4128BA91808D24DB5 /* GitHubWorkService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFA60A5A5B633630F99A562B /* GitHubWorkService.swift */; };
 		ABB3B9109C6F6749E7933CF2 /* DesktopRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAD7F0F3E84953BCE4E07275 /* DesktopRootView.swift */; };
 		AC9718464408D550B64EFB4E /* ConfigBackupServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E15329720160FF009D5B1535 /* ConfigBackupServiceTests.swift */; };
@@ -120,6 +122,7 @@
 		D66940F899C73350695B1CDE /* AccessibilityIdentifierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F57CF813491E81109CBBEE1 /* AccessibilityIdentifierTests.swift */; };
 		D806724D20A2D1EC0A81416B /* ProcessAsync.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10B0893112C597A1F745A53 /* ProcessAsync.swift */; };
 		DAAA6677EBC51F4C7796E505 /* KanbanModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE3F349D2B17FA90738CCDD5 /* KanbanModelsTests.swift */; };
+		DAB3EA4A5AF33E4165CD6551 /* PRDComposerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9503F3F8C1E54BE6D35A3641 /* PRDComposerTests.swift */; };
 		DB87AF9AF4B7456FBDD3F011 /* SettingsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7A095E80382BA922486329A /* SettingsScreen.swift */; };
 		DC38BD815D6E073F6D62E1D7 /* NeumorphicTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA4BD1071B801A6A1C9E1CEF /* NeumorphicTheme.swift */; };
 		DD6C36042860EA2D423261EE /* SessionDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A145F7A1A70B53DF066DBD /* SessionDetailSheet.swift */; };
@@ -242,6 +245,7 @@
 		196C90FC0E35E33601741243 /* KeyboardDismissal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardDismissal.swift; sourceTree = "<group>"; };
 		19CE389F4A620817A309F601 /* DesignSemanticsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSemanticsTests.swift; sourceTree = "<group>"; };
 		1A169A5D550028B6D20B397D /* DomainPills.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainPills.swift; sourceTree = "<group>"; };
+		1B80C98C4E1D5870D7ED4E2D /* TmuxController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TmuxController.swift; sourceTree = "<group>"; };
 		1F06E0C2FFE9CAC90D48662B /* HermesGatewayClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HermesGatewayClientTests.swift; sourceTree = "<group>"; };
 		1FFDF3222AEE5530E6C58DFC /* QuickLaunchSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickLaunchSheet.swift; sourceTree = "<group>"; };
 		26A31E0F643092B573A4DB9D /* IssueDetailSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IssueDetailSheet.swift; sourceTree = "<group>"; };
@@ -282,8 +286,10 @@
 		8562113DB3BC11316C4B4A50 /* LabelSchemaTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabelSchemaTests.swift; sourceTree = "<group>"; };
 		87B288F1A4879578BDDED47F /* DesktopTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesktopTab.swift; sourceTree = "<group>"; };
 		92E0CE9F3A8E9CA87A6C3B95 /* SessionsStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionsStoreTests.swift; sourceTree = "<group>"; };
+		9503F3F8C1E54BE6D35A3641 /* PRDComposerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PRDComposerTests.swift; sourceTree = "<group>"; };
 		957114148477B05585A13D7C /* MockURLProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockURLProtocol.swift; sourceTree = "<group>"; };
 		959F1DE11FF3233AB9029B6D /* MobileRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileRootView.swift; sourceTree = "<group>"; };
+		A04B1F730472F1F23A283354 /* PRDComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PRDComposer.swift; sourceTree = "<group>"; };
 		A06C1DAB866C77FF3A634D71 /* WorkStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkStore.swift; sourceTree = "<group>"; };
 		A1A2BE598EEDA7A998AEA8DE /* MarkdownText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownText.swift; sourceTree = "<group>"; };
 		A55C723CBBB22E568A7E3D63 /* SettingsRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsRepository.swift; sourceTree = "<group>"; };
@@ -406,6 +412,7 @@
 				8562113DB3BC11316C4B4A50 /* LabelSchemaTests.swift */,
 				957114148477B05585A13D7C /* MockURLProtocol.swift */,
 				BB5CC5206E88A59FBD80A856 /* NativeSwiftUIInterfaceTests.swift */,
+				9503F3F8C1E54BE6D35A3641 /* PRDComposerTests.swift */,
 				CE1B1DC901AD1D60B3855D38 /* SessionLauncherTests.swift */,
 				92E0CE9F3A8E9CA87A6C3B95 /* SessionsStoreTests.swift */,
 				B4813FBD80F9AC10D1A51841 /* SettingsStoreTests.swift */,
@@ -487,9 +494,11 @@
 				E52428296B715E26DCC31E00 /* KanbanCLIWriter.swift */,
 				A9896F487D5B25505452683B /* KanbanDataService.swift */,
 				54CA712A46E969ED79300E4F /* LinkPreviewService.swift */,
+				A04B1F730472F1F23A283354 /* PRDComposer.swift */,
 				08B7CE4C138A75D87781C1DB /* SessionLauncher.swift */,
 				52959B32060C120BA1BB1AB7 /* ShellEnvironment.swift */,
 				0D0FBEDFA7766F71A98B48E3 /* SlashCommandHandler.swift */,
+				1B80C98C4E1D5870D7ED4E2D /* TmuxController.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -923,6 +932,7 @@
 				E9D09CAC0D952EE1295DFA60 /* LabelSchemaTests.swift in Sources */,
 				38E1089316EEC57E444A6FB1 /* MockURLProtocol.swift in Sources */,
 				9781E0240F8A4C6FC3DC30B7 /* NativeSwiftUIInterfaceTests.swift in Sources */,
+				DAB3EA4A5AF33E4165CD6551 /* PRDComposerTests.swift in Sources */,
 				9A90C5EF45CA6630C7EA64CD /* SessionLauncherTests.swift in Sources */,
 				F18232EF1BD587C14FCCD06F /* SessionsStoreTests.swift in Sources */,
 				D4674853A5F6064FC3E65542 /* SettingsStoreTests.swift in Sources */,
@@ -957,6 +967,7 @@
 				B05AB72D9955BEF4CD1E3B7A /* KanbanModels.swift in Sources */,
 				CB10A2005C3CAEE8253B7324 /* LabelSchema.swift in Sources */,
 				BCE6371A2B658B37FE0C3124 /* LinkPreviewService.swift in Sources */,
+				A86A0A76B46CE6265194C0A6 /* PRDComposer.swift in Sources */,
 				D806724D20A2D1EC0A81416B /* ProcessAsync.swift in Sources */,
 				9EAAAF4FFBF10F8A576AF5BD /* SessionLauncher.swift in Sources */,
 				5407CC8EF71865713E95B1BF /* SessionsStore.swift in Sources */,
@@ -964,6 +975,7 @@
 				1C7E32DFC4B2295F98363820 /* SettingsStore.swift in Sources */,
 				4D05F9AAB6DA0E2642F377F4 /* ShellEnvironment.swift in Sources */,
 				C993681ECCC427965F61D4E6 /* SlashCommandHandler.swift in Sources */,
+				18479A684D668F5C137C5C86 /* TmuxController.swift in Sources */,
 				1C711E565B9941FC998F8265 /* WorkStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
