@@ -105,7 +105,7 @@ public enum ProcessRunError: Error, Sendable {
                     process.executableURL = URL(fileURLWithPath: executablePath)
                     process.arguments = arguments
                     if let environment {
-                        process.setValue(environment, forKey: "environment")
+                        process.environment = environment
                     }
 
                     let stdoutPipe = Pipe()
