@@ -96,6 +96,7 @@ public enum ProcessRunError: Error, Sendable {
                         let source = DispatchSource.makeTimerSource()
                         source.schedule(deadline: .now() + timeout)
                         source.setEventHandler {
+                            guard process.isRunning else { return }
                             process.terminate()
                             resumeOnce(.failure(ProcessRunError.timedOut))
                         }
