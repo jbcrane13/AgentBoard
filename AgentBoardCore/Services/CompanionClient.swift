@@ -51,17 +51,23 @@ public actor CompanionClient {
 
     public func configure(baseURL: String, bearerToken: String?) throws {
         let normalized = baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let url = URL(string: normalized.isEmpty ? "http://127.0.0.1:8742" : normalized),
+        let resolvedBaseURL = normalized.isEmpty ? "http://127.0.0.1:8742" : normalized
+        guard let url = URL(string: resolvedBaseURL),
               let scheme = url.scheme?.lowercased(),
               ["http", "https"].contains(scheme),
-              url.host != nil else {
+              let host = url.host(percentEncoded: false),
+              !host.isEmpty else {
             throw ClientError.invalidBaseURL
         }
 
         configuration = CompanionConfiguration(
-            baseURL: normalized.isEmpty ? "http://127.0.0.1:8742" : normalized,
+            baseURL: resolvedBaseURL,
             bearerToken: bearerToken?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
         )
+    }
+
+    public func resetConfiguration() {
+        configuration = CompanionConfiguration()
     }
 
     public func healthCheck() async throws -> Bool {

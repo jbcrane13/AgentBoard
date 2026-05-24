@@ -3,7 +3,7 @@ import Foundation
 /// Read+write protocol over the local SwiftData cache. Stores depend on this
 /// protocol rather than the concrete `AgentBoardCache` so test fakes can stand
 /// in without a real `ModelContainer`. The concrete `AgentBoardCache` conforms
-/// to it via an extension in the same file as the class.
+/// to it via an extension in AgentBoardCache.swift.
 @MainActor
 public protocol AgentBoardCacheProtocol {
     // MARK: - Conversations (ChatStore)

@@ -80,19 +80,26 @@ public final class AgentBoardAppModel {
     }
 
     /// Apply the current companion URL + token to the shared CompanionClient.
-    /// Centralizes what used to be repeated configure-before-every-call blocks
-    /// scattered across ChatStore and SessionsStore. Swallows configure errors
-    /// (e.g., invalid URL) and logs them — downstream companion calls will
-    /// throw and the stores already handle that by falling back to cache.
+    ///
+    /// `SettingsStore.companionConfigurationMessage` intentionally mirrors
+    /// `CompanionClient.configure` URL validation, so a configured settings
+    /// state should not fail here and leave a previous client configuration in
+    /// place. If validation still fails, reset the client to its safe loopback
+    /// default so subsequent store calls cannot hit a stale endpoint.
     private func applyCompanionConfiguration() async {
-        guard settingsStore.isCompanionConfigured else { return }
+        guard settingsStore.isCompanionConfigured else {
+            await companionClient.resetConfiguration()
+            return
+        }
         do {
             try await companionClient.configure(
                 baseURL: settingsStore.companionURL,
                 bearerToken: settingsStore.companionToken.trimmedOrNil
             )
         } catch {
+            await companionClient.resetConfiguration()
             logger.error("Companion configure failed: \(error.localizedDescription, privacy: .public)")
+            statusMessage = "Companion configuration failed."
         }
     }
 
