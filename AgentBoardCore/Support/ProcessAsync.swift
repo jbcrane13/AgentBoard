@@ -25,6 +25,7 @@ public enum ProcessRunError: Error, Sendable {
 
 #if os(macOS)
     public extension Process {
+        // swiftlint:disable function_body_length
         /// Async wrapper around `Process.run()` + `terminationHandler`.
         ///
         /// Replaces synchronous `process.waitUntilExit()` so the calling actor
@@ -162,5 +163,6 @@ public enum ProcessRunError: Error, Sendable {
                 state.cancelForTaskCancellation()
             }
         }
+        // swiftlint:enable function_body_length
     }
 #endif
