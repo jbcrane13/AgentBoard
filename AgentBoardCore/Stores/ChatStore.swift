@@ -751,25 +751,38 @@ public final class ChatStore {
     /// the previous serial `for await` loop that fired N sequential round-trips
     /// on every companion bootstrap or `.conversationsChanged` refresh.
     /// Per-conversation failures fall through as an empty array — matches the
-    /// `try?` semantics of the original loop.
+    /// `try?` semantics of the original loop. Fetches are chunked to avoid
+    /// creating unbounded child tasks when a companion has a large history.
     private static func fetchMessagesInParallel(
         for conversations: [ChatConversation],
-        using companion: CompanionClient
+        using companion: CompanionClient,
+        maxConcurrentFetches: Int = 8
     ) async -> [UUID: [ConversationMessage]] {
-        await withTaskGroup(
-            of: (UUID, [ConversationMessage]).self
-        ) { group -> [UUID: [ConversationMessage]] in
-            for conversation in conversations {
-                group.addTask {
-                    let messages = (try? await companion.loadMessages(conversationID: conversation.id)) ?? []
-                    return (conversation.id, messages)
+        var result: [UUID: [ConversationMessage]] = [:]
+        let batchSize = max(1, maxConcurrentFetches)
+
+        for batchStart in stride(from: 0, to: conversations.count, by: batchSize) {
+            let batchEnd = min(batchStart + batchSize, conversations.count)
+            let batch = conversations[batchStart ..< batchEnd]
+            let batchMessages = await withTaskGroup(
+                of: (UUID, [ConversationMessage]).self
+            ) { group -> [UUID: [ConversationMessage]] in
+                for conversation in batch {
+                    group.addTask {
+                        let messages = (try? await companion.loadMessages(conversationID: conversation.id)) ?? []
+                        return (conversation.id, messages)
+                    }
                 }
+
+                var messagesByID: [UUID: [ConversationMessage]] = [:]
+                for await (id, messages) in group {
+                    messagesByID[id] = messages
+                }
+                return messagesByID
             }
-            var result: [UUID: [ConversationMessage]] = [:]
-            for await (id, messages) in group {
-                result[id] = messages
-            }
-            return result
+            result.merge(batchMessages) { _, new in new }
         }
+
+        return result
     }
 }
