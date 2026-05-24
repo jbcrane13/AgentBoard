@@ -66,7 +66,6 @@ public enum ProcessRunError: Error, Sendable {
                     process.terminationHandler = nil
                     stateLock.unlock()
 
-                    activeTimer?.setEventHandler {}
                     activeTimer?.cancel()
 
                     switch result {
