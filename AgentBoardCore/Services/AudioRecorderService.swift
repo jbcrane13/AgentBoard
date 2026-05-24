@@ -1,22 +1,24 @@
 import AVFoundation
 import Foundation
+import Observation
 import os
 
 // MARK: - AudioRecorderService
 
 /// Records audio and generates waveform samples for voice messages.
 @MainActor
-public final class AudioRecorderService: NSObject, ObservableObject {
+@Observable
+public final class AudioRecorderService: NSObject {
     private let logger = Logger(subsystem: "com.agentboard", category: "AudioRecorder")
 
-    @Published public private(set) var isRecording = false
-    @Published public private(set) var isPaused = false
-    @Published public private(set) var duration: TimeInterval = 0
-    @Published public private(set) var waveformSamples: [Float] = []
+    public private(set) var isRecording = false
+    public private(set) var isPaused = false
+    public private(set) var duration: TimeInterval = 0
+    public private(set) var waveformSamples: [Float] = []
 
-    private var audioRecorder: AVAudioRecorder?
-    private var timer: Timer?
-    private var recordingURL: URL?
+    @ObservationIgnored private var audioRecorder: AVAudioRecorder?
+    @ObservationIgnored private var meterTask: Task<Void, Never>?
+    @ObservationIgnored private var recordingURL: URL?
 
     override public init() {
         super.init()
@@ -65,21 +67,21 @@ public final class AudioRecorderService: NSObject, ObservableObject {
         duration = 0
         waveformSamples = []
 
-        startTimer()
+        startMetering()
     }
 
     /// Pause recording.
     public func pauseRecording() {
         audioRecorder?.pause()
         isPaused = true
-        stopTimer()
+        stopMetering()
     }
 
     /// Resume recording.
     public func resumeRecording() {
         audioRecorder?.record()
         isPaused = false
-        startTimer()
+        startMetering()
     }
 
     /// Stop recording and return the result.
@@ -94,7 +96,7 @@ public final class AudioRecorderService: NSObject, ObservableObject {
         audioRecorder = nil
         isRecording = false
         isPaused = false
-        stopTimer()
+        stopMetering()
 
         #if os(iOS)
             try? AVAudioSession.sharedInstance().setActive(false)
@@ -116,25 +118,29 @@ public final class AudioRecorderService: NSObject, ObservableObject {
         audioRecorder = nil
         isRecording = false
         isPaused = false
-        stopTimer()
+        stopMetering()
         #if os(iOS)
             try? AVAudioSession.sharedInstance().setActive(false)
         #endif
     }
 
-    // MARK: - Timer
+    // MARK: - Metering loop
 
-    private func startTimer() {
-        timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                self?.updateMeter()
+    private func startMetering() {
+        meterTask?.cancel()
+        meterTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(100))
+                guard !Task.isCancelled else { return }
+                guard let self else { return }
+                self.updateMeter()
             }
         }
     }
 
-    private func stopTimer() {
-        timer?.invalidate()
-        timer = nil
+    private func stopMetering() {
+        meterTask?.cancel()
+        meterTask = nil
     }
 
     private func updateMeter() {
@@ -159,12 +165,10 @@ public final class AudioRecorderService: NSObject, ObservableObject {
 
 extension AudioRecorderService: AVAudioRecorderDelegate {
     // swiftlint:disable:next modifier_order
-    public nonisolated func audioRecorderDidFinishRecording(_: AVAudioRecorder, successfully flag: Bool) {
-        if !flag {
-            Task { @MainActor in
-                isRecording = false
-                stopTimer()
-            }
+    public nonisolated func audioRecorderDidFinishRecording(_: AVAudioRecorder, successfully _: Bool) {
+        Task { @MainActor in
+            isRecording = false
+            stopMetering()
         }
     }
 
@@ -173,7 +177,7 @@ extension AudioRecorderService: AVAudioRecorderDelegate {
         Task { @MainActor in
             logger.error("Audio recording error: \(error?.localizedDescription ?? "unknown")")
             isRecording = false
-            stopTimer()
+            stopMetering()
         }
     }
 }
