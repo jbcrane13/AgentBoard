@@ -23,6 +23,9 @@ struct SessionDetailSheet: View {
                     Picker("Mode", selection: $selectedTab) {
                         Text("Overview").tag(0)
                         Text("Output Logs").tag(1)
+                        if session.tmuxSession != nil {
+                            Text("Terminal").tag(2)
+                        }
                     }
                     .pickerStyle(.segmented)
                     .padding(.horizontal, 24)
@@ -31,6 +34,8 @@ struct SessionDetailSheet: View {
 
                     if selectedTab == 0 {
                         overviewTab
+                    } else if selectedTab == 2 {
+                        terminalTab
                     } else {
                         logsTab
                     }
@@ -203,5 +208,37 @@ struct SessionDetailSheet: View {
             finalOutput = output
         }
         isRefreshing = false
+    }
+
+    @ViewBuilder
+    private var terminalTab: some View {
+        if let tmuxSession = session.tmuxSession {
+            #if os(macOS) && canImport(SwiftTerm)
+                let attach = SessionLauncher.attachCommand(for: tmuxSession)
+                EmbeddedTerminalView(
+                    executable: attach.executable,
+                    arguments: attach.arguments,
+                    environment: nil,
+                    onProcessExit: { _ in }
+                )
+                .id(tmuxSession)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color(red: 0.06, green: 0.06, blue: 0.08))
+                .padding(.horizontal, 24)
+                .padding(.bottom, 24)
+                .accessibilityIdentifier("session_detail_terminal_embedded")
+            #else
+                terminalUnavailableView
+            #endif
+        } else {
+            terminalUnavailableView
+        }
+    }
+
+    private var terminalUnavailableView: some View {
+        Text("No terminal available")
+            .foregroundStyle(NeuPalette.textSecondary)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(24)
     }
 }

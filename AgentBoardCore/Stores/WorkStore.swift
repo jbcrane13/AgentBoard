@@ -135,6 +135,7 @@ public final class WorkStore {
             }
     }
 
+    @discardableResult
     public func createIssue(
         repository: ConfiguredRepository,
         title: String,
@@ -142,12 +143,12 @@ public final class WorkStore {
         labels: [String] = [],
         assignees: [String] = [],
         milestone: Int? = nil
-    ) async {
+    ) async -> WorkItem? {
         errorMessage = nil
         statusMessage = nil
         guard settingsStore.isGitHubConfigured else {
             errorMessage = "Connect GitHub before creating issues."
-            return
+            return nil
         }
         await configureServiceIfNeeded()
         do {
@@ -166,9 +167,11 @@ public final class WorkStore {
             try cache.replaceWorkItems(items)
             errorMessage = nil
             statusMessage = "Created \(item.issueReference)."
+            return item
         } catch {
             logger.error("Failed to create issue: \(error.localizedDescription, privacy: .public)")
             errorMessage = error.localizedDescription
+            return nil
         }
     }
 
