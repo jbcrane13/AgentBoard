@@ -8,6 +8,7 @@ struct DesktopRootView: View {
     @State private var isTerminalExpanded = false
     @State private var isChatInspectorPresented = true
     @State private var isPresentingQuickLaunch = false
+    @State private var observedSessionIDs: Set<String> = []
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
@@ -55,6 +56,12 @@ struct DesktopRootView: View {
         .sheet(isPresented: $isPresentingQuickLaunch) {
             QuickLaunchSheet()
                 .environment(appModel)
+        }
+        .onAppear {
+            observedSessionIDs = Set(appModel.sessionLauncher.activeSessions.map(\.id))
+        }
+        .onChange(of: appModel.sessionLauncher.activeSessions.map(\.id)) { _, sessionIDs in
+            presentNewestSessionTerminal(from: sessionIDs)
         }
     }
 
@@ -114,5 +121,18 @@ struct DesktopRootView: View {
             return .work
         }
         return destination
+    }
+
+    private func presentNewestSessionTerminal(from sessionIDs: [String]) {
+        let latestIDs = Set(sessionIDs)
+        defer { observedSessionIDs = latestIDs }
+
+        guard let newID = sessionIDs.last(where: { !observedSessionIDs.contains($0) }),
+              let session = appModel.sessionLauncher.activeSessions.first(where: { $0.id == newID }) else {
+            return
+        }
+
+        activeSessionTerminal = session
+        isTerminalExpanded = false
     }
 }

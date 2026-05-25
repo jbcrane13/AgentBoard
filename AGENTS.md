@@ -199,3 +199,6 @@ fix the ui theme
 
 ## Activity — 2026-05-24
 - (no commits)
+
+## Activity — 2026-05-25
+- Fixed open ticket batch #130-#133: Work board repository selection now persists per scene and seeds create-issue sheets; create issue dismisses based on a successful created item; launched sessions auto-open the terminal; tmux `EXITED:` output now drives completed/failed state; companion-backed session details expose an interactive terminal tab when a tmux session is available.

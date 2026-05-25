@@ -18,7 +18,7 @@ struct WorkScreen: View {
     @State private var layoutMode: WorkLayoutMode = .board
     @State private var selectedItem: WorkItem?
     @State private var isPresentingCreate = false
-    @State private var selectedRepo: String = "all"
+    @SceneStorage("work.selectedRepository") private var selectedRepo: String = "all"
 
     private var isCompact: Bool {
         #if os(macOS)
@@ -79,8 +79,15 @@ struct WorkScreen: View {
                 .environment(appModel)
         }
         .sheet(isPresented: $isPresentingCreate) {
-            CreateIssueSheet()
+            CreateIssueSheet(initialRepository: selectedCreateRepository)
                 .environment(appModel)
+        }
+        .onChange(of: appModel.settingsStore.repositories) { _, repositories in
+            guard selectedRepo != "all",
+                  !repositories.contains(where: { $0.fullName == selectedRepo }) else {
+                return
+            }
+            selectedRepo = "all"
         }
         .accessibilityIdentifier("screen_work")
     }
@@ -89,6 +96,16 @@ struct WorkScreen: View {
         let base = appModel.workStore.filteredItems
         guard selectedRepo != "all" else { return base }
         return base.filter { $0.repository.fullName == selectedRepo }
+    }
+
+    private var selectedCreateRepository: ConfiguredRepository? {
+        if selectedRepo == "all" {
+            return appModel.settingsStore.repositories.count == 1
+                ? appModel.settingsStore.repositories.first
+                : nil
+        }
+
+        return appModel.settingsStore.repositories.first { $0.fullName == selectedRepo }
     }
 
     private var groupedFilteredItems: [(state: WorkState, items: [WorkItem])] {

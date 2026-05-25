@@ -5,6 +5,8 @@ struct CreateIssueSheet: View {
     @Environment(AgentBoardAppModel.self) private var appModel
     @Environment(\.dismiss) private var dismiss
 
+    private let initialRepository: ConfiguredRepository?
+
     @State private var selectedRepository: ConfiguredRepository?
     @State private var title = ""
     @State private var issueBody = ""
@@ -16,6 +18,11 @@ struct CreateIssueSheet: View {
     @State private var isCreating = false
     @State private var showAttachmentPicker = false
     @State private var pendingAttachments: [ChatAttachment] = []
+
+    init(initialRepository: ConfiguredRepository? = nil) {
+        self.initialRepository = initialRepository
+        _selectedRepository = State(initialValue: initialRepository)
+    }
 
     var body: some View {
         NavigationStack {
@@ -193,6 +200,12 @@ struct CreateIssueSheet: View {
                 pendingAttachments.append(attachment)
             }
         }
+        .onAppear {
+            normalizeSelectedRepository()
+        }
+        .onChange(of: appModel.settingsStore.repositories) {
+            normalizeSelectedRepository()
+        }
         .accessibilityIdentifier("screen_create_issue")
     }
 
@@ -224,7 +237,7 @@ struct CreateIssueSheet: View {
         }
 
         Task {
-            await appModel.workStore.createIssue(
+            let created = await appModel.workStore.createIssue(
                 repository: repo,
                 title: title.trimmingCharacters(in: .whitespacesAndNewlines),
                 body: bodyText,
@@ -233,13 +246,30 @@ struct CreateIssueSheet: View {
                 milestone: Int(milestoneText.trimmingCharacters(in: .whitespacesAndNewlines))
             )
             isCreating = false
-            if appModel.workStore.errorMessage == nil {
+            if created != nil {
                 dismiss()
             }
         }
     }
 
     // MARK: - Helpers
+
+    private func normalizeSelectedRepository() {
+        let repositories = appModel.settingsStore.repositories
+        if let selectedRepository,
+           repositories.contains(selectedRepository) {
+            return
+        }
+
+        if let initialRepository,
+           repositories.contains(initialRepository) {
+            selectedRepository = initialRepository
+        } else if repositories.count == 1 {
+            selectedRepository = repositories.first
+        } else {
+            selectedRepository = nil
+        }
+    }
 
     /// Inline row: label on the left, picker rendered as a tightly-hugged
     /// capsule chip on the right. No full-width recessed background, so the
