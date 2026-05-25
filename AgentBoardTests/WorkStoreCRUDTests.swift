@@ -76,6 +76,26 @@ struct WorkStoreCRUDTests {
         #expect(store.errorMessage == nil)
     }
 
+    @Test func createIssueReturnsCreatedItemOnSuccess() async throws {
+        let createdJSON = issueJSON(number: 102, title: "Dismiss sheet", body: "Body here")
+        let (store, _) = try makeStore(mockHandler: { request in
+            let response = try Self.successResponse(for: request.url)
+            if request.httpMethod == "POST" {
+                return (response, Data(createdJSON.utf8))
+            }
+            return (response, Data("[]".utf8))
+        })
+
+        let created = await store.createIssue(
+            repository: ConfiguredRepository(owner: "org", name: "repo"),
+            title: "Dismiss sheet",
+            body: "Body here"
+        )
+
+        #expect(created?.issueNumber == 102)
+        #expect(created?.title == "Dismiss sheet")
+    }
+
     @Test func createIssueSendsTitleBodyAndLabelsInRequestPayload() async throws {
         final class Capture: @unchecked Sendable {
             var payload: [String: Any] = [:]

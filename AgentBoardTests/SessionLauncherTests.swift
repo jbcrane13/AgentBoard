@@ -126,4 +126,68 @@ struct SessionLauncherTests {
     @Test @MainActor func tmuxSocketPathUsesExpectedSuffix() {
         #expect(SessionLauncher.tmuxSocketPath.hasSuffix("/.tmux/sock"))
     }
+
+    @Test @MainActor func checkSessionReturnsCompletedWhenPaneShowsSuccessfulExit() async {
+        let launcher = SessionLauncher(tmux: FakeTmuxController(
+            hasSessionResult: true,
+            paneOutput: "work complete\nEXITED: 0"
+        ))
+        let session = makeActiveSession(name: "ab-agentboard-130")
+
+        let status = await launcher.checkSession(session)
+
+        #expect(status == .completed)
+    }
+
+    @Test @MainActor func checkSessionReturnsFailedWhenPaneShowsNonzeroExit() async {
+        let launcher = SessionLauncher(tmux: FakeTmuxController(
+            hasSessionResult: true,
+            paneOutput: "Failed to authenticate\nEXITED: 1"
+        ))
+        let session = makeActiveSession(name: "ab-agentboard-132")
+
+        let status = await launcher.checkSession(session)
+
+        #expect(status == .failed)
+    }
+
+    @MainActor
+    private func makeActiveSession(name: String) -> SessionLauncher.ActiveSession {
+        SessionLauncher.ActiveSession(
+            id: name,
+            sessionName: name,
+            issueNumber: 130,
+            preset: .ralphLoop,
+            agentType: .claude,
+            startTime: Date(),
+            status: .running
+        )
+    }
+}
+
+private actor FakeTmuxController: TmuxControlling {
+    private let hasSessionResult: Bool
+    private let paneOutput: String?
+
+    init(hasSessionResult: Bool, paneOutput: String?) {
+        self.hasSessionResult = hasSessionResult
+        self.paneOutput = paneOutput
+    }
+
+    func launchSession(
+        name _: String,
+        repoPath _: String,
+        agentLaunchFlag _: String,
+        prdPath _: String
+    ) async throws {}
+
+    func hasSession(name _: String) async throws -> Bool {
+        hasSessionResult
+    }
+
+    func capturePane(name _: String) async -> String? {
+        paneOutput
+    }
+
+    nonisolated func openInTerminal(name _: String) {}
 }

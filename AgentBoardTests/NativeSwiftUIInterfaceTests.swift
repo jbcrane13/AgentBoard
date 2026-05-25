@@ -78,6 +78,33 @@ struct NativeSwiftUIInterfaceTests {
         #expect(!source.contains("loadItem(forTypeIdentifier:"))
     }
 
+    @Test func workBoardPersistsSelectedRepositoryAndSeedsCreateIssueSheet() throws {
+        let workSource = try Self.source("AgentBoardUI/Screens/WorkScreen.swift")
+        let createSource = try Self.source("AgentBoardUI/Screens/CreateIssueSheet.swift")
+
+        #expect(workSource.contains(#"@SceneStorage("work.selectedRepository")"#))
+        #expect(workSource.contains("CreateIssueSheet(initialRepository: selectedCreateRepository)"))
+        #expect(workSource.contains("private var selectedCreateRepository: ConfiguredRepository?"))
+        #expect(createSource.contains("init(initialRepository: ConfiguredRepository? = nil)"))
+        #expect(createSource.contains("_selectedRepository = State(initialValue: initialRepository)"))
+    }
+
+    @Test func launchedSessionsOpenTerminalInDesktopShell() throws {
+        let source = try Self.source("AgentBoard/DesktopRootView.swift")
+
+        #expect(source.contains("onChange(of: appModel.sessionLauncher.activeSessions.map(\\.id))"))
+        #expect(source.contains("activeSessionTerminal = session"))
+    }
+
+    @Test func companionSessionDetailOffersTerminalWhenTmuxSessionExists() throws {
+        let source = try Self.source("AgentBoardUI/Screens/SessionDetailSheet.swift")
+
+        #expect(source.contains("session.tmuxSession"))
+        #expect(source.contains(#"Text("Terminal").tag(2)"#))
+        #expect(source.contains("SessionLauncher.attachCommand(for: tmuxSession)"))
+        #expect(source.contains("EmbeddedTerminalView("))
+    }
+
     @Test func nilIfEmptyHasSingleSharedDefinition() throws {
         let coreURL = Self.repositoryRoot.appending(path: "AgentBoardCore")
         let fileURLs = try FileManager.default.subpathsOfDirectory(atPath: coreURL.path)
