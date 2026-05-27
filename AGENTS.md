@@ -116,6 +116,7 @@ Located in `SharedResources/Assets.xcassets/AppIcon.appiconset/`. All 10 macOS s
 ## Design decisions
 
 See `docs/ADR.md` for the full architecture decision record. Key recent ADRs:
+- **ADR-014** (2026-05-27): Planned LifeOps executive assistant module for ADHD-oriented personal/family/job-search task support
 - **ADR-013** (2026-05-23): Native SwiftUI app shell controls
 - **ADR-011** (2026-05-01): Kanban.db as task backend
 - **ADR-010** (2026-04-23): Hermes-first shared SwiftUI rebuild
@@ -202,3 +203,9 @@ fix the ui theme
 
 ## Activity — 2026-05-25
 - Fixed open ticket batch #130-#133: Work board repository selection now persists per scene and seeds create-issue sheets; create issue dismisses based on a successful created item; launched sessions auto-open the terminal; tmux `EXITED:` output now drives completed/failed state; companion-backed session details expose an interactive terminal tab when a tmux session is available.
+
+## Activity — 2026-05-26
+- (no commits)
+
+## Activity — 2026-05-27
+- Planned LifeOps executive assistant module: PRD/design/implementation plan for ADHD-oriented task support, job-search pipeline, Sarah/family iMessage intake, macOS dashboard, and iOS companion app.

@@ -194,4 +194,21 @@ Agents → CompanionServer → FSEvents + ps
 
 ---
 
+## ADR-014: LifeOps executive assistant module
+**Date:** 2026-05-27
+**Status:** Planned
+**Decision:** Add a LifeOps module inside AgentBoard rather than starting a separate app for Blake's ADHD-oriented executive-function assistant workflow.
+
+**Context:** Blake wants Daneel to help outside coding: triaging email, calendar, messages, job-search follow-ups, family logistics, and delegated personal/admin tasks. The system needs both a macOS dashboard and iOS companion app, plus chat with Daneel and a shared family coordination path for Sarah through iMessage. AgentBoard already has macOS/iOS shells, Hermes chat integration, shared SwiftUI/Core targets, task-board concepts, and companion-service patterns, making it the fastest place to start.
+
+**Consequences:**
+- LifeOps will be a separate product area from coding Work/Sessions/Agents so personal/family tasks do not pollute development workflows.
+- V1 starts with shared models, fixture-backed `LifeOpsStore`, protocol seams, macOS/iOS UI, and tests.
+- Real email/calendar/iMessage automation is deferred until the task model and UI are usable.
+- Sarah/family support is a first-class requirement: Sarah can request family tasks/calendar items through iMessage, but cannot see Blake's private tasks or approve actions as Blake by default.
+- External side effects such as sending messages, sending email, applying to jobs, or modifying non-family calendar events require explicit approval.
+- See `docs/PRD-lifeops-executive-assistant.md`, `docs/superpowers/specs/2026-05-27-lifeops-executive-assistant-design.md`, and `docs/superpowers/plans/2026-05-27-lifeops-mvp-implementation.md`.
+
+---
+
 *To add a new ADR: append with the next number, include date, status, decision, context, and consequences.*
