@@ -5,7 +5,7 @@ import Testing
 struct AppDestinationTests {
     @Test func appDestinationAllCasesAreStable() {
         // Ordering matters because navigation rails iterate `.allCases` directly.
-        #expect(AppDestination.allCases == [.chat, .work, .agents, .sessions, .settings])
+        #expect(AppDestination.allCases == [.chat, .lifeOps, .work, .agents, .sessions, .settings])
     }
 
     @Test func appDestinationIDMatchesRawValue() {
@@ -16,6 +16,7 @@ struct AppDestinationTests {
 
     @Test func appDestinationTitleIsUserFacing() {
         #expect(AppDestination.chat.title == "Chat")
+        #expect(AppDestination.lifeOps.title == "LifeOps")
         #expect(AppDestination.work.title == "Work")
         #expect(AppDestination.agents.title == "Agents")
         #expect(AppDestination.sessions.title == "Sessions")

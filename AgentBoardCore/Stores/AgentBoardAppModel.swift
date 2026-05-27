@@ -14,6 +14,7 @@ public final class AgentBoardAppModel {
     public let workStore: WorkStore
     public let agentsStore: AgentsStore
     public let sessionsStore: SessionsStore
+    public let lifeOpsStore: LifeOpsStore
     public let sessionLauncher: SessionLauncher
 
     public var selectedDestination: AppDestination = .chat
@@ -31,6 +32,7 @@ public final class AgentBoardAppModel {
         workStore: WorkStore,
         agentsStore: AgentsStore,
         sessionsStore: SessionsStore,
+        lifeOpsStore: LifeOpsStore = LifeOpsStore(),
         sessionLauncher: SessionLauncher,
         companionClient: CompanionClient
     ) {
@@ -40,6 +42,7 @@ public final class AgentBoardAppModel {
         self.workStore = workStore
         self.agentsStore = agentsStore
         self.sessionsStore = sessionsStore
+        self.lifeOpsStore = lifeOpsStore
         self.sessionLauncher = sessionLauncher
         self.companionClient = companionClient
     }
@@ -200,6 +203,7 @@ public enum AgentBoardBootstrap {
             cache: cache,
             settingsStore: settingsStore
         )
+        let lifeOpsStore = LifeOpsStore()
         let sessionLauncher = SessionLauncher()
 
         // Pre-warm the shell-environment probe in the background so it's ready
@@ -216,6 +220,7 @@ public enum AgentBoardBootstrap {
             workStore: workStore,
             agentsStore: agentsStore,
             sessionsStore: sessionsStore,
+            lifeOpsStore: lifeOpsStore,
             sessionLauncher: sessionLauncher,
             companionClient: companionClient
         )

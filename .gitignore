@@ -1,6 +1,7 @@
 # Xcode
 build/
 DerivedData/
+.swiftlint-cache/
 *.xcworkspace
 !*.xcodeproj/project.pbxproj
 !*.xcodeproj/xcshareddata/

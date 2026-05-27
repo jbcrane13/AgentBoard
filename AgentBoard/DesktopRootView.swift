@@ -102,6 +102,8 @@ struct DesktopRootView: View {
             }
         } else {
             switch desktopDestination(for: appModel.selectedDestination) {
+            case .lifeOps:
+                LifeOpsScreen(store: appModel.lifeOpsStore, mode: .dashboard)
             case .work:
                 WorkScreen()
             case .agents:

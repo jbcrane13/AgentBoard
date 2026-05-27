@@ -2,6 +2,7 @@ import AgentBoardCore
 import SwiftUI
 
 struct MobileRootView: View {
+    @Environment(AgentBoardAppModel.self) private var appModel
     @State private var selectedDestination: AppDestination = .chat
 
     var body: some View {
@@ -14,6 +15,16 @@ struct MobileRootView: View {
                 .accessibilityIdentifier("mobile_tab_chat")
             } label: {
                 Label(AppDestination.chat.title, systemImage: AppDestination.chat.systemImage)
+            }
+
+            Tab(value: AppDestination.lifeOps) {
+                NavigationStack {
+                    LifeOpsScreen(store: appModel.lifeOpsStore, mode: .compact)
+                        .navigationTitle(AppDestination.lifeOps.title)
+                }
+                .accessibilityIdentifier("mobile_tab_lifeOps")
+            } label: {
+                Label(AppDestination.lifeOps.title, systemImage: AppDestination.lifeOps.systemImage)
             }
 
             Tab(value: AppDestination.work) {

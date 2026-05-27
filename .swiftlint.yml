@@ -4,6 +4,8 @@ disabled_rules:
   - force_try                 # acceptable in test contexts
   - large_tuple               # used in existing service APIs
 
+cache_path: .swiftlint-cache
+
 opt_in_rules:
   - array_init
   - closure_spacing

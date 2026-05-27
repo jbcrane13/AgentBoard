@@ -159,6 +159,7 @@ struct DesktopSidebar: View {
 
     private func tabCount(_ tab: AppDestination) -> Int? {
         switch tab {
+        case .lifeOps: appModel.lifeOpsStore.nowTasks.count
         case .work: appModel.workStore.items.count
         case .agents: appModel.agentsStore.summaries.count
         case .sessions: appModel.sessionsStore.sessions.count
