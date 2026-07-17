@@ -73,6 +73,22 @@ public struct HermesProfile: Codable, Hashable, Identifiable, Sendable {
     }
 }
 
+public struct ToolActivity: Codable, Hashable, Sendable, Identifiable {
+public let id: String
+    public let tool: String
+    public var emoji: String?
+    public var label: String?
+    public var isComplete: Bool
+
+    public init(id: String, tool: String, emoji: String?, label: String?, isComplete: Bool) {
+        self.id = id
+        self.tool = tool
+        self.emoji = emoji
+        self.label = label
+        self.isComplete = isComplete
+    }
+}
+
 public struct ConversationMessage: Codable, Hashable, Identifiable, Sendable {
     public let id: UUID
     public let conversationID: UUID
@@ -81,6 +97,7 @@ public struct ConversationMessage: Codable, Hashable, Identifiable, Sendable {
     public let createdAt: Date
     public var isStreaming: Bool
     public var attachments: [ChatAttachment]
+    public var toolActivities: [ToolActivity]
     public init(
         id: UUID = UUID(),
         conversationID: UUID,
@@ -88,7 +105,8 @@ public struct ConversationMessage: Codable, Hashable, Identifiable, Sendable {
         content: String,
         createdAt: Date = .now,
         isStreaming: Bool = false,
-        attachments: [ChatAttachment] = []
+        attachments: [ChatAttachment] = [],
+        toolActivities: [ToolActivity] = []
     ) {
         self.id = id
         self.conversationID = conversationID
@@ -97,10 +115,11 @@ public struct ConversationMessage: Codable, Hashable, Identifiable, Sendable {
         self.createdAt = createdAt
         self.isStreaming = isStreaming
         self.attachments = attachments
+        self.toolActivities = toolActivities
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, conversationID, role, content, createdAt, isStreaming, attachments
+        case id, conversationID, role, content, createdAt, isStreaming, attachments, toolActivities
     }
 
     public init(from decoder: Decoder) throws {
@@ -112,6 +131,7 @@ public struct ConversationMessage: Codable, Hashable, Identifiable, Sendable {
         createdAt = try container.decode(Date.self, forKey: .createdAt)
         isStreaming = try container.decode(Bool.self, forKey: .isStreaming)
         attachments = try container.decodeIfPresent([ChatAttachment].self, forKey: .attachments) ?? []
+        toolActivities = try container.decodeIfPresent([ToolActivity].self, forKey: .toolActivities) ?? []
     }
 }
 

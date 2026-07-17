@@ -185,6 +185,40 @@ struct DomainModelsTests {
         #expect(message.attachments.isEmpty)
     }
 
+    @Test func conversationMessageDecodesWithMissingToolActivitiesDefaultsToEmpty() throws {
+        let conversationID = UUID().uuidString
+        let messageID = UUID().uuidString
+        let json = """
+        {
+          "id": "\(messageID)",
+          "conversationID": "\(conversationID)",
+          "role": "assistant",
+          "content": "Reply",
+          "createdAt": 731638800,
+          "isStreaming": true
+        }
+        """
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .secondsSince1970
+        let message = try decoder.decode(ConversationMessage.self, from: Data(json.utf8))
+        #expect(message.toolActivities.isEmpty)
+    }
+
+    @Test func conversationMessageWithToolActivitiesRoundTripsThroughJSON() throws {
+        let original = ConversationMessage(
+            conversationID: UUID(),
+            role: .assistant,
+            content: "Reply",
+            toolActivities: [
+                ToolActivity(id: "call_1", tool: "web_search", emoji: "🔍", label: "Searching…", isComplete: false),
+                ToolActivity(id: "call_2", tool: "code_exec", emoji: nil, label: nil, isComplete: true)
+            ]
+        )
+        let data = try JSONEncoder().encode(original)
+        let decoded = try JSONDecoder().decode(ConversationMessage.self, from: data)
+        #expect(decoded.toolActivities == original.toolActivities)
+    }
+
     // MARK: - AgentBoardSettings decoding
 
     @Test func agentBoardSettingsDecodingFillsDefaultsForMissingKeys() throws {

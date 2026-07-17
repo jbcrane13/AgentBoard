@@ -16,6 +16,27 @@ public struct HermesGatewayConfiguration: Codable, Hashable, Sendable {
     }
 }
 
+public struct HermesToolProgress: Codable, Hashable, Sendable {
+    public let tool: String
+    public let emoji: String?
+    public let label: String?
+    public let toolCallId: String
+    public let status: String
+
+    public init(tool: String, emoji: String?, label: String?, toolCallId: String, status: String) {
+        self.tool = tool
+        self.emoji = emoji
+        self.label = label
+        self.toolCallId = toolCallId
+        self.status = status
+    }
+}
+
+public enum HermesStreamEvent: Sendable, Hashable {
+    case text(String)
+    case toolProgress(HermesToolProgress)
+}
+
 public actor HermesGatewayClient {
     public enum ClientError: LocalizedError, Equatable {
         case invalidGatewayURL
@@ -122,7 +143,7 @@ public actor HermesGatewayClient {
 
     public func streamReply(
         for conversation: [ConversationMessage]
-    ) async throws -> AsyncThrowingStream<String, Error> {
+    ) async throws -> AsyncThrowingStream<HermesStreamEvent, Error> {
         let request = try makeChatRequest(conversation: conversation)
 
         return AsyncThrowingStream { continuation in
@@ -280,54 +301,89 @@ public actor HermesGatewayClient {
         return request
     }
 
+    private enum DataLineOutcome {
+        case yieldedText
+        case finished
+        case ignored
+    }
+
+    private func processDataLine(
+        _ rawData: String,
+        pendingEventName: inout String?,
+        continuation: AsyncThrowingStream<HermesStreamEvent, Error>.Continuation
+    ) -> DataLineOutcome {
+        if pendingEventName == "hermes.tool.progress" {
+            pendingEventName = nil
+            if let jsonData = rawData.data(using: .utf8),
+               let progress = try? decoder.decode(HermesToolProgress.self, from: jsonData) {
+                continuation.yield(.toolProgress(progress))
+            }
+            return .ignored
+        }
+
+        if rawData == "[DONE]" {
+            continuation.finish()
+            return .finished
+        }
+
+        guard let jsonData = rawData.data(using: .utf8),
+              let chunk = try? decoder.decode(ChatCompletionChunk.self, from: jsonData),
+              let firstChoice = chunk.choices?.first else {
+            return .ignored
+        }
+
+        if let finishReason = firstChoice.finishReason, finishReason == "stop" {
+            continuation.finish()
+            return .finished
+        }
+
+        if let content = firstChoice.assistantContent, !content.isEmpty {
+            continuation.yield(.text(content))
+            return .yieldedText
+        }
+
+        return .ignored
+    }
+
     private func consumeStream(
         bytes: URLSession.AsyncBytes,
-        continuation: AsyncThrowingStream<String, Error>.Continuation
+        continuation: AsyncThrowingStream<HermesStreamEvent, Error>.Continuation
     ) async throws {
         var sawServerSentEvent = false
         var fallbackBodyLines: [String] = []
         var didYieldContent = false
+        var pendingEventName: String?
 
         for try await line in bytes.lines {
             guard !Task.isCancelled else {
                 throw CancellationError()
             }
 
+            if line.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                pendingEventName = nil
+                continue
+            }
+
+            if line.hasPrefix("event: ") {
+                pendingEventName = String(line.dropFirst(7)).trimmingCharacters(in: .whitespacesAndNewlines)
+                continue
+            }
+
             guard line.hasPrefix("data: ") else {
-                if !line.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    fallbackBodyLines.append(line)
-                }
+                fallbackBodyLines.append(line)
                 continue
             }
 
             sawServerSentEvent = true
             let rawData = String(line.dropFirst(6))
 
-            if rawData == "[DONE]" {
-                continuation.finish()
-                return
-            }
-
-            guard let jsonData = rawData.data(using: .utf8) else { continue }
-
-            let chunk: ChatCompletionChunk
-            do {
-                chunk = try decoder.decode(ChatCompletionChunk.self, from: jsonData)
-            } catch {
-                continue
-            }
-
-            guard let firstChoice = chunk.choices?.first else { continue }
-
-            if let finishReason = firstChoice.finishReason,
-               finishReason == "stop" {
-                continuation.finish()
-                return
-            }
-
-            if let content = firstChoice.assistantContent, !content.isEmpty {
+            switch processDataLine(rawData, pendingEventName: &pendingEventName, continuation: continuation) {
+            case .yieldedText:
                 didYieldContent = true
-                continuation.yield(content)
+            case .finished:
+                return
+            case .ignored:
+                break
             }
         }
 
@@ -335,7 +391,7 @@ public actor HermesGatewayClient {
             let fallbackBody = fallbackBodyLines.joined(separator: "\n")
             if let content = try extractFallbackAssistantContent(from: fallbackBody), !content.isEmpty {
                 didYieldContent = true
-                continuation.yield(content)
+                continuation.yield(.text(content))
             }
         }
 
