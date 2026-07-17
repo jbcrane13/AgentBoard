@@ -89,14 +89,15 @@ public final class AudioPlaybackService {
 
     private func startProgressTicker() {
         progressTask?.cancel()
-        progressTask = Task { [weak self] in
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .milliseconds(100))
-                guard !Task.isCancelled else { return }
-                guard let self, let player = self.player, player.duration > 0 else { continue }
-                self.progress = player.currentTime / player.duration
-            }
-        }
+progressTask = Task { [weak self] in
+    while !Task.isCancelled {
+        try? await Task.sleep(for: .milliseconds(100))
+        guard !Task.isCancelled else { return }
+        guard let self else { return }
+        guard let player = self.player, player.duration > 0 else { return }
+        self.progress = player.currentTime / player.duration
+    }
+}
     }
 
     private func stopProgressTicker() {
