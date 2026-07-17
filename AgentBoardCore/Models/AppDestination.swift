@@ -1,6 +1,7 @@
 import Foundation
 
 public enum AppDestination: String, CaseIterable, Identifiable, Sendable {
+    case dashboard
     case chat
     case work
     case agents
@@ -13,6 +14,7 @@ public enum AppDestination: String, CaseIterable, Identifiable, Sendable {
 
     public var title: String {
         switch self {
+        case .dashboard: "Dashboard"
         case .chat: "Chat"
         case .work: "Work"
         case .agents: "Agents"
@@ -23,6 +25,7 @@ public enum AppDestination: String, CaseIterable, Identifiable, Sendable {
 
     public var systemImage: String {
         switch self {
+        case .dashboard: "speedometer"
         case .chat: "bubble.left.and.bubble.right"
         case .work: "square.grid.2x2"
         case .agents: "person.3.sequence"
@@ -32,6 +35,6 @@ public enum AppDestination: String, CaseIterable, Identifiable, Sendable {
     }
 
     public static var desktopTabs: [AppDestination] {
-        [.work, .agents, .sessions, .settings]
+        [.dashboard, .work, .agents, .sessions, .settings]
     }
 }

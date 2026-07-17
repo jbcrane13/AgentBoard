@@ -2,10 +2,22 @@ import AgentBoardCore
 import SwiftUI
 
 struct MobileRootView: View {
-    @State private var selectedDestination: AppDestination = .chat
+    @Environment(AgentBoardAppModel.self) private var appModel
 
     var body: some View {
-        TabView(selection: $selectedDestination) {
+        @Bindable var appModel = appModel
+
+        TabView(selection: $appModel.selectedDestination) {
+            Tab(value: AppDestination.dashboard) {
+                NavigationStack {
+                    WorkScreen()
+                        .navigationTitle(AppDestination.dashboard.title)
+                }
+                .accessibilityIdentifier("mobile_tab_dashboard")
+            } label: {
+                Label(AppDestination.dashboard.title, systemImage: AppDestination.dashboard.systemImage)
+            }
+
             Tab(value: AppDestination.chat) {
                 NavigationStack {
                     ChatScreen()

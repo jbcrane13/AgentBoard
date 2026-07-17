@@ -16,7 +16,7 @@ public final class AgentBoardAppModel {
     public let sessionsStore: SessionsStore
     public let sessionLauncher: SessionLauncher
 
-    public var selectedDestination: AppDestination = .chat
+    public var selectedDestination: AppDestination = .dashboard
     public private(set) var isBootstrapping = false
     public private(set) var didBootstrap = false
     public var statusMessage: String?
