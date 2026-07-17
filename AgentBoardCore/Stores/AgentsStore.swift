@@ -213,11 +213,9 @@ lastFingerprint = fingerprint(tasks: tasks, summaries: summaries)
             statusMessage = "Moved \"\(task.title)\" to \(target.title)."
             errorMessage = nil
         } catch {
-            logger.error("Failed to move task: \(error.localizedDescription, privacy: .public)")
-            var reverted = updated
-            reverted.status = previousStatus
-            upsert(reverted)
-            lastFingerprint = fingerprint(tasks: tasks, summaries: summaries)
+logger.error("Failed to move task: \(error.localizedDescription, privacy: .public)")
+upsert(task)
+lastFingerprint = fingerprint(tasks: tasks, summaries: summaries)
             errorMessage = error.localizedDescription
         }
     }
