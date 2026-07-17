@@ -11,8 +11,10 @@
 		00D4FD7D1E850E381301E79B /* BoardPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63376B7513D3E5CFE45372D6 /* BoardPalette.swift */; };
 		011B0517E71FDF2B9BB75A97 /* ChatBubble.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAFBB71134457F46E6F2B247 /* ChatBubble.swift */; };
 		02A1ED4D473E2364438AEF82 /* Nuke in Frameworks */ = {isa = PBXBuildFile; productRef = AD7CA2BAC6FD5DFD28FC0BCD /* Nuke */; };
+		06A2E173031971B030DA8DCE /* AudioPlaybackService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 877DCCB45A0AFBD92AFAB650 /* AudioPlaybackService.swift */; };
 		03601128965EFC35A0097F79 /* MarkdownBlockParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E8BA0A7421FAF69CBF5AD4F /* MarkdownBlockParser.swift */; };
 		06B09775C2F43ADB9D2A7DDB /* CreateIssueSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 702A0D71A27F07711AF96C4A /* CreateIssueSheet.swift */; };
+		09EBE4FCFB3B4A5DFA3E0B8B /* AudioPlaybackServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A9DDB4F3F626262EACA72A8 /* AudioPlaybackServiceTests.swift */; };
 		0B3C6DC24A36FE8A19357506 /* KanbanAssigneePickerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A0D9C21BA312AB952D0E48B /* KanbanAssigneePickerTests.swift */; };
 		0C635EBBEF9AD782093F5594 /* BoardPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63376B7513D3E5CFE45372D6 /* BoardPalette.swift */; };
 		0CE0E873675F3D87FC974CB1 /* AttachmentUploadService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E035F81810040D898374ACEF /* AttachmentUploadService.swift */; };
@@ -299,6 +301,7 @@
 		4F7D59DE18AF7B3E0D84EF9A /* DesktopSidebar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesktopSidebar.swift; sourceTree = "<group>"; };
 		52959B32060C120BA1BB1AB7 /* ShellEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShellEnvironment.swift; sourceTree = "<group>"; };
 		54CA712A46E969ED79300E4F /* LinkPreviewService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkPreviewService.swift; sourceTree = "<group>"; };
+		5A9DDB4F3F626262EACA72A8 /* AudioPlaybackServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlaybackServiceTests.swift; sourceTree = "<group>"; };
 		5DE53DBCDB728D1E417AC4E5 /* ChatStreamCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatStreamCoordinatorTests.swift; sourceTree = "<group>"; };
 		5F60733BA5BCAD5BD388E855 /* AgentBoardMobile.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = AgentBoardMobile.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		63376B7513D3E5CFE45372D6 /* BoardPalette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardPalette.swift; sourceTree = "<group>"; };
@@ -318,6 +321,7 @@
 		80BC8F409E30E995C8CEA744 /* ChatConversationSyncCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatConversationSyncCoordinator.swift; sourceTree = "<group>"; };
 		82BF95164B1DFE66D15CB770 /* ChatHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatHeader.swift; sourceTree = "<group>"; };
 		8562113DB3BC11316C4B4A50 /* LabelSchemaTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabelSchemaTests.swift; sourceTree = "<group>"; };
+		877DCCB45A0AFBD92AFAB650 /* AudioPlaybackService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlaybackService.swift; sourceTree = "<group>"; };
 		92E0CE9F3A8E9CA87A6C3B95 /* SessionsStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionsStoreTests.swift; sourceTree = "<group>"; };
 		9503F3F8C1E54BE6D35A3641 /* PRDComposerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PRDComposerTests.swift; sourceTree = "<group>"; };
 		957114148477B05585A13D7C /* MockURLProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockURLProtocol.swift; sourceTree = "<group>"; };
@@ -440,6 +444,7 @@
 				E84FB91863EEFC0DABE3E113 /* AgentsStoreSummariesTests.swift */,
 				6FCC4B5C12958567A1D6D69E /* AppDestinationTests.swift */,
 				376B52FEC631A3F6F0383459 /* AttachmentModelsTests.swift */,
+				5A9DDB4F3F626262EACA72A8 /* AudioPlaybackServiceTests.swift */,
 				08FC87E1E7EE82E2FE4C749F /* ChatEndpointValidatorTests.swift */,
 				E01910C75287C5F3B6650B2A /* ChatHeaderPickerTests.swift */,
 				30366B0DAB9553F53ACE2BE6 /* ChatStoreAdditionalTests.swift */,
@@ -537,6 +542,7 @@
 			isa = PBXGroup;
 			children = (
 				E035F81810040D898374ACEF /* AttachmentUploadService.swift */,
+				877DCCB45A0AFBD92AFAB650 /* AudioPlaybackService.swift */,
 				39E1BE6A2B2B66CFAF5F4AC0 /* AudioRecorderService.swift */,
 				132785F0427381E3DB05BD8E /* ChatEndpointValidator.swift */,
 				035DCBF4EE40EE6A14CFE890 /* CompanionClient.swift */,
@@ -982,6 +988,7 @@
 				A66CDAEC61CF81C8BC905B61 /* AgentsStoreSummariesTests.swift in Sources */,
 				E931C3D8A3044AEA6C7F36BD /* AppDestinationTests.swift in Sources */,
 				96C502A1BD49F2AE81F03313 /* AttachmentModelsTests.swift in Sources */,
+				09EBE4FCFB3B4A5DFA3E0B8B /* AudioPlaybackServiceTests.swift in Sources */,
 				34C9CEDCDFB2E84348A0EDB4 /* ChatEndpointValidatorTests.swift in Sources */,
 				171A150F155917F5196D7647 /* ChatHeaderPickerTests.swift in Sources */,
 				C6A73DFEFD3440E23C5AE028 /* ChatStoreAdditionalTests.swift in Sources */,
@@ -1026,6 +1033,7 @@
 				F374477884080894A1322DCE /* AppDestination.swift in Sources */,
 				A51107E477749B979572DD17 /* AttachmentModels.swift in Sources */,
 				0CE0E873675F3D87FC974CB1 /* AttachmentUploadService.swift in Sources */,
+				06A2E173031971B030DA8DCE /* AudioPlaybackService.swift in Sources */,
 				3D5547FD2C8499B8C8FA087B /* AudioRecorderService.swift in Sources */,
 				73D0983941C6808FB4A17E35 /* ChatCapability.swift in Sources */,
 				8497E073979589F788921999 /* ChatConversationSyncCoordinator.swift in Sources */,

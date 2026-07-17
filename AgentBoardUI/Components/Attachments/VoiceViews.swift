@@ -132,14 +132,34 @@ struct WaveformView: View {
 /// Waveform playback view for voice messages in chat bubbles.
 struct VoicePlaybackView: View {
     let attachment: ChatAttachment
-    @State private var isPlaying = false
-    @State private var progress: Double = 0
+    @Environment(AudioPlaybackService.self) private var playback
+    @State private var errorMessage: String?
+
+    private var attachmentUUID: UUID? {
+        UUID(uuidString: attachment.id)
+    }
+
+    private var isActive: Bool {
+        attachmentUUID != nil && playback.activeAttachmentID == attachmentUUID
+    }
+
+    private var isPlaying: Bool {
+        isActive && playback.isPlaying
+    }
+
+    private var progress: Double {
+        isActive ? playback.progress : 0
+    }
+
+    private var remainingTime: TimeInterval {
+        guard isActive, playback.duration > 0 else { return 0 }
+        return max(0, playback.duration - progress * playback.duration)
+    }
 
     var body: some View {
         HStack(spacing: 12) {
             Button {
-                isPlaying.toggle()
-                // TODO: Implement actual audio playback
+                Task { await togglePlayback() }
             } label: {
                 Image(systemName: isPlaying ? "pause.circle.fill" : "play.circle.fill")
                     .font(.title)
@@ -158,15 +178,53 @@ struct VoicePlaybackView: View {
                             .font(.caption2.monospacedDigit())
                             .foregroundStyle(NeuPalette.textSecondary)
                         Spacer()
-                        Text("0:00")
+                        Text(formatDuration(remainingTime))
                             .font(.caption2.monospacedDigit())
                             .foregroundStyle(NeuPalette.textSecondary)
                     }
+                }
+
+                if let errorMessage {
+                    Text(errorMessage)
+                        .font(.caption2)
+                        .foregroundStyle(.red)
                 }
             }
         }
         .padding(12)
         .background(NeuPalette.surface, in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func togglePlayback() async {
+        errorMessage = nil
+        guard let attachmentUUID else {
+            errorMessage = "Invalid attachment id"
+            return
+        }
+        do {
+            if let localURL = attachment.payload.localURL {
+                try playback.togglePlayback(attachmentID: attachmentUUID, url: localURL)
+} else if let remoteURL = attachment.remoteURL {
+    let (tempURL, _) = try await URLSession.shared.download(from: remoteURL)
+
+    let cachedURL = FileManager.default.temporaryDirectory
+        .appendingPathComponent("voice-\(attachmentUUID.uuidString)-\(tempURL.lastPathComponent)")
+    if FileManager.default.fileExists(atPath: cachedURL.path) {
+        try? FileManager.default.removeItem(at: cachedURL)
+    }
+    try FileManager.default.moveItem(at: tempURL, to: cachedURL)
+
+    try playback.togglePlayback(attachmentID: attachmentUUID, url: cachedURL)
+}
+                errorMessage = "No audio available"
+            }
+        } catch {
+            if case let AudioPlaybackService.PlaybackError.cannotPlay(message) = error {
+                errorMessage = message
+            } else {
+                errorMessage = error.localizedDescription
+            }
+        }
     }
 
     private func playbackWaveform(samples: [Float], progress: Double) -> some View {

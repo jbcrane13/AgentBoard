@@ -40,17 +40,36 @@ public struct ChatConversation: Codable, Hashable, Identifiable, Sendable {
     public var title: String
     public var modelID: String?
     public var updatedAt: Date
+    /// The Hermes gateway's server-side session id for this conversation, if one has been
+    /// established. Used to continue the same Hermes session (`X-Hermes-Session-Id`) and to
+    /// hydrate remote history via `HermesGatewayClient.fetchSessionMessages`.
+    public var hermesSessionID: String?
 
     public init(
         id: UUID = UUID(),
         title: String,
         modelID: String? = nil,
-        updatedAt: Date = .now
+        updatedAt: Date = .now,
+        hermesSessionID: String? = nil
     ) {
         self.id = id
         self.title = title
         self.modelID = modelID
         self.updatedAt = updatedAt
+        self.hermesSessionID = hermesSessionID
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, title, modelID, updatedAt, hermesSessionID
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        title = try container.decode(String.self, forKey: .title)
+        modelID = try container.decodeIfPresent(String.self, forKey: .modelID)
+        updatedAt = try container.decode(Date.self, forKey: .updatedAt)
+        hermesSessionID = try container.decodeIfPresent(String.self, forKey: .hermesSessionID)
     }
 }
 

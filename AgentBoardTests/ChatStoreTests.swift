@@ -65,6 +65,61 @@ struct ChatStoreTests {
 
     @Test
     @MainActor
+    func sendDraftStoresHermesSessionIDFromStreamingResponseHeader() async throws {
+        let hermesClient = HermesGatewayClient(session: makeMockSession { request in
+            #expect(request.url?.path == "/v1/chat/completions")
+
+            let response = try HTTPURLResponse(
+                url: #require(request.url),
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: [
+                    "Content-Type": "text/event-stream",
+                    "X-Hermes-Session-Id": "session-xyz"
+                ]
+            )!
+            let payload = """
+            data: {"choices":[{"delta":{"content":"Fresh reply"},"finish_reason":null}]}
+
+            data: {"choices":[{"delta":{},"finish_reason":"stop"}]}
+
+            data: [DONE]
+
+            """
+            return (response, Data(payload.utf8))
+        })
+
+        let suiteName = "ChatStoreTests-\(UUID().uuidString)"
+        let repository = SettingsRepository(
+            suiteName: suiteName,
+            serviceName: "ChatStoreTests-\(UUID().uuidString)"
+        )
+        let settingsStore = SettingsStore(repository: repository)
+        settingsStore.hermesGatewayURL = "http://127.0.0.1:8642"
+        settingsStore.hermesModelID = "hermes-agent"
+
+        let cache = try AgentBoardCache(inMemory: true)
+        let store = ChatStore(
+            hermesClient: hermesClient,
+            cache: cache,
+            settingsStore: settingsStore,
+            companionClient: CompanionClient()
+        )
+
+        store.startNewConversation()
+        let conversationID = try #require(store.selectedConversationID)
+        store.draft = "Plan the new shell"
+
+        await store.sendDraft()
+
+        #expect(store.selectedConversation?.hermesSessionID == "session-xyz")
+        let cachedConversations = try cache.loadConversations()
+        let cachedConversation = try #require(cachedConversations.first { $0.id == conversationID })
+        #expect(cachedConversation.hermesSessionID == "session-xyz")
+    }
+
+    @Test
+    @MainActor
     func sendDraftUpsertsToolActivitiesFromStreamedProgressEvents() async throws {
         let hermesClient = HermesGatewayClient(session: makeMockSession { request in
             #expect(request.url?.path == "/v1/chat/completions")

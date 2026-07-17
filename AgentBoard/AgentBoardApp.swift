@@ -7,6 +7,7 @@ struct AgentBoardApp: App {
     private static let logger = Logger(subsystem: "com.agentboard.modern", category: "Bootstrap")
     @State private var appModel = AgentBoardBootstrap.makeLiveAppModel()
     @State private var appliedTheme: AgentBoardDesignTheme = .blue
+    @State private var audioPlaybackService = AudioPlaybackService()
 
     init() {
         Self.logRuntimeConfiguration()
@@ -17,6 +18,7 @@ struct AgentBoardApp: App {
             DesktopRootView()
                 .id(appliedTheme)
                 .environment(appModel)
+                .environment(audioPlaybackService)
                 .onAppear {
                     applyTheme(appModel.settingsStore.designTheme)
                 }

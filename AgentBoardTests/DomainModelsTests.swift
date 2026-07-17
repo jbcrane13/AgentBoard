@@ -219,6 +219,35 @@ struct DomainModelsTests {
         #expect(decoded.toolActivities == original.toolActivities)
     }
 
+    // MARK: - ChatConversation decoding
+
+    @Test func chatConversationDecodesLegacyJSONWithoutHermesSessionIDToNil() throws {
+        let conversationID = UUID().uuidString
+        let json = """
+        {
+          "id": "\(conversationID)",
+          "title": "Legacy Conversation",
+          "updatedAt": 731638800
+        }
+        """
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .secondsSince1970
+        let conversation = try decoder.decode(ChatConversation.self, from: Data(json.utf8))
+        #expect(conversation.title == "Legacy Conversation")
+        #expect(conversation.hermesSessionID == nil)
+    }
+
+    @Test func chatConversationRoundTripsHermesSessionIDThroughJSON() throws {
+        let original = ChatConversation(
+            title: "Conversation",
+            hermesSessionID: "session-abc"
+        )
+        let data = try JSONEncoder().encode(original)
+        let decoded = try JSONDecoder().decode(ChatConversation.self, from: data)
+        #expect(decoded.hermesSessionID == "session-abc")
+        #expect(decoded == original)
+    }
+
     // MARK: - AgentBoardSettings decoding
 
     @Test func agentBoardSettingsDecodingFillsDefaultsForMissingKeys() throws {

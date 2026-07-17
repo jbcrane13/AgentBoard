@@ -91,7 +91,10 @@ final class ChatStreamCoordinator {
                 capabilities: request.capabilities,
                 conversationID: request.conversationID
             )
-            let stream = try await hermesClient.streamReply(for: outboundMessages)
+            let stream = try await hermesClient.streamReply(
+                for: outboundMessages,
+                sessionID: conversation.hermesSessionID
+            )
             callbacks.setConnectionState(.connected)
 
             for try await event in stream {
@@ -100,6 +103,8 @@ final class ChatStreamCoordinator {
                     assistantMessage.content += chunk
                 case let .toolProgress(progress):
                     Self.apply(progress, to: &assistantMessage.toolActivities)
+                case let .sessionID(id):
+                    conversation.hermesSessionID = id
                 }
                 callbacks.replaceMessages(displayMessages + [assistantMessage])
             }
