@@ -128,7 +128,7 @@ extension ChatStore {
             return SlashCommandHandler.formatSkills(skills)
         } catch {
             logger.error("Hermes skills fetch failed: \(error.localizedDescription, privacy: .public)")
-            return "No skills reported by the gateway."
+            return SlashCommandHandler.formatSkills([])
         }
     }
 
