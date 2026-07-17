@@ -30,15 +30,15 @@
 ### Task A1: MarkdownBlockParser
 
 **Files:**
-- Create: `AgentBoardUI/Components/MarkdownBlockParser.swift`
-- Modify: `project.yml` (add `swift-markdown` package, AgentBoardUI target dependency)
+- Create: `AgentBoardCore/Support/MarkdownBlockParser.swift` (Core, not UI — the test target imports only AgentBoardCore; UI sources compile into the app targets and are untestable)
+- Modify: `project.yml` (add `swift-markdown` package; dependency on the AgentBoardCore framework target)
 - Test: `AgentBoardTests/MarkdownBlockParserTests.swift` (new)
 
 **Interfaces:**
 - Produces: `enum MarkdownBlock: Equatable { case paragraph(AttributedString); case heading(level: Int, text: AttributedString); case code(String, language: String?); case list(items: [ListItem], ordered: Bool); case blockquote([MarkdownBlock]); case table(headers: [AttributedString], rows: [[AttributedString]]); case thematicBreak }` with `struct ListItem: Equatable { let blocks: [MarkdownBlock]; let depth: Int }`
 - Produces: `enum MarkdownBlockParser { static func parse(_ content: String) -> [MarkdownBlock] }` — walks the `swift-markdown` `Document` AST. Inline styling: re-serialize each block's inline children to markdown (`.format()`) and run through `AttributedString(markdown:options:.inlineOnlyPreservingWhitespace)`, falling back to plain text on parse failure. Unknown block types degrade to `.paragraph`.
 
-- [ ] **A1.1** Add to `project.yml` packages section (create the section if absent, matching how SwiftTerm is declared): `swift-markdown: { url: https://github.com/swiftlang/swift-markdown, from: 0.5.0 }`; add `package: swift-markdown, product: Markdown` to AgentBoardUI target dependencies. Run `xcodegen generate` and confirm `xcodebuild -resolvePackageDependencies` succeeds.
+- [ ] **A1.1** Add to `project.yml` packages section (matching how SwiftTerm is declared): `swift-markdown: { url: https://github.com/swiftlang/swift-markdown, from: 0.5.0 }`; add `package: swift-markdown, product: Markdown` to the AgentBoardCore target dependencies. Run `xcodegen generate` and confirm package resolution succeeds.
 - [ ] **A1.2** Write failing tests covering: `# H1` → `.heading(level:1)`; a paragraph with `**bold**` yields `.paragraph` whose AttributedString contains a bold run; fenced block with language → `.code("…", "swift")`; `- a\n- b` → `.list(ordered: false)` with 2 items; `1. a` → ordered list; nested list item has `depth: 1`; `> quote` → `.blockquote`; a 2×2 pipe table → `.table` with 2 headers + 1 row; `---` → `.thematicBreak`; empty string → `[]`; malformed markdown degrades to paragraphs without crashing.
 - [ ] **A1.3** Run tests → FAIL (type not found).
 - [ ] **A1.4** Implement `MarkdownBlockParser` using `import Markdown`: `Document(parsing: content)` then map `children`: `Heading` → heading (clamp level 1–6), `CodeBlock` → code, `UnorderedList`/`OrderedList` → flatten with recursion carrying depth, `BlockQuote` → recurse children, `Table` → map head/body cells, `ThematicBreak` → thematicBreak, anything else → paragraph via inline re-serialization.
