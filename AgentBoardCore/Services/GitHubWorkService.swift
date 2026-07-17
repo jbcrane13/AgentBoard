@@ -293,13 +293,21 @@ public actor GitHubWorkService: GitHubWorkServicing {
     }
 
     #if os(macOS)
+        /// Probe known Homebrew locations for `gh`; mirrors KanbanCLIWriter.resolveHermes().
+        public static func resolvedGHPath(
+            isExecutable: (String) -> Bool = { FileManager.default.isExecutableFile(atPath: $0) }
+        ) -> String {
+            let candidates = ["/opt/homebrew/bin/gh", "/usr/local/bin/gh"]
+            return candidates.first(where: isExecutable) ?? "gh"
+        }
+
         private func fetchIssuesViaCLI(
             for repository: ConfiguredRepository
         ) async throws -> [WorkItem] {
             let result: ProcessResult
             do {
                 result = try await Process.runAsync(
-                    executablePath: "/usr/local/bin/gh",
+                    executablePath: Self.resolvedGHPath(),
                     arguments: [
                         "api", "repos/\(repository.owner)/\(repository.name)/issues",
                         "-f", "state=all",
