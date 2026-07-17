@@ -164,7 +164,7 @@ public final class AgentBoardAppModel {
 @MainActor
 public enum AgentBoardBootstrap {
     public static func makeLiveAppModel() -> AgentBoardAppModel {
-        let cache: AgentBoardCache
+        let cache: AgentBoardCacheProtocol
 
         do {
             cache = try AgentBoardCache()
@@ -172,7 +172,9 @@ public enum AgentBoardBootstrap {
             do {
                 cache = try AgentBoardCache(inMemory: true)
             } catch {
-                fatalError("Unable to create AgentBoard cache: \(error.localizedDescription)")
+                Logger(subsystem: "com.agentboard.modern", category: "AgentBoardBootstrap")
+                    .fault("Cache unavailable, running cache-less: \(error.localizedDescription)")
+                cache = NoopAgentBoardCache()
             }
         }
 

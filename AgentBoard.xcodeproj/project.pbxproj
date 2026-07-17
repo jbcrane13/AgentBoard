@@ -111,6 +111,7 @@
 		AC9718464408D550B64EFB4E /* ConfigBackupServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E15329720160FF009D5B1535 /* ConfigBackupServiceTests.swift */; };
 		B01C8989FACCB9D76DD46CDF /* ChatStoreSlashCommandTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0551DF2CA889DD84A9EFF3B7 /* ChatStoreSlashCommandTests.swift */; };
 		B05AB72D9955BEF4CD1E3B7A /* KanbanModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A55930915B4E8B29ECFC5DD /* KanbanModels.swift */; };
+		B13E9A7DA4903C65AE1FEEC6 /* NoopAgentBoardCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B023A92D06AE2F3272FC200 /* NoopAgentBoardCacheTests.swift */; };
 		B32E7225FAA8967B580A58A1 /* CreateIssueSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 702A0D71A27F07711AF96C4A /* CreateIssueSheet.swift */; };
 		B51F9A6B9302EDD7F2EB1437 /* BoardChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34D736CF52ACD4E2BD9D3ADC /* BoardChrome.swift */; };
 		B87AB9550FF94448824BFFB2 /* ChatHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82BF95164B1DFE66D15CB770 /* ChatHeader.swift */; };
@@ -138,6 +139,7 @@
 		DC38BD815D6E073F6D62E1D7 /* NeumorphicTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA4BD1071B801A6A1C9E1CEF /* NeumorphicTheme.swift */; };
 		DD6C36042860EA2D423261EE /* SessionDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A145F7A1A70B53DF066DBD /* SessionDetailSheet.swift */; };
 		DE5629641FE81BB20A7186A9 /* MarkdownText.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A2BE598EEDA7A998AEA8DE /* MarkdownText.swift */; };
+		DF0EA5DC994F51BF546BA378 /* NoopAgentBoardCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6350F1AD876CFC0042771A6F /* NoopAgentBoardCache.swift */; };
 		E069DEDCB71500BCB3DA43A4 /* FoundationExtrasTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B9B576059ADDC3B5D219868 /* FoundationExtrasTests.swift */; };
 		E1025BED622BADB001F95D4D /* CompanionSQLiteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06C0FE6A5C6D69E553E904D0 /* CompanionSQLiteStore.swift */; };
 		E1F05B25E20BE9959941A7A9 /* AttachmentViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD2941E5B6C18CF76C4621BB /* AttachmentViews.swift */; };
@@ -255,6 +257,7 @@
 		08C9688956A467F60F3B9B34 /* KanbanDataReading.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KanbanDataReading.swift; sourceTree = "<group>"; };
 		08FC87E1E7EE82E2FE4C749F /* ChatEndpointValidatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatEndpointValidatorTests.swift; sourceTree = "<group>"; };
 		0A55930915B4E8B29ECFC5DD /* KanbanModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KanbanModels.swift; sourceTree = "<group>"; };
+		0B023A92D06AE2F3272FC200 /* NoopAgentBoardCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoopAgentBoardCacheTests.swift; sourceTree = "<group>"; };
 		0B7442B7AA1CFE33776582C1 /* AgentBoardMobileApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentBoardMobileApp.swift; sourceTree = "<group>"; };
 		0D0FBEDFA7766F71A98B48E3 /* SlashCommandHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlashCommandHandler.swift; sourceTree = "<group>"; };
 		132785F0427381E3DB05BD8E /* ChatEndpointValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatEndpointValidator.swift; sourceTree = "<group>"; };
@@ -289,6 +292,7 @@
 		54CA712A46E969ED79300E4F /* LinkPreviewService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkPreviewService.swift; sourceTree = "<group>"; };
 		5F60733BA5BCAD5BD388E855 /* AgentBoardMobile.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = AgentBoardMobile.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		63376B7513D3E5CFE45372D6 /* BoardPalette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardPalette.swift; sourceTree = "<group>"; };
+		6350F1AD876CFC0042771A6F /* NoopAgentBoardCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoopAgentBoardCache.swift; sourceTree = "<group>"; };
 		651B64AF0921713BAE550D2D /* TaskDetailSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskDetailSheet.swift; sourceTree = "<group>"; };
 		6A0D9C21BA312AB952D0E48B /* KanbanAssigneePickerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KanbanAssigneePickerTests.swift; sourceTree = "<group>"; };
 		6C0ED2A504BC7E3CA18E4094 /* GitHubWorkServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubWorkServiceTests.swift; sourceTree = "<group>"; };
@@ -435,6 +439,7 @@
 				8562113DB3BC11316C4B4A50 /* LabelSchemaTests.swift */,
 				957114148477B05585A13D7C /* MockURLProtocol.swift */,
 				BB5CC5206E88A59FBD80A856 /* NativeSwiftUIInterfaceTests.swift */,
+				0B023A92D06AE2F3272FC200 /* NoopAgentBoardCacheTests.swift */,
 				9503F3F8C1E54BE6D35A3641 /* PRDComposerTests.swift */,
 				CE1B1DC901AD1D60B3855D38 /* SessionLauncherTests.swift */,
 				92E0CE9F3A8E9CA87A6C3B95 /* SessionsStoreTests.swift */,
@@ -585,6 +590,7 @@
 			children = (
 				3024AF0B4A66DE64BDB27E15 /* AgentBoardCache.swift */,
 				D3A2A89ABC8C35C2FB32C909 /* AgentBoardCacheProtocol.swift */,
+				6350F1AD876CFC0042771A6F /* NoopAgentBoardCache.swift */,
 				A55C723CBBB22E568A7E3D63 /* SettingsRepository.swift */,
 			);
 			path = Persistence;
@@ -967,6 +973,7 @@
 				E9D09CAC0D952EE1295DFA60 /* LabelSchemaTests.swift in Sources */,
 				38E1089316EEC57E444A6FB1 /* MockURLProtocol.swift in Sources */,
 				9781E0240F8A4C6FC3DC30B7 /* NativeSwiftUIInterfaceTests.swift in Sources */,
+				B13E9A7DA4903C65AE1FEEC6 /* NoopAgentBoardCacheTests.swift in Sources */,
 				DAB3EA4A5AF33E4165CD6551 /* PRDComposerTests.swift in Sources */,
 				9A90C5EF45CA6630C7EA64CD /* SessionLauncherTests.swift in Sources */,
 				F18232EF1BD587C14FCCD06F /* SessionsStoreTests.swift in Sources */,
@@ -1009,6 +1016,7 @@
 				B05AB72D9955BEF4CD1E3B7A /* KanbanModels.swift in Sources */,
 				CB10A2005C3CAEE8253B7324 /* LabelSchema.swift in Sources */,
 				BCE6371A2B658B37FE0C3124 /* LinkPreviewService.swift in Sources */,
+				DF0EA5DC994F51BF546BA378 /* NoopAgentBoardCache.swift in Sources */,
 				A86A0A76B46CE6265194C0A6 /* PRDComposer.swift in Sources */,
 				D806724D20A2D1EC0A81416B /* ProcessAsync.swift in Sources */,
 				9EAAAF4FFBF10F8A576AF5BD /* SessionLauncher.swift in Sources */,
