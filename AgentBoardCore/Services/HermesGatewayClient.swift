@@ -37,6 +37,16 @@ public enum HermesStreamEvent: Sendable, Hashable {
     case toolProgress(HermesToolProgress)
 }
 
+public struct HermesSkill: Codable, Hashable, Sendable {
+    public let name: String
+    public let description: String?
+
+    public init(name: String, description: String?) {
+        self.name = name
+        self.description = description
+    }
+}
+
 public actor HermesGatewayClient {
     public enum ClientError: LocalizedError, Equatable {
         case invalidGatewayURL
@@ -135,6 +145,34 @@ public actor HermesGatewayClient {
 
         let ids = payload.data.map(\.id)
         return ids.isEmpty ? [configuration.preferredModelID ?? "hermes-agent"] : ids
+    }
+
+    private struct SkillListResponse: Decodable, Sendable {
+        struct Entry: Decodable, Sendable {
+            let name: String
+            let description: String?
+            let category: String?
+        }
+
+        let data: [Entry]
+    }
+
+    public func fetchSkills() async throws -> [HermesSkill] {
+        var request = URLRequest(url: endpointURL("v1/skills"))
+        request.timeoutInterval = 10
+        setAuth(&request)
+
+        let (data, response) = try await data(for: request)
+        try validate(response: response, fallbackBody: data)
+
+        let payload: SkillListResponse
+        do {
+            payload = try decoder.decode(SkillListResponse.self, from: data)
+        } catch {
+            throw ClientError.invalidResponse
+        }
+
+        return payload.data.map { HermesSkill(name: $0.name, description: $0.description) }
     }
 
     public func loadConversationHistory(conversationID _: UUID) async throws -> [ConversationMessage] {

@@ -32,7 +32,7 @@ extension ChatStore {
             return true
         case .showSkills:
             clearDraft()
-            await appendSystemMessage(SlashCommandHandler.formatSkills([]), to: conversationID)
+            await appendSystemMessage(await skillsMessageForSlashCommand(), to: conversationID)
             return true
         case let .activateSkill(name):
             clearDraft()
@@ -119,6 +119,17 @@ extension ChatStore {
             messageCount: messages.count,
             activeCapabilities: activeCapabilities.map(\.displayName).sorted()
         )
+    }
+
+    private func skillsMessageForSlashCommand() async -> String {
+        do {
+            try await configureClient()
+            let skills = try await hermesClient.fetchSkills()
+            return SlashCommandHandler.formatSkills(skills)
+        } catch {
+            logger.error("Hermes skills fetch failed: \(error.localizedDescription, privacy: .public)")
+            return "No skills reported by the gateway."
+        }
     }
 
     private func configMessageForSlashCommand() -> String {

@@ -292,19 +292,15 @@ public enum SlashCommandHandler: Sendable {
         return lines.joined(separator: "\n")
     }
 
-    /// Formatted skills listing.
-    public static func formatSkills(_ skills: [SlashCommand]) -> String {
+    /// Formatted skills listing, sourced from the live Hermes `/v1/skills` endpoint.
+    public static func formatSkills(_ skills: [HermesSkill]) -> String {
         if skills.isEmpty {
-            return "**Skills**\n\nNo skills currently installed. Use `/skill <name>` to activate a skill."
+            return "No skills reported by the gateway."
         }
 
-        var lines = ["**Installed Skills**", ""]
-        for skill in skills {
-            lines.append("`/\(skill.name)` — \(skill.description)")
-        }
-        lines.append("")
-        lines.append("Use `/skill <name>` to activate a skill.")
-        return lines.joined(separator: "\n")
+        return skills.map { skill in
+            "• \(skill.name) — \(String((skill.description ?? "").prefix(100)))"
+        }.joined(separator: "\n")
     }
 
     /// Formatted memory display.
