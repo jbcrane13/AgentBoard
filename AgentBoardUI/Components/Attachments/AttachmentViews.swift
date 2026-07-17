@@ -21,7 +21,7 @@ struct AttachmentContainerView: View {
         case .audio:
             AudioAttachmentView(attachment: attachment)
         case .voiceRecording:
-            VoiceAttachmentView(attachment: attachment)
+            VoicePlaybackView(attachment: attachment)
         case .linkPreview:
             if case let .linkPreview(payload) = attachment.payload {
                 LinkPreviewCard(payload: payload)
@@ -275,68 +275,6 @@ struct AudioAttachmentView: View {
         .padding(12)
         .frame(maxWidth: 280)
         .background(NeuPalette.surface, in: RoundedRectangle(cornerRadius: 12))
-    }
-
-    private func formatDuration(_ duration: TimeInterval) -> String {
-        let minutes = Int(duration) / 60
-        let seconds = Int(duration) % 60
-        return String(format: "%d:%02d", minutes, seconds)
-    }
-}
-
-// MARK: - VoiceAttachmentView
-
-struct VoiceAttachmentView: View {
-    let attachment: ChatAttachment
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "mic.fill")
-                .font(.title3)
-                .foregroundStyle(NeuPalette.accentOrange)
-                .frame(width: 36, height: 36)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Voice Message")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(NeuPalette.textPrimary)
-
-                if case let .voiceRecording(payload) = attachment.payload {
-                    // Simple waveform visualization
-                    HStack(spacing: 2) {
-                        ForEach(waveformBars(payload.waveformSamples), id: \.self) { height in
-                            RoundedRectangle(cornerRadius: 1)
-                                .fill(NeuPalette.accentCyan.opacity(0.6))
-                                .frame(width: 3, height: CGFloat(height) * 20)
-                        }
-                    }
-                    .frame(height: 20)
-
-                    if let duration = payload.duration {
-                        Text(formatDuration(duration))
-                            .font(.caption2)
-                            .foregroundStyle(NeuPalette.textSecondary)
-                    }
-                }
-            }
-
-            Spacer()
-
-            Image(systemName: "play.circle.fill")
-                .font(.title)
-                .foregroundStyle(NeuPalette.accentCyan)
-        }
-        .padding(12)
-        .frame(maxWidth: 280)
-        .background(NeuPalette.surface, in: RoundedRectangle(cornerRadius: 12))
-    }
-
-    private func waveformBars(_ samples: [Float]) -> [Float] {
-        guard !samples.isEmpty else { return Array(repeating: 0.3, count: 20) }
-        let step = max(1, samples.count / 20)
-        return stride(from: 0, to: samples.count, by: step).map { i in
-            min(1.0, max(0.1, samples[i]))
-        }
     }
 
     private func formatDuration(_ duration: TimeInterval) -> String {
