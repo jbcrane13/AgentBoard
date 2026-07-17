@@ -164,7 +164,7 @@ public final class AgentBoardAppModel {
 @MainActor
 public enum AgentBoardBootstrap {
     public static func makeLiveAppModel() -> AgentBoardAppModel {
-        let cache: AgentBoardCacheProtocol
+        let cache: any AgentBoardCacheProtocol
 
         do {
             cache = try AgentBoardCache()
