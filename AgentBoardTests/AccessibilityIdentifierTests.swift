@@ -203,7 +203,7 @@ struct AccessibilityIdentifierTests {
             "work_picker_repository"
         ]
         assertIdentifiers(required, in: source)
-        #expect(source.contains(#"work_column_\(column.state.rawValue)"#))
+        #expect(source.contains(#"work_column_\(column.column.rawValue)"#))
     }
 
     @Test("Create issue sheet exposes identifiers for every interactive control")

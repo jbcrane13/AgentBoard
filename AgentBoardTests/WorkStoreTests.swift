@@ -624,6 +624,133 @@ struct WorkStoreTests {
         #expect(store.items.first?.status == .ready)
     }
 
+    // MARK: - Three-column board drop transitions (WorkBoardColumn)
+
+    /// Dropping a card onto the Resolved column must close the GitHub issue.
+    @Test func dropOnResolvedColumnClosesIssue() async throws {
+        final class Capture: @unchecked Sendable { var state: String? }
+        let captured = Capture()
+        let listPayload = "[" + issueJSON(
+            number: 40,
+            title: "Ship it",
+            body: "",
+            labels: ["status:in-progress"]
+        ) + "]"
+        let updatedPayload = makeClosedIssueJSON(number: 40, title: "Ship it", labels: ["status:done"])
+
+        let (store, _) = try makeStore(mockHandler: { request in
+            if request.httpMethod == "PATCH",
+               let body = request.httpBody ?? request.bodyStreamData(),
+               let json = try? JSONSerialization.jsonObject(with: body) as? [String: Any] {
+                captured.state = json["state"] as? String
+            }
+            let body = (request.httpMethod == "PATCH")
+                ? Data(updatedPayload.utf8)
+                : Data(listPayload.utf8)
+            let response = try HTTPURLResponse(
+                url: request.url ?? URL(string: "http://api.github.com")!,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            return (response, body)
+        })
+        await store.refresh()
+        let item = try #require(store.items.first)
+
+        await store.updateStatus(for: item, to: WorkBoardColumn.resolved.dropTargetState)
+
+        #expect(captured.state == "closed")
+        #expect(store.items.first?.status == .done)
+    }
+
+    /// Dragging a Resolved (done) card out to the To Do column must reopen the issue.
+    @Test func dragOutOfResolvedColumnReopensIssue() async throws {
+        final class Capture: @unchecked Sendable { var state: String? }
+        let captured = Capture()
+        let listPayload = "[" + makeClosedIssueJSON(
+            number: 41,
+            title: "Reopen via board",
+            labels: ["status:done"]
+        ) + "]"
+        let updatedPayload = issueJSON(
+            number: 41,
+            title: "Reopen via board",
+            body: "",
+            labels: ["status:ready"]
+        )
+
+        let (store, _) = try makeStore(mockHandler: { request in
+            if request.httpMethod == "PATCH",
+               let body = request.httpBody ?? request.bodyStreamData(),
+               let json = try? JSONSerialization.jsonObject(with: body) as? [String: Any] {
+                captured.state = json["state"] as? String
+            }
+            let body = (request.httpMethod == "PATCH")
+                ? Data(updatedPayload.utf8)
+                : Data(listPayload.utf8)
+            let response = try HTTPURLResponse(
+                url: request.url ?? URL(string: "http://api.github.com")!,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            return (response, body)
+        })
+        await store.refresh()
+        let item = try #require(store.items.first)
+        #expect(WorkBoardColumn.column(for: item.status) == .resolved)
+
+        await store.updateStatus(for: item, to: WorkBoardColumn.todo.dropTargetState)
+
+        #expect(captured.state == "open")
+        #expect(store.items.first?.status == .ready)
+    }
+
+    /// A same-column, different-state drop (Review card dropped within the In Progress
+    /// column) must still normalize the label to `status:in-progress` rather than no-op —
+    /// only an exact-state match is skipped.
+    @Test func dropWithinInProgressColumnNormalizesReviewToInProgress() async throws {
+        final class Counter: @unchecked Sendable { var patches = 0 }
+        let counter = Counter()
+        let listPayload = "[" + issueJSON(
+            number: 42,
+            title: "In review",
+            body: "",
+            labels: ["status:review"]
+        ) + "]"
+        let updatedPayload = issueJSON(
+            number: 42,
+            title: "In review",
+            body: "",
+            labels: ["status:in-progress"]
+        )
+
+        let (store, _) = try makeStore(mockHandler: { request in
+            if request.httpMethod == "PATCH" {
+                counter.patches += 1
+            }
+            let body = (request.httpMethod == "PATCH")
+                ? Data(updatedPayload.utf8)
+                : Data(listPayload.utf8)
+            let response = try HTTPURLResponse(
+                url: request.url ?? URL(string: "http://api.github.com")!,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            return (response, body)
+        })
+        await store.refresh()
+        let item = try #require(store.items.first)
+        #expect(WorkBoardColumn.column(for: item.status) == .inProgress)
+
+        await store.updateStatus(for: item, to: WorkBoardColumn.inProgress.dropTargetState)
+
+        #expect(counter.patches == 1)
+        #expect(store.items.first?.status == .inProgress)
+    }
+
     private func makeClosedIssueJSON(number: Int, title: String, labels: [String]) -> String {
         let labelsJSON = labels.map { #"{"name": "\#($0)"}"# }.joined(separator: ", ")
         return """
