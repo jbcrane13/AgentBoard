@@ -18,8 +18,8 @@ import Testing
 @Suite("AgentsStore.createTask wait-for-completion contract (issue #86)")
 @MainActor
 struct AgentsStoreCreateTaskTests {
-    @Test func successAppendsTaskAndClearsStaleErrorMessage() async {
-        let store = makeStore(cliWriter: SuccessWriter())
+    @Test func successAppendsTaskAndClearsStaleErrorMessage() async throws {
+        let store = try makeStore(cliWriter: SuccessWriter())
         store.errorMessage = "stale error from earlier refresh"
 
         await store.createTask(KanbanCreateDraft(title: "Investigate flake"))
@@ -28,8 +28,8 @@ struct AgentsStoreCreateTaskTests {
         #expect(store.errorMessage == nil)
     }
 
-    @Test func failurePopulatesErrorMessageAndLeavesTasksUntouched() async {
-        let store = makeStore(cliWriter: FailingWriter(message: "hermes timed out"))
+    @Test func failurePopulatesErrorMessageAndLeavesTasksUntouched() async throws {
+        let store = try makeStore(cliWriter: FailingWriter(message: "hermes timed out"))
 
         await store.createTask(KanbanCreateDraft(title: "Investigate flake"))
 
@@ -37,12 +37,12 @@ struct AgentsStoreCreateTaskTests {
         #expect(store.errorMessage?.contains("hermes timed out") == true)
     }
 
-    @Test func retryAfterFailureClearsErrorAndAppendsTask() async {
+    @Test func retryAfterFailureClearsErrorAndAppendsTask() async throws {
         // The user-facing flow the bug fix unlocked: sheet stays open after a
         // failure, user retries with the same draft, the next write succeeds —
         // `errorMessage` must be cleared so the sheet can dismiss.
         let writer = ToggleWriter()
-        let store = makeStore(cliWriter: writer)
+        let store = try makeStore(cliWriter: writer)
 
         await store.createTask(KanbanCreateDraft(title: "Investigate flake"))
         #expect(store.errorMessage != nil)
@@ -57,23 +57,23 @@ struct AgentsStoreCreateTaskTests {
 
     // MARK: - Edge cases
 
-    @Test func successPopulatesStatusMessageWithCreatedTitle() async {
+    @Test func successPopulatesStatusMessageWithCreatedTitle() async throws {
         // The view surfaces `statusMessage` as confirmation feedback, so the
         // contract is: a successful create publishes a message that names the
         // task that was just created.
-        let store = makeStore(cliWriter: SuccessWriter())
+        let store = try makeStore(cliWriter: SuccessWriter())
 
         await store.createTask(KanbanCreateDraft(title: "Wire dispatcher"))
 
         #expect(store.statusMessage?.contains("Wire dispatcher") == true)
     }
 
-    @Test func duplicateIdFromCLIUpsertsInPlaceWithoutDuplicates() async {
+    @Test func duplicateIdFromCLIUpsertsInPlaceWithoutDuplicates() async throws {
         // Race scenario: a refresh runs concurrently with a create, and the
         // CLI returns a task whose id already exists locally. Upsert must
         // replace the existing entry rather than producing two rows.
         let writer = FixedIdWriter(id: "task-fixed-1")
-        let store = makeStore(cliWriter: writer)
+        let store = try makeStore(cliWriter: writer)
 
         await store.createTask(KanbanCreateDraft(title: "First write"))
         await store.createTask(KanbanCreateDraft(title: "Second write"))
@@ -83,14 +83,14 @@ struct AgentsStoreCreateTaskTests {
         #expect(matching.first?.title == "Second write")
     }
 
-    @Test func sequentialCreatesPreserveNewestFirstOrdering() async {
+    @Test func sequentialCreatesPreserveNewestFirstOrdering() async throws {
         // The kanban board renders tasks newest-first within each column, and
         // the upsert path is responsible for that sort. This guards against a
         // regression where a freshly created task lands below older tasks.
         let writer = SequencedSuccessWriter(
             baseDate: Date(timeIntervalSince1970: 1_700_000_000)
         )
-        let store = makeStore(cliWriter: writer)
+        let store = try makeStore(cliWriter: writer)
 
         await store.createTask(KanbanCreateDraft(title: "Oldest"))
         await store.createTask(KanbanCreateDraft(title: "Middle"))
@@ -101,16 +101,17 @@ struct AgentsStoreCreateTaskTests {
 
     // MARK: - Helpers
 
-    private func makeStore(cliWriter: any KanbanCLIWriting) -> AgentsStore {
+    private func makeStore(cliWriter: any KanbanCLIWriting) throws -> AgentsStore {
         let suffix = UUID().uuidString
         let repo = SettingsRepository(
             suiteName: "AgentsStoreCreateTaskTests-\(suffix)",
             serviceName: "AgentsStoreCreateTaskTests-\(suffix)"
         )
         let settings = SettingsStore(repository: repo)
-        return AgentsStore(
+        return try AgentsStore(
             kanbanData: KanbanDataService(databasePath: "/dev/null"),
             cliWriter: cliWriter,
+            cache: AgentBoardCache(inMemory: true),
             settingsStore: settings
         )
     }

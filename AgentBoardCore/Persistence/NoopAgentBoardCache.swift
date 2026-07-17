@@ -37,4 +37,10 @@ public final class NoopAgentBoardCache: AgentBoardCacheProtocol {
     }
 
     public func replaceAgentSummaries(_: [AgentSummary]) throws {}
+
+    public func loadKanbanTasks() throws -> [KanbanTask] {
+        []
+    }
+
+    public func replaceKanbanTasks(_: [KanbanTask]) throws {}
 }

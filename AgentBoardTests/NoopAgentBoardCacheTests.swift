@@ -13,10 +13,12 @@ struct NoopAgentBoardCacheTests {
         #expect(try cache.loadWorkItems().isEmpty)
         #expect(try cache.loadSessions().isEmpty)
         #expect(try cache.loadAgentSummaries().isEmpty)
+        #expect(try cache.loadKanbanTasks().isEmpty)
 
         try cache.replaceWorkItems([])
         try cache.replaceSessions([])
         try cache.replaceAgentSummaries([])
+        try cache.replaceKanbanTasks([])
         try cache.deleteConversation(id: UUID())
     }
 }

@@ -8,6 +8,7 @@ public final class AgentsStore {
     private let logger = Logger(subsystem: "com.agentboard.modern", category: "AgentsStore")
     private let kanbanData: any KanbanDataReading
     private let cliWriter: any KanbanCLIWriting
+    private let cache: any AgentBoardCacheProtocol
     private let settingsStore: SettingsStore
 
     public private(set) var tasks: [KanbanTask] = []
@@ -18,14 +19,17 @@ public final class AgentsStore {
 
     private var didBootstrap = false
     private var lastFingerprint: String = ""
+    private var sessionCounts: [String: Int] = [:]
 
     public init(
         kanbanData: any KanbanDataReading = KanbanDataService(),
         cliWriter: any KanbanCLIWriting = KanbanCLIWriter(),
+        cache: any AgentBoardCacheProtocol,
         settingsStore: SettingsStore
     ) {
         self.kanbanData = kanbanData
         self.cliWriter = cliWriter
+        self.cache = cache
         self.settingsStore = settingsStore
     }
 
@@ -56,7 +60,19 @@ public final class AgentsStore {
     public func bootstrap() async {
         guard !didBootstrap else { return }
 
-        // Always refresh from kanban.db — no cache layer for kanban tasks yet.
+        // Load the cache first so the board renders instantly, then refresh
+        // from kanban.db for the live snapshot.
+        do {
+            let cachedTasks = try cache.loadKanbanTasks()
+            if !cachedTasks.isEmpty {
+                tasks = cachedTasks
+                summaries = Self.buildAgentSummaries(from: tasks, sessionCounts: sessionCounts)
+                lastFingerprint = fingerprint(tasks: tasks, summaries: summaries)
+            }
+        } catch {
+            logger.error("Failed to load kanban cache: \(error.localizedDescription, privacy: .public)")
+        }
+
         await refresh()
         didBootstrap = true
     }
@@ -73,15 +89,21 @@ public final class AgentsStore {
 
             // Build pseudo agent summaries from task assignees (companion still
             // handles real agent health / session data separately)
-            let freshSummaries = Self.buildAgentSummaries(from: freshTasks)
+            let freshSummaries = Self.buildAgentSummaries(from: freshTasks, sessionCounts: sessionCounts)
 
             let newFingerprint = fingerprint(tasks: freshTasks, summaries: freshSummaries)
             if newFingerprint != lastFingerprint {
                 tasks = freshTasks
                 summaries = freshSummaries
                 lastFingerprint = newFingerprint
+
+                do {
+                    try cache.replaceKanbanTasks(tasks)
+                } catch {
+                    logger.error("Failed to persist kanban cache: \(error.localizedDescription, privacy: .public)")
+                }
             }
-            // Data unchanged — skip SwiftUI invalidation
+            // Data unchanged — skip SwiftUI invalidation and the cache write
 
             errorMessage = nil
             if tasks.isEmpty {
@@ -91,12 +113,26 @@ public final class AgentsStore {
             }
         } catch {
             logger.error("Failed to refresh kanban: \(error.localizedDescription, privacy: .public)")
+            // Keep any cached/previous tasks visible rather than clearing the board.
             if tasks.isEmpty {
                 errorMessage = error.localizedDescription
+            } else {
+                errorMessage = nil
+                statusMessage = "Showing cached tasks — kanban refresh failed."
             }
         }
 
         isLoading = false
+    }
+
+    // MARK: - Session Counts
+
+    /// Store real per-agent active session counts (from `SessionsStore`, via
+    /// `AgentBoardAppModel`) and rebuild summaries so the rail reflects them.
+    public func updateActiveSessionCounts(_ counts: [String: Int]) {
+        sessionCounts = counts
+        summaries = Self.buildAgentSummaries(from: tasks, sessionCounts: sessionCounts)
+        lastFingerprint = fingerprint(tasks: tasks, summaries: summaries)
     }
 
     // MARK: - Create Task
@@ -261,9 +297,16 @@ lastFingerprint = fingerprint(tasks: tasks, summaries: summaries)
     }
 
     /// Build lightweight agent summaries from task assignees.
-    /// The companion service still owns actual agent health / session data.
+    /// The companion service still owns actual agent health / session data,
+    /// except for `activeSessionCount`, which comes from `sessionCounts`
+    /// (keyed by the same trimmed-assignee string used to group tasks — see
+    /// `AgentBoardAppModel.activeSessionCounts(from:tasks:)`). An assignee
+    /// with no entry in `sessionCounts` defaults to 0.
     /// Internal so the kanban picker data source can be unit tested directly.
-    nonisolated static func buildAgentSummaries(from tasks: [KanbanTask]) -> [AgentSummary] {
+    nonisolated static func buildAgentSummaries(
+        from tasks: [KanbanTask],
+        sessionCounts: [String: Int]
+    ) -> [AgentSummary] {
         let assignees = Set(tasks.compactMap { $0.assignee?.trimmedOrNil })
 
         return assignees.map { name in
@@ -279,7 +322,7 @@ lastFingerprint = fingerprint(tasks: tasks, summaries: summaries)
                 name: name,
                 health: activeCount > 0 ? .online : .idle,
                 activeTaskCount: activeCount,
-                activeSessionCount: 0,
+                activeSessionCount: sessionCounts[name] ?? 0,
                 recentActivity: recentTask?.title ?? "No recent activity",
                 updatedAt: recentTask?.createdAt ?? .now
             )

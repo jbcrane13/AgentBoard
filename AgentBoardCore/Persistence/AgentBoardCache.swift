@@ -228,7 +228,7 @@ private final class CachedAgentRecord {
     }
 }
 
-private func assignIfNeeded<Record: AnyObject, Value: Equatable>(
+func assignIfNeeded<Record: AnyObject, Value: Equatable>(
     _ record: Record,
     _ keyPath: ReferenceWritableKeyPath<Record, Value>,
     to value: Value
@@ -240,12 +240,12 @@ private func assignIfNeeded<Record: AnyObject, Value: Equatable>(
 
 @MainActor
 public final class AgentBoardCache {
-    private let encoder = JSONEncoder()
-    private let decoder = JSONDecoder()
+    let encoder = JSONEncoder()
+    let decoder = JSONDecoder()
 
     public let modelContainer: ModelContainer
 
-    private var context: ModelContext {
+    var context: ModelContext {
         modelContainer.mainContext
     }
 
@@ -257,6 +257,7 @@ public final class AgentBoardCache {
             CachedWorkItemRecord.self,
             CachedSessionRecord.self,
             CachedAgentRecord.self,
+            CachedKanbanTaskRecord.self,
             configurations: configuration
         )
     }

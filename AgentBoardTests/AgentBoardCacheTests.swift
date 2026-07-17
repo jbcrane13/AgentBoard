@@ -264,4 +264,104 @@ struct AgentBoardCacheTests {
         #expect(loaded[0].activeTaskCount == 3)
         #expect(loaded[0].recentActivity == "Implementing tests.")
     }
+
+    // MARK: - Kanban Tasks
+
+    @Test func kanbanTaskRoundTripPreservesEveryField() throws {
+        let cache = try AgentBoardCache(inMemory: true)
+        let task = KanbanTask(
+            id: "task-1",
+            title: "Ship the cache",
+            body: "Some body text",
+            assignee: "daneel",
+            status: .blocked,
+            priority: 2,
+            createdBy: "quentin",
+            createdAt: Date(timeIntervalSinceReferenceDate: 100),
+            startedAt: Date(timeIntervalSinceReferenceDate: 200),
+            completedAt: Date(timeIntervalSinceReferenceDate: 300),
+            workspaceKind: .worktree,
+            workspacePath: "/tmp/worktree",
+            tenant: "tenant-a",
+            result: "All good",
+            skills: ["swift", "testing"]
+        )
+
+        try cache.replaceKanbanTasks([task])
+
+        let loaded = try #require(cache.loadKanbanTasks().first)
+        #expect(loaded.id == task.id)
+        #expect(loaded.title == task.title)
+        #expect(loaded.body == task.body)
+        #expect(loaded.assignee == task.assignee)
+        #expect(loaded.status == task.status)
+        #expect(loaded.priority == task.priority)
+        #expect(loaded.createdBy == task.createdBy)
+        #expect(loaded.createdAt == task.createdAt)
+        #expect(loaded.startedAt == task.startedAt)
+        #expect(loaded.completedAt == task.completedAt)
+        #expect(loaded.workspaceKind == task.workspaceKind)
+        #expect(loaded.workspacePath == task.workspacePath)
+        #expect(loaded.tenant == task.tenant)
+        #expect(loaded.result == task.result)
+        #expect(loaded.skills == task.skills)
+    }
+
+    @Test func kanbanTaskWithNilSkillsRoundTripsAsNil() throws {
+        // Distinguishing nil from [] matters: nil means "unknown", [] means
+        // "known to have no skills". A naive Data-column encoding could
+        // silently collapse both to the same on-disk representation.
+        let cache = try AgentBoardCache(inMemory: true)
+        let task = KanbanTask(id: "task-2", title: "No skills recorded", skills: nil)
+
+        try cache.replaceKanbanTasks([task])
+
+        let loaded = try #require(cache.loadKanbanTasks().first)
+        #expect(loaded.skills == nil)
+    }
+
+    @Test func kanbanTaskWithEmptySkillsRoundTripsAsEmptyArrayNotNil() throws {
+        let cache = try AgentBoardCache(inMemory: true)
+        let task = KanbanTask(id: "task-3", title: "Empty skills array", skills: [])
+
+        try cache.replaceKanbanTasks([task])
+
+        let loaded = try #require(cache.loadKanbanTasks().first)
+        #expect(loaded.skills != nil)
+        #expect(loaded.skills?.isEmpty == true)
+    }
+
+    @Test func replaceKanbanTasksClearsExisting() throws {
+        let cache = try AgentBoardCache(inMemory: true)
+        let task1 = KanbanTask(id: "task-1", title: "One")
+        let task2 = KanbanTask(id: "task-2", title: "Two")
+
+        try cache.replaceKanbanTasks([task1, task2])
+        try cache.replaceKanbanTasks([task1])
+
+        let loaded = try cache.loadKanbanTasks()
+        #expect(loaded.count == 1)
+        #expect(loaded[0].id == "task-1")
+    }
+
+    @Test func replaceKanbanTasksUpdatesExistingRecord() throws {
+        let cache = try AgentBoardCache(inMemory: true)
+        let original = KanbanTask(id: "task-1", title: "Original", status: .todo)
+        let updated = KanbanTask(
+            id: "task-1",
+            title: "Updated",
+            assignee: "daneel",
+            status: .ready,
+            priority: 1
+        )
+
+        try cache.replaceKanbanTasks([original])
+        try cache.replaceKanbanTasks([updated])
+
+        let loaded = try #require(cache.loadKanbanTasks().first)
+        #expect(loaded.title == "Updated")
+        #expect(loaded.assignee == "daneel")
+        #expect(loaded.status == .ready)
+        #expect(loaded.priority == 1)
+    }
 }
