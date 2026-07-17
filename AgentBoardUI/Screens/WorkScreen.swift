@@ -108,20 +108,18 @@ struct WorkScreen: View {
         return appModel.settingsStore.repositories.first { $0.fullName == selectedRepo }
     }
 
-    private var groupedFilteredItems: [(state: WorkState, items: [WorkItem])] {
-        // Show Ready, In Progress, Review, Done columns (skip Blocked)
-        [.ready, .inProgress, .review, .done].map { state in
-            (state, filteredItems.filter { $0.status == state })
+    private var groupedFilteredItems: [(column: WorkBoardColumn, items: [WorkItem])] {
+        WorkBoardColumn.allCases.map { column in
+            (column, filteredItems.filter { WorkBoardColumn.column(for: $0.status) == column })
         }
     }
 
     private var statusCounts: (open: Int, inProgress: Int, done: Int) {
         filteredItems.reduce(into: (open: 0, inProgress: 0, done: 0)) { counts, item in
-            switch item.status {
-            case .ready: counts.open += 1
-            case .inProgress, .review: counts.inProgress += 1
-            case .done: counts.done += 1
-            default: break
+            switch WorkBoardColumn.column(for: item.status) {
+            case .todo: counts.open += 1
+            case .inProgress: counts.inProgress += 1
+            case .resolved: counts.done += 1
             }
         }
     }
@@ -241,14 +239,14 @@ struct WorkScreen: View {
             let columnWidth: CGFloat = 170
             ScrollView(.horizontal, showsIndicators: true) {
                 HStack(alignment: .top, spacing: 16) {
-                    ForEach(groupedFilteredItems, id: \.state) { column in
+                    ForEach(groupedFilteredItems, id: \.column) { column in
                         VStack(alignment: .leading, spacing: 10) {
                             HStack(spacing: 8) {
                                 Circle()
-                                    .fill(workStateColor(column.state))
+                                    .fill(workBoardColumnColor(column.column))
                                     .frame(width: 7, height: 7)
-                                    .shadow(color: workStateColor(column.state).opacity(0.6), radius: 8)
-                                Text(column.state.designColumnTitle)
+                                    .shadow(color: workBoardColumnColor(column.column).opacity(0.6), radius: 8)
+                                Text(column.column.title.uppercased())
                                     .font(.system(size: 11, weight: .semibold, design: .monospaced))
                                     .tracking(1.2)
                                     .foregroundStyle(NeuPalette.textPrimary)
@@ -290,7 +288,7 @@ struct WorkScreen: View {
         }
     }
 
-    private func boardColumnContent(for column: (state: WorkState, items: [WorkItem])) -> some View {
+    private func boardColumnContent(for column: (column: WorkBoardColumn, items: [WorkItem])) -> some View {
         VStack(spacing: 8) {
             if column.items.isEmpty {
                 Spacer()
@@ -311,7 +309,7 @@ struct WorkScreen: View {
                 }
             }
         }
-        .accessibilityIdentifier("work_column_\(column.state.rawValue)")
+        .accessibilityIdentifier("work_column_\(column.column.rawValue)")
         .dropDestination(for: WorkItemID.self) { ids, _ in
             guard let id = ids.first?.rawValue,
                   let item = filteredItems.first(where: { $0.id == id }) else {
@@ -319,7 +317,7 @@ struct WorkScreen: View {
             }
 
             Task { @MainActor in
-                await appModel.workStore.updateStatus(for: item, to: column.state)
+                await appModel.workStore.updateStatus(for: item, to: column.column.dropTargetState)
             }
             return true
         }
@@ -363,6 +361,16 @@ private struct WorkCardNeu: View {
                     Spacer(minLength: 8)
 
                     HStack(spacing: 6) {
+                        if item.status == .blocked {
+                            Text("Blocked")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundStyle(NeuPalette.accentCoral)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(NeuPalette.accentCoral.opacity(0.15))
+                                .clipShape(Capsule())
+                                .accessibilityIdentifier("work_badge_blocked_\(item.id)")
+                        }
                         WorkStatusNeu(state: item.status)
                         PriorityNeu(priority: item.priority)
                     }
@@ -445,6 +453,15 @@ private func workStateColor(_ state: WorkState) -> Color {
     case .blocked: NeuPalette.accentCoral
     case .review: .purple
     case .done: NeuPalette.accentGreen
+    }
+}
+
+@MainActor
+private func workBoardColumnColor(_ column: WorkBoardColumn) -> Color {
+    switch column {
+    case .todo: NeuPalette.statusBlue
+    case .inProgress: NeuPalette.accentOrange
+    case .resolved: NeuPalette.accentGreen
     }
 }
 
