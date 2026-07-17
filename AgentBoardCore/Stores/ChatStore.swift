@@ -95,6 +95,7 @@ public final class ChatStore {
     public func selectConversation(_ id: UUID) {
         guard conversations.contains(where: { $0.id == id }) else { return }
         selectedConversationID = id
+        hydrateFromHermesSessionIfNeeded(conversationID: id)
     }
 
     public func renameConversation(id: UUID, title: String) {

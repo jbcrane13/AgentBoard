@@ -194,4 +194,19 @@ Agents → CompanionServer → FSEvents + ps
 
 ---
 
+## ADR-014: Hermes sessions as remote chat-history authority
+**Date:** 2026-07-17
+**Status:** Active
+**Decision:** Hermes gateway sessions (`/api/sessions`, `X-Hermes-Session-Id` continuity) are the remote history source for chat; the Companion service remains the cross-device sync channel for conversation metadata and local snapshots; the old `loadConversationHistory` stub is removed.
+
+**Context:** `HermesGatewayClient.loadConversationHistory` was a dead stub that always returned `[]`. The live Hermes gateway (v0.18.2) exposes a real sessions API: streaming `/v1/chat/completions` responses carry an `X-Hermes-Session-Id` response header identifying the server-side session, and `GET /api/sessions/{session_id}/messages` returns that session's persisted transcript — verified live on 2026-07-17.
+
+**Consequences:**
+- `ChatConversation` carries an optional `hermesSessionID`, set from the streaming response header and persisted with the conversation.
+- `HermesGatewayClient.streamReply` accepts a `sessionID` to continue an existing Hermes session and yields a `.sessionID` event when the gateway reports one.
+- `ChatStore` best-effort hydrates a conversation's messages from `fetchSessionMessages` when it has a `hermesSessionID` but no local messages loaded yet; local state always wins over hydration.
+- `HermesGatewayClient.loadConversationHistory` is removed.
+
+---
+
 *To add a new ADR: append with the next number, include date, status, decision, context, and consequences.*

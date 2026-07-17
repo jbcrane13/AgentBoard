@@ -7,12 +7,14 @@ private final class CachedConversationRecord {
     var title: String
     var modelID: String?
     var updatedAt: Date
+    var hermesSessionID: String?
 
-    init(id: UUID, title: String, modelID: String?, updatedAt: Date) {
+    init(id: UUID, title: String, modelID: String?, updatedAt: Date, hermesSessionID: String? = nil) {
         self.id = id
         self.title = title
         self.modelID = modelID
         self.updatedAt = updatedAt
+        self.hermesSessionID = hermesSessionID
     }
 }
 
@@ -268,7 +270,8 @@ public final class AgentBoardCache {
                 id: $0.id,
                 title: $0.title,
                 modelID: $0.modelID,
-                updatedAt: $0.updatedAt
+                updatedAt: $0.updatedAt,
+                hermesSessionID: $0.hermesSessionID
             )
         }
     }
@@ -304,13 +307,15 @@ public final class AgentBoardCache {
             record.title = conversation.title
             record.modelID = conversation.modelID
             record.updatedAt = conversation.updatedAt
+            record.hermesSessionID = conversation.hermesSessionID
         } else {
             context.insert(
                 CachedConversationRecord(
                     id: conversation.id,
                     title: conversation.title,
                     modelID: conversation.modelID,
-                    updatedAt: conversation.updatedAt
+                    updatedAt: conversation.updatedAt,
+                    hermesSessionID: conversation.hermesSessionID
                 )
             )
         }

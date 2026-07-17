@@ -39,6 +39,7 @@ public struct HermesToolProgress: Codable, Hashable, Sendable {
 public enum HermesStreamEvent: Sendable, Hashable {
     case text(String)
     case toolProgress(HermesToolProgress)
+    case sessionID(String)
 }
 
 public struct HermesSkill: Codable, Hashable, Sendable {
@@ -181,20 +182,45 @@ public actor HermesGatewayClient {
         return payload.data.map { HermesSkill(name: $0.name, description: $0.description) }
     }
 
-    public func loadConversationHistory(conversationID _: UUID) async throws -> [ConversationMessage] {
-        []
+    /// Fetches a Hermes gateway session's persisted transcript and maps it to local
+    /// `ConversationMessage`s. Only "user" and "assistant" rows are surfaced — "tool" and
+    /// "system" rows (and any row with empty content) are skipped.
+    public func fetchSessionMessages(
+        sessionID: String,
+        conversationID: UUID
+    ) async throws -> [ConversationMessage] {
+        var request = URLRequest(url: endpointURL("api/sessions/\(sessionID)/messages"))
+        request.timeoutInterval = 15
+        setAuth(&request)
+
+        let (data, response) = try await data(for: request)
+        try validate(response: response, fallbackBody: data)
+
+        let payload: HermesSessionMessagesResponse
+        do {
+            payload = try decoder.decode(HermesSessionMessagesResponse.self, from: data)
+        } catch {
+            throw ClientError.invalidResponse
+        }
+
+        return mapSessionMessages(payload, conversationID: conversationID)
     }
 
     public func streamReply(
-        for conversation: [ConversationMessage]
+        for conversation: [ConversationMessage],
+        sessionID: String? = nil
     ) async throws -> AsyncThrowingStream<HermesStreamEvent, Error> {
-        let request = try makeChatRequest(conversation: conversation)
+        let request = try makeChatRequest(conversation: conversation, sessionID: sessionID)
 
         return AsyncThrowingStream { continuation in
             let task = Task {
                 do {
                     let (bytes, response) = try await self.session.bytes(for: request)
                     try await self.validateStreamingResponse(response: response, bytes: bytes)
+                    if let sessionID = (response as? HTTPURLResponse)?
+                        .value(forHTTPHeaderField: "X-Hermes-Session-Id") {
+                        continuation.yield(.sessionID(sessionID))
+                    }
                     try await self.consumeStream(bytes: bytes, continuation: continuation)
                 } catch {
                     continuation.finish(throwing: Self.enrichedTransportError(error, requestURL: request.url))
@@ -225,86 +251,18 @@ public actor HermesGatewayClient {
         )
     }
 
-    // MARK: - Typed request/response models
-
-    private struct ChatCompletionRequest: Encodable, Sendable {
-        struct Message: Encodable, Sendable {
-            struct Attachment: Encodable, Sendable {
-                let type: String
-                var url: String?
-                var title: String?
-                var description: String?
-            }
-
-            let role: String
-            let content: String
-            var attachments: [Attachment]?
-        }
-
-        let model: String
-        let messages: [Message]
-        let stream: Bool
-    }
-
-    private struct ChatCompletionChunk: Decodable, Sendable {
-        struct Choice: Decodable, Sendable {
-            struct Delta: Decodable, Sendable {
-                let content: String?
-            }
-
-            struct Message: Decodable, Sendable {
-                let content: String?
-            }
-
-            let delta: Delta?
-            let message: Message?
-            let text: String?
-            let finishReason: String?
-
-            var assistantContent: String? {
-                delta?.content ?? message?.content ?? text
-            }
-
-            enum CodingKeys: String, CodingKey {
-                case delta, message, text
-                case finishReason = "finish_reason"
-            }
-        }
-
-        let choices: [Choice]?
-    }
-
-    private struct ChatCompletionResponse: Decodable, Sendable {
-        struct Choice: Decodable, Sendable {
-            struct Message: Decodable, Sendable {
-                let content: String?
-            }
-
-            let message: Message?
-            let text: String?
-
-            var assistantContent: String? {
-                message?.content ?? text
-            }
-        }
-
-        struct MessageContent: Decodable, Sendable {
-            let content: String?
-        }
-
-        let choices: [Choice]?
-        let content: String?
-        let message: MessageContent?
-    }
-
     private func makeChatRequest(
-        conversation: [ConversationMessage]
+        conversation: [ConversationMessage],
+        sessionID: String? = nil
     ) throws -> URLRequest {
         var request = URLRequest(url: endpointURL("v1/chat/completions"))
         request.httpMethod = "POST"
         request.timeoutInterval = 300
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         setAuth(&request)
+        if let sessionID {
+            request.setValue(sessionID, forHTTPHeaderField: "X-Hermes-Session-Id")
+        }
 
         let messages: [ChatCompletionRequest.Message] = conversation
             .filter { !$0.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !$0.attachments.isEmpty }
@@ -523,5 +481,110 @@ public actor HermesGatewayClient {
         }
 
         return components.url ?? url
+    }
+}
+
+// MARK: - Typed request/response models
+
+private struct ChatCompletionRequest: Encodable, Sendable {
+    struct Message: Encodable, Sendable {
+        struct Attachment: Encodable, Sendable {
+            let type: String
+            var url: String?
+            var title: String?
+            var description: String?
+        }
+
+        let role: String
+        let content: String
+        var attachments: [Attachment]?
+    }
+
+    let model: String
+    let messages: [Message]
+    let stream: Bool
+}
+
+private struct ChatCompletionChunk: Decodable, Sendable {
+    struct Choice: Decodable, Sendable {
+        struct Delta: Decodable, Sendable {
+            let content: String?
+        }
+
+        struct Message: Decodable, Sendable {
+            let content: String?
+        }
+
+        let delta: Delta?
+        let message: Message?
+        let text: String?
+        let finishReason: String?
+
+        var assistantContent: String? {
+            delta?.content ?? message?.content ?? text
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case delta, message, text
+            case finishReason = "finish_reason"
+        }
+    }
+
+    let choices: [Choice]?
+}
+
+private struct ChatCompletionResponse: Decodable, Sendable {
+    struct Choice: Decodable, Sendable {
+        struct Message: Decodable, Sendable {
+            let content: String?
+        }
+
+        let message: Message?
+        let text: String?
+
+        var assistantContent: String? {
+            message?.content ?? text
+        }
+    }
+
+    struct MessageContent: Decodable, Sendable {
+        let content: String?
+    }
+
+    let choices: [Choice]?
+    let content: String?
+    let message: MessageContent?
+}
+
+// MARK: - Session message mapping
+
+private struct HermesSessionMessagesResponse: Decodable, Sendable {
+    struct Entry: Decodable, Sendable {
+        let role: String
+        let content: String?
+        let timestamp: Double
+    }
+
+    let data: [Entry]
+}
+
+private func mapSessionMessages(
+    _ response: HermesSessionMessagesResponse,
+    conversationID: UUID
+) -> [ConversationMessage] {
+    response.data.compactMap { entry in
+        let role: MessageRole
+        switch entry.role {
+        case "user": role = .user
+        case "assistant": role = .assistant
+        default: return nil
+        }
+        guard let content = entry.content, !content.isEmpty else { return nil }
+        return ConversationMessage(
+            conversationID: conversationID,
+            role: role,
+            content: content,
+            createdAt: Date(timeIntervalSince1970: entry.timestamp)
+        )
     }
 }

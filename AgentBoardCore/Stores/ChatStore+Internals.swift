@@ -65,6 +65,30 @@ extension ChatStore {
         conversations.sort { lhs, rhs in lhs.updatedAt > rhs.updatedAt }
     }
 
+    /// Best-effort hydration for conversations synced without local message history: if the
+    /// conversation carries a Hermes session id and no messages have loaded locally yet, fetch
+    /// the session's transcript from the gateway. Failures are logged and ignored — local state
+    /// (empty though it may be) always wins.
+    func hydrateFromHermesSessionIfNeeded(conversationID: UUID) {
+        guard let sessionID = conversations.first(where: { $0.id == conversationID })?.hermesSessionID,
+              (messagesByConversationID[conversationID] ?? []).isEmpty else { return }
+
+        Task {
+            do {
+                try await configureClient()
+                let messages = try await hermesClient.fetchSessionMessages(
+                    sessionID: sessionID,
+                    conversationID: conversationID
+                )
+                guard !messages.isEmpty, selectedConversationID == conversationID else { return }
+                messagesByConversationID[conversationID] = messages
+                await persistNow(conversationID: conversationID)
+            } catch {
+                logger.error("Hermes session hydration failed: \(error.localizedDescription, privacy: .public)")
+            }
+        }
+    }
+
     func clearDraft() {
         draft = ""
         pendingAttachments = []
