@@ -74,8 +74,8 @@ public struct HermesProfile: Codable, Hashable, Identifiable, Sendable {
 }
 
 public struct ToolActivity: Codable, Hashable, Sendable, Identifiable {
-    public var id: String
-    public var tool: String
+public let id: String
+    public let tool: String
     public var emoji: String?
     public var label: String?
     public var isComplete: Bool
