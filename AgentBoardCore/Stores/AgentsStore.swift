@@ -19,6 +19,7 @@ public final class AgentsStore {
 
     private var didBootstrap = false
     private var lastFingerprint: String = ""
+    private var sessionCounts: [String: Int] = [:]
 
     public init(
         kanbanData: any KanbanDataReading = KanbanDataService(),
@@ -65,7 +66,7 @@ public final class AgentsStore {
             let cachedTasks = try cache.loadKanbanTasks()
             if !cachedTasks.isEmpty {
                 tasks = cachedTasks
-                summaries = Self.buildAgentSummaries(from: tasks)
+                summaries = Self.buildAgentSummaries(from: tasks, sessionCounts: sessionCounts)
                 lastFingerprint = fingerprint(tasks: tasks, summaries: summaries)
             }
         } catch {
@@ -88,7 +89,7 @@ public final class AgentsStore {
 
             // Build pseudo agent summaries from task assignees (companion still
             // handles real agent health / session data separately)
-            let freshSummaries = Self.buildAgentSummaries(from: freshTasks)
+            let freshSummaries = Self.buildAgentSummaries(from: freshTasks, sessionCounts: sessionCounts)
 
             let newFingerprint = fingerprint(tasks: freshTasks, summaries: freshSummaries)
             if newFingerprint != lastFingerprint {
@@ -121,6 +122,16 @@ public final class AgentsStore {
         }
 
         isLoading = false
+    }
+
+    // MARK: - Session Counts
+
+    /// Store real per-agent active session counts (from `SessionsStore`, via
+    /// `AgentBoardAppModel`) and rebuild summaries so the rail reflects them.
+    public func updateActiveSessionCounts(_ counts: [String: Int]) {
+        sessionCounts = counts
+        summaries = Self.buildAgentSummaries(from: tasks, sessionCounts: sessionCounts)
+        lastFingerprint = fingerprint(tasks: tasks, summaries: summaries)
     }
 
     // MARK: - Create Task
@@ -284,9 +295,16 @@ public final class AgentsStore {
     }
 
     /// Build lightweight agent summaries from task assignees.
-    /// The companion service still owns actual agent health / session data.
+    /// The companion service still owns actual agent health / session data,
+    /// except for `activeSessionCount`, which comes from `sessionCounts`
+    /// (keyed by the same trimmed-assignee string used to group tasks — see
+    /// `AgentBoardAppModel.activeSessionCounts(from:tasks:)`). An assignee
+    /// with no entry in `sessionCounts` defaults to 0.
     /// Internal so the kanban picker data source can be unit tested directly.
-    nonisolated static func buildAgentSummaries(from tasks: [KanbanTask]) -> [AgentSummary] {
+    nonisolated static func buildAgentSummaries(
+        from tasks: [KanbanTask],
+        sessionCounts: [String: Int]
+    ) -> [AgentSummary] {
         let assignees = Set(tasks.compactMap { $0.assignee?.trimmedOrNil })
 
         return assignees.map { name in
@@ -302,7 +320,7 @@ public final class AgentsStore {
                 name: name,
                 health: activeCount > 0 ? .online : .idle,
                 activeTaskCount: activeCount,
-                activeSessionCount: 0,
+                activeSessionCount: sessionCounts[name] ?? 0,
                 recentActivity: recentTask?.title ?? "No recent activity",
                 updatedAt: recentTask?.createdAt ?? .now
             )

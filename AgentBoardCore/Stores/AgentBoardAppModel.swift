@@ -54,6 +54,10 @@ public final class AgentBoardAppModel {
         await workStore.bootstrap()
         await agentsStore.bootstrap()
         await sessionsStore.bootstrap()
+        agentsStore.updateActiveSessionCounts(Self.activeSessionCounts(
+            from: sessionsStore.sessions,
+            tasks: agentsStore.tasks
+        ))
 
         didBootstrap = true
         isBootstrapping = false
@@ -69,6 +73,10 @@ public final class AgentBoardAppModel {
         await workStore.refresh()
         await agentsStore.refresh()
         await sessionsStore.refresh()
+        agentsStore.updateActiveSessionCounts(Self.activeSessionCounts(
+            from: sessionsStore.sessions,
+            tasks: agentsStore.tasks
+        ))
     }
 
     public func saveSettingsAndReconnect() async {
@@ -146,6 +154,10 @@ public final class AgentBoardAppModel {
                 await self.workStore.refresh()
                 await self.agentsStore.refresh()
                 await self.sessionsStore.refresh()
+                self.agentsStore.updateActiveSessionCounts(Self.activeSessionCounts(
+                    from: self.sessionsStore.sessions,
+                    tasks: self.agentsStore.tasks
+                ))
             }
         }
     }
@@ -153,11 +165,45 @@ public final class AgentBoardAppModel {
     private func handle(event: CompanionEvent) async {
         statusMessage = "Companion update: \(event.kind.rawValue)"
         await sessionsStore.handle(event: event.kind)
+        agentsStore.updateActiveSessionCounts(Self.activeSessionCounts(
+            from: sessionsStore.sessions,
+            tasks: agentsStore.tasks
+        ))
 
         // Route conversation sync events to ChatStore for cross-device sync
         if event.kind == .conversationsChanged {
             await chatStore.refreshConversationsFromCompanion()
         }
+    }
+
+    // MARK: - Session Counts
+
+    /// Derive per-agent active session counts by joining each session's
+    /// `linkedTaskID` to the kanban task it references, then keying by that
+    /// task's (trimmed) assignee — the same namespace `AgentsStore` groups
+    /// tasks by. `source` (machine name) and `model` (tool name, e.g. "Codex")
+    /// are NOT agent identity in this sense, so they can't be used directly;
+    /// the task assignee is the only field session and task share meaning
+    /// for. "Active" means the session's status is `.running`. Sessions with
+    /// no `linkedTaskID`, or whose linked task has no assignee, contribute to
+    /// no agent's count.
+    nonisolated static func activeSessionCounts(
+        from sessions: [AgentSession],
+        tasks: [KanbanTask]
+    ) -> [String: Int] {
+        let assigneeByTaskID = Dictionary(
+            uniqueKeysWithValues: tasks.compactMap { task -> (String, String)? in
+                guard let assignee = task.assignee?.trimmedOrNil else { return nil }
+                return (task.id, assignee)
+            }
+        )
+
+        var counts: [String: Int] = [:]
+        for session in sessions where session.status == .running {
+            guard let taskID = session.linkedTaskID, let assignee = assigneeByTaskID[taskID] else { continue }
+            counts[assignee, default: 0] += 1
+        }
+        return counts
     }
 }
 
