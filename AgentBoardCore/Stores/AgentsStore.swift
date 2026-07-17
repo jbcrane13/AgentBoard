@@ -8,6 +8,7 @@ public final class AgentsStore {
     private let logger = Logger(subsystem: "com.agentboard.modern", category: "AgentsStore")
     private let kanbanData: any KanbanDataReading
     private let cliWriter: any KanbanCLIWriting
+    private let cache: any AgentBoardCacheProtocol
     private let settingsStore: SettingsStore
 
     public private(set) var tasks: [KanbanTask] = []
@@ -22,10 +23,12 @@ public final class AgentsStore {
     public init(
         kanbanData: any KanbanDataReading = KanbanDataService(),
         cliWriter: any KanbanCLIWriting = KanbanCLIWriter(),
+        cache: any AgentBoardCacheProtocol,
         settingsStore: SettingsStore
     ) {
         self.kanbanData = kanbanData
         self.cliWriter = cliWriter
+        self.cache = cache
         self.settingsStore = settingsStore
     }
 
@@ -56,7 +59,19 @@ public final class AgentsStore {
     public func bootstrap() async {
         guard !didBootstrap else { return }
 
-        // Always refresh from kanban.db — no cache layer for kanban tasks yet.
+        // Load the cache first so the board renders instantly, then refresh
+        // from kanban.db for the live snapshot.
+        do {
+            let cachedTasks = try cache.loadKanbanTasks()
+            if !cachedTasks.isEmpty {
+                tasks = cachedTasks
+                summaries = Self.buildAgentSummaries(from: tasks)
+                lastFingerprint = fingerprint(tasks: tasks, summaries: summaries)
+            }
+        } catch {
+            logger.error("Failed to load kanban cache: \(error.localizedDescription, privacy: .public)")
+        }
+
         await refresh()
         didBootstrap = true
     }
@@ -80,8 +95,14 @@ public final class AgentsStore {
                 tasks = freshTasks
                 summaries = freshSummaries
                 lastFingerprint = newFingerprint
+
+                do {
+                    try cache.replaceKanbanTasks(tasks)
+                } catch {
+                    logger.error("Failed to persist kanban cache: \(error.localizedDescription, privacy: .public)")
+                }
             }
-            // Data unchanged — skip SwiftUI invalidation
+            // Data unchanged — skip SwiftUI invalidation and the cache write
 
             errorMessage = nil
             if tasks.isEmpty {
@@ -91,8 +112,11 @@ public final class AgentsStore {
             }
         } catch {
             logger.error("Failed to refresh kanban: \(error.localizedDescription, privacy: .public)")
+            // Keep any cached/previous tasks visible rather than clearing the board.
             if tasks.isEmpty {
                 errorMessage = error.localizedDescription
+            } else {
+                statusMessage = "Showing cached tasks — kanban refresh failed."
             }
         }
 

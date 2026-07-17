@@ -196,7 +196,7 @@ public enum AgentBoardBootstrap {
             cache: cache,
             settingsStore: settingsStore
         )
-        let agentsStore = AgentsStore(settingsStore: settingsStore)
+        let agentsStore = AgentsStore(cache: cache, settingsStore: settingsStore)
         let sessionsStore = SessionsStore(
             companionClient: companionClient,
             cache: cache,

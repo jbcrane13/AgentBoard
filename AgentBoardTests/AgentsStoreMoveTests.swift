@@ -10,9 +10,9 @@ import Testing
 @Suite("AgentsStore.moveTask (issue #143)")
 @MainActor
 struct AgentsStoreMoveTests {
-    @Test func legalPromoteUpdatesStatusAndCallsWriter() async {
+    @Test func legalPromoteUpdatesStatusAndCallsWriter() async throws {
         let writer = RecordingWriter(seedTask: makeTask(id: "t1", status: .todo))
-        let store = await makeStore(cliWriter: writer)
+        let store = try await makeStore(cliWriter: writer)
 
         await store.moveTask(id: "t1", to: .ready)
 
@@ -22,9 +22,9 @@ struct AgentsStoreMoveTests {
         #expect(store.errorMessage == nil)
     }
 
-    @Test func legalBlockUpdatesStatusAndCallsWriterWithReason() async {
+    @Test func legalBlockUpdatesStatusAndCallsWriterWithReason() async throws {
         let writer = RecordingWriter(seedTask: makeTask(id: "t1", status: .ready))
-        let store = await makeStore(cliWriter: writer)
+        let store = try await makeStore(cliWriter: writer)
 
         await store.moveTask(id: "t1", to: .blocked)
 
@@ -33,9 +33,9 @@ struct AgentsStoreMoveTests {
         #expect(calls == [.block(taskID: "t1", reason: "Blocked from board")])
     }
 
-    @Test func legalUnblockUpdatesStatusAndCallsWriter() async {
+    @Test func legalUnblockUpdatesStatusAndCallsWriter() async throws {
         let writer = RecordingWriter(seedTask: makeTask(id: "t1", status: .blocked))
-        let store = await makeStore(cliWriter: writer)
+        let store = try await makeStore(cliWriter: writer)
 
         await store.moveTask(id: "t1", to: .ready)
 
@@ -44,9 +44,9 @@ struct AgentsStoreMoveTests {
         #expect(calls == [.unblock(taskID: "t1")])
     }
 
-    @Test func legalCompleteUpdatesStatusAndCallsWriterWithSummary() async {
+    @Test func legalCompleteUpdatesStatusAndCallsWriterWithSummary() async throws {
         let writer = RecordingWriter(seedTask: makeTask(id: "t1", status: .running))
-        let store = await makeStore(cliWriter: writer)
+        let store = try await makeStore(cliWriter: writer)
 
         await store.moveTask(id: "t1", to: .done)
 
@@ -55,9 +55,9 @@ struct AgentsStoreMoveTests {
         #expect(calls == [.complete(taskID: "t1", summary: "Completed from board")])
     }
 
-    @Test func writerFailureRevertsOptimisticUpdateAndSetsError() async {
+    @Test func writerFailureRevertsOptimisticUpdateAndSetsError() async throws {
         let writer = FailingWriter(seedTask: makeTask(id: "t1", status: .todo), message: "hermes timed out")
-        let store = await makeStore(cliWriter: writer)
+        let store = try await makeStore(cliWriter: writer)
 
         await store.moveTask(id: "t1", to: .ready)
 
@@ -65,9 +65,9 @@ struct AgentsStoreMoveTests {
         #expect(store.errorMessage?.contains("hermes timed out") == true)
     }
 
-    @Test func illegalDropNeverCallsWriterAndSetsRejectionMessage() async {
+    @Test func illegalDropNeverCallsWriterAndSetsRejectionMessage() async throws {
         let writer = RecordingWriter(seedTask: makeTask(id: "t1", status: .todo))
-        let store = await makeStore(cliWriter: writer)
+        let store = try await makeStore(cliWriter: writer)
 
         await store.moveTask(id: "t1", to: .running)
 
@@ -77,9 +77,9 @@ struct AgentsStoreMoveTests {
         #expect(store.statusMessage == "Tasks enter Running when an agent claims them.")
     }
 
-    @Test func illegalSameColumnDropNeverCallsWriter() async {
+    @Test func illegalSameColumnDropNeverCallsWriter() async throws {
         let writer = RecordingWriter(seedTask: makeTask(id: "t1", status: .ready))
-        let store = await makeStore(cliWriter: writer)
+        let store = try await makeStore(cliWriter: writer)
 
         await store.moveTask(id: "t1", to: .ready)
 
@@ -88,9 +88,9 @@ struct AgentsStoreMoveTests {
         #expect(store.statusMessage == "Task is already in Ready.")
     }
 
-    @Test func unknownTaskIdIsANoOp() async {
+    @Test func unknownTaskIdIsANoOp() async throws {
         let writer = RecordingWriter(seedTask: makeTask(id: "t1", status: .todo))
-        let store = await makeStore(cliWriter: writer)
+        let store = try await makeStore(cliWriter: writer)
 
         await store.moveTask(id: "missing", to: .ready)
 
@@ -108,16 +108,17 @@ struct AgentsStoreMoveTests {
     /// Builds a store wired to `cliWriter` and seeds it with the writer's
     /// `create()` response via the public `createTask` API (there is no
     /// internal seam for injecting `tasks` directly).
-    private func makeStore(cliWriter: any KanbanCLIWriting) async -> AgentsStore {
+    private func makeStore(cliWriter: any KanbanCLIWriting) async throws -> AgentsStore {
         let suffix = UUID().uuidString
         let repo = SettingsRepository(
             suiteName: "AgentsStoreMoveTests-\(suffix)",
             serviceName: "AgentsStoreMoveTests-\(suffix)"
         )
         let settings = SettingsStore(repository: repo)
-        let store = AgentsStore(
+        let store = try AgentsStore(
             kanbanData: KanbanDataService(databasePath: "/dev/null"),
             cliWriter: cliWriter,
+            cache: AgentBoardCache(inMemory: true),
             settingsStore: settings
         )
         await store.createTask(KanbanCreateDraft(title: "seed"))

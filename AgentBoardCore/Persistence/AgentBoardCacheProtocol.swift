@@ -26,4 +26,9 @@ public protocol AgentBoardCacheProtocol: SessionsCacheStoring, Sendable {
     // loadSessions/replaceSessions are inherited from SessionsCacheStoring.
     func loadAgentSummaries() throws -> [AgentSummary]
     func replaceAgentSummaries(_ agents: [AgentSummary]) throws
+
+    // MARK: - Kanban tasks (AgentsStore)
+
+    func loadKanbanTasks() throws -> [KanbanTask]
+    func replaceKanbanTasks(_ tasks: [KanbanTask]) throws
 }
