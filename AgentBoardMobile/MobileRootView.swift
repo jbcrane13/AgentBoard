@@ -10,7 +10,7 @@ struct MobileRootView: View {
         TabView(selection: $appModel.selectedDestination) {
             Tab(value: AppDestination.dashboard) {
                 NavigationStack {
-                    WorkScreen()
+                    DashboardScreen()
                         .navigationTitle(AppDestination.dashboard.title)
                 }
                 .accessibilityIdentifier("mobile_tab_dashboard")

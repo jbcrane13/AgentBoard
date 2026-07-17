@@ -103,7 +103,7 @@ struct DesktopRootView: View {
         } else {
             switch desktopDestination(for: appModel.selectedDestination) {
             case .dashboard:
-                WorkScreen()
+                DashboardScreen(onOpenChat: { isChatInspectorPresented = true })
             case .work:
                 WorkScreen()
             case .agents:

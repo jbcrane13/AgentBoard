@@ -101,6 +101,20 @@ struct AccessibilityIdentifierTests {
         assertIdentifiers(required, in: source)
     }
 
+    @Test("Dashboard screen exposes identifiers for every tile and the refresh control")
+    func dashboardScreenIdentifiers() throws {
+        let source = try readUISource("Screens/DashboardScreen.swift")
+        let required = [
+            "screen_dashboard",
+            "dashboard_tile_agents",
+            "dashboard_tile_work",
+            "dashboard_tile_sessions",
+            "dashboard_tile_chat",
+            "dashboard_button_refresh"
+        ]
+        assertIdentifiers(required, in: source)
+    }
+
     @Test("Sessions screen exposes identifiers for refresh + per-row taps")
     func sessionsScreenIdentifiers() throws {
         let source = try readUISource("Screens/SessionsScreen.swift")
