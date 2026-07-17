@@ -191,11 +191,14 @@ public final class AgentsStore {
             return
         }
 
-        var updated = task
-        updated.status = target
-        upsert(updated)
-        lastFingerprint = fingerprint(tasks: tasks, summaries: summaries)
-
+var updated = task
+updated.status = target
+if move == .complete {
+    updated.completedAt = .now
+    updated.result = "Completed from board"
+}
+upsert(updated)
+lastFingerprint = fingerprint(tasks: tasks, summaries: summaries)
         do {
             switch move {
             case .promote:
