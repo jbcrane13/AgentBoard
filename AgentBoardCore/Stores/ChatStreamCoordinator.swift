@@ -88,9 +88,11 @@ final class ChatStreamCoordinator {
             let stream = try await hermesClient.streamReply(for: requestMessages)
             callbacks.setConnectionState(.connected)
 
-            for try await chunk in stream {
-                assistantMessage.content += chunk
-                callbacks.replaceMessages(requestMessages + [assistantMessage])
+            for try await event in stream {
+                if case let .text(chunk) = event {
+                    assistantMessage.content += chunk
+                    callbacks.replaceMessages(requestMessages + [assistantMessage])
+                }
             }
 
             assistantMessage.isStreaming = false
