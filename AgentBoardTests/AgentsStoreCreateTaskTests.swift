@@ -131,6 +131,7 @@ private struct SuccessWriter: KanbanCLIWriting {
     func complete(taskID _: String, summary _: String) async throws {}
     func block(taskID _: String, reason _: String) async throws {}
     func unblock(taskID _: String) async throws {}
+    func promote(taskID _: String) async throws {}
     func archive(taskID _: String) async throws {}
     func assign(taskID _: String, assignee _: String) async throws {}
 }
@@ -146,6 +147,7 @@ private struct FailingWriter: KanbanCLIWriting {
     func complete(taskID _: String, summary _: String) async throws {}
     func block(taskID _: String, reason _: String) async throws {}
     func unblock(taskID _: String) async throws {}
+    func promote(taskID _: String) async throws {}
     func archive(taskID _: String) async throws {}
     func assign(taskID _: String, assignee _: String) async throws {}
 }
@@ -174,6 +176,7 @@ private actor ToggleWriter: KanbanCLIWriting {
     func complete(taskID _: String, summary _: String) async throws {}
     func block(taskID _: String, reason _: String) async throws {}
     func unblock(taskID _: String) async throws {}
+    func promote(taskID _: String) async throws {}
     func archive(taskID _: String) async throws {}
     func assign(taskID _: String, assignee _: String) async throws {}
 }
@@ -192,6 +195,7 @@ private struct FixedIdWriter: KanbanCLIWriting {
     func complete(taskID _: String, summary _: String) async throws {}
     func block(taskID _: String, reason _: String) async throws {}
     func unblock(taskID _: String) async throws {}
+    func promote(taskID _: String) async throws {}
     func archive(taskID _: String) async throws {}
     func assign(taskID _: String, assignee _: String) async throws {}
 }
@@ -222,6 +226,7 @@ private actor SequencedSuccessWriter: KanbanCLIWriting {
     func complete(taskID _: String, summary _: String) async throws {}
     func block(taskID _: String, reason _: String) async throws {}
     func unblock(taskID _: String) async throws {}
+    func promote(taskID _: String) async throws {}
     func archive(taskID _: String) async throws {}
     func assign(taskID _: String, assignee _: String) async throws {}
 }

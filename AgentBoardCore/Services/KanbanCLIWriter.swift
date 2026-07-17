@@ -8,6 +8,7 @@ public protocol KanbanCLIWriting: Sendable {
     func complete(taskID: String, summary: String) async throws
     func block(taskID: String, reason: String) async throws
     func unblock(taskID: String) async throws
+    func promote(taskID: String) async throws
     func archive(taskID: String) async throws
     func assign(taskID: String, assignee: String) async throws
 }
@@ -96,6 +97,13 @@ public actor KanbanCLIWriter: KanbanCLIWriting {
 
     public func unblock(taskID: String) async throws {
         let args = ["kanban", "unblock", taskID]
+        _ = try await runHermes(args)
+    }
+
+    // MARK: - Promote
+
+    public func promote(taskID: String) async throws {
+        let args = ["kanban", "promote", taskID]
         _ = try await runHermes(args)
     }
 
