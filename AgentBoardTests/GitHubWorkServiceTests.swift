@@ -143,6 +143,26 @@ struct GitHubWorkServiceTests {
         #expect(item.issueNumber == 22)
     }
 
+    #if os(macOS)
+        @Test
+        func resolvedGHPathPrefersHomebrewARM() {
+            let path = GitHubWorkService.resolvedGHPath { $0 == "/opt/homebrew/bin/gh" }
+            #expect(path == "/opt/homebrew/bin/gh")
+        }
+
+        @Test
+        func resolvedGHPathFallsBackToIntelHomebrew() {
+            let path = GitHubWorkService.resolvedGHPath { $0 == "/usr/local/bin/gh" }
+            #expect(path == "/usr/local/bin/gh")
+        }
+
+        @Test
+        func resolvedGHPathFallsBackToBareNameWhenAbsent() {
+            let path = GitHubWorkService.resolvedGHPath { _ in false }
+            #expect(path == "gh")
+        }
+    #endif
+
     private func issueJSON(number: Int) -> String {
         """
         {
