@@ -92,6 +92,13 @@ struct HermesGatewayClientTests {
     }
 
     @Test
+    func defaultConfigurationUsesLiveGatewayPort() {
+        let configuration = HermesGatewayConfiguration()
+        #expect(configuration.baseURL == "http://127.0.0.1:8641")
+        #expect(HermesGatewayConfiguration.defaultBaseURL == "http://127.0.0.1:8641")
+    }
+
+    @Test
     func streamReplyYieldsStreamingContent() async throws {
         let client = HermesGatewayClient(session: makeMockSession { request in
             #expect(request.url?.path == "/v1/chat/completions")

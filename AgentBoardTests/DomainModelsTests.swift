@@ -224,7 +224,7 @@ struct DomainModelsTests {
     @Test func agentBoardSettingsDecodingFillsDefaultsForMissingKeys() throws {
         let json = "{}"
         let settings = try JSONDecoder().decode(AgentBoardSettings.self, from: Data(json.utf8))
-        #expect(settings.hermesGatewayURL == "http://127.0.0.1:8642")
+        #expect(settings.hermesGatewayURL == "http://127.0.0.1:8641")
         #expect(settings.companionURL == "http://127.0.0.1:8742")
         #expect(settings.repositories.isEmpty)
         #expect(settings.autoRefreshInterval == 30)

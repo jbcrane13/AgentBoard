@@ -1,12 +1,16 @@
 import Foundation
 
 public struct HermesGatewayConfiguration: Codable, Hashable, Sendable {
+    /// The live Hermes gateway API server port. Kept as a single source of truth so the
+    /// client's unconfigured fallback always matches the actually-running gateway.
+    public static let defaultBaseURL = "http://127.0.0.1:8641"
+
     public var baseURL: String
     public var apiKey: String?
     public var preferredModelID: String?
 
     public init(
-        baseURL: String = "http://127.0.0.1:8642",
+        baseURL: String = HermesGatewayConfiguration.defaultBaseURL,
         apiKey: String? = nil,
         preferredModelID: String? = "hermes-agent"
     ) {
@@ -93,10 +97,12 @@ public actor HermesGatewayClient {
         preferredModelID: String?
     ) throws {
         let normalizedBaseURL = baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let parsedURL = URL(string: normalizedBaseURL.isEmpty ? "http://127.0.0.1:8642" : normalizedBaseURL),
-              let scheme = parsedURL.scheme?.lowercased(),
-              ["http", "https"].contains(scheme),
-              parsedURL.host != nil else {
+        guard let parsedURL = URL(
+            string: normalizedBaseURL.isEmpty ? HermesGatewayConfiguration.defaultBaseURL : normalizedBaseURL
+        ),
+            let scheme = parsedURL.scheme?.lowercased(),
+            ["http", "https"].contains(scheme),
+            parsedURL.host != nil else {
             throw ClientError.invalidGatewayURL
         }
 
@@ -501,7 +507,7 @@ public actor HermesGatewayClient {
 
     private func endpointURL(_ path: String) -> URL {
         guard let baseURL = URL(string: configuration.baseURL) else {
-            return URL(string: "http://127.0.0.1:8642/\(path)")!
+            return URL(string: "\(HermesGatewayConfiguration.defaultBaseURL)/\(path)")!
         }
         return baseURL.appending(path: path)
     }

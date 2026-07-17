@@ -496,7 +496,7 @@ public struct AgentBoardSettings: Codable, Hashable, Sendable {
     }
 
     public init(
-        hermesGatewayURL: String = "http://127.0.0.1:8642",
+        hermesGatewayURL: String = HermesGatewayConfiguration.defaultBaseURL,
         hermesModelID: String? = "hermes-agent",
         hermesProfiles: [HermesProfile]? = nil,
         selectedHermesProfileID: String? = nil,
@@ -518,7 +518,7 @@ public struct AgentBoardSettings: Codable, Hashable, Sendable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         hermesGatewayURL = try container.decodeIfPresent(String.self, forKey: .hermesGatewayURL)
-            ?? "http://127.0.0.1:8642"
+            ?? HermesGatewayConfiguration.defaultBaseURL
         hermesModelID = try container.decodeIfPresent(String.self, forKey: .hermesModelID)
         hermesProfiles = try container.decodeIfPresent([HermesProfile].self, forKey: .hermesProfiles)
         selectedHermesProfileID = try container.decodeIfPresent(String.self, forKey: .selectedHermesProfileID)

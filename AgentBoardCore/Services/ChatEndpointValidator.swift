@@ -43,7 +43,7 @@ public struct ChatEndpointValidator: Sendable {
 
     public func normalizedHermesGatewayURL(_ rawValue: String) -> URL {
         let baseURL = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
-        let fallbackURL = URL(string: "http://127.0.0.1:8642")!
+        let fallbackURL = URL(string: HermesGatewayConfiguration.defaultBaseURL)!
         guard let url = URL(string: baseURL) else {
             return fallbackURL
         }
