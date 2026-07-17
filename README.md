@@ -13,7 +13,7 @@ The old OpenClaw/beads/macOS-only prototype has been retired from the codebase. 
 
 ## Product shape
 
-- **Hermes gateway** powers chat (WebSocket JSON-RPC) and is the write authority for kanban tasks via the `hermes kanban` CLI.
+- **Hermes gateway** powers chat (HTTP + SSE streaming via an OpenAI-compatible `/v1/chat/completions` endpoint) and is the write authority for kanban tasks via the `hermes kanban` CLI.
 - **`~/.hermes/kanban.db`** is the source of truth for the Kanban board — tasks, comments, and runs all live here.
 - **GitHub Issues** are tracked as work items for issue triage and reference.
 - **AgentBoardCompanion** owns agent session monitoring (tmux/process discovery) and live execution state.
@@ -106,7 +106,7 @@ flowchart TD
     Mac --> UI
     Mobile --> UI
     UI --> Core
-    Core -->|chat WebSocket| Hermes
+    Core -->|chat HTTP/SSE| Hermes
     Core -->|read SQLite| KanbanDB
     Core -->|write via CLI| Hermes
     Core -->|work items| GitHub

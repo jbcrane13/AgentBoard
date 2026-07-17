@@ -64,7 +64,7 @@ The active product is the Hermes-first SwiftUI rebuild.
 
 ### Source of truth split
 
-- **Hermes gateway** powers chat (WebSocket JSON-RPC protocol)
+- **Hermes gateway** powers chat (HTTP + SSE, OpenAI-compatible `/v1/chat/completions`)
 - **`~/.hermes/kanban.db`** is the task/work-tracking backend — all Kanban data lives here
 - **AgentBoard companion** monitors live tmux sessions and agent health (process discovery + tmux pane capture)
 - **GitHub Issues** are the external work-tracking source, consumed by Hermes agents
