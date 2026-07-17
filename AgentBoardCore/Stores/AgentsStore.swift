@@ -176,6 +176,50 @@ public final class AgentsStore {
         }
     }
 
+    // MARK: - Board Drag-and-Drop
+
+    /// Move a task to `target` via drag-and-drop. Illegal drops (per
+    /// `KanbanBoardMove.forDrag`) never touch the CLI — they just surface a
+    /// rejection message. Legal drops update optimistically, then revert and
+    /// surface an error if the CLI write fails.
+    public func moveTask(id: String, to target: KanbanStatus) async {
+        guard let task = tasks.first(where: { $0.id == id }) else { return }
+        let previousStatus = task.status
+
+        guard let move = KanbanBoardMove.forDrag(from: previousStatus, to: target) else {
+            statusMessage = KanbanBoardMove.rejectionMessage(from: previousStatus, to: target)
+            return
+        }
+
+var updated = task
+updated.status = target
+if move == .complete {
+    updated.completedAt = .now
+    updated.result = "Completed from board"
+}
+upsert(updated)
+lastFingerprint = fingerprint(tasks: tasks, summaries: summaries)
+        do {
+            switch move {
+            case .promote:
+                try await cliWriter.promote(taskID: id)
+            case .block:
+                try await cliWriter.block(taskID: id, reason: "Blocked from board")
+            case .unblock:
+                try await cliWriter.unblock(taskID: id)
+            case .complete:
+                try await cliWriter.complete(taskID: id, summary: "Completed from board")
+            }
+            statusMessage = "Moved \"\(task.title)\" to \(target.title)."
+            errorMessage = nil
+        } catch {
+logger.error("Failed to move task: \(error.localizedDescription, privacy: .public)")
+upsert(task)
+lastFingerprint = fingerprint(tasks: tasks, summaries: summaries)
+            errorMessage = error.localizedDescription
+        }
+    }
+
     public func archiveTask(id: String) async {
         do {
             try await cliWriter.archive(taskID: id)

@@ -1,5 +1,7 @@
 import AgentBoardCore
+import CoreTransferable
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct AgentsScreen: View {
     @Environment(AgentBoardAppModel.self) private var appModel
@@ -152,7 +154,11 @@ struct AgentsScreen: View {
                                             onLaunch: { launchTask = task }
                                         )
                                         .accessibilityIdentifier("kanban_cell_task_\(task.id)")
+                                        .draggable(KanbanTaskID(task.id))
                                     }
+                                }
+                                .dropDestination(for: KanbanTaskID.self) { ids, _ in
+                                    handleDrop(ids, to: status)
                                 }
                             }
                         }
@@ -203,6 +209,7 @@ struct AgentsScreen: View {
                                                 onLaunch: { launchTask = task }
                                             )
                                             .accessibilityIdentifier("kanban_cell_task_\(task.id)")
+                                            .draggable(KanbanTaskID(task.id))
                                         }
                                     }
                                     .padding(.bottom, 12)
@@ -217,6 +224,9 @@ struct AgentsScreen: View {
                             RoundedRectangle(cornerRadius: 14, style: .continuous)
                                 .stroke(NeuPalette.borderSoft, lineWidth: 1)
                         }
+                        .dropDestination(for: KanbanTaskID.self) { ids, _ in
+                            handleDrop(ids, to: status)
+                        }
                     }
                 }
                 .frame(minWidth: proxy.size.width, alignment: .topLeading)
@@ -224,6 +234,17 @@ struct AgentsScreen: View {
                 .padding(.bottom, 28)
             }
         }
+    }
+
+    /// Drops a dragged task onto `status`. `AgentsStore.moveTask` maps the
+    /// drop onto the one legal Hermes transition (or surfaces a rejection
+    /// message) — this just forwards the drag payload.
+    private func handleDrop(_ ids: [KanbanTaskID], to status: KanbanStatus) -> Bool {
+        guard let id = ids.first?.rawValue else { return false }
+        Task { @MainActor in
+            await appModel.agentsStore.moveTask(id: id, to: status)
+        }
+        return true
     }
 
     private func kanbanColumnHeader(status: KanbanStatus, count: Int) -> some View {
@@ -420,6 +441,20 @@ private struct KanbanTaskRow: View {
             Button("Cancel", role: .cancel) {}
                 .accessibilityIdentifier("kanban_alert_button_cancel")
         }
+    }
+}
+
+// MARK: - Drag Payload
+
+private struct KanbanTaskID: Codable, Hashable, Transferable {
+    let rawValue: String
+
+    init(_ rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    static var transferRepresentation: some TransferRepresentation {
+        CodableRepresentation(contentType: .plainText)
     }
 }
 
