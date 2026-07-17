@@ -32,20 +32,21 @@ public enum KanbanBoardMove: Equatable, Sendable {
     }
 
     /// Human explanation for a rejected drop.
-    public static func rejectionMessage(from: KanbanStatus, to: KanbanStatus) -> String {
-        switch to {
-        case .running:
-            return "Tasks enter Running when an agent claims them."
-        case .triage, .todo, .archived:
-            return "Tasks can't be dragged to \(to.title)."
-        default:
-            if from == to {
-                return "Task is already in \(to.title)."
-            }
-            if from == .done {
-                return "Completed tasks can't be moved."
-            }
-            return "That move isn't supported."
-        }
+public static func rejectionMessage(from: KanbanStatus, to: KanbanStatus) -> String {
+    if from == .done {
+        return "Completed tasks can't be moved."
+    }
+
+    if from == to {
+        return "Task is already in \(to.title)."
+    }
+
+    switch to {
+    case .running:
+        return "Tasks enter Running when an agent claims them."
+    case .triage, .todo, .archived:
+        return "Tasks can't be dragged to \(to.title)."
+    default:
+        return "That move isn't supported."
     }
 }
