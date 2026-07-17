@@ -246,16 +246,24 @@ public enum SlashCommandHandler: Sendable {
         connectionState: String,
         model: String,
         conversationTitle: String,
-        messageCount: Int
+        messageCount: Int,
+        activeCapabilities: [String] = []
     ) -> String {
-        """
-        **Connection Status**
+        var lines = [
+            "**Connection Status**",
+            "",
+            "**State:** \(connectionState)",
+            "**Model:** \(model)",
+            "**Session:** \(conversationTitle)",
+            "**Messages:** \(messageCount)"
+        ]
 
-        **State:** \(connectionState)
-        **Model:** \(model)
-        **Session:** \(conversationTitle)
-        **Messages:** \(messageCount)
-        """
+        if !activeCapabilities.isEmpty {
+            let formatted = activeCapabilities.map { "\($0) (prompt-injected)" }.joined(separator: ", ")
+            lines.append("Active capabilities: \(formatted)")
+        }
+
+        return lines.joined(separator: "\n")
     }
 
     /// Formatted configuration display.

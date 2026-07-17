@@ -39,9 +39,11 @@ extension ChatStore {
             await appendSystemMessage("Activating skill: \(name)…", to: conversationID)
             statusMessage = "Skill '\(name)' activated"
             return true
-        case .showMemory, .showTools, .toggleThinking, .toggleWeb,
-             .toggleCode, .toggleImage, .toggleSpeak:
+        case .showMemory, .showTools:
             return await handleToggleCommand(result, conversationID: conversationID)
+        case .toggleThinking, .toggleWeb, .toggleCode, .toggleImage, .toggleSpeak:
+            guard let capability = Self.capability(for: result) else { return false }
+            return await handleCapabilityToggle(capability, conversationID: conversationID)
         case .resetConversation:
             clearDraft()
             startNewConversation()
@@ -67,15 +69,38 @@ extension ChatStore {
         let message = switch result {
         case .showMemory: "Memory lookup sent to Hermes. Response will appear below."
         case .showTools: "Tool listing sent to Hermes. Response will appear below."
-        case .toggleThinking: "Toggled thinking mode. Sent to agent."
-        case .toggleWeb: "Toggled web access. Sent to agent."
-        case .toggleCode: "Toggled code execution. Sent to agent."
-        case .toggleImage: "Toggled image generation. Sent to agent."
-        case .toggleSpeak: "Toggled voice output. Sent to agent."
         default: "Command sent to agent."
         }
         await appendSystemMessage(message, to: conversationID)
         return false
+    }
+
+    private static func capability(for result: SlashCommandResult) -> ChatCapability? {
+        switch result {
+        case .toggleThinking: .thinking
+        case .toggleWeb: .web
+        case .toggleCode: .code
+        case .toggleImage: .image
+        case .toggleSpeak: .speak
+        default: nil
+        }
+    }
+
+    /// Capability toggles are honestly labeled: Hermes has no capability parameter, so these
+    /// are handled entirely locally by flipping a per-conversation flag that gets folded into
+    /// a client-side system-prompt instruction on future sends — never forwarded as a command.
+    func handleCapabilityToggle(
+        _ capability: ChatCapability,
+        conversationID: UUID
+    ) async -> Bool {
+        clearDraft()
+        let isOn = toggleCapability(capability, for: conversationID)
+        let state = isOn ? "ON" : "OFF"
+        await appendSystemMessage(
+            "\(capability.displayName) mode \(state) (client-side prompt injection)",
+            to: conversationID
+        )
+        return true
     }
 
     private func statusMessageForSlashCommand() -> String {
@@ -86,11 +111,13 @@ extension ChatStore {
         case .reconnecting: "Reconnecting"
         case .failed: "Failed"
         }
+        let activeCapabilities = selectedConversationID.map { capabilities(for: $0) } ?? []
         return SlashCommandHandler.formatStatus(
             connectionState: state,
             model: settingsStore.hermesModelID,
             conversationTitle: selectedConversation?.title ?? "None",
-            messageCount: messages.count
+            messageCount: messages.count,
+            activeCapabilities: activeCapabilities.map(\.displayName).sorted()
         )
     }
 

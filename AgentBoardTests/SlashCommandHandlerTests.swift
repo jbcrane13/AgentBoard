@@ -174,6 +174,18 @@ struct SlashCommandHandlerTests {
         #expect(status.contains("5"))
     }
 
+    @Test func formatStatusIncludesActiveCapabilitiesWhenProvided() {
+        let status = SlashCommandHandler.formatStatus(
+            connectionState: "Connected",
+            model: "hermes-pro",
+            conversationTitle: "Test Chat",
+            messageCount: 5,
+            activeCapabilities: ["Thinking", "Web Access"]
+        )
+        #expect(status.contains("Thinking (prompt-injected)"))
+        #expect(status.contains("Web Access (prompt-injected)"))
+    }
+
     @Test func formatConfigIncludesURLAndModel() {
         let config = SlashCommandHandler.formatConfig(
             gatewayURL: "http://127.0.0.1:8642",

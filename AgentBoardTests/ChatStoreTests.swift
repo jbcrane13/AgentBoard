@@ -129,6 +129,65 @@ struct ChatStoreTests {
 
     @Test
     @MainActor
+    func sendDraftInjectsCapabilityInstructionsOutboundOnlyNeverDisplayed() async throws {
+        // ChatStreamCoordinatorTests.buildOutboundMessagesPrependsSyntheticSystemMessage…
+        // covers the outbound side directly. This test guards the other half of the
+        // invariant: the synthetic message must never leak into the persisted/displayed
+        // transcript that the user (and the cache) sees.
+        let hermesClient = HermesGatewayClient(session: makeMockSession { request in
+            let response = try HTTPURLResponse(
+                url: #require(request.url),
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "text/event-stream"]
+            )!
+            let payload = """
+            data: {"choices":[{"delta":{"content":"Reply"},"finish_reason":null}]}
+
+            data: {"choices":[{"delta":{},"finish_reason":"stop"}]}
+
+            data: [DONE]
+
+            """
+            return (response, Data(payload.utf8))
+        })
+
+        let suiteName = "ChatStoreTests-\(UUID().uuidString)"
+        let repository = SettingsRepository(
+            suiteName: suiteName,
+            serviceName: "ChatStoreTests-\(UUID().uuidString)"
+        )
+        let settingsStore = SettingsStore(repository: repository)
+        settingsStore.hermesGatewayURL = "http://127.0.0.1:8642"
+        settingsStore.hermesModelID = "hermes-agent"
+
+        let cache = try AgentBoardCache(inMemory: true)
+        let store = ChatStore(
+            hermesClient: hermesClient,
+            cache: cache,
+            settingsStore: settingsStore,
+            companionClient: CompanionClient()
+        )
+
+        store.startNewConversation()
+        let conversationID = try #require(store.selectedConversationID)
+
+        store.draft = "/think"
+        await store.sendDraft()
+        #expect(store.capabilities(for: conversationID).contains(.thinking))
+
+        store.draft = "Plan the launch"
+        await store.sendDraft()
+
+        // The synthetic capability system message must never reach the persisted/displayed
+        // transcript — only the outbound request to Hermes should carry it.
+        #expect(!store.messages.contains { $0.content.contains("Capability overrides") })
+        let cachedMessages = try cache.loadMessages(conversationID: conversationID)
+        #expect(!cachedMessages.contains { $0.content.contains("Capability overrides") })
+    }
+
+    @Test
+    @MainActor
     func bootstrapLoadsCompanionMessagesInParallelAndTreatsFailuresAsEmpty() async throws {
         let firstID = UUID()
         let secondID = UUID()
