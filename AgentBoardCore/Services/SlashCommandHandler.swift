@@ -246,16 +246,24 @@ public enum SlashCommandHandler: Sendable {
         connectionState: String,
         model: String,
         conversationTitle: String,
-        messageCount: Int
+        messageCount: Int,
+        activeCapabilities: [String] = []
     ) -> String {
-        """
-        **Connection Status**
+        var lines = [
+            "**Connection Status**",
+            "",
+            "**State:** \(connectionState)",
+            "**Model:** \(model)",
+            "**Session:** \(conversationTitle)",
+            "**Messages:** \(messageCount)"
+        ]
 
-        **State:** \(connectionState)
-        **Model:** \(model)
-        **Session:** \(conversationTitle)
-        **Messages:** \(messageCount)
-        """
+        if !activeCapabilities.isEmpty {
+            let formatted = activeCapabilities.map { "\($0) (prompt-injected)" }.joined(separator: ", ")
+            lines.append("Active capabilities: \(formatted)")
+        }
+
+        return lines.joined(separator: "\n")
     }
 
     /// Formatted configuration display.
@@ -284,19 +292,15 @@ public enum SlashCommandHandler: Sendable {
         return lines.joined(separator: "\n")
     }
 
-    /// Formatted skills listing.
-    public static func formatSkills(_ skills: [SlashCommand]) -> String {
+    /// Formatted skills listing, sourced from the live Hermes `/v1/skills` endpoint.
+    public static func formatSkills(_ skills: [HermesSkill]) -> String {
         if skills.isEmpty {
-            return "**Skills**\n\nNo skills currently installed. Use `/skill <name>` to activate a skill."
+            return "No skills reported by the gateway."
         }
 
-        var lines = ["**Installed Skills**", ""]
-        for skill in skills {
-            lines.append("`/\(skill.name)` — \(skill.description)")
-        }
-        lines.append("")
-        lines.append("Use `/skill <name>` to activate a skill.")
-        return lines.joined(separator: "\n")
+        return skills.map { skill in
+            "• \(skill.name) — \(String((skill.description ?? "").prefix(100)))"
+        }.joined(separator: "\n")
     }
 
     /// Formatted memory display.

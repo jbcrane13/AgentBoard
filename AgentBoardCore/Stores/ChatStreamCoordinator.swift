@@ -7,6 +7,7 @@ struct ChatStreamRequest: Sendable {
     let attachments: [ChatAttachment]
     let conversation: ChatConversation
     let currentMessages: [ConversationMessage]
+    let capabilities: Set<ChatCapability>
 }
 
 struct ChatStreamCallbacks: Sendable {
@@ -70,8 +71,8 @@ final class ChatStreamCoordinator {
             isStreaming: true
         )
 
-        let requestMessages = request.currentMessages + [userMessage]
-        callbacks.replaceMessages(requestMessages + [assistantMessage])
+        let displayMessages = request.currentMessages + [userMessage]
+        callbacks.replaceMessages(displayMessages + [assistantMessage])
 
         if conversation.title == "New Conversation" {
             conversation.title = String(request.text.prefix(48))
@@ -85,7 +86,12 @@ final class ChatStreamCoordinator {
 
         do {
             try await configureClient()
-            let stream = try await hermesClient.streamReply(for: requestMessages)
+            let outboundMessages = Self.buildOutboundMessages(
+                displayMessages: displayMessages,
+                capabilities: request.capabilities,
+                conversationID: request.conversationID
+            )
+            let stream = try await hermesClient.streamReply(for: outboundMessages)
             callbacks.setConnectionState(.connected)
 
             for try await event in stream {
@@ -95,11 +101,11 @@ final class ChatStreamCoordinator {
                 case let .toolProgress(progress):
                     Self.apply(progress, to: &assistantMessage.toolActivities)
                 }
-                callbacks.replaceMessages(requestMessages + [assistantMessage])
+                callbacks.replaceMessages(displayMessages + [assistantMessage])
             }
 
             assistantMessage.isStreaming = false
-            callbacks.replaceMessages(requestMessages + [assistantMessage])
+            callbacks.replaceMessages(displayMessages + [assistantMessage])
             callbacks.setIsStreaming(false)
 
             conversation.updatedAt = .now
@@ -118,10 +124,10 @@ final class ChatStreamCoordinator {
             callbacks.setIsStreaming(false)
 
             if assistantMessage.content.isEmpty {
-                callbacks.replaceMessages(requestMessages)
+                callbacks.replaceMessages(displayMessages)
             } else {
                 assistantMessage.isStreaming = false
-                callbacks.replaceMessages(requestMessages + [assistantMessage])
+                callbacks.replaceMessages(displayMessages + [assistantMessage])
             }
             await callbacks.persist()
 
@@ -131,6 +137,29 @@ final class ChatStreamCoordinator {
                 connectionState: .failed
             )
         }
+    }
+
+    /// Builds the message list actually sent to Hermes. When capabilities are active, a
+    /// synthetic system message carrying their prompt instructions is prepended — but only
+    /// for this outbound call. It must never be persisted or displayed, so callers must use
+    /// `displayMessages` (not this function's result) for `replaceMessages`/persistence.
+    nonisolated static func buildOutboundMessages(
+        displayMessages: [ConversationMessage],
+        capabilities: Set<ChatCapability>,
+        conversationID: UUID
+    ) -> [ConversationMessage] {
+        guard !capabilities.isEmpty else { return displayMessages }
+
+        let instructions = capabilities
+            .map(\.promptInstruction)
+            .sorted()
+            .joined(separator: " ")
+        let syntheticSystemMessage = ConversationMessage(
+            conversationID: conversationID,
+            role: .system,
+            content: "Capability overrides (client-side): " + instructions
+        )
+        return [syntheticSystemMessage] + displayMessages
     }
 
     nonisolated static func apply(_ progress: HermesToolProgress, to activities: inout [ToolActivity]) {

@@ -1,12 +1,16 @@
 import Foundation
 
 public struct HermesGatewayConfiguration: Codable, Hashable, Sendable {
+    /// The live Hermes gateway API server port. Kept as a single source of truth so the
+    /// client's unconfigured fallback always matches the actually-running gateway.
+    public static let defaultBaseURL = "http://127.0.0.1:8641"
+
     public var baseURL: String
     public var apiKey: String?
     public var preferredModelID: String?
 
     public init(
-        baseURL: String = "http://127.0.0.1:8642",
+        baseURL: String = HermesGatewayConfiguration.defaultBaseURL,
         apiKey: String? = nil,
         preferredModelID: String? = "hermes-agent"
     ) {
@@ -35,6 +39,16 @@ public struct HermesToolProgress: Codable, Hashable, Sendable {
 public enum HermesStreamEvent: Sendable, Hashable {
     case text(String)
     case toolProgress(HermesToolProgress)
+}
+
+public struct HermesSkill: Codable, Hashable, Sendable {
+    public let name: String
+    public let description: String?
+
+    public init(name: String, description: String?) {
+        self.name = name
+        self.description = description
+    }
 }
 
 public actor HermesGatewayClient {
@@ -83,10 +97,12 @@ public actor HermesGatewayClient {
         preferredModelID: String?
     ) throws {
         let normalizedBaseURL = baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let parsedURL = URL(string: normalizedBaseURL.isEmpty ? "http://127.0.0.1:8642" : normalizedBaseURL),
-              let scheme = parsedURL.scheme?.lowercased(),
-              ["http", "https"].contains(scheme),
-              parsedURL.host != nil else {
+        guard let parsedURL = URL(
+            string: normalizedBaseURL.isEmpty ? HermesGatewayConfiguration.defaultBaseURL : normalizedBaseURL
+        ),
+            let scheme = parsedURL.scheme?.lowercased(),
+            ["http", "https"].contains(scheme),
+            parsedURL.host != nil else {
             throw ClientError.invalidGatewayURL
         }
 
@@ -135,6 +151,34 @@ public actor HermesGatewayClient {
 
         let ids = payload.data.map(\.id)
         return ids.isEmpty ? [configuration.preferredModelID ?? "hermes-agent"] : ids
+    }
+
+    private struct SkillListResponse: Decodable, Sendable {
+        struct Entry: Decodable, Sendable {
+            let name: String
+            let description: String?
+            let category: String?
+        }
+
+        let data: [Entry]
+    }
+
+    public func fetchSkills() async throws -> [HermesSkill] {
+        var request = URLRequest(url: endpointURL("v1/skills"))
+        request.timeoutInterval = 10
+        setAuth(&request)
+
+        let (data, response) = try await data(for: request)
+        try validate(response: response, fallbackBody: data)
+
+        let payload: SkillListResponse
+        do {
+            payload = try decoder.decode(SkillListResponse.self, from: data)
+        } catch {
+            throw ClientError.invalidResponse
+        }
+
+        return payload.data.map { HermesSkill(name: $0.name, description: $0.description) }
     }
 
     public func loadConversationHistory(conversationID _: UUID) async throws -> [ConversationMessage] {
@@ -463,7 +507,7 @@ public actor HermesGatewayClient {
 
     private func endpointURL(_ path: String) -> URL {
         guard let baseURL = URL(string: configuration.baseURL) else {
-            return URL(string: "http://127.0.0.1:8642/\(path)")!
+            return URL(string: "\(HermesGatewayConfiguration.defaultBaseURL)/\(path)")!
         }
         return baseURL.appending(path: path)
     }

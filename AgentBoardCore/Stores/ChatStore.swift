@@ -30,6 +30,7 @@ public final class ChatStore {
 
     var messagesByConversationID: [UUID: [ConversationMessage]] = [:]
     var didBootstrap = false
+    private var conversationCapabilities: [UUID: Set<ChatCapability>] = [:]
 
     public init(
         hermesClient: HermesGatewayClient,
@@ -135,6 +136,25 @@ public final class ChatStore {
 
         statusMessage = "Using \(trimmedModelID)."
         errorMessage = nil
+    }
+
+    public func capabilities(for conversationID: UUID) -> Set<ChatCapability> {
+        conversationCapabilities[conversationID] ?? []
+    }
+
+    @discardableResult
+    public func toggleCapability(_ capability: ChatCapability, for conversationID: UUID) -> Bool {
+        var current = conversationCapabilities[conversationID] ?? []
+        let isOn: Bool
+        if current.contains(capability) {
+            current.remove(capability)
+            isOn = false
+        } else {
+            current.insert(capability)
+            isOn = true
+        }
+        conversationCapabilities[conversationID] = current
+        return isOn
     }
 
     public func addAttachment(_ attachment: ChatAttachment) {
@@ -283,7 +303,8 @@ public final class ChatStore {
                 text: trimmed,
                 attachments: attachmentsToSend,
                 conversation: selectedConversation ?? ChatConversation(id: conversationID, title: "Conversation"),
-                currentMessages: messagesByConversationID[conversationID] ?? []
+                currentMessages: messagesByConversationID[conversationID] ?? [],
+                capabilities: capabilities(for: conversationID)
             ),
             callbacks: streamCallbacks(for: conversationID)
         )

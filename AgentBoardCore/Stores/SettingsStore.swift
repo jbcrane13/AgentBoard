@@ -9,7 +9,7 @@ public final class SettingsStore {
     private let repository: SettingsRepository
     private let requiresRemoteCompanionHost: Bool
 
-    public var hermesGatewayURL = "http://127.0.0.1:8642"
+    public var hermesGatewayURL = HermesGatewayConfiguration.defaultBaseURL
     public var hermesModelID = "hermes-agent"
     public var hermesAPIKey = ""
     public var hermesProfiles: [HermesProfile] = []
@@ -34,7 +34,7 @@ public final class SettingsStore {
 
     public var settingsSnapshot: AgentBoardSettings {
         AgentBoardSettings(
-            hermesGatewayURL: hermesGatewayURL.trimmedOrNil ?? "http://127.0.0.1:8642",
+            hermesGatewayURL: hermesGatewayURL.trimmedOrNil ?? HermesGatewayConfiguration.defaultBaseURL,
             hermesModelID: hermesModelID.trimmedOrNil,
             hermesProfiles: hermesProfiles,
             selectedHermesProfileID: selectedHermesProfileID,

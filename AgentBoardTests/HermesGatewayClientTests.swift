@@ -57,6 +57,48 @@ struct HermesGatewayClientTests {
     }
 
     @Test
+    func fetchSkillsDecodesNameAndDescription() async throws {
+        let client = HermesGatewayClient(session: makeMockSession { request in
+            #expect(request.url?.path == "/v1/skills")
+            let response = try HTTPURLResponse(
+                url: #require(request.url),
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            let longDescription = String(repeating: "x", count: 150)
+            let payload = """
+            {
+              "object": "list",
+              "data": [
+                {"name": "code-review", "description": "Reviews a diff.", "category": null},
+                {"name": "deep-research", "description": "\(longDescription)", "category": "research"}
+              ]
+            }
+            """
+            return (response, Data(payload.utf8))
+        })
+        try await client.configure(
+            baseURL: "http://127.0.0.1:8642",
+            apiKey: nil,
+            preferredModelID: "hermes-agent"
+        )
+
+        let skills = try await client.fetchSkills()
+        #expect(skills == [
+            HermesSkill(name: "code-review", description: "Reviews a diff."),
+            HermesSkill(name: "deep-research", description: String(repeating: "x", count: 150))
+        ])
+    }
+
+    @Test
+    func defaultConfigurationUsesLiveGatewayPort() {
+        let configuration = HermesGatewayConfiguration()
+        #expect(configuration.baseURL == "http://127.0.0.1:8641")
+        #expect(HermesGatewayConfiguration.defaultBaseURL == "http://127.0.0.1:8641")
+    }
+
+    @Test
     func streamReplyYieldsStreamingContent() async throws {
         let client = HermesGatewayClient(session: makeMockSession { request in
             #expect(request.url?.path == "/v1/chat/completions")

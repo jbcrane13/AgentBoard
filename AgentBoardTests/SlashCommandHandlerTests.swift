@@ -174,6 +174,37 @@ struct SlashCommandHandlerTests {
         #expect(status.contains("5"))
     }
 
+    @Test func formatStatusIncludesActiveCapabilitiesWhenProvided() {
+        let status = SlashCommandHandler.formatStatus(
+            connectionState: "Connected",
+            model: "hermes-pro",
+            conversationTitle: "Test Chat",
+            messageCount: 5,
+            activeCapabilities: ["Thinking", "Web Access"]
+        )
+        #expect(status.contains("Thinking (prompt-injected)"))
+        #expect(status.contains("Web Access (prompt-injected)"))
+    }
+
+    @Test func formatSkillsReturnsFallbackWhenEmpty() {
+        let text = SlashCommandHandler.formatSkills([])
+        #expect(text == "No skills reported by the gateway.")
+    }
+
+    @Test func formatSkillsRendersBulletedNameAndTruncatedDescription() {
+        let longDescription = String(repeating: "x", count: 150)
+        let skills = [
+            HermesSkill(name: "code-review", description: "Reviews a diff."),
+            HermesSkill(name: "no-description", description: nil),
+            HermesSkill(name: "deep-research", description: longDescription)
+        ]
+        let text = SlashCommandHandler.formatSkills(skills)
+        #expect(text.contains("• code-review — Reviews a diff."))
+        #expect(text.contains("• no-description — "))
+        #expect(text.contains("• deep-research — " + String(repeating: "x", count: 100)))
+        #expect(!text.contains(String(repeating: "x", count: 101)))
+    }
+
     @Test func formatConfigIncludesURLAndModel() {
         let config = SlashCommandHandler.formatConfig(
             gatewayURL: "http://127.0.0.1:8642",
