@@ -33,6 +33,10 @@ struct NeuChatBubble: View {
                 }
             }
 
+            if message.role == .assistant, !message.toolActivities.isEmpty {
+                toolActivityChips
+            }
+
             if message.isStreaming, message.content.isEmpty {
                 Text("typing...")
                     .foregroundStyle(NeuPalette.textSecondary)
@@ -63,6 +67,50 @@ struct NeuChatBubble: View {
                 .stroke(NeuPalette.borderSoft, lineWidth: 1)
         )
         .shadow(color: NeuPalette.shadowDark.opacity(0.6), radius: 8, x: 0, y: 4)
+    }
+
+    private var toolActivityChips: some View {
+        HStack(spacing: 8) {
+            ForEach(message.toolActivities) { activity in
+                ToolActivityChip(activity: activity)
+            }
+        }
+    }
+}
+
+// MARK: - ToolActivityChip
+
+private struct ToolActivityChip: View {
+    let activity: ToolActivity
+
+    var body: some View {
+        HStack(spacing: 5) {
+            if let emoji = activity.emoji {
+                Text(emoji)
+            } else {
+                Image(systemName: "wrench.and.screwdriver")
+            }
+
+            Text(activity.label ?? activity.tool)
+                .lineLimit(1)
+
+            if activity.isComplete {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 9, weight: .semibold))
+            } else {
+                ProgressView()
+                    .controlSize(.mini)
+            }
+        }
+        .font(.caption)
+        .foregroundStyle(NeuPalette.textSecondary)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(
+            Capsule().fill(NeuPalette.surfaceHover)
+        )
+        .opacity(activity.isComplete ? 0.65 : 1.0)
+        .accessibilityIdentifier("chat_chip_tool_\(activity.id)")
     }
 }
 

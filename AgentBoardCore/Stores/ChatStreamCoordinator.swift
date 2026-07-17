@@ -89,10 +89,13 @@ final class ChatStreamCoordinator {
             callbacks.setConnectionState(.connected)
 
             for try await event in stream {
-                if case let .text(chunk) = event {
+                switch event {
+                case let .text(chunk):
                     assistantMessage.content += chunk
-                    callbacks.replaceMessages(requestMessages + [assistantMessage])
+                case let .toolProgress(progress):
+                    Self.apply(progress, to: &assistantMessage.toolActivities)
                 }
+                callbacks.replaceMessages(requestMessages + [assistantMessage])
             }
 
             assistantMessage.isStreaming = false
@@ -127,6 +130,23 @@ final class ChatStreamCoordinator {
                 errorMessage: error.localizedDescription,
                 connectionState: .failed
             )
+        }
+    }
+
+    nonisolated static func apply(_ progress: HermesToolProgress, to activities: inout [ToolActivity]) {
+        let isComplete = progress.status == "completed"
+        if let index = activities.firstIndex(where: { $0.id == progress.toolCallId }) {
+            if let emoji = progress.emoji { activities[index].emoji = emoji }
+            if let label = progress.label { activities[index].label = label }
+            activities[index].isComplete = isComplete
+        } else {
+            activities.append(ToolActivity(
+                id: progress.toolCallId,
+                tool: progress.tool,
+                emoji: progress.emoji,
+                label: progress.label,
+                isComplete: isComplete
+            ))
         }
     }
 

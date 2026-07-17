@@ -65,6 +65,70 @@ struct ChatStoreTests {
 
     @Test
     @MainActor
+    func sendDraftUpsertsToolActivitiesFromStreamedProgressEvents() async throws {
+        let hermesClient = HermesGatewayClient(session: makeMockSession { request in
+            #expect(request.url?.path == "/v1/chat/completions")
+
+            let response = try HTTPURLResponse(
+                url: #require(request.url),
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "text/event-stream"]
+            )!
+            let payload = """
+            data: {"choices":[{"delta":{"content":"Fresh"},"finish_reason":null}]}
+
+            event: hermes.tool.progress
+            data: {"tool":"web_search","emoji":"🔍","label":"Searching the web…","toolCallId":"call_1","status":"running"}
+
+            data: {"choices":[{"delta":{"content":" reply"},"finish_reason":null}]}
+
+            event: hermes.tool.progress
+            data: {"tool":"web_search","toolCallId":"call_1","status":"completed"}
+
+            data: {"choices":[{"delta":{},"finish_reason":"stop"}]}
+
+            data: [DONE]
+
+            """
+            return (response, Data(payload.utf8))
+        })
+
+        let suiteName = "ChatStoreTests-\(UUID().uuidString)"
+        let repository = SettingsRepository(
+            suiteName: suiteName,
+            serviceName: "ChatStoreTests-\(UUID().uuidString)"
+        )
+        let settingsStore = SettingsStore(repository: repository)
+        settingsStore.hermesGatewayURL = "http://127.0.0.1:8642"
+        settingsStore.hermesModelID = "hermes-agent"
+
+        let cache = try AgentBoardCache(inMemory: true)
+        let store = ChatStore(
+            hermesClient: hermesClient,
+            cache: cache,
+            settingsStore: settingsStore,
+            companionClient: CompanionClient()
+        )
+
+        store.startNewConversation()
+        store.draft = "Search something"
+
+        await store.sendDraft()
+
+        #expect(store.messages.count == 2)
+        #expect(store.messages[1].content == "Fresh reply")
+        #expect(store.messages[1].toolActivities.count == 1)
+        let activity = try #require(store.messages[1].toolActivities.first)
+        #expect(activity.id == "call_1")
+        #expect(activity.tool == "web_search")
+        #expect(activity.emoji == "🔍")
+        #expect(activity.label == "Searching the web…")
+        #expect(activity.isComplete)
+    }
+
+    @Test
+    @MainActor
     func bootstrapLoadsCompanionMessagesInParallelAndTreatsFailuresAsEmpty() async throws {
         let firstID = UUID()
         let secondID = UUID()
