@@ -102,6 +102,8 @@ struct DesktopRootView: View {
             }
         } else {
             switch desktopDestination(for: appModel.selectedDestination) {
+            case .dashboard:
+                DashboardScreen(onOpenChat: { isChatInspectorPresented = true })
             case .work:
                 WorkScreen()
             case .agents:

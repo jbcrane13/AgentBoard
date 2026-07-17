@@ -162,7 +162,7 @@ struct DesktopSidebar: View {
         case .work: appModel.workStore.items.count
         case .agents: appModel.agentsStore.summaries.count
         case .sessions: appModel.sessionsStore.sessions.count
-        case .chat, .settings: nil
+        case .dashboard, .chat, .settings: nil
         }
     }
 
