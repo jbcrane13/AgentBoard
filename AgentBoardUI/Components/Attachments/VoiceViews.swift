@@ -204,18 +204,18 @@ struct VoicePlaybackView: View {
         do {
             if let localURL = attachment.payload.localURL {
                 try playback.togglePlayback(attachmentID: attachmentUUID, url: localURL)
-} else if let remoteURL = attachment.remoteURL {
-    let (tempURL, _) = try await URLSession.shared.download(from: remoteURL)
+            } else if let remoteURL = attachment.remoteURL {
+                let (tempURL, _) = try await URLSession.shared.download(from: remoteURL)
 
-    let cachedURL = FileManager.default.temporaryDirectory
-        .appendingPathComponent("voice-\(attachmentUUID.uuidString)-\(tempURL.lastPathComponent)")
-    if FileManager.default.fileExists(atPath: cachedURL.path) {
-        try? FileManager.default.removeItem(at: cachedURL)
-    }
-    try FileManager.default.moveItem(at: tempURL, to: cachedURL)
+                let cachedURL = FileManager.default.temporaryDirectory
+                    .appendingPathComponent("voice-\(attachmentUUID.uuidString)-\(tempURL.lastPathComponent)")
+                if FileManager.default.fileExists(atPath: cachedURL.path) {
+                    try? FileManager.default.removeItem(at: cachedURL)
+                }
+                try FileManager.default.moveItem(at: tempURL, to: cachedURL)
 
-    try playback.togglePlayback(attachmentID: attachmentUUID, url: cachedURL)
-}
+                try playback.togglePlayback(attachmentID: attachmentUUID, url: cachedURL)
+            } else {
                 errorMessage = "No audio available"
             }
         } catch {
