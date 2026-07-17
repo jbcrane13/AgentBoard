@@ -116,11 +116,10 @@ struct WorkScreen: View {
 
     private var statusCounts: (open: Int, inProgress: Int, done: Int) {
         filteredItems.reduce(into: (open: 0, inProgress: 0, done: 0)) { counts, item in
-            switch item.status {
-            case .ready: counts.open += 1
-            case .inProgress, .review: counts.inProgress += 1
-            case .done: counts.done += 1
-            default: break
+            switch WorkBoardColumn.column(for: item.status) {
+            case .todo: counts.open += 1
+            case .inProgress: counts.inProgress += 1
+            case .resolved: counts.done += 1
             }
         }
     }
