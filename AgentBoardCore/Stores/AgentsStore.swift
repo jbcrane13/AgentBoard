@@ -117,6 +117,7 @@ public final class AgentsStore {
             if tasks.isEmpty {
                 errorMessage = error.localizedDescription
             } else {
+                errorMessage = nil
                 statusMessage = "Showing cached tasks — kanban refresh failed."
             }
         }
