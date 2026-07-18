@@ -1,159 +1,74 @@
 # AgentBoard Implementation Status
 
-Last updated: 2026-04-24
+Last updated: 2026-07-18
 
 This document tracks what the Hermes-first rewrite currently has, what is only partial, and what remains unfinished.
 
-## Implemented
-
 ## Documentation structure
 
-- Active rewrite documentation now lives in:
-  - `docs/PRD.md`
-  - `docs/implementation-status.md`
-  - `docs/architecture.md`
-  - `docs/ADR.md`
-- Pre-rewrite documentation has been moved under `docs/archive/pre-rewrite/`.
+- Active documentation lives in:
+  - `docs/PRD.md` — product intent and scope
+  - `docs/implementation-status.md` — this ledger
+  - `docs/architecture.md` — structure and data flow
+  - `docs/ADR.md` — major decisions (ADR-014 covers chat-history authority)
+  - `docs/superpowers/specs/` + `docs/superpowers/plans/` — the 2026-07 feature-complete effort's design spec and per-phase implementation plans
+- Pre-rewrite documentation is archived under `docs/archive/pre-rewrite/`.
 
-## Active architecture
+## Feature-complete milestone (2026-07-16 → 2026-07-18)
 
-- The active documented direction is a Hermes-first SwiftUI rebuild.
-- Active architecture decisions for the rewrite are recorded in `docs/ADR.md`.
-- The active system structure and runtime flow are recorded in `docs/architecture.md`.
-
-## Product surfaces defined as active
-
-These areas are part of the active rewrite scope:
-
-- Chat
-- Work
-- Agent Tasks
-- Sessions
-- Settings
-
-## Platform direction
-
-- macOS 26+ only
-- iOS 26+ only
-- SwiftUI-first approach on both platforms
-- latest Apple framework stack by default
+The roadmap specced in `docs/superpowers/specs/2026-07-16-feature-complete-stability-design.md` is fully delivered (issues #138–#146 plus follow-ups #152/#155/#157, PRs #147–#163). Test suite grew 392 → 483 across the effort.
 
 ## Implemented Feature Areas
 
-## Chat
+### Chat (Hermes gateway, HTTP + SSE on port 8641)
 
-- Hermes gateway is the active chat backend.
-- The documented product shape includes:
-  - connection state
-  - streaming replies
-  - multiple conversations
-  - local conversation snapshots
+- Streaming replies via OpenAI-compatible `/v1/chat/completions` with SSE; connection state; multiple conversations; local snapshots; Companion cross-device sync.
+- Block-level markdown rendering (headings, nested lists, tables, blockquotes, fenced code) via swift-markdown (`MarkdownBlockParser`).
+- Live tool-activity chips from `hermes.tool.progress` named SSE events.
+- Slash commands with autocomplete; `/think` `/web` `/code` `/image` `/speak` are functional per-conversation toggles (client-side prompt injection, labeled in `/status` — the gateway accepts no capability params); `/skills` lists real skills from `GET /v1/skills`.
+- Remote history: conversations bind to Hermes gateway sessions via `X-Hermes-Session-Id`; empty synced conversations hydrate from `GET /api/sessions/{id}/messages` (ADR-014). `hermesSessionID` survives Companion sync (SQLite column + migration).
+- Voice notes record and play back (`AudioPlaybackService`, AVAudioPlayer).
 
-## Work
+### Work (GitHub Issues board)
 
-- GitHub Issues are the documented source of truth for work.
-- The documented product shape includes:
-  - multi-repo issue loading
-  - normalized work items
-  - board and list presentation
-  - status updates flowing back to GitHub
+- Multi-repo issue loading (REST API + `gh` CLI fallback with Apple-silicon-aware path resolution), normalized work items, list + board presentation.
+- Three-column board: To Do / In Progress / Resolved (`WorkBoardColumn`, presentation-only remap — `status:*` labels preserved). Blocked items carry a badge inside In Progress.
+- Drag-and-drop with real transitions: drop on Resolved closes the issue, drag out reopens; header stat chips bucket identically to the columns.
 
-## Agent Tasks
+### Agent Tasks (kanban, `~/.hermes/kanban.db`)
 
-- Agent tasks are defined as companion-managed execution objects.
-- The documented product shape includes:
-  - task creation from work items
-  - agent assignment
-  - status and priority tracking
-  - linkage back to GitHub work
+- Six-column board read from the kanban DB; writes via the `hermes kanban` CLI; create/complete/block/comment/reassign/archive.
+- Drag-and-drop mapped to the CLI's semantic transitions (`KanbanBoardMove`: promote/block/unblock/complete); illegal drops (e.g. into Running — agent-claimed by design) revert with an explanatory message. Compact layout renders empty columns as drop targets.
+- SwiftData cache: instant board render on launch; board stays visible with a "showing cached tasks" notice when the DB is unreachable.
+- Agent rail activity = count of running kanban tasks per assignee (`activeTaskCount`). Session→task joins are impossible in this deployment (tasks run inline in per-profile gateway daemons); see issue #157 for the evidence and the Hermes-side change that would enable them.
 
-## Sessions
+### Dashboard
 
-- Sessions are defined as companion-owned runtime visibility.
-- The documented product shape includes:
-  - active and recent session display
-  - session metadata
-  - live-update refresh model
+- First destination on both platforms. `DashboardSnapshot` aggregates existing stores (no new services): agent-task counts + running titles, work-item counts per column, sessions + sync status, chat connection + recent conversations. Tiles navigate; refresh button + pull-to-refresh.
 
-## Settings And Persistence
+### Sessions, Settings, Persistence
 
-- The documented rewrite expects:
-  - separate Hermes, GitHub, and companion configuration
-  - local persistence for non-secret settings
-  - Keychain storage for secrets
-  - SwiftData-backed local cache
+- Active/recent session display from the Companion (SQLite-backed REST + event stream), jittered auto-refresh, live events.
+- Separate Hermes/GitHub/Companion configuration; Keychain secrets; SwiftData cache behind `AgentBoardCacheProtocol` (conversations, messages, work items, sessions, agent summaries, kanban tasks) with a `NoopAgentBoardCache` fallback instead of a crash when container creation fails.
 
-## Partial
+## Stability posture
 
-## Product definition
+- No `fatalError` in the bootstrap path; degraded modes everywhere external services can be absent (gateway down, kanban.db missing, companion unreachable).
+- 483 unit tests (Swift Testing + XCTest), SwiftLint strict, three schemes (AgentBoard, AgentBoardMobile, AgentBoardCompanion) build per PR.
 
-- The PRD now exists as `docs/PRD.md`, but it is intentionally concise and product-oriented.
-- Detailed system shape remains in `docs/architecture.md` and `docs/ADR.md` rather than being repeated in the PRD.
+## Unfinished / open
 
-## Current-state tracking
-
-- This file is now the implementation ledger, but it is documentation-only.
-- It reflects the active rewrite direction and known gaps from the current design pass.
-
-## Feature maturity
-
-- The product areas are defined clearly enough to guide implementation work.
-- The architecture, ADRs, and status doc now agree on the rewrite direction.
-- The status doc is separated from the PRD so product intent and delivery status no longer compete in one file.
-
-## Unfinished
-
-## Product and implementation gaps still called out by the active docs
-
-- Remote Hermes conversation history is not treated as complete.
-- Richer chat rendering and advanced chat controls are not treated as complete.
-- Full GitHub issue editing from the UI is not treated as complete.
-- Session control and deep session detail workflows are not treated as complete.
-- Companion session discovery is not treated as production-complete.
-- End-to-end UI smoke coverage is not treated as complete.
-
-## Area-by-area unfinished work
-
-## Chat gaps
-
-- Remote conversation history loading is still an open item.
-- Richer rendering for markdown, code blocks, and attachments is still an open item.
-- More complete reconnect and sync behavior is still an open item.
-
-## Work gaps
-
-- Full issue editing beyond status is still an open item.
-- Dedicated issue detail and richer filtering are still open items.
-
-## Agent task gaps
-
-- Rich task editing flows are still an open item.
-- Better session-linking and agent-assignment workflows are still open items.
-
-## Session gaps
-
-- Session controls remain an open item.
-- Deeper session detail views remain an open item.
-- Rich logs or transcript UX remain an open item.
-
-## Companion gaps
-
-- Companion runtime discovery is still treated as heuristic rather than production-grade.
-- More robust runtime orchestration and operational tooling remain open.
-
-## Quality gaps
-
-- End-to-end UI smoke coverage remains open.
-- There is still follow-up consistency work between active docs and the wider repository tree.
-
-## Repo consistency work still needed
-
-- Some older code and build-tree artifacts still exist in the repository even though the active docs now point at the rewrite direction.
-- The active docs are now separated cleanly, but the repository still needs a future pass if we want file layout, targets, and docs to line up perfectly everywhere.
+- **#157-adjacent:** per-agent *session* counts (as opposed to running-task counts) need a Hermes-side change (`_set_worker_pid` from the inline claim path) — parked; do not re-attempt an AgentBoard-side join. The companion's probe-based `activeSessionCount` is real but unconsumed by the app (`CompanionClient.listAgents()` has no callers).
+- Session controls / deeper session detail / transcript UX remain open.
+- Full GitHub issue editing beyond status + detail-sheet fields remains open.
+- Companion runtime discovery is heuristic rather than production-grade.
+- End-to-end UI smoke coverage (XCUITest) remains open; unit coverage is strong.
+- LifeOps executive-assistant module (`docs/PRD-lifeops-executive-assistant.md`) is specced but intentionally out of scope / unimplemented.
+- `DemoFixtures.swift` is orphaned (nothing references it) — cleanup candidate.
 
 ## Canonical Usage
 
 - Use `docs/PRD.md` for product intent and scope.
 - Use `docs/implementation-status.md` for implemented versus unfinished status.
 - Use `docs/architecture.md` for structure and data flow.
-- Use `docs/ADR.md` for major rewrite decisions.
+- Use `docs/ADR.md` for major decisions.
