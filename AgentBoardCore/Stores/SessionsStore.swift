@@ -146,6 +146,17 @@ public final class SessionsStore {
         }
     }
 
+    public func fetchTranscript(sessionID: String) async -> SessionTranscript? {
+        guard settingsStore.isCompanionConfigured else { return nil }
+        do {
+            return try await companionClient.fetchTranscript(sessionID: sessionID)
+        } catch {
+            logger.error("Failed to fetch session transcript: \(error.localizedDescription, privacy: .public)")
+            errorMessage = error.localizedDescription
+            return nil
+        }
+    }
+
     public func handle(event: CompanionEventKind) async {
         switch event {
         case .sessionsChanged, .snapshotRefreshed:
