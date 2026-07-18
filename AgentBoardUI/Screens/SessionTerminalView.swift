@@ -63,7 +63,7 @@ struct SessionTerminalView: View {
                 lifecycleErrorBanner
 
                 #if os(macOS) && canImport(SwiftTerm)
-                    if session.status == .running || session.status == .completed {
+                    if session.status == .running || session.status == .completed || session.status == .stalled {
                         nudgeBar
                     }
                 #endif
@@ -170,23 +170,30 @@ struct SessionTerminalView: View {
                     .disabled(showsAttachmentFallback)
                     .accessibilityLabel(isReadOnly ? "Take keyboard control of session" : "Release keyboard control")
                     .accessibilityIdentifier("session_button_takecontrol")
+                #endif
+            }
 
-                    if appModel.sessionLauncher.canRelaunch(sessionName: session.sessionName) {
-                        Button {
-                            restart()
-                        } label: {
-                            HStack(spacing: 4) {
-                                Image(systemName: "arrow.clockwise")
-                                    .font(.system(size: 11, weight: .semibold))
-                                Text("Restart")
-                                    .font(.caption.weight(.semibold))
-                            }
+            #if os(macOS) && canImport(SwiftTerm)
+                // Restart applies whenever AgentBoard launched the session (a stored
+                // LaunchConfig exists) — including failed sessions, where it matters most.
+                if appModel.sessionLauncher.canRelaunch(sessionName: session.sessionName) {
+                    Button {
+                        restart()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.system(size: 11, weight: .semibold))
+                            Text("Restart")
+                                .font(.caption.weight(.semibold))
                         }
-                        .buttonStyle(NeuButtonTarget(isAccent: false))
-                        .accessibilityLabel("Restart session")
-                        .accessibilityIdentifier("session_button_restart")
                     }
+                    .buttonStyle(NeuButtonTarget(isAccent: false))
+                    .accessibilityLabel("Restart session")
+                    .accessibilityIdentifier("session_button_restart")
+                }
 
+                // Kill applies to any still-alive tmux session, including stalled ones.
+                if session.status == .running || session.status == .completed || session.status == .stalled {
                     Button {
                         showKillConfirmation = true
                     } label: {
@@ -213,8 +220,8 @@ struct SessionTerminalView: View {
                         }
                         Button("Cancel", role: .cancel) {}
                     }
-                #endif
-            }
+                }
+            #endif
 
             Button {
                 attachmentController.detach()
