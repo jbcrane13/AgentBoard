@@ -306,6 +306,18 @@ public final class SessionLauncher {
         LiveTmuxController.attachCommand(for: sessionName)
     }
 
+    /// Read-only/interactive variant used by the live-attach terminal
+    /// (`SessionAttachmentController`). Assembles the socket-qualified
+    /// executable + arguments from the pure `attachArguments` builder.
+    public static func attachCommand(
+        for sessionName: String,
+        readOnly: Bool
+    ) -> (executable: String, arguments: [String]) {
+        let arguments = ["-S", tmuxSocketPath] +
+            SessionAttachmentController.attachArguments(sessionName: sessionName, readOnly: readOnly)
+        return (tmuxExecutablePath, arguments)
+    }
+
     // MARK: - Monitoring
 
     public func startMonitoring() {
