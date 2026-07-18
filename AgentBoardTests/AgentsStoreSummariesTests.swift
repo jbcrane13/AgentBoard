@@ -5,7 +5,7 @@ import Testing
 @Suite("AgentsStore summary derivation (kanban picker data source)")
 struct AgentsStoreSummariesTests {
     @Test func buildAgentSummariesReturnsEmptyForNoTasks() {
-        let summaries = AgentsStore.buildAgentSummaries(from: [], sessionCounts: [:])
+        let summaries = AgentsStore.buildAgentSummaries(from: [])
         #expect(summaries.isEmpty)
     }
 
@@ -15,7 +15,7 @@ struct AgentsStoreSummariesTests {
             makeTask(id: "2", assignee: "daneel"),
             makeTask(id: "3", assignee: "quentin")
         ]
-        let summaries = AgentsStore.buildAgentSummaries(from: tasks, sessionCounts: [:])
+        let summaries = AgentsStore.buildAgentSummaries(from: tasks)
         let names = summaries.map(\.name)
         #expect(names.count == 2)
         #expect(Set(names) == ["daneel", "quentin"])
@@ -26,7 +26,7 @@ struct AgentsStoreSummariesTests {
             makeTask(id: "1", assignee: "daneel"),
             makeTask(id: "2", assignee: nil)
         ]
-        let summaries = AgentsStore.buildAgentSummaries(from: tasks, sessionCounts: [:])
+        let summaries = AgentsStore.buildAgentSummaries(from: tasks)
         #expect(summaries.map(\.name) == ["daneel"])
     }
 
@@ -39,7 +39,7 @@ struct AgentsStoreSummariesTests {
             makeTask(id: "3", assignee: "   "),
             makeTask(id: "4", assignee: "\t\n")
         ]
-        let summaries = AgentsStore.buildAgentSummaries(from: tasks, sessionCounts: [:])
+        let summaries = AgentsStore.buildAgentSummaries(from: tasks)
         #expect(summaries.map(\.name) == ["daneel"])
     }
 
@@ -49,7 +49,7 @@ struct AgentsStoreSummariesTests {
             makeTask(id: "2", assignee: "alice"),
             makeTask(id: "3", assignee: "Daneel")
         ]
-        let summaries = AgentsStore.buildAgentSummaries(from: tasks, sessionCounts: [:])
+        let summaries = AgentsStore.buildAgentSummaries(from: tasks)
         #expect(summaries.map(\.name) == ["alice", "Daneel", "Quentin"])
     }
 
@@ -57,7 +57,7 @@ struct AgentsStoreSummariesTests {
         let tasks = [
             makeTask(id: "1", assignee: "daneel", status: .running)
         ]
-        let summaries = AgentsStore.buildAgentSummaries(from: tasks, sessionCounts: [:])
+        let summaries = AgentsStore.buildAgentSummaries(from: tasks)
         let summary = summaries.first
         #expect(summary?.health == .online)
         #expect(summary?.activeTaskCount == 1)
@@ -68,7 +68,7 @@ struct AgentsStoreSummariesTests {
             makeTask(id: "1", assignee: "daneel", status: .todo),
             makeTask(id: "2", assignee: "daneel", status: .done)
         ]
-        let summaries = AgentsStore.buildAgentSummaries(from: tasks, sessionCounts: [:])
+        let summaries = AgentsStore.buildAgentSummaries(from: tasks)
         let summary = summaries.first
         #expect(summary?.health == .idle)
         #expect(summary?.activeTaskCount == 0)
@@ -87,7 +87,7 @@ struct AgentsStoreSummariesTests {
             makeTask(id: "2", assignee: "daneel", status: .todo),
             makeTask(id: "3", assignee: "\tdaneel\n", status: .done)
         ]
-        let summaries = AgentsStore.buildAgentSummaries(from: tasks, sessionCounts: [:])
+        let summaries = AgentsStore.buildAgentSummaries(from: tasks)
         let summary = summaries.first
         #expect(summaries.count == 1)
         #expect(summary?.name == "daneel")
@@ -114,7 +114,7 @@ struct AgentsStoreSummariesTests {
                 createdAt: recentDate
             )
         ]
-        let summaries = AgentsStore.buildAgentSummaries(from: tasks, sessionCounts: [:])
+        let summaries = AgentsStore.buildAgentSummaries(from: tasks)
         #expect(summaries.first?.recentActivity == "newer")
     }
 
@@ -125,30 +125,53 @@ struct AgentsStoreSummariesTests {
             makeTask(id: "1", assignee: "  Claude  "),
             makeTask(id: "2", assignee: "claude")
         ]
-        let summaries = AgentsStore.buildAgentSummaries(from: tasks, sessionCounts: [:])
+        let summaries = AgentsStore.buildAgentSummaries(from: tasks)
         #expect(Set(summaries.map(\.name)) == ["Claude", "claude"])
     }
 
-    // MARK: - Session counts (issue #144)
+    // MARK: - Active session count as running task count (workaround for #157)
 
-    @Test func buildAgentSummariesReflectsInjectedSessionCount() {
-        let tasks = [makeTask(id: "1", assignee: "daneel")]
-        let summaries = AgentsStore.buildAgentSummaries(from: tasks, sessionCounts: ["daneel": 3])
-        #expect(summaries.first?.activeSessionCount == 3)
+    @Test func buildAgentSummariesActiveSessionCountEqualsRunningTaskCount() {
+        let tasks = [
+            makeTask(id: "1", assignee: "daneel", status: .running),
+            makeTask(id: "2", assignee: "daneel", status: .running),
+            makeTask(id: "3", assignee: "daneel", status: .todo)
+        ]
+        let summaries = AgentsStore.buildAgentSummaries(from: tasks)
+        #expect(summaries.first?.activeSessionCount == 2)
+        #expect(summaries.first?.activeSessionCount == summaries.first?.activeTaskCount)
     }
 
-    @Test func buildAgentSummariesDefaultsToZeroForUnknownAssignee() {
-        let tasks = [makeTask(id: "1", assignee: "daneel")]
-        let summaries = AgentsStore.buildAgentSummaries(from: tasks, sessionCounts: ["quentin": 5])
+    @Test func buildAgentSummariesNonRunningStatusesDoNotCountTowardActiveSessionCount() {
+        let tasks = [
+            makeTask(id: "1", assignee: "daneel", status: .todo),
+            makeTask(id: "2", assignee: "daneel", status: .ready),
+            makeTask(id: "3", assignee: "daneel", status: .blocked),
+            makeTask(id: "4", assignee: "daneel", status: .done)
+        ]
+        let summaries = AgentsStore.buildAgentSummaries(from: tasks)
         #expect(summaries.first?.activeSessionCount == 0)
     }
 
-    @Test func buildAgentSummariesSessionCountLookupUsesTrimmedAssignee() {
-        // sessionCounts is keyed by the same trimmed-assignee string the
-        // per-summary task filter uses, so padded assignees still resolve.
-        let tasks = [makeTask(id: "1", assignee: "  daneel  ")]
-        let summaries = AgentsStore.buildAgentSummaries(from: tasks, sessionCounts: ["daneel": 2])
+    @Test func buildAgentSummariesActiveSessionCountUsesTrimmedAssignee() {
+        let tasks = [
+            makeTask(id: "1", assignee: "  daneel  ", status: .running),
+            makeTask(id: "2", assignee: "daneel", status: .running)
+        ]
+        let summaries = AgentsStore.buildAgentSummaries(from: tasks)
+        #expect(summaries.count == 1)
         #expect(summaries.first?.activeSessionCount == 2)
+    }
+
+    @Test func buildAgentSummariesUnassignedRunningTasksCountTowardNoAgent() {
+        let tasks = [
+            makeTask(id: "1", assignee: nil, status: .running),
+            makeTask(id: "2", assignee: "daneel", status: .running)
+        ]
+        let summaries = AgentsStore.buildAgentSummaries(from: tasks)
+        #expect(summaries.count == 1)
+        #expect(summaries.first?.name == "daneel")
+        #expect(summaries.first?.activeSessionCount == 1)
     }
 
     // MARK: - Helpers

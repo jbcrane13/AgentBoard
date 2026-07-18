@@ -115,7 +115,6 @@
 		97BD3D8CCE198A034A5E0C2F /* AttachmentPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E3C09A95E37674D30B6072F /* AttachmentPicker.swift */; };
 		9A90C5EF45CA6630C7EA64CD /* SessionLauncherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE1B1DC901AD1D60B3855D38 /* SessionLauncherTests.swift */; };
 		9A97D7081D317A037684C058 /* WorkBoardColumn.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09451390C71FFAD903439B0F /* WorkBoardColumn.swift */; };
-		9D005EDAE8079475FA09FE67 /* AgentBoardAppModelActiveSessionCountsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61E105E4FF286F13A9AB9E6E /* AgentBoardAppModelActiveSessionCountsTests.swift */; };
 		9EAAAF4FFBF10F8A576AF5BD /* SessionLauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08B7CE4C138A75D87781C1DB /* SessionLauncher.swift */; };
 		9EAC1A69746A2ABCB376F952 /* KanbanBoardMoveTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3540D69FA92919FFD0494695 /* KanbanBoardMoveTests.swift */; };
 		A51107E477749B979572DD17 /* AttachmentModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9D42E5CA1B251EA0284E8C6 /* AttachmentModels.swift */; };
@@ -323,7 +322,6 @@
 		5A9DDB4F3F626262EACA72A8 /* AudioPlaybackServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlaybackServiceTests.swift; sourceTree = "<group>"; };
 		5DE53DBCDB728D1E417AC4E5 /* ChatStreamCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatStreamCoordinatorTests.swift; sourceTree = "<group>"; };
 		5F60733BA5BCAD5BD388E855 /* AgentBoardMobile.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = AgentBoardMobile.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		61E105E4FF286F13A9AB9E6E /* AgentBoardAppModelActiveSessionCountsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentBoardAppModelActiveSessionCountsTests.swift; sourceTree = "<group>"; };
 		63376B7513D3E5CFE45372D6 /* BoardPalette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardPalette.swift; sourceTree = "<group>"; };
 		6350F1AD876CFC0042771A6F /* NoopAgentBoardCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoopAgentBoardCache.swift; sourceTree = "<group>"; };
 		651B64AF0921713BAE550D2D /* TaskDetailSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskDetailSheet.swift; sourceTree = "<group>"; };
@@ -462,7 +460,6 @@
 			isa = PBXGroup;
 			children = (
 				7F57CF813491E81109CBBEE1 /* AccessibilityIdentifierTests.swift */,
-				61E105E4FF286F13A9AB9E6E /* AgentBoardAppModelActiveSessionCountsTests.swift */,
 				C8ECD5A8D1C4F9C4099CBB9C /* AgentBoardCacheTests.swift */,
 				E8CF0F5C192569919CF193BC /* AgentsStoreCacheTests.swift */,
 				F5C500C7AF3B484DBB847E3A /* AgentsStoreCreateTaskTests.swift */,
@@ -1018,7 +1015,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				D66940F899C73350695B1CDE /* AccessibilityIdentifierTests.swift in Sources */,
-				9D005EDAE8079475FA09FE67 /* AgentBoardAppModelActiveSessionCountsTests.swift in Sources */,
 				BAFAE9A54D7EB126DB951F33 /* AgentBoardCacheTests.swift in Sources */,
 				5DC0B92D03F399A54BFFE28F /* AgentsStoreCacheTests.swift in Sources */,
 				31F4BD470BD142ABB72D00E8 /* AgentsStoreCreateTaskTests.swift in Sources */,
