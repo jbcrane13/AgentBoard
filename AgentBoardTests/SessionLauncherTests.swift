@@ -127,6 +127,24 @@ struct SessionLauncherTests {
         #expect(SessionLauncher.tmuxSocketPath.hasSuffix("/.tmux/sock"))
     }
 
+    @Test @MainActor func attachCommandReadOnlyIncludesSocketAndFlag() {
+        let attach = SessionLauncher.attachCommand(for: "ab-repo-1", readOnly: true)
+        #expect(attach.executable == SessionLauncher.tmuxExecutablePath)
+        #expect(attach.arguments == [
+            "-S", SessionLauncher.tmuxSocketPath,
+            "attach-session", "-r", "-t", "ab-repo-1"
+        ])
+    }
+
+    @Test @MainActor func attachCommandInteractiveOmitsReadOnlyFlag() {
+        let attach = SessionLauncher.attachCommand(for: "ab-repo-1", readOnly: false)
+        #expect(attach.executable == SessionLauncher.tmuxExecutablePath)
+        #expect(attach.arguments == [
+            "-S", SessionLauncher.tmuxSocketPath,
+            "attach-session", "-t", "ab-repo-1"
+        ])
+    }
+
     @Test @MainActor func checkSessionReturnsCompletedWhenPaneShowsSuccessfulExit() async {
         let launcher = SessionLauncher(tmux: FakeTmuxController(
             hasSessionResult: true,

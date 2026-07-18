@@ -8,6 +8,32 @@ struct SessionTerminalView: View {
     @Binding var isExpanded: Bool
     let onMinimize: () -> Void
 
+    @State private var attachmentController = SessionAttachmentController()
+    @State private var hasAttachedOnce = false
+    @State private var fallbackTranscript: SessionTranscript?
+
+    private var isReadOnly: Bool {
+        if case .attachedInteractive = attachmentController.state { return false }
+        return true
+    }
+
+    private var attachmentFailureMessage: String? {
+        if case let .failed(message) = attachmentController.state { return message }
+        return nil
+    }
+
+    private var showsAttachmentFallback: Bool {
+        switch attachmentController.state {
+        case .failed: true
+        case .detached: hasAttachedOnce
+        case .attachedReadOnly, .attachedInteractive: false
+        }
+    }
+
+    private var matchingAgentSession: AgentSession? {
+        appModel.sessionsStore.sessions.first { $0.tmuxSession == session.sessionName }
+    }
+
     private var statusColor: Color {
         switch session.status {
         case .running: NeuPalette.accentCyan
@@ -43,7 +69,11 @@ struct SessionTerminalView: View {
                 }
             }
         }
-        .accessibilityIdentifier("screen_session_terminal")
+        .accessibilityIdentifier("session_terminal_view")
+        .task(id: session.sessionName) {
+            attachmentController.attach(sessionName: session.sessionName)
+            hasAttachedOnce = true
+        }
     }
 
     // MARK: - Header
@@ -111,9 +141,31 @@ struct SessionTerminalView: View {
                 .buttonStyle(NeuButtonTarget(isAccent: true))
                 .accessibilityLabel("Open session in Terminal.app")
                 .accessibilityIdentifier("session_terminal_open_terminal")
+
+                #if os(macOS) && canImport(SwiftTerm)
+                    Button {
+                        if isReadOnly {
+                            attachmentController.takeControl()
+                        } else {
+                            attachmentController.releaseControl()
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: isReadOnly ? "keyboard" : "keyboard.fill")
+                                .font(.system(size: 11, weight: .semibold))
+                            Text(isReadOnly ? "Take Control" : "Release")
+                                .font(.caption.weight(.semibold))
+                        }
+                    }
+                    .buttonStyle(NeuButtonTarget(isAccent: !isReadOnly))
+                    .disabled(showsAttachmentFallback)
+                    .accessibilityLabel(isReadOnly ? "Take keyboard control of session" : "Release keyboard control")
+                    .accessibilityIdentifier("session_button_takecontrol")
+                #endif
             }
 
             Button {
+                attachmentController.detach()
                 onMinimize()
             } label: {
                 Image(systemName: "xmark.circle.fill")
@@ -121,8 +173,8 @@ struct SessionTerminalView: View {
                     .foregroundStyle(NeuPalette.textSecondary)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Close session terminal")
-            .accessibilityIdentifier("session_terminal_close")
+            .accessibilityLabel("Minimize session terminal")
+            .accessibilityIdentifier("session_button_minimize")
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
@@ -145,17 +197,11 @@ struct SessionTerminalView: View {
     @ViewBuilder
     private var terminalContentView: some View {
         #if os(macOS) && canImport(SwiftTerm)
-            let attach = SessionLauncher.attachCommand(for: session.sessionName)
-            EmbeddedTerminalView(
-                executable: attach.executable,
-                arguments: attach.arguments,
-                environment: nil,
-                onProcessExit: { _ in }
-            )
-            .id(session.sessionName)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color(red: 0.06, green: 0.06, blue: 0.08))
-            .accessibilityIdentifier("session_terminal_embedded")
+            if showsAttachmentFallback {
+                attachmentFallbackView
+            } else {
+                liveTerminalView
+            }
         #else
             VStack(spacing: 12) {
                 Image(systemName: "desktopcomputer.trianglebadge.exclamationmark")
@@ -168,6 +214,94 @@ struct SessionTerminalView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         #endif
     }
+
+    #if os(macOS) && canImport(SwiftTerm)
+        @ViewBuilder
+        private var liveTerminalView: some View {
+            let readOnly = isReadOnly
+            let attach = SessionLauncher.attachCommand(for: session.sessionName, readOnly: readOnly)
+            let sessionName = session.sessionName
+
+            VStack(spacing: 0) {
+                if !readOnly {
+                    interactiveBanner
+                }
+
+                EmbeddedTerminalView(
+                    executable: attach.executable,
+                    arguments: attach.arguments,
+                    environment: nil,
+                    isInputEnabled: !readOnly,
+                    onProcessExit: { _ in
+                        attachmentController.handleProcessExit(sessionName: sessionName, wasReadOnly: readOnly)
+                    }
+                )
+                .id("\(sessionName)-\(readOnly ? "ro" : "rw")")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color(red: 0.06, green: 0.06, blue: 0.08))
+                .accessibilityIdentifier("session_terminal_embedded")
+            }
+        }
+
+        private var interactiveBanner: some View {
+            HStack(spacing: 8) {
+                Image(systemName: "keyboard.fill")
+                    .font(.caption.weight(.bold))
+                Text("Keyboard input live")
+                    .font(.caption.weight(.bold))
+            }
+            .foregroundStyle(NeuPalette.accentCyan)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(NeuPalette.accentCyan.opacity(0.12))
+        }
+
+        private var transcriptContent: String {
+            guard let content = fallbackTranscript?.content, !content.isEmpty else {
+                return "No transcript available yet"
+            }
+            return content
+        }
+
+        private var attachmentFallbackView: some View {
+            VStack(spacing: 16) {
+                Image(systemName: "text.alignleft")
+                    .font(.system(size: 40))
+                    .foregroundStyle(NeuPalette.textSecondary)
+
+                Text(attachmentFailureMessage != nil ? "Attachment Failed" : "Session Ended")
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(NeuPalette.textPrimary)
+
+                if let message = attachmentFailureMessage {
+                    Text(message)
+                        .font(.caption.monospaced())
+                        .foregroundStyle(NeuPalette.textTertiary)
+                        .padding(12)
+                        .background(Color.red.opacity(0.08))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                }
+
+                ScrollView(showsIndicators: false) {
+                    Text(transcriptContent)
+                        .font(.caption.monospaced())
+                        .foregroundStyle(NeuPalette.textPrimary)
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(16)
+                }
+                .neuRecessed(cornerRadius: 16, depth: 6)
+            }
+            .padding(24)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .accessibilityIdentifier("session_transcript_view")
+            .task(id: matchingAgentSession?.id) {
+                guard let agentSessionID = matchingAgentSession?.id else { return }
+                fallbackTranscript = await appModel.sessionsStore.fetchTranscript(sessionID: agentSessionID)
+            }
+        }
+    #endif
 
     // MARK: - Failed State
 

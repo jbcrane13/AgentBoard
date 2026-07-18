@@ -25,6 +25,7 @@
 		171A150F155917F5196D7647 /* ChatHeaderPickerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E01910C75287C5F3B6650B2A /* ChatHeaderPickerTests.swift */; };
 		18479A684D668F5C137C5C86 /* TmuxController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B80C98C4E1D5870D7ED4E2D /* TmuxController.swift */; };
 		18513E9340A65D8111F82D18 /* DomainPills.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A169A5D550028B6D20B397D /* DomainPills.swift */; };
+		19C152C9A61C6B7530B2672B /* SessionAttachmentController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D3A8C23826AD8125B9E85E2 /* SessionAttachmentController.swift */; };
 		1C711E565B9941FC998F8265 /* WorkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A06C1DAB866C77FF3A634D71 /* WorkStore.swift */; };
 		1C7E32DFC4B2295F98363820 /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F876603AEC9BE7B94289CA01 /* SettingsStore.swift */; };
 		1DBE4EB751A629F1664040D8 /* IssueDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26A31E0F643092B573A4DB9D /* IssueDetailSheet.swift */; };
@@ -93,6 +94,7 @@
 		76B247EEC86F1DB735601C7C /* TranscriptCaptureThrottleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA9D4BB1359158928CC39AD6 /* TranscriptCaptureThrottleTests.swift */; };
 		77E2DDC0D4C0CA009FD508F0 /* EmbeddedTerminalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A978B41E9572538A1E74E5C /* EmbeddedTerminalView.swift */; };
 		7AC30545E6D54E227C8831BA /* AgentBoardCompanionKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DB3E71CE348AC298EB4048DE /* AgentBoardCompanionKit.framework */; };
+		7BC603692D8E25BF51DF8F9D /* SessionAttachmentControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 542D187F8CE06B1BF01B7BB8 /* SessionAttachmentControllerTests.swift */; };
 		7DE9CA2273E136476F38D922 /* TaskDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 651B64AF0921713BAE550D2D /* TaskDetailSheet.swift */; };
 		7E6D512A772F03628C275D52 /* LaunchSessionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03AD61915721952F19190205 /* LaunchSessionSheet.swift */; };
 		81239439DAB83C92B81C7C96 /* AgentsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26BDC7F11FD4398428433E67 /* AgentsStore.swift */; };
@@ -291,6 +293,7 @@
 		19CE389F4A620817A309F601 /* DesignSemanticsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSemanticsTests.swift; sourceTree = "<group>"; };
 		1A169A5D550028B6D20B397D /* DomainPills.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainPills.swift; sourceTree = "<group>"; };
 		1B80C98C4E1D5870D7ED4E2D /* TmuxController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TmuxController.swift; sourceTree = "<group>"; };
+		1D3A8C23826AD8125B9E85E2 /* SessionAttachmentController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionAttachmentController.swift; sourceTree = "<group>"; };
 		1F06E0C2FFE9CAC90D48662B /* HermesGatewayClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HermesGatewayClientTests.swift; sourceTree = "<group>"; };
 		1FFDF3222AEE5530E6C58DFC /* QuickLaunchSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickLaunchSheet.swift; sourceTree = "<group>"; };
 		26A31E0F643092B573A4DB9D /* IssueDetailSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IssueDetailSheet.swift; sourceTree = "<group>"; };
@@ -319,6 +322,7 @@
 		4E8BA0A7421FAF69CBF5AD4F /* MarkdownBlockParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownBlockParser.swift; sourceTree = "<group>"; };
 		4F7D59DE18AF7B3E0D84EF9A /* DesktopSidebar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesktopSidebar.swift; sourceTree = "<group>"; };
 		52959B32060C120BA1BB1AB7 /* ShellEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShellEnvironment.swift; sourceTree = "<group>"; };
+		542D187F8CE06B1BF01B7BB8 /* SessionAttachmentControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionAttachmentControllerTests.swift; sourceTree = "<group>"; };
 		54CA712A46E969ED79300E4F /* LinkPreviewService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkPreviewService.swift; sourceTree = "<group>"; };
 		5A9DDB4F3F626262EACA72A8 /* AudioPlaybackServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlaybackServiceTests.swift; sourceTree = "<group>"; };
 		5DE53DBCDB728D1E417AC4E5 /* ChatStreamCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatStreamCoordinatorTests.swift; sourceTree = "<group>"; };
@@ -495,6 +499,7 @@
 				BB5CC5206E88A59FBD80A856 /* NativeSwiftUIInterfaceTests.swift */,
 				0B023A92D06AE2F3272FC200 /* NoopAgentBoardCacheTests.swift */,
 				9503F3F8C1E54BE6D35A3641 /* PRDComposerTests.swift */,
+				542D187F8CE06B1BF01B7BB8 /* SessionAttachmentControllerTests.swift */,
 				CE1B1DC901AD1D60B3855D38 /* SessionLauncherTests.swift */,
 				92E0CE9F3A8E9CA87A6C3B95 /* SessionsStoreTests.swift */,
 				B4813FBD80F9AC10D1A51841 /* SettingsStoreTests.swift */,
@@ -702,6 +707,7 @@
 				C86007C1F74BD16FE6181012 /* ChatStore+Internals.swift */,
 				066AD427D541EBD8687B6276 /* ChatStore+SlashCommands.swift */,
 				A40E2B4B6D9AD354BA23C3BF /* ChatStreamCoordinator.swift */,
+				1D3A8C23826AD8125B9E85E2 /* SessionAttachmentController.swift */,
 				A5B9C06C17BE65937A00661D /* SessionsStore.swift */,
 				F876603AEC9BE7B94289CA01 /* SettingsStore.swift */,
 				A06C1DAB866C77FF3A634D71 /* WorkStore.swift */,
@@ -1051,6 +1057,7 @@
 				9781E0240F8A4C6FC3DC30B7 /* NativeSwiftUIInterfaceTests.swift in Sources */,
 				B13E9A7DA4903C65AE1FEEC6 /* NoopAgentBoardCacheTests.swift in Sources */,
 				DAB3EA4A5AF33E4165CD6551 /* PRDComposerTests.swift in Sources */,
+				7BC603692D8E25BF51DF8F9D /* SessionAttachmentControllerTests.swift in Sources */,
 				9A90C5EF45CA6630C7EA64CD /* SessionLauncherTests.swift in Sources */,
 				F18232EF1BD587C14FCCD06F /* SessionsStoreTests.swift in Sources */,
 				D4674853A5F6064FC3E65542 /* SettingsStoreTests.swift in Sources */,
@@ -1103,6 +1110,7 @@
 				DF0EA5DC994F51BF546BA378 /* NoopAgentBoardCache.swift in Sources */,
 				A86A0A76B46CE6265194C0A6 /* PRDComposer.swift in Sources */,
 				D806724D20A2D1EC0A81416B /* ProcessAsync.swift in Sources */,
+				19C152C9A61C6B7530B2672B /* SessionAttachmentController.swift in Sources */,
 				9EAAAF4FFBF10F8A576AF5BD /* SessionLauncher.swift in Sources */,
 				5407CC8EF71865713E95B1BF /* SessionsStore.swift in Sources */,
 				5B810A52F3C78D394BE76608 /* SettingsRepository.swift in Sources */,

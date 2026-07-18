@@ -265,13 +265,15 @@ struct AccessibilityIdentifierTests {
         assertIdentifiers(required, in: source)
     }
 
-    @Test("Session terminal view exposes identifiers for embedded, failed, and stalled states")
+    @Test("Session terminal view exposes identifiers for attach, take control, minimize, failed, and stalled states")
     func sessionTerminalViewIdentifiers() throws {
         let source = try readUISource("Screens/SessionTerminalView.swift")
         let required = [
+            "session_terminal_view",
             "session_terminal_toggle_expand",
             "session_terminal_open_terminal",
-            "session_terminal_close",
+            "session_button_takecontrol",
+            "session_button_minimize",
             "session_terminal_embedded",
             "session_terminal_failed_open_terminal",
             "session_terminal_failed_close",
