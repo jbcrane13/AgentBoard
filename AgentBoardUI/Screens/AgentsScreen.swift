@@ -143,10 +143,12 @@ struct AgentsScreen: View {
 
                         ForEach(KanbanStatus.boardColumns, id: \.self) { status in
                             let columnTasks = appModel.agentsStore.tasks.filter { $0.status == status }
-                            if !columnTasks.isEmpty {
-                                VStack(alignment: .leading, spacing: 12) {
-                                    kanbanColumnHeader(status: status, count: columnTasks.count)
+                            VStack(alignment: .leading, spacing: 12) {
+                                kanbanColumnHeader(status: status, count: columnTasks.count)
 
+                                if columnTasks.isEmpty {
+                                    compactDropzonePlaceholder(status: status)
+                                } else {
                                     ForEach(columnTasks) { task in
                                         KanbanTaskRow(
                                             task: task,
@@ -157,9 +159,9 @@ struct AgentsScreen: View {
                                         .draggable(KanbanTaskID(task.id))
                                     }
                                 }
-                                .dropDestination(for: KanbanTaskID.self) { ids, _ in
-                                    handleDrop(ids, to: status)
-                                }
+                            }
+                            .dropDestination(for: KanbanTaskID.self) { ids, _ in
+                                handleDrop(ids, to: status)
                             }
                         }
                     }
@@ -266,6 +268,22 @@ struct AgentsScreen: View {
                 .clipShape(Capsule())
             Spacer()
         }
+    }
+
+    /// Slim drop target for an empty compact-layout column. Keeps the section
+    /// present (and droppable) even with no tasks, without the tall empty
+    /// box the wide layout's "None" placeholder uses.
+    private func compactDropzonePlaceholder(status: KanbanStatus) -> some View {
+        Text("Drop tasks here")
+            .font(.caption)
+            .foregroundStyle(NeuPalette.textTertiary)
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.vertical, 14)
+            .overlay {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .stroke(NeuPalette.borderSoft, style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
+            }
+            .accessibilityIdentifier("kanban_dropzone_\(status.rawValue)")
     }
 
     private var createTaskSheet: some View {
