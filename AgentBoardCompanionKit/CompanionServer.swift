@@ -117,6 +117,17 @@ private final class SSESubscriber: @unchecked Sendable {
     }
 }
 
+/// Pure throttle rule for the transcript capture step (extracted so it's
+/// testable without the actor/lock plumbing in `CompanionServer`).
+enum TranscriptCaptureThrottle {
+    static let interval: TimeInterval = 10
+
+    static func shouldCapture(lastCaptureAt: Date?, now: Date) -> Bool {
+        guard let lastCaptureAt else { return true }
+        return now.timeIntervalSince(lastCaptureAt) >= interval
+    }
+}
+
 private actor CompanionEventBroker {
     private var subscribers: [UUID: SSESubscriber] = [:]
 
@@ -157,6 +168,7 @@ public final class CompanionServer: @unchecked Sendable {
     private struct LifecycleState: Sendable {
         var listener: NWListener?
         var refreshTask: Task<Void, Never>?
+        var lastTranscriptCaptureAt: Date?
     }
 
     private let lifecycle = OSAllocatedUnfairLock(initialState: LifecycleState())
@@ -258,9 +270,44 @@ public final class CompanionServer: @unchecked Sendable {
         let snapshot = await probe.snapshot()
         try await store.replaceSessions(snapshot.sessions)
         try await store.replaceAgents(snapshot.agents)
+        await captureTranscriptsIfDue(sessions: snapshot.sessions)
         await broker.publish(CompanionEvent(kind: .sessionsChanged))
         await broker.publish(CompanionEvent(kind: .agentsChanged))
         await broker.publish(CompanionEvent(kind: .snapshotRefreshed))
+    }
+
+    /// Best-effort transcript capture: throttled to roughly once per
+    /// `TranscriptCaptureThrottle.interval` regardless of how often the probe
+    /// snapshot itself runs, and never allowed to block session/agent
+    /// discovery — failures are logged and skipped.
+    private func captureTranscriptsIfDue(sessions: [AgentSession]) async {
+        let now = Date()
+        let shouldCapture = lifecycle.withLock { state -> Bool in
+            guard TranscriptCaptureThrottle.shouldCapture(lastCaptureAt: state.lastTranscriptCaptureAt, now: now) else {
+                return false
+            }
+            state.lastTranscriptCaptureAt = now
+            return true
+        }
+        guard shouldCapture else { return }
+
+        for session in sessions {
+            guard let content = await probe.captureOutput(for: session) else { continue }
+            do {
+                try await store.upsertTranscript(sessionID: session.id, content: content, isFinal: false)
+            } catch {
+                logger
+                    .error(
+                        "Failed to persist transcript for \(session.id, privacy: .public): \(error.localizedDescription, privacy: .public)"
+                    )
+            }
+        }
+
+        do {
+            try await store.finalizeTranscriptsExcept(activeSessionIDs: sessions.map(\.id))
+        } catch {
+            logger.error("Failed to finalize transcripts: \(error.localizedDescription, privacy: .public)")
+        }
     }
 
     private func accept(connection: NWConnection) {
@@ -476,6 +523,19 @@ public final class CompanionServer: @unchecked Sendable {
                 output = ""
             }
             try sendJSON(["output": output], over: connection)
+        case ("GET", "transcript"):
+            if let transcript = try await store.transcript(sessionID: sessionID) {
+                try sendJSON(
+                    SessionTranscript(
+                        content: transcript.content,
+                        updatedAt: transcript.updatedAt,
+                        isFinal: transcript.isFinal
+                    ),
+                    over: connection
+                )
+            } else {
+                try sendJSON(["error": "not_found"], over: connection)
+            }
         case ("POST", "nudge"):
             let ok: Bool
             if let session { ok = await probe.nudge(session: session) } else { ok = false }

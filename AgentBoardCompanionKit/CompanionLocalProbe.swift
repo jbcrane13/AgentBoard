@@ -143,7 +143,7 @@ public actor CompanionLocalProbe {
     public func captureOutput(for session: AgentSession) async -> String? {
         let target = session.tmuxPaneID ?? session.tmuxSession
         guard let target else { return nil }
-        let raw = await shell("/usr/bin/env", ["tmux", "capture-pane", "-t", target, "-p", "-S", "-200"])
+        let raw = await shell("/usr/bin/env", ["tmux", "capture-pane", "-t", target, "-p", "-S", "-2000"])
         return raw.flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0 }
     }
 

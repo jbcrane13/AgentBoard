@@ -1,3 +1,4 @@
+// swiftlint:disable file_length
 import AgentBoardCore
 import Foundation
 import SQLite3
@@ -114,6 +115,17 @@ public actor CompanionSQLiteStore {
                 is_streaming INTEGER NOT NULL DEFAULT 0,
                 attachments_json TEXT,
                 FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
+            );
+            """
+        )
+
+        try execute(
+            """
+            CREATE TABLE IF NOT EXISTS session_transcripts (
+                session_id TEXT PRIMARY KEY NOT NULL,
+                content TEXT NOT NULL,
+                updated_at INTEGER NOT NULL,
+                is_final INTEGER NOT NULL DEFAULT 0
             );
             """
         )
@@ -470,6 +482,68 @@ public actor CompanionSQLiteStore {
         defer { sqlite3_finalize(deleteConv) }
         bind(id.uuidString, to: 1, in: deleteConv)
         guard sqlite3_step(deleteConv) == SQLITE_DONE else {
+            throw StoreError.stepFailed(Self.sqliteMessage(handle.raw))
+        }
+    }
+
+    // MARK: - Session transcripts
+
+    public func upsertTranscript(sessionID: String, content: String, isFinal: Bool) throws {
+        let statement = try prepare(
+            """
+            INSERT INTO session_transcripts (session_id, content, updated_at, is_final)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(session_id) DO UPDATE SET
+                content = excluded.content,
+                updated_at = excluded.updated_at,
+                is_final = excluded.is_final;
+            """
+        )
+        defer { sqlite3_finalize(statement) }
+
+        bind(sessionID, to: 1, in: statement)
+        bind(content, to: 2, in: statement)
+        sqlite3_bind_int64(statement, 3, Int64(Date().timeIntervalSince1970))
+        sqlite3_bind_int(statement, 4, isFinal ? 1 : 0)
+
+        guard sqlite3_step(statement) == SQLITE_DONE else {
+            throw StoreError.stepFailed(Self.sqliteMessage(handle.raw))
+        }
+    }
+
+    public func transcript(sessionID: String) throws -> (content: String, updatedAt: Date, isFinal: Bool)? {
+        let statement = try prepare(
+            "SELECT content, updated_at, is_final FROM session_transcripts WHERE session_id = ?;"
+        )
+        defer { sqlite3_finalize(statement) }
+
+        bind(sessionID, to: 1, in: statement)
+
+        guard sqlite3_step(statement) == SQLITE_ROW else { return nil }
+        return (
+            content: string(statement, index: 0),
+            updatedAt: Date(timeIntervalSince1970: TimeInterval(sqlite3_column_int64(statement, 1))),
+            isFinal: sqlite3_column_int(statement, 2) != 0
+        )
+    }
+
+    public func finalizeTranscriptsExcept(activeSessionIDs: [String]) throws {
+        guard !activeSessionIDs.isEmpty else {
+            try execute("UPDATE session_transcripts SET is_final = 1 WHERE is_final = 0;")
+            return
+        }
+
+        let placeholders = activeSessionIDs.map { _ in "?" }.joined(separator: ", ")
+        let statement = try prepare(
+            "UPDATE session_transcripts SET is_final = 1 WHERE is_final = 0 AND session_id NOT IN (\(placeholders));"
+        )
+        defer { sqlite3_finalize(statement) }
+
+        for (index, sessionID) in activeSessionIDs.enumerated() {
+            bind(sessionID, to: Int32(index + 1), in: statement)
+        }
+
+        guard sqlite3_step(statement) == SQLITE_DONE else {
             throw StoreError.stepFailed(Self.sqliteMessage(handle.raw))
         }
     }

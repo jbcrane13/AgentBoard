@@ -96,7 +96,8 @@ struct AccessibilityIdentifierTests {
             "session_detail_picker_mode",
             "session_detail_button_close",
             "session_detail_menu_actions",
-            "session_detail_button_stop"
+            "session_detail_button_stop",
+            "session_transcript_view"
         ]
         assertIdentifiers(required, in: source)
     }

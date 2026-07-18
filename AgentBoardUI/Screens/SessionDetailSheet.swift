@@ -10,6 +10,8 @@ struct SessionDetailSheet: View {
     @State private var selectedTab = 0
     @State private var finalOutput: String?
     @State private var isRefreshing = false
+    @State private var transcript: SessionTranscript?
+    @State private var isRefreshingTranscript = false
 
     var body: some View {
         NavigationStack {
@@ -26,6 +28,7 @@ struct SessionDetailSheet: View {
                         if session.tmuxSession != nil {
                             Text("Terminal").tag(2)
                         }
+                        Text("Transcript").tag(3)
                     }
                     .pickerStyle(.segmented)
                     .padding(.horizontal, 24)
@@ -36,6 +39,8 @@ struct SessionDetailSheet: View {
                         overviewTab
                     } else if selectedTab == 2 {
                         terminalTab
+                    } else if selectedTab == 3 {
+                        transcriptTab
                     } else {
                         logsTab
                     }
@@ -208,6 +213,45 @@ struct SessionDetailSheet: View {
             finalOutput = output
         }
         isRefreshing = false
+    }
+
+    private var transcriptTab: some View {
+        ScrollView(showsIndicators: false) {
+            LazyVStack(alignment: .leading, spacing: 8) {
+                if isRefreshingTranscript && transcript == nil {
+                    ProgressView().padding()
+                } else if let transcript, !transcript.content.isEmpty {
+                    Text(transcript.content)
+                        .font(.caption.monospaced())
+                        .foregroundStyle(NeuPalette.textPrimary)
+                        .textSelection(.enabled)
+                        .padding(16)
+                } else {
+                    Text("No transcript available yet")
+                        .foregroundStyle(NeuPalette.textSecondary)
+                        .padding()
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .neuRecessed(cornerRadius: 16, depth: 6)
+        .padding(.horizontal, 24)
+        .padding(.bottom, 24)
+        .accessibilityIdentifier("session_transcript_view")
+        .task {
+            await fetchTranscript()
+        }
+        .onChange(of: appModel.sessionsStore.lastSyncedAt) { _, _ in
+            guard transcript?.isFinal != true else { return }
+            Task { await fetchTranscript() }
+        }
+    }
+
+    private func fetchTranscript() async {
+        isRefreshingTranscript = true
+        transcript = await appModel.sessionsStore.fetchTranscript(sessionID: session.id)
+        isRefreshingTranscript = false
     }
 
     @ViewBuilder
