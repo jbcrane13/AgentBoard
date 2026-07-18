@@ -10,10 +10,11 @@ public final class SessionLauncher {
     private let logger = Logger(subsystem: "com.agentboard.modern", category: "SessionLauncher")
     private let prdComposer: PRDComposer
     private let tmux: any TmuxControlling
+    private let launchConfigStore: LaunchConfigStore
 
     // MARK: - Models
 
-    public enum AgentType: String, CaseIterable, Identifiable, Sendable {
+    public enum AgentType: String, CaseIterable, Identifiable, Sendable, Codable {
         case claude
         case codex
         case opencode
@@ -47,7 +48,7 @@ public final class SessionLauncher {
         }
     }
 
-    public enum ExecutionPreset: String, CaseIterable, Identifiable, Sendable {
+    public enum ExecutionPreset: String, CaseIterable, Identifiable, Sendable, Codable {
         case ralphLoop = "Ralph Loop"
         case tddSuperpowers = "TDD (Superpowers)"
         case claudeToCodex = "Claude → Codex Handoff"
@@ -94,7 +95,7 @@ public final class SessionLauncher {
         }
     }
 
-    public struct LaunchConfig: Sendable {
+    public struct LaunchConfig: Sendable, Codable {
         public let taskTitle: String
         public let issueNumber: Int
         public let repo: String
@@ -193,10 +194,12 @@ public final class SessionLauncher {
 
     public init(
         prdComposer: PRDComposer = PRDComposer(),
-        tmux: any TmuxControlling = LiveTmuxController()
+        tmux: any TmuxControlling = LiveTmuxController(),
+        launchConfigStore: LaunchConfigStore = LaunchConfigStore()
     ) {
         self.prdComposer = prdComposer
         self.tmux = tmux
+        self.launchConfigStore = launchConfigStore
     }
 
     // MARK: - Launch
@@ -241,6 +244,7 @@ public final class SessionLauncher {
             )
             activeSessions.append(session)
             isLaunching = false
+            launchConfigStore.store(config, forSessionName: sessionName)
 
             logger.info("Launched session: \(sessionName)")
             startMonitoring()
@@ -290,6 +294,61 @@ public final class SessionLauncher {
 
     public func openInTerminal(sessionName: String) {
         tmux.openInTerminal(name: sessionName)
+    }
+
+    // MARK: - Lifecycle controls (used by SessionTerminalView)
+
+    /// Sends a nudge line (no keyboard takeover). Failures are surfaced via
+    /// `lastError`, the same toast pattern used by launch failures.
+    public func sendKeys(sessionName: String, text: String) async {
+        lastError = nil
+        do {
+            try await tmux.sendKeys(name: sessionName, text: text)
+        } catch {
+            lastError = error.localizedDescription
+            logger.error("sendKeys failed for \(sessionName): \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    /// Kills the tmux session outright. On success, drops the tracked
+    /// `ActiveSession` (the stored `LaunchConfig` is left in place so the
+    /// session can still be restarted).
+    public func killSession(sessionName: String) async {
+        lastError = nil
+        do {
+            try await tmux.killSession(name: sessionName)
+            activeSessions.removeAll { $0.sessionName == sessionName }
+        } catch {
+            lastError = error.localizedDescription
+            logger.error("killSession failed for \(sessionName): \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    /// True only for sessions AgentBoard itself launched (a stored
+    /// `LaunchConfig` exists). Foreign/discovered sessions return false.
+    public func canRelaunch(sessionName: String) -> Bool {
+        launchConfigStore.config(forSessionName: sessionName) != nil
+    }
+
+    /// Kills the session, then relaunches it from its stored `LaunchConfig`.
+    /// A failed pre-kill (e.g. the session already ended) is logged and
+    /// otherwise ignored — restarting an already-dead session should still
+    /// succeed; genuine problems still surface through `launch`'s own error
+    /// handling (`lastError`).
+    @discardableResult
+    public func relaunch(sessionName: String) async -> String? {
+        guard let config = launchConfigStore.config(forSessionName: sessionName) else { return nil }
+
+        do {
+            try await tmux.killSession(name: sessionName)
+        } catch {
+            logger.info(
+                "relaunch: pre-kill failed for \(sessionName), continuing (session may already be gone): \(error.localizedDescription, privacy: .public)"
+            )
+        }
+        activeSessions.removeAll { $0.sessionName == sessionName }
+
+        return await launch(config: config)
     }
 
     // MARK: - Static tmux paths (referenced by EmbeddedTerminalView)
