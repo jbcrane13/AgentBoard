@@ -203,6 +203,7 @@ struct AccessibilityIdentifierTests {
         ]
         assertIdentifiers(required, in: source)
         #expect(source.contains(#"kanban_cell_task_\(task.id)"#))
+        #expect(source.contains(#"kanban_dropzone_\(status.rawValue)"#))
     }
 
     @Test("Work screen exposes identifiers for header, search, repo picker, and create flow")
