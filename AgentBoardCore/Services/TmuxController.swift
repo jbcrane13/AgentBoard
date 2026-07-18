@@ -39,6 +39,14 @@ public protocol TmuxControlling: Sendable {
     /// Open the named tmux session in the system Terminal.app. Synchronous,
     /// fire-and-forget — used to give the user an interactive view.
     func openInTerminal(name: String)
+
+    /// Sends a literal line of text to the session followed by Enter (nudge).
+    /// The literal `-l` send and the Enter keypress are two separate
+    /// `send-keys` invocations so Enter isn't interpreted as literal text.
+    func sendKeys(name: String, text: String) async throws
+
+    /// Kills the named tmux session outright.
+    func killSession(name: String) async throws
 }
 
 /// Live tmux subprocess implementation backed by `/opt/homebrew/bin/tmux`.
@@ -53,6 +61,20 @@ public actor LiveTmuxController: TmuxControlling {
 
     public static func attachCommand(for sessionName: String) -> (executable: String, arguments: [String]) {
         (tmuxExecutablePath, ["-S", tmuxSocketPath, "attach", "-t", sessionName])
+    }
+
+    /// Pure argument builder for `sendKeys` — two separate `send-keys` calls so
+    /// the Enter keypress is never sent inside the literal (`-l`) invocation.
+    public static func sendKeysArguments(for sessionName: String, text: String) -> [[String]] {
+        [
+            ["-S", tmuxSocketPath, "send-keys", "-t", sessionName, "-l", text],
+            ["-S", tmuxSocketPath, "send-keys", "-t", sessionName, "Enter"]
+        ]
+    }
+
+    /// Pure argument builder for `killSession`.
+    public static func killSessionArguments(for sessionName: String) -> [String] {
+        ["-S", tmuxSocketPath, "kill-session", "-t", sessionName]
     }
 
     public init() {}
@@ -128,6 +150,51 @@ public actor LiveTmuxController: TmuxControlling {
             }
         #else
             return nil
+        #endif
+    }
+
+    public func sendKeys(name: String, text: String) async throws {
+        #if os(macOS)
+            let environment = await ShellEnvironment.enrichedEnvironment()
+            for arguments in Self.sendKeysArguments(for: name, text: text) {
+                let result: ProcessResult
+                do {
+                    result = try await Process.runAsync(
+                        executablePath: Self.tmuxExecutablePath,
+                        arguments: arguments,
+                        environment: environment
+                    )
+                } catch let ProcessRunError.launchFailed(msg) {
+                    throw TmuxError.launchFailed(msg)
+                }
+                guard result.succeeded else {
+                    let output = result.stderrString.isEmpty ? result.stdoutString : result.stderrString
+                    throw TmuxError.launchFailed(output.isEmpty ? "unknown error" : output)
+                }
+            }
+        #else
+            throw TmuxError.unsupportedPlatform
+        #endif
+    }
+
+    public func killSession(name: String) async throws {
+        #if os(macOS)
+            let result: ProcessResult
+            do {
+                result = try await Process.runAsync(
+                    executablePath: Self.tmuxExecutablePath,
+                    arguments: Self.killSessionArguments(for: name),
+                    environment: await ShellEnvironment.enrichedEnvironment()
+                )
+            } catch let ProcessRunError.launchFailed(msg) {
+                throw TmuxError.launchFailed(msg)
+            }
+            guard result.succeeded else {
+                let output = result.stderrString.isEmpty ? result.stdoutString : result.stderrString
+                throw TmuxError.launchFailed(output.isEmpty ? "unknown error" : output)
+            }
+        #else
+            throw TmuxError.unsupportedPlatform
         #endif
     }
 

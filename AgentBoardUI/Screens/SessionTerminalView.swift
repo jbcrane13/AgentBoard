@@ -11,6 +11,8 @@ struct SessionTerminalView: View {
     @State private var attachmentController = SessionAttachmentController()
     @State private var hasAttachedOnce = false
     @State private var fallbackTranscript: SessionTranscript?
+    @State private var nudgeText = ""
+    @State private var showKillConfirmation = false
 
     private var isReadOnly: Bool {
         if case .attachedInteractive = attachmentController.state { return false }
@@ -58,6 +60,13 @@ struct SessionTerminalView: View {
 
             VStack(spacing: 0) {
                 header
+                lifecycleErrorBanner
+
+                #if os(macOS) && canImport(SwiftTerm)
+                    if session.status == .running || session.status == .completed {
+                        nudgeBar
+                    }
+                #endif
 
                 switch session.status {
                 case .failed:
@@ -161,6 +170,49 @@ struct SessionTerminalView: View {
                     .disabled(showsAttachmentFallback)
                     .accessibilityLabel(isReadOnly ? "Take keyboard control of session" : "Release keyboard control")
                     .accessibilityIdentifier("session_button_takecontrol")
+
+                    if appModel.sessionLauncher.canRelaunch(sessionName: session.sessionName) {
+                        Button {
+                            restart()
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "arrow.clockwise")
+                                    .font(.system(size: 11, weight: .semibold))
+                                Text("Restart")
+                                    .font(.caption.weight(.semibold))
+                            }
+                        }
+                        .buttonStyle(NeuButtonTarget(isAccent: false))
+                        .accessibilityLabel("Restart session")
+                        .accessibilityIdentifier("session_button_restart")
+                    }
+
+                    Button {
+                        showKillConfirmation = true
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "xmark.octagon")
+                                .font(.system(size: 11, weight: .semibold))
+                            Text("Kill")
+                                .font(.caption.weight(.semibold))
+                        }
+                    }
+                    .buttonStyle(NeuButtonTarget(isAccent: false))
+                    .accessibilityLabel("Kill session")
+                    .accessibilityIdentifier("session_button_kill")
+                    .confirmationDialog(
+                        "Kill this session?",
+                        isPresented: $showKillConfirmation,
+                        titleVisibility: .visible
+                    ) {
+                        Button("Kill Session", role: .destructive) {
+                            Task {
+                                await appModel.sessionLauncher.killSession(sessionName: session.sessionName)
+                                attachmentController.detach()
+                            }
+                        }
+                        Button("Cancel", role: .cancel) {}
+                    }
                 #endif
             }
 
@@ -302,10 +354,12 @@ struct SessionTerminalView: View {
             }
         }
     #endif
+}
 
-    // MARK: - Failed State
+// MARK: - Failed / Stalled States
 
-    private var failedStateView: some View {
+private extension SessionTerminalView {
+    var failedStateView: some View {
         VStack(spacing: 20) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.system(size: 48))
@@ -361,9 +415,7 @@ struct SessionTerminalView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    // MARK: - Stalled State
-
-    private var stalledStateView: some View {
+    var stalledStateView: some View {
         VStack(spacing: 20) {
             Image(systemName: "hourglass")
                 .font(.system(size: 48))
@@ -410,3 +462,67 @@ struct SessionTerminalView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
+
+// MARK: - Lifecycle controls (nudge, restart, kill)
+
+private extension SessionTerminalView {
+    @ViewBuilder
+    var lifecycleErrorBanner: some View {
+        if session.status != .failed, let message = appModel.sessionLauncher.lastError {
+            Text(message)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.red)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 6)
+                .background(Color.red.opacity(0.08))
+        }
+    }
+}
+
+#if os(macOS) && canImport(SwiftTerm)
+    fileprivate extension SessionTerminalView {
+        var nudgeBar: some View {
+            HStack(spacing: 8) {
+                TextField("Nudge session...", text: $nudgeText)
+                    .textFieldStyle(.plain)
+                    .font(.caption.monospaced())
+                    .foregroundStyle(NeuPalette.textPrimary)
+                    .onSubmit { sendNudge() }
+                    .accessibilityIdentifier("session_textfield_nudge")
+
+                Button {
+                    sendNudge()
+                } label: {
+                    Image(systemName: "arrow.turn.down.left")
+                        .font(.system(size: 11, weight: .semibold))
+                }
+                .buttonStyle(NeuButtonTarget(isAccent: true))
+                .disabled(nudgeText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .accessibilityLabel("Send nudge to session")
+                .accessibilityIdentifier("session_button_nudge_send")
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 8)
+            .background(NeuPalette.surface.opacity(0.6))
+        }
+
+        func sendNudge() {
+            let text = nudgeText.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !text.isEmpty else { return }
+            nudgeText = ""
+            let sessionName = session.sessionName
+            Task { await appModel.sessionLauncher.sendKeys(sessionName: sessionName, text: text) }
+        }
+
+        func restart() {
+            let sessionName = session.sessionName
+            attachmentController.detach()
+            Task {
+                if let newName = await appModel.sessionLauncher.relaunch(sessionName: sessionName) {
+                    attachmentController.attach(sessionName: newName)
+                }
+            }
+        }
+    }
+#endif

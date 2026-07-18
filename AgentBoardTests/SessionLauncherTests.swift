@@ -169,6 +169,101 @@ struct SessionLauncherTests {
         #expect(status == .failed)
     }
 
+    // MARK: - sendKeys (nudge)
+
+    @Test @MainActor func sendKeysForwardsNameAndTextToTmux() async {
+        let tmux = FakeTmuxController(hasSessionResult: true, paneOutput: nil)
+        let launcher = SessionLauncher(tmux: tmux)
+
+        await launcher.sendKeys(sessionName: "ab-agentboard-140", text: "yes")
+
+        let calls = await tmux.sendKeysCalls
+        #expect(calls.count == 1)
+        #expect(calls.first?.name == "ab-agentboard-140")
+        #expect(calls.first?.text == "yes")
+        #expect(launcher.lastError == nil)
+    }
+
+    @Test @MainActor func sendKeysSetsLastErrorOnFailure() async {
+        let tmux = FakeTmuxController(
+            hasSessionResult: true,
+            paneOutput: nil,
+            sendKeysError: FakeTmuxError(message: "no such session")
+        )
+        let launcher = SessionLauncher(tmux: tmux)
+
+        await launcher.sendKeys(sessionName: "ab-agentboard-141", text: "yes")
+
+        #expect(launcher.lastError == "no such session")
+    }
+
+    // MARK: - killSession
+
+    @Test @MainActor func killSessionRemovesActiveSessionOnSuccess() async {
+        let tmux = FakeTmuxController(hasSessionResult: true, paneOutput: nil)
+        let launcher = SessionLauncher(tmux: tmux)
+        let session = makeActiveSession(name: "ab-agentboard-142")
+        launcher.activeSessions = [session]
+
+        await launcher.killSession(sessionName: session.sessionName)
+
+        let calls = await tmux.killSessionCalls
+        #expect(calls == [session.sessionName])
+        #expect(launcher.activeSessions.isEmpty)
+        #expect(launcher.lastError == nil)
+    }
+
+    @Test @MainActor func killSessionSetsLastErrorOnFailureAndKeepsSession() async {
+        let tmux = FakeTmuxController(
+            hasSessionResult: true,
+            paneOutput: nil,
+            killSessionError: FakeTmuxError(message: "kill failed")
+        )
+        let launcher = SessionLauncher(tmux: tmux)
+        let session = makeActiveSession(name: "ab-agentboard-143")
+        launcher.activeSessions = [session]
+
+        await launcher.killSession(sessionName: session.sessionName)
+
+        #expect(launcher.lastError == "kill failed")
+        #expect(launcher.activeSessions.map(\.sessionName) == [session.sessionName])
+    }
+
+    // MARK: - canRelaunch
+
+    @Test @MainActor func canRelaunchIsFalseForForeignSession() {
+        let store = LaunchConfigStore(defaults: makeIsolatedDefaults())
+        let launcher = SessionLauncher(
+            tmux: FakeTmuxController(hasSessionResult: true, paneOutput: nil),
+            launchConfigStore: store
+        )
+
+        #expect(!launcher.canRelaunch(sessionName: "ab-foreign-1"))
+    }
+
+    @Test @MainActor func canRelaunchIsTrueAfterConfigIsStored() {
+        let store = LaunchConfigStore(defaults: makeIsolatedDefaults())
+        let config = SessionLauncher.LaunchConfig(
+            taskTitle: "Test",
+            issueNumber: 150,
+            repo: "AgentBoard",
+            fullRepo: "jbcrane13/AgentBoard",
+            preset: .ralphLoop,
+            customInstructions: ""
+        )
+        store.store(config, forSessionName: "ab-agentboard-150")
+        let launcher = SessionLauncher(
+            tmux: FakeTmuxController(hasSessionResult: true, paneOutput: nil),
+            launchConfigStore: store
+        )
+
+        #expect(launcher.canRelaunch(sessionName: "ab-agentboard-150"))
+    }
+
+    private func makeIsolatedDefaults() -> UserDefaults {
+        UserDefaults(suiteName: "SessionLauncherTests-\(UUID().uuidString)") ?? .standard
+    }
+
     @MainActor
     private func makeActiveSession(name: String) -> SessionLauncher.ActiveSession {
         SessionLauncher.ActiveSession(
@@ -183,21 +278,43 @@ struct SessionLauncherTests {
     }
 }
 
+private struct FakeTmuxError: Error, LocalizedError {
+    let message: String
+    var errorDescription: String? {
+        message
+    }
+}
+
 private actor FakeTmuxController: TmuxControlling {
     private let hasSessionResult: Bool
     private let paneOutput: String?
+    private let sendKeysError: Error?
+    private let killSessionError: Error?
 
-    init(hasSessionResult: Bool, paneOutput: String?) {
+    private(set) var sendKeysCalls: [(name: String, text: String)] = []
+    private(set) var killSessionCalls: [String] = []
+    private(set) var launchSessionCalls: [String] = []
+
+    init(
+        hasSessionResult: Bool,
+        paneOutput: String?,
+        sendKeysError: Error? = nil,
+        killSessionError: Error? = nil
+    ) {
         self.hasSessionResult = hasSessionResult
         self.paneOutput = paneOutput
+        self.sendKeysError = sendKeysError
+        self.killSessionError = killSessionError
     }
 
     func launchSession(
-        name _: String,
+        name: String,
         repoPath _: String,
         agentLaunchFlag _: String,
         prdPath _: String
-    ) async throws {}
+    ) async throws {
+        launchSessionCalls.append(name)
+    }
 
     func hasSession(name _: String) async throws -> Bool {
         hasSessionResult
@@ -208,4 +325,14 @@ private actor FakeTmuxController: TmuxControlling {
     }
 
     nonisolated func openInTerminal(name _: String) {}
+
+    func sendKeys(name: String, text: String) async throws {
+        sendKeysCalls.append((name, text))
+        if let sendKeysError { throw sendKeysError }
+    }
+
+    func killSession(name: String) async throws {
+        killSessionCalls.append(name)
+        if let killSessionError { throw killSessionError }
+    }
 }
