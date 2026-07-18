@@ -1,6 +1,6 @@
 # AgentBoard Implementation Status
 
-Last updated: 2026-07-18
+Last updated: 2026-07-18 (rev 2: integrated tmux sessions shipped)
 
 This document tracks what the Hermes-first rewrite currently has, what is only partial, and what remains unfinished.
 
@@ -51,15 +51,21 @@ The roadmap specced in `docs/superpowers/specs/2026-07-16-feature-complete-stabi
 - Active/recent session display from the Companion (SQLite-backed REST + event stream), jittered auto-refresh, live events.
 - Separate Hermes/GitHub/Companion configuration; Keychain secrets; SwiftData cache behind `AgentBoardCacheProtocol` (conversations, messages, work items, sessions, agent summaries, kanban tasks) with a `NoopAgentBoardCache` fallback instead of a crash when container creation fails.
 
+### Integrated tmux sessions (shipped 2026-07-18, issues #166–#168, PRs #169–#171)
+
+- Companion-persisted session transcripts (throttled capture, `session_transcripts` table, REST + client) — live read-only session view on iOS and post-session history on both platforms.
+- macOS live terminal: real `tmux attach -r` client (server-enforced read-only) with Take Control re-attach, keystroke gating, minimize that preserves the agent session, transcript fallback; pre-existing PTY process leak fixed.
+- Lifecycle controls: nudge (literal send-keys + Enter), kill with confirmation, restart from persisted `LaunchConfig` (AgentBoard-launched sessions only); controls surface on failed/stalled sessions where recovery matters.
+- Spec: `docs/superpowers/specs/2026-07-18-integrated-tmux-sessions-design.md`.
+
 ## Stability posture
 
 - No `fatalError` in the bootstrap path; degraded modes everywhere external services can be absent (gateway down, kanban.db missing, companion unreachable).
-- 483 unit tests (Swift Testing + XCTest), SwiftLint strict, three schemes (AgentBoard, AgentBoardMobile, AgentBoardCompanion) build per PR.
+- 524 unit tests (Swift Testing + XCTest), SwiftLint strict, three schemes (AgentBoard, AgentBoardMobile, AgentBoardCompanion) build per PR.
 
 ## Unfinished / open
 
 - **#157-adjacent:** per-agent *session* counts (as opposed to running-task counts) need a Hermes-side change (`_set_worker_pid` from the inline claim path) — parked; do not re-attempt an AgentBoard-side join. The companion's probe-based `activeSessionCount` is real but unconsumed by the app (`CompanionClient.listAgents()` has no callers).
-- Session controls / deeper session detail / transcript UX remain open.
 - Full GitHub issue editing beyond status + detail-sheet fields remains open.
 - Companion runtime discovery is heuristic rather than production-grade.
 - End-to-end UI smoke coverage (XCUITest) remains open; unit coverage is strong.
