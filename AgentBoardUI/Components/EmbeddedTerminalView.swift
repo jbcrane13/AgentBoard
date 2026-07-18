@@ -3,6 +3,18 @@
     import SwiftTerm
     import SwiftUI
 
+    /// `LocalProcessTerminalView` subclass that swallows keystrokes when
+    /// `isInputEnabled` is false. Defense in depth alongside tmux's own `-r`
+    /// read-only attach flag — not the safety mechanism itself.
+    final class ReadOnlyAwareTerminalView: LocalProcessTerminalView {
+        var isInputEnabled = true
+
+        override func send(source: TerminalView, data: ArraySlice<UInt8>) {
+            guard isInputEnabled else { return }
+            super.send(source: source, data: data)
+        }
+    }
+
     /// SwiftUI wrapper around SwiftTerm's `LocalProcessTerminalView`.
     /// Spawns the given executable inside a real PTY and renders an interactive terminal —
     /// keystrokes flow into the process, ANSI/colour output renders correctly.
@@ -10,15 +22,17 @@
         let executable: String
         let arguments: [String]
         let environment: [String]?
+        var isInputEnabled = true
         let onProcessExit: (Int32) -> Void
 
         func makeCoordinator() -> Coordinator {
             Coordinator(onProcessExit: onProcessExit)
         }
 
-        func makeNSView(context: Context) -> LocalProcessTerminalView {
-            let terminal = LocalProcessTerminalView(frame: .zero)
+        func makeNSView(context: Context) -> ReadOnlyAwareTerminalView {
+            let terminal = ReadOnlyAwareTerminalView(frame: .zero)
             terminal.processDelegate = context.coordinator
+            terminal.isInputEnabled = isInputEnabled
 
             terminal.font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
             terminal.nativeBackgroundColor = NSColor(srgbRed: 0.06, green: 0.06, blue: 0.08, alpha: 1.0)
@@ -33,8 +47,13 @@
             return terminal
         }
 
-        func updateNSView(_: LocalProcessTerminalView, context: Context) {
+        func updateNSView(_ nsView: ReadOnlyAwareTerminalView, context: Context) {
             context.coordinator.onProcessExit = onProcessExit
+            nsView.isInputEnabled = isInputEnabled
+        }
+
+        static func dismantleNSView(_ nsView: ReadOnlyAwareTerminalView, coordinator _: Coordinator) {
+            nsView.terminate()
         }
 
         final class Coordinator: NSObject, LocalProcessTerminalViewDelegate {
