@@ -19,7 +19,6 @@ public final class AgentsStore {
 
     private var didBootstrap = false
     private var lastFingerprint: String = ""
-    private var sessionCounts: [String: Int] = [:]
 
     public init(
         kanbanData: any KanbanDataReading = KanbanDataService(),
@@ -66,7 +65,7 @@ public final class AgentsStore {
             let cachedTasks = try cache.loadKanbanTasks()
             if !cachedTasks.isEmpty {
                 tasks = cachedTasks
-                summaries = Self.buildAgentSummaries(from: tasks, sessionCounts: sessionCounts)
+                summaries = Self.buildAgentSummaries(from: tasks)
                 lastFingerprint = fingerprint(tasks: tasks, summaries: summaries)
             }
         } catch {
@@ -89,7 +88,7 @@ public final class AgentsStore {
 
             // Build pseudo agent summaries from task assignees (companion still
             // handles real agent health / session data separately)
-            let freshSummaries = Self.buildAgentSummaries(from: freshTasks, sessionCounts: sessionCounts)
+            let freshSummaries = Self.buildAgentSummaries(from: freshTasks)
 
             let newFingerprint = fingerprint(tasks: freshTasks, summaries: freshSummaries)
             if newFingerprint != lastFingerprint {
@@ -123,16 +122,6 @@ public final class AgentsStore {
         }
 
         isLoading = false
-    }
-
-    // MARK: - Session Counts
-
-    /// Store real per-agent active session counts (from `SessionsStore`, via
-    /// `AgentBoardAppModel`) and rebuild summaries so the rail reflects them.
-    public func updateActiveSessionCounts(_ counts: [String: Int]) {
-        sessionCounts = counts
-        summaries = Self.buildAgentSummaries(from: tasks, sessionCounts: sessionCounts)
-        lastFingerprint = fingerprint(tasks: tasks, summaries: summaries)
     }
 
     // MARK: - Create Task
@@ -227,14 +216,14 @@ public final class AgentsStore {
             return
         }
 
-var updated = task
-updated.status = target
-if move == .complete {
-    updated.completedAt = .now
-    updated.result = "Completed from board"
-}
-upsert(updated)
-lastFingerprint = fingerprint(tasks: tasks, summaries: summaries)
+        var updated = task
+        updated.status = target
+        if move == .complete {
+            updated.completedAt = .now
+            updated.result = "Completed from board"
+        }
+        upsert(updated)
+        lastFingerprint = fingerprint(tasks: tasks, summaries: summaries)
         do {
             switch move {
             case .promote:
@@ -249,9 +238,9 @@ lastFingerprint = fingerprint(tasks: tasks, summaries: summaries)
             statusMessage = "Moved \"\(task.title)\" to \(target.title)."
             errorMessage = nil
         } catch {
-logger.error("Failed to move task: \(error.localizedDescription, privacy: .public)")
-upsert(task)
-lastFingerprint = fingerprint(tasks: tasks, summaries: summaries)
+            logger.error("Failed to move task: \(error.localizedDescription, privacy: .public)")
+            upsert(task)
+            lastFingerprint = fingerprint(tasks: tasks, summaries: summaries)
             errorMessage = error.localizedDescription
         }
     }
@@ -296,17 +285,15 @@ lastFingerprint = fingerprint(tasks: tasks, summaries: summaries)
         tasks.sort { $0.createdAt > $1.createdAt }
     }
 
-    /// Build lightweight agent summaries from task assignees.
-    /// The companion service still owns actual agent health / session data,
-    /// except for `activeSessionCount`, which comes from `sessionCounts`
-    /// (keyed by the same trimmed-assignee string used to group tasks — see
-    /// `AgentBoardAppModel.activeSessionCounts(from:tasks:)`). An assignee
-    /// with no entry in `sessionCounts` defaults to 0.
+    /// Build lightweight agent summaries from task assignees. `activeTaskCount`
+    /// is the live signal for #157 (running kanban tasks for this agent —
+    /// Hermes works tasks inline in long-lived per-profile daemons, so there's
+    /// no session record to join against). Client-built summaries don't carry
+    /// session counts — only companion-built summaries (via
+    /// `CompanionLocalProbe`, from real process/tmux probing) populate
+    /// `activeSessionCount`; it's always 0 here.
     /// Internal so the kanban picker data source can be unit tested directly.
-    nonisolated static func buildAgentSummaries(
-        from tasks: [KanbanTask],
-        sessionCounts: [String: Int]
-    ) -> [AgentSummary] {
+    nonisolated static func buildAgentSummaries(from tasks: [KanbanTask]) -> [AgentSummary] {
         let assignees = Set(tasks.compactMap { $0.assignee?.trimmedOrNil })
 
         return assignees.map { name in
@@ -322,7 +309,7 @@ lastFingerprint = fingerprint(tasks: tasks, summaries: summaries)
                 name: name,
                 health: activeCount > 0 ? .online : .idle,
                 activeTaskCount: activeCount,
-                activeSessionCount: sessionCounts[name] ?? 0,
+                activeSessionCount: 0,
                 recentActivity: recentTask?.title ?? "No recent activity",
                 updatedAt: recentTask?.createdAt ?? .now
             )
