@@ -108,17 +108,10 @@ struct AgentsScreen: View {
                             .font(.caption)
                             .foregroundStyle(NeuPalette.textSecondary)
                             .lineLimit(1)
-                        HStack(spacing: 16) {
-                            HStack(spacing: 6) {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(NeuPalette.statusSuccess)
-                                Text("\(summary.activeTaskCount)")
-                            }
-                            HStack(spacing: 6) {
-                                Image(systemName: "bolt.horizontal.circle.fill")
-                                    .foregroundStyle(NeuPalette.statusIdle)
-                                Text("\(summary.activeSessionCount)")
-                            }
+                        HStack(spacing: 6) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(NeuPalette.statusSuccess)
+                            Text("\(summary.activeTaskCount)")
                         }
                         .font(.caption.weight(.bold))
                         .foregroundStyle(NeuPalette.textPrimary)

@@ -129,49 +129,20 @@ struct AgentsStoreSummariesTests {
         #expect(Set(summaries.map(\.name)) == ["Claude", "claude"])
     }
 
-    // MARK: - Active session count as running task count (workaround for #157)
+    // MARK: - Active session count (client-built summaries carry none, #157)
 
-    @Test func buildAgentSummariesActiveSessionCountEqualsRunningTaskCount() {
+    @Test func buildAgentSummariesActiveSessionCountIsAlwaysZero() {
+        // Client-built summaries have no session data to report — only
+        // companion-built summaries (CompanionLocalProbe, real process
+        // probing) populate activeSessionCount. Running tasks still surface
+        // via activeTaskCount (see the health/online tests above).
         let tasks = [
             makeTask(id: "1", assignee: "daneel", status: .running),
-            makeTask(id: "2", assignee: "daneel", status: .running),
-            makeTask(id: "3", assignee: "daneel", status: .todo)
-        ]
-        let summaries = AgentsStore.buildAgentSummaries(from: tasks)
-        #expect(summaries.first?.activeSessionCount == 2)
-        #expect(summaries.first?.activeSessionCount == summaries.first?.activeTaskCount)
-    }
-
-    @Test func buildAgentSummariesNonRunningStatusesDoNotCountTowardActiveSessionCount() {
-        let tasks = [
-            makeTask(id: "1", assignee: "daneel", status: .todo),
-            makeTask(id: "2", assignee: "daneel", status: .ready),
-            makeTask(id: "3", assignee: "daneel", status: .blocked),
-            makeTask(id: "4", assignee: "daneel", status: .done)
+            makeTask(id: "2", assignee: "daneel", status: .running)
         ]
         let summaries = AgentsStore.buildAgentSummaries(from: tasks)
         #expect(summaries.first?.activeSessionCount == 0)
-    }
-
-    @Test func buildAgentSummariesActiveSessionCountUsesTrimmedAssignee() {
-        let tasks = [
-            makeTask(id: "1", assignee: "  daneel  ", status: .running),
-            makeTask(id: "2", assignee: "daneel", status: .running)
-        ]
-        let summaries = AgentsStore.buildAgentSummaries(from: tasks)
-        #expect(summaries.count == 1)
-        #expect(summaries.first?.activeSessionCount == 2)
-    }
-
-    @Test func buildAgentSummariesUnassignedRunningTasksCountTowardNoAgent() {
-        let tasks = [
-            makeTask(id: "1", assignee: nil, status: .running),
-            makeTask(id: "2", assignee: "daneel", status: .running)
-        ]
-        let summaries = AgentsStore.buildAgentSummaries(from: tasks)
-        #expect(summaries.count == 1)
-        #expect(summaries.first?.name == "daneel")
-        #expect(summaries.first?.activeSessionCount == 1)
+        #expect(summaries.first?.activeTaskCount == 2)
     }
 
     // MARK: - Helpers

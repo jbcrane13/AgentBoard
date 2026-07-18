@@ -285,13 +285,13 @@ public final class AgentsStore {
         tasks.sort { $0.createdAt > $1.createdAt }
     }
 
-    /// Build lightweight agent summaries from task assignees.
-    /// The companion service still owns actual agent health data, except for
-    /// `activeSessionCount`, which is a workaround for #157: Hermes works
-    /// kanban tasks inline in long-lived per-profile daemons with no session
-    /// record to join against, so `activeSessionCount` here means "running
-    /// kanban tasks for this agent" — derived purely from `tasks`, the same
-    /// source `activeTaskCount` uses.
+    /// Build lightweight agent summaries from task assignees. `activeTaskCount`
+    /// is the live signal for #157 (running kanban tasks for this agent —
+    /// Hermes works tasks inline in long-lived per-profile daemons, so there's
+    /// no session record to join against). Client-built summaries don't carry
+    /// session counts — only companion-built summaries (via
+    /// `CompanionLocalProbe`, from real process/tmux probing) populate
+    /// `activeSessionCount`; it's always 0 here.
     /// Internal so the kanban picker data source can be unit tested directly.
     nonisolated static func buildAgentSummaries(from tasks: [KanbanTask]) -> [AgentSummary] {
         let assignees = Set(tasks.compactMap { $0.assignee?.trimmedOrNil })
@@ -309,7 +309,7 @@ public final class AgentsStore {
                 name: name,
                 health: activeCount > 0 ? .online : .idle,
                 activeTaskCount: activeCount,
-                activeSessionCount: activeCount,
+                activeSessionCount: 0,
                 recentActivity: recentTask?.title ?? "No recent activity",
                 updatedAt: recentTask?.createdAt ?? .now
             )
