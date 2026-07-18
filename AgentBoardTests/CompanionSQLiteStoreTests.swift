@@ -7,6 +7,7 @@ import Testing
 // swiftformat:disable:next modifierOrder
 nonisolated private let testSqliteTransient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
 
+// swiftlint:disable:next type_body_length
 struct CompanionSQLiteStoreTests {
     @Test
     func makeSummariesGroupsSessionsByAgentModel() {
@@ -250,6 +251,121 @@ struct CompanionSQLiteStoreTests {
     }
 
     @Test
+    func upsertTranscriptRoundTripsContentAndFinalFlag() async throws {
+        let databaseURL = FileManager.default.temporaryDirectory
+            .appending(path: "agentboard-transcripts-\(UUID().uuidString).sqlite")
+
+        let store = try CompanionSQLiteStore(databaseURL: databaseURL)
+        try await store.initializeSchema()
+
+        let before = Date()
+        try await store.upsertTranscript(sessionID: "proc-1", content: "hello world", isFinal: false)
+        let after = Date()
+
+        let transcript = try #require(try await store.transcript(sessionID: "proc-1"))
+        #expect(transcript.content == "hello world")
+        #expect(transcript.isFinal == false)
+        #expect(transcript.updatedAt >= before.addingTimeInterval(-1))
+        #expect(transcript.updatedAt <= after.addingTimeInterval(1))
+
+        // Upserting again overwrites the row rather than duplicating it.
+        try await store.upsertTranscript(sessionID: "proc-1", content: "updated content", isFinal: true)
+        let updated = try #require(try await store.transcript(sessionID: "proc-1"))
+        #expect(updated.content == "updated content")
+        #expect(updated.isFinal == true)
+    }
+
+    @Test
+    func transcriptReturnsNilForUnknownSession() async throws {
+        let databaseURL = FileManager.default.temporaryDirectory
+            .appending(path: "agentboard-transcripts-\(UUID().uuidString).sqlite")
+
+        let store = try CompanionSQLiteStore(databaseURL: databaseURL)
+        try await store.initializeSchema()
+
+        let transcript = try await store.transcript(sessionID: "does-not-exist")
+        #expect(transcript == nil)
+    }
+
+    @Test
+    func finalizeTranscriptsExceptMarksOnlyDisappearedSessionsFinal() async throws {
+        let databaseURL = FileManager.default.temporaryDirectory
+            .appending(path: "agentboard-transcripts-\(UUID().uuidString).sqlite")
+
+        let store = try CompanionSQLiteStore(databaseURL: databaseURL)
+        try await store.initializeSchema()
+
+        try await store.upsertTranscript(sessionID: "proc-still-running", content: "still going", isFinal: false)
+        try await store.upsertTranscript(sessionID: "proc-ended", content: "last output", isFinal: false)
+
+        try await store.finalizeTranscriptsExcept(activeSessionIDs: ["proc-still-running"])
+
+        let stillRunning = try #require(try await store.transcript(sessionID: "proc-still-running"))
+        let ended = try #require(try await store.transcript(sessionID: "proc-ended"))
+        #expect(stillRunning.isFinal == false)
+        #expect(ended.isFinal == true)
+    }
+
+    @Test
+    func finalizeTranscriptsExceptWithNoActiveSessionsFinalizesEverything() async throws {
+        let databaseURL = FileManager.default.temporaryDirectory
+            .appending(path: "agentboard-transcripts-\(UUID().uuidString).sqlite")
+
+        let store = try CompanionSQLiteStore(databaseURL: databaseURL)
+        try await store.initializeSchema()
+
+        try await store.upsertTranscript(sessionID: "proc-ended", content: "last output", isFinal: false)
+
+        try await store.finalizeTranscriptsExcept(activeSessionIDs: [])
+
+        let ended = try #require(try await store.transcript(sessionID: "proc-ended"))
+        #expect(ended.isFinal == true)
+    }
+
+    @Test
+    func initializeSchemaAddsSessionTranscriptsTableToLegacyDatabase() async throws {
+        let databaseURL = FileManager.default.temporaryDirectory
+            .appending(path: "agentboard-legacy-transcripts-\(UUID().uuidString).sqlite")
+
+        // Hand-create a pre-PR-M database that predates the session_transcripts
+        // table entirely (only the original sessions table exists).
+        var legacyHandle: OpaquePointer?
+        #expect(sqlite3_open_v2(
+            databaseURL.path,
+            &legacyHandle,
+            SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE | SQLITE_OPEN_FULLMUTEX,
+            nil
+        ) == SQLITE_OK)
+        #expect(sqlite3_exec(
+            legacyHandle,
+            """
+            CREATE TABLE sessions (
+                id TEXT PRIMARY KEY NOT NULL,
+                source TEXT NOT NULL,
+                status TEXT NOT NULL,
+                linked_task_id TEXT,
+                repo_owner TEXT,
+                repo_name TEXT,
+                issue_number INTEGER,
+                model TEXT,
+                started_at REAL NOT NULL,
+                last_seen_at REAL NOT NULL
+            );
+            """,
+            nil, nil, nil
+        ) == SQLITE_OK)
+        sqlite3_close(legacyHandle)
+
+        // Opening the store over the legacy DB should add the new table in place.
+        let store = try CompanionSQLiteStore(databaseURL: databaseURL)
+        try await store.initializeSchema()
+
+        try await store.upsertTranscript(sessionID: "proc-1", content: "post-migration content", isFinal: false)
+        let transcript = try #require(try await store.transcript(sessionID: "proc-1"))
+        #expect(transcript.content == "post-migration content")
+    }
+
+    @Test
     func companionClientUsesConversationRoutes() async throws {
         let conversationID = UUID()
         let client = CompanionClient(session: makeMockSession { request in
@@ -338,6 +454,52 @@ struct CompanionSQLiteStoreTests {
         #expect(pulled.first?.hermesSessionID == "hermes-session-round-trip")
 
         try await client.syncConversations(conversations: [conversation], messagesByConversation: [:])
+    }
+
+    @Test
+    func companionClientFetchesTranscript() async throws {
+        let updatedAt = Date(timeIntervalSince1970: 1_700_000_000)
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+
+        let client = CompanionClient(session: makeMockSession { request in
+            #expect(request.url?.path == "/v1/sessions/proc-1/transcript")
+            let response = try HTTPURLResponse(
+                url: #require(request.url),
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            let transcript = SessionTranscript(content: "line one\nline two", updatedAt: updatedAt, isFinal: true)
+            return try (response, encoder.encode(transcript))
+        })
+
+        try await client.configure(baseURL: "http://companion.test:8742", bearerToken: nil)
+
+        let transcript = try await client.fetchTranscript(sessionID: "proc-1")
+
+        #expect(transcript?.content == "line one\nline two")
+        #expect(transcript?.isFinal == true)
+        #expect(transcript?.updatedAt == updatedAt)
+    }
+
+    @Test
+    func companionClientFetchTranscriptReturnsNilWhenNotFound() async throws {
+        let client = CompanionClient(session: makeMockSession { request in
+            let response = try HTTPURLResponse(
+                url: #require(request.url),
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            return (response, Data(#"{"error":"not_found"}"#.utf8))
+        })
+
+        try await client.configure(baseURL: "http://companion.test:8742", bearerToken: nil)
+
+        let transcript = try await client.fetchTranscript(sessionID: "unknown")
+
+        #expect(transcript == nil)
     }
 }
 

@@ -150,6 +150,12 @@ public actor CompanionClient {
         return output.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : output
     }
 
+    public func fetchTranscript(sessionID: String) async throws -> SessionTranscript? {
+        let (data, response) = try await session.data(for: makeRequest(path: "v1/sessions/\(sessionID)/transcript"))
+        try validate(response: response, data: data)
+        return try? decoder.decode(SessionTranscript.self, from: data)
+    }
+
     public func events() async throws -> AsyncThrowingStream<CompanionEvent, Error> {
         var request = makeRequest(path: "v1/events", timeout: RequestTimeout.stream)
         request.setValue("text/event-stream", forHTTPHeaderField: "Accept")

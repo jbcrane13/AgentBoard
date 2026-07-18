@@ -93,7 +93,7 @@ public struct HermesProfile: Codable, Hashable, Identifiable, Sendable {
 }
 
 public struct ToolActivity: Codable, Hashable, Sendable, Identifiable {
-public let id: String
+    public let id: String
     public let tool: String
     public var emoji: String?
     public var label: String?
@@ -438,6 +438,18 @@ public struct AgentSummary: Codable, Hashable, Identifiable, Sendable {
         self.activeSessionCount = activeSessionCount
         self.recentActivity = recentActivity
         self.updatedAt = updatedAt
+    }
+}
+
+public struct SessionTranscript: Codable, Hashable, Sendable {
+    public let content: String
+    public let updatedAt: Date
+    public let isFinal: Bool
+
+    public init(content: String, updatedAt: Date, isFinal: Bool) {
+        self.content = content
+        self.updatedAt = updatedAt
+        self.isFinal = isFinal
     }
 }
 
