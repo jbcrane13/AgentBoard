@@ -49,11 +49,43 @@ public actor KanbanCLIWriter: KanbanCLIWriting {
     /// Resolve hermes binary path dynamically.
     private func resolveHermes() async throws -> String {
         // Try the configured path first
-        if FileManager.default.isExecutableFile(atPath: hermesPath) {
+        if !hermesPath.isEmpty, FileManager.default.isExecutableFile(atPath: hermesPath) {
             return hermesPath
         }
-        // Fall back to PATH lookup
-        return "hermes"
+        // Fall back to a PATH lookup so we don't depend on a hardcoded install
+        // location (e.g. Homebrew's /opt/homebrew/bin vs a user's ~/.local/bin).
+        if let resolved = await whichHermes(), !resolved.isEmpty {
+            return resolved
+        }
+        // Last resort: return the configured path (or "hermes") so Process
+        // surfaces a clear "not found" error rather than launching a wrong binary.
+        return hermesPath.isEmpty ? "hermes" : hermesPath
+    }
+
+    /// Locate `hermes` on the user's PATH via the shell resolver.
+    private func whichHermes() async -> String? {
+        await withCheckedContinuation { continuation in
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/bin/sh")
+            process.arguments = ["-c", "command -v hermes"]
+            let stdout = Pipe()
+            process.standardOutput = stdout
+            process.terminationHandler = { proc in
+                guard proc.terminationStatus == 0 else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+                let data = stdout.fileHandleForReading.readDataToEndOfFile()
+                let path = String(data: data, encoding: .utf8)?
+                    .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                continuation.resume(returning: path.isEmpty ? nil : path)
+            }
+            do {
+                try process.run()
+            } catch {
+                continuation.resume(returning: nil)
+            }
+        }
     }
 
     // MARK: - Create
