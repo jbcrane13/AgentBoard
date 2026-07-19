@@ -490,20 +490,10 @@ struct NeuTextField: View {
     @Binding var text: String
 
     var body: some View {
-        ZStack(alignment: .leading) {
-            if text.isEmpty {
-                Text(placeholder)
-                    .foregroundStyle(NeuPalette.textSecondary)
-                    .padding(.horizontal, 16)
-            }
-            TextField("", text: $text)
-                .foregroundStyle(NeuPalette.textPrimary)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 16)
-                .autocorrectionDisabled()
-                .agentBoardTextInputAutocapitalizationNever()
-        }
-        .neuRecessed(cornerRadius: 16, depth: 6)
+        TextField(placeholder, text: $text)
+            .textFieldStyle(.roundedBorder)
+            .autocorrectionDisabled()
+            .agentBoardTextInputAutocapitalizationNever()
     }
 }
 
@@ -512,20 +502,10 @@ struct NeuSecureField: View {
     @Binding var text: String
 
     var body: some View {
-        ZStack(alignment: .leading) {
-            if text.isEmpty {
-                Text(placeholder)
-                    .foregroundStyle(NeuPalette.textSecondary)
-                    .padding(.horizontal, 16)
-            }
-            SecureField("", text: $text)
-                .foregroundStyle(NeuPalette.textPrimary)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 16)
-                .autocorrectionDisabled()
-                .agentBoardTextInputAutocapitalizationNever()
-        }
-        .neuRecessed(cornerRadius: 16, depth: 6)
+        SecureField(placeholder, text: $text)
+            .textFieldStyle(.roundedBorder)
+            .autocorrectionDisabled()
+            .agentBoardTextInputAutocapitalizationNever()
     }
 }
 
