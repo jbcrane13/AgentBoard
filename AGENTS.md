@@ -117,6 +117,7 @@ Located in `SharedResources/Assets.xcassets/AppIcon.appiconset/`. All 10 macOS s
 
 See `docs/ADR.md` for the full architecture decision record. Key recent ADRs:
 - **ADR-013** (2026-05-23): Native SwiftUI app shell controls
+- **ADR-015** (2026-07-19): Replace neumorphic chrome with native macOS/iOS UI — the shared theme primitives in `AgentBoardUI/Theme/NeumorphicTheme.swift` now render platform-native surfaces/materials; screens compile unchanged.
 - **ADR-011** (2026-05-01): Kanban.db as task backend
 - **ADR-010** (2026-04-23): Hermes-first shared SwiftUI rebuild
 

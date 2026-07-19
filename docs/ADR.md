@@ -209,4 +209,21 @@ Agents → CompanionServer → FSEvents + ps
 
 ---
 
+## ADR-015: Replace neumorphic chrome with native macOS/iOS UI
+**Date:** 2026-07-19
+**Status:** Active
+**Decision:** Drop the custom neumorphic (skeuomorphic dual-shadow, gradient, extruded/recessed) design system in favour of standard macOS/iOS chrome. The change is implemented by reimplementing the shared theme primitives in `AgentBoardUI/Theme/NeumorphicTheme.swift` under their existing public names so all ~24 screens adopt the new look without per-screen edits.
+
+**Context:** The Hermes-first rebuild shipped a heavily custom neumorphic theme. That made the app feel non-native and doubled down on hand-rolled shadows/gradients that the platform already provides for free. Because the whole design system is centralized (palette, background, `.neuExtruded`/`.neuRecessed`, `NeuButtonTarget`, `NeuTextField`/`NeuSecureField`), a single-file rewrite of the primitives propagates everywhere.
+
+**Consequences:**
+- `NeuPalette` surfaces/text now read platform-native colours (`NSColor.windowBackgroundColor`/`labelColor`/… on macOS, `UIColor.systemBackground`/`label`/… on iOS), so light and dark mode adapt automatically. Accent (brand teal) and status colours are preserved for the kanban pills.
+- `NeuBackground()` is the plain window background (no gradient).
+- `.neuExtruded()` → `.regularMaterial` rounded card + hairline border + single subtle shadow. `.neuRecessed()` → flat grouped-background inset.
+- `NeuButtonTarget(isAccent:)` → native bordered / borderedProminent look with system pressed-state opacity.
+- `NeuTextField`/`NeuSecureField` → `.textFieldStyle(.roundedBorder)`.
+- The public API of the primitives is unchanged, so screens compile as-is; a per-screen idiomatic re-layout (macOS `Form` groupings, iOS inset-grouped `List`) is a possible follow-up.
+
+---
+
 *To add a new ADR: append with the next number, include date, status, decision, context, and consequences.*
