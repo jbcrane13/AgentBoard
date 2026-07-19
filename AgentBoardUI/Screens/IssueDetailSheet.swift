@@ -441,7 +441,7 @@ struct IssueDetailSheet: View {
                 title: editTitle.trimmedOrNil,
                 body: bodyText,
                 labels: mergedLabels.sorted(),
-                assignees: [],
+                assignees: editAgent.map { [$0.githubUsername] } ?? [],
                 milestone: Int(editMilestone.trimmingCharacters(in: .whitespacesAndNewlines)),
                 state: editStatus
             )

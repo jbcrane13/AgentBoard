@@ -242,7 +242,7 @@ struct CreateIssueSheet: View {
                 title: title.trimmingCharacters(in: .whitespacesAndNewlines),
                 body: bodyText,
                 labels: mergedLabels.sorted(),
-                assignees: [],
+                assignees: selectedAgent.map { [$0.githubUsername] } ?? [],
                 milestone: Int(milestoneText.trimmingCharacters(in: .whitespacesAndNewlines))
             )
             isCreating = false
