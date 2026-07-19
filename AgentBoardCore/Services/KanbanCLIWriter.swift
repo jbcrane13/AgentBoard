@@ -73,9 +73,8 @@ public actor KanbanCLIWriter: KanbanCLIWriting {
         return "hermes"
     }
 
-    // Best-effort PATH lookup. Returns the first executable matching `name`.
-    // swiftlint:disable:next modifier_order
-    private nonisolated func resolveFromPath(_ name: String) -> String? {
+    /// Best-effort PATH lookup. Returns the first executable matching `name`.
+    nonisolated private func resolveFromPath(_ name: String) -> String? {
         let pathEnv = ProcessInfo.processInfo.environment["PATH"] ?? ""
         for dir in pathEnv.split(separator: ":") {
             let candidate = (dir as NSString).appendingPathComponent(name)
