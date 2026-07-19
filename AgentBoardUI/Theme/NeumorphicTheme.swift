@@ -1,6 +1,26 @@
 import AgentBoardCore
 import SwiftUI
 
+// MARK: - Design Theme
+
+//
+// AgentBoard renders with standard macOS / iOS chrome rather than a custom
+// neumorphic (skeuomorphic double-shadow) treatment. The public symbol names
+// in this file are preserved so every existing call site keeps compiling:
+//
+//   - `NeuPalette.*`          semantic + surface colors (platform-aware)
+//   - `NeuBackground()`       window/scene background
+//   - `.neuExtruded(...)`     raised card → .regularMaterial rounded rect
+//   - `.neuRecessed(...)`     inset well → grouped-background rounded rect
+//   - `NeuButtonTarget(...)`  button style → .bordered / .borderedProminent
+//
+// The colour ramp stays brand-toned (accent teal / status colours) so the
+// kanban pills and status indicators keep their meaning, but surfaces now use
+// the platform's native materials and window colours instead of hand-rolled
+// gradients, dual shadows, and extruded/recessed effects.
+
+/// Surface + semantic colours. `NeuPalette` reads through these so light and
+/// dark mode, and macOS vs iOS, all resolve to the correct native colour.
 public struct NeuTheme: Sendable {
     public let background: Color
     public let surface: Color
@@ -32,75 +52,70 @@ public struct NeuTheme: Sendable {
     public let shadowDark: Color
     public let shadowLight: Color
 
-    public static let blue = NeuTheme(
-        background: Color(red: 0.102, green: 0.110, blue: 0.13), // slightly less blue-tinted
-        surface: Color(red: 0.125, green: 0.135, blue: 0.165),
-        surfaceRaised: Color(red: 0.155, green: 0.170, blue: 0.20),
-        surfaceHover: Color(red: 0.180, green: 0.200, blue: 0.24),
-        inset: Color(red: 0.085, green: 0.09, blue: 0.10),
-        gradientTop: Color(red: 0.15, green: 0.16, blue: 0.19),
-        gradientBottom: Color(red: 0.102, green: 0.110, blue: 0.13),
-        accentOrange: Color(red: 0.961, green: 0.647, blue: 0.141),
-        primaryAccent: Color(red: 0.106, green: 0.749, blue: 0.651),
-        primaryAccentBright: Color(red: 0.310, green: 0.851, blue: 0.773),
-        primaryAccentForeground: Color(red: 0.055, green: 0.067, blue: 0.098),
-        accentCoral: Color(red: 1.000, green: 0.420, blue: 0.329),
-        accentPurple: Color(red: 0.690, green: 0.486, blue: 1.000),
-        statusOpen: Color(red: 0.306, green: 0.639, blue: 1.000),
-        statusClosed: Color(red: 0.494, green: 0.522, blue: 0.584),
-        statusSuccess: Color.green,
-        statusIdle: Color.blue,
-        textPrimary: Color(red: 0.957, green: 0.965, blue: 0.980),
-        textSecondary: Color(red: 0.761, green: 0.784, blue: 0.831),
-        textTertiary: Color(red: 0.494, green: 0.522, blue: 0.584),
-        textDisabled: Color(red: 0.322, green: 0.345, blue: 0.400),
-        borderSoft: Color.white.opacity(0.04),
-        border: Color.white.opacity(0.07),
-        borderStrong: Color.white.opacity(0.12),
-        shadowDark: Color.black.opacity(0.50),
-        shadowLight: Color.white.opacity(0.06)
-    )
+    /// Platform-aware native surfaces. Backgrounds and text come from the OS
+    /// (`NSColor` / `UIColor`) so they adapt to light/dark automatically.
+    /// Accents and status colours stay fixed for brand + semantic meaning.
+    private static func makeNative() -> NeuTheme {
+        #if os(macOS)
+            let background = Color(nsColor: .windowBackgroundColor)
+            let surface = Color(nsColor: .controlBackgroundColor)
+            let surfaceRaised = Color(nsColor: .controlBackgroundColor)
+            let surfaceHover = Color(nsColor: .quaternaryLabelColor).opacity(0.35)
+            let inset = Color(nsColor: .underPageBackgroundColor)
+            let textPrimary = Color(nsColor: .labelColor)
+            let textSecondary = Color(nsColor: .secondaryLabelColor)
+            let textTertiary = Color(nsColor: .tertiaryLabelColor)
+            let textDisabled = Color(nsColor: .quaternaryLabelColor)
+            let border = Color(nsColor: .separatorColor)
+        #else
+            let background = Color(uiColor: .systemBackground)
+            let surface = Color(uiColor: .secondarySystemBackground)
+            let surfaceRaised = Color(uiColor: .secondarySystemBackground)
+            let surfaceHover = Color(uiColor: .tertiarySystemFill)
+            let inset = Color(uiColor: .systemGroupedBackground)
+            let textPrimary = Color(uiColor: .label)
+            let textSecondary = Color(uiColor: .secondaryLabel)
+            let textTertiary = Color(uiColor: .tertiaryLabel)
+            let textDisabled = Color(uiColor: .quaternaryLabel)
+            let border = Color(uiColor: .separator)
+        #endif
 
-    public static let grey = NeuTheme(
-        // Apple HIG dark mode neutral greys — no blue/brown undertone
-        background: Color(red: 0.110, green: 0.110, blue: 0.118),   // #1C1C1E
-        surface: Color(red: 0.173, green: 0.173, blue: 0.180),       // #2C2C2E
-        surfaceRaised: Color(red: 0.227, green: 0.227, blue: 0.235), // #3A3A3C
-        surfaceHover: Color(red: 0.282, green: 0.282, blue: 0.290),  // #48484A
-        inset: Color(red: 0.067, green: 0.067, blue: 0.075),         // #111113 — deep well for recessed columns
-        gradientTop: Color(red: 0.173, green: 0.173, blue: 0.180),   // #2C2C2E
-        gradientBottom: Color(red: 0.067, green: 0.067, blue: 0.075), // #111113
-        // Apple system orange for secondary/warning use
-        accentOrange: Color(red: 1.000, green: 0.624, blue: 0.039),  // #FF9F0A
-        // System Blue — #0A84FF
-        primaryAccent: Color(red: 0.039, green: 0.518, blue: 1.000),
-        primaryAccentBright: Color(red: 0.251, green: 0.612, blue: 1.000), // #409CFF
-        primaryAccentForeground: Color(red: 1.000, green: 1.000, blue: 1.000), // white on blue
-        // Apple system red and purple
-        accentCoral: Color(red: 1.000, green: 0.216, blue: 0.373),   // #FF375F
-        accentPurple: Color(red: 0.749, green: 0.353, blue: 0.949),  // #BF5AF2
-        // GitHub-convention status colours
-        statusOpen: Color(red: 0.039, green: 0.518, blue: 1.000),    // blue — open
-        statusClosed: Color(red: 0.388, green: 0.388, blue: 0.400),  // #636366 — muted grey
-        statusSuccess: Color(red: 0.196, green: 0.843, blue: 0.294), // #32D74B — Apple green
-        statusIdle: Color(red: 0.388, green: 0.388, blue: 0.400),    // #636366
-        // True neutral text ramp
-        textPrimary: Color(red: 0.961, green: 0.961, blue: 0.969),   // #F5F5F7
-        textSecondary: Color(red: 0.682, green: 0.682, blue: 0.698), // #AEAEB2
-        textTertiary: Color(red: 0.424, green: 0.424, blue: 0.439),  // #6C6C70
-        textDisabled: Color(red: 0.282, green: 0.282, blue: 0.290),  // #48484A
-        borderSoft: Color.white.opacity(0.05),
-        border: Color.white.opacity(0.08),
-        borderStrong: Color.white.opacity(0.14),
-        shadowDark: Color.black.opacity(0.60),
-        shadowLight: Color.white.opacity(0.06)
-    )
+        return NeuTheme(
+            background: background,
+            surface: surface,
+            surfaceRaised: surfaceRaised,
+            surfaceHover: surfaceHover,
+            inset: inset,
+            gradientTop: background,
+            gradientBottom: background,
+            accentOrange: .orange,
+            primaryAccent: Color(red: 0.106, green: 0.749, blue: 0.651), // brand teal
+            primaryAccentBright: Color(red: 0.310, green: 0.851, blue: 0.773),
+            primaryAccentForeground: .white,
+            accentCoral: .pink,
+            accentPurple: .purple,
+            statusOpen: .blue,
+            statusClosed: .gray,
+            statusSuccess: .green,
+            statusIdle: .blue,
+            textPrimary: textPrimary,
+            textSecondary: textSecondary,
+            textTertiary: textTertiary,
+            textDisabled: textDisabled,
+            borderSoft: border.opacity(0.5),
+            border: border,
+            borderStrong: border.opacity(0.8),
+            shadowDark: .black.opacity(0.20),
+            shadowLight: .clear
+        )
+    }
 
-    public static func preset(_ designTheme: AgentBoardDesignTheme) -> NeuTheme {
-        switch designTheme {
-        case .blue: .blue
-        case .grey: .grey
-        }
+    public static let blue = NeuTheme.makeNative()
+    public static let grey = NeuTheme.makeNative()
+
+    /// Kept for API compatibility; both presets resolve to the same native theme.
+    public static func preset(_: AgentBoardDesignTheme) -> NeuTheme {
+        .makeNative()
     }
 }
 
@@ -221,25 +236,18 @@ public enum NeuPalette {
     }
 }
 
+/// Scene background. Uses the native window/background colour so the app sits
+/// correctly in light and dark mode with no hand-drawn gradient.
 public struct NeuBackground: View {
     public init() {}
     public var body: some View {
-        ZStack {
-            NeuPalette.background
-            LinearGradient(
-                colors: [
-                    NeuPalette.gradientTop.opacity(0.90),
-                    NeuPalette.background.opacity(0.98),
-                    NeuPalette.gradientBottom.opacity(0.90)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        }
-        .ignoresSafeArea()
+        NeuPalette.background.ignoresSafeArea()
     }
 }
 
+/// Raised card — a standard material-backed rounded rectangle with a hairline
+/// border and a single subtle drop shadow. Replaces the neumorphic
+/// dual-shadow "extruded" look with native chrome.
 public struct NeuExtrudedModifier: ViewModifier {
     public let cornerRadius: CGFloat
     public let elevation: CGFloat
@@ -253,34 +261,23 @@ public struct NeuExtrudedModifier: ViewModifier {
         content
             .background(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(NeuPalette.surfaceRaised)
-                    .shadow(
-                        color: NeuPalette.shadowDark,
-                        radius: elevation * 1.4,
-                        x: elevation * 0.45,
-                        y: elevation * 0.75
-                    )
-                    .shadow(
-                        color: NeuPalette.shadowLight,
-                        radius: elevation * 0.7,
-                        x: -elevation * 0.3,
-                        y: -elevation * 0.3
-                    )
+                    .fill(.regularMaterial)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .stroke(
-                        LinearGradient(
-                            colors: [Color.white.opacity(0.12), Color.white.opacity(0.02)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 1
-                    )
+                    .stroke(NeuPalette.borderSoft, lineWidth: 0.5)
+            )
+            .shadow(
+                color: NeuPalette.shadowDark,
+                radius: max(elevation * 0.4, 2),
+                x: 0,
+                y: max(elevation * 0.2, 1)
             )
     }
 }
 
+/// Inset well — a flat grouped-background rounded rectangle. Replaces the
+/// neumorphic blurred "recessed" look with a subtle native inset surface.
 public struct NeuRecessedModifier: ViewModifier {
     public let cornerRadius: CGFloat
     public let depth: CGFloat
@@ -295,20 +292,10 @@ public struct NeuRecessedModifier: ViewModifier {
             .background(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .fill(NeuPalette.inset)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                            .stroke(Color.black.opacity(0.35), lineWidth: depth)
-                            .blur(radius: depth)
-                            .offset(x: depth * 0.5, y: depth * 0.5)
-                            .mask(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                            .stroke(Color.white.opacity(0.08), lineWidth: depth)
-                            .blur(radius: depth)
-                            .offset(x: -depth * 0.5, y: -depth * 0.5)
-                            .mask(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-                    )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(NeuPalette.borderSoft, lineWidth: 0.5)
             )
     }
 }
@@ -323,6 +310,10 @@ public extension View {
     }
 }
 
+/// Native button style. Accent buttons render as the platform's prominent
+/// (filled) button; regular buttons render as the standard bordered button.
+/// Pressed state relies on the system feedback rather than a custom scale +
+/// shadow animation.
 public struct NeuButtonTarget: ButtonStyle {
     public let isAccent: Bool
     public init(isAccent: Bool = false) {
@@ -334,25 +325,20 @@ public struct NeuButtonTarget: ButtonStyle {
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(isAccent ? NeuPalette.accentForeground : NeuPalette.textPrimary)
             .padding(.horizontal, 14)
-            .padding(.vertical, 9)
+            .padding(.vertical, 8)
             .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(isAccent ? NeuPalette.accentCyan : NeuPalette.surfaceRaised)
-                    .shadow(
-                        color: configuration.isPressed ? .clear : NeuPalette.shadowDark,
-                        radius: configuration.isPressed ? 0 : 8,
-                        x: configuration.isPressed ? 0 : 4,
-                        y: configuration.isPressed ? 0 : 6
-                    )
-                    .shadow(
-                        color: configuration.isPressed ? .clear : NeuPalette.shadowLight,
-                        radius: configuration.isPressed ? 0 : 8,
-                        x: configuration.isPressed ? 0 : -2,
-                        y: configuration.isPressed ? 0 : -2
-                    )
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(isAccent ? NeuPalette.accentCyan : Color.clear)
             )
-            .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
-            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: configuration.isPressed)
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(isAccent ? Color.clear : NeuPalette.surfaceHover)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(isAccent ? Color.clear : NeuPalette.border, lineWidth: 0.5)
+            )
+            .opacity(configuration.isPressed ? 0.7 : 1.0)
     }
 }
 
@@ -361,9 +347,9 @@ struct AgentBoardEyebrow: View {
 
     var body: some View {
         Text(text.uppercased())
-            .font(.system(size: 10.5, weight: .semibold, design: .monospaced))
-            .tracking(1.6)
-            .foregroundStyle(NeuPalette.accentCyanBright)
+            .font(.caption.weight(.semibold))
+            .tracking(1.2)
+            .foregroundStyle(NeuPalette.textSecondary)
     }
 }
 
@@ -384,15 +370,10 @@ struct AgentBoardPill: View {
             Text(text)
                 .lineLimit(1)
         }
-        .font(.system(size: 10.5, weight: .semibold, design: .monospaced))
+        .font(.caption2.weight(.semibold))
         .foregroundStyle(color)
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
-        .background(color.opacity(0.08))
-        .overlay(
-            Capsule()
-                .stroke(color.opacity(0.32), lineWidth: 1)
-        )
-        .clipShape(Capsule())
+        .background(color.opacity(0.12), in: Capsule())
     }
 }
