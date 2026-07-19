@@ -17,10 +17,6 @@ public protocol KanbanCLIWriting: Sendable {
 /// Mutations go through the CLI so the gateway/dispatcher owns the write path
 /// and we never contend with the SQLite claim/reclaim cycle.
 public actor KanbanCLIWriter: KanbanCLIWriting {
-    #if DEBUG
-    /// Test-only accessor for the private path resolver.
-    nonisolated func test_resolveHermes() -> String { resolveHermes() }
-    #endif
     public enum WriteError: LocalizedError, Equatable {
         case commandFailed(String)
         case invalidJSON(String)
@@ -56,7 +52,7 @@ public actor KanbanCLIWriter: KanbanCLIWriting {
     /// bare `hermes` name won't resolve via `Process` — we must locate the
     /// absolute path ourselves. As a final fallback we return `hermes` so
     /// callers that do have a usable PATH still work.
-    nonisolated private func resolveHermes() -> String {
+    nonisolated func resolveHermes() -> String {
         if FileManager.default.isExecutableFile(atPath: hermesPath) {
             return hermesPath
         }
