@@ -27,6 +27,42 @@ struct GitHubAssigneeForwardingTests {
         }
     }
 
+    // MARK: - Assignees patch edge cases
+
+    @Test func assigneesPatchWithNoAgentLeavesAssigneesUntouched() {
+        // Sending [] in a PATCH clears assignees set outside the app —
+        // "no agent picked" must omit the field entirely.
+        #expect(AgentName.assigneesPatch(for: nil, existing: ["blake"]) == nil)
+        #expect(AgentName.assigneesPatch(for: nil, existing: []) == nil)
+    }
+
+    @Test func assigneesPatchAddsAgentWhenNoneAssigned() {
+        #expect(AgentName.assigneesPatch(for: .daneel, existing: []) == ["jbcrane13"])
+    }
+
+    @Test func assigneesPatchPreservesExternalAssignees() {
+        // An assignee added via the GitHub web UI must survive picking an agent.
+        #expect(
+            AgentName.assigneesPatch(for: .daneel, existing: ["octocat"])
+                == ["octocat", "jbcrane13"]
+        )
+    }
+
+    @Test func assigneesPatchDoesNotDuplicateExistingAssignment() {
+        #expect(
+            AgentName.assigneesPatch(for: .daneel, existing: ["jbcrane13"])
+                == ["jbcrane13"]
+        )
+    }
+
+    @Test func assigneesPatchMatchesLoginsCaseInsensitively() {
+        // GitHub logins are case-insensitive; "JBCrane13" is already assigned.
+        #expect(
+            AgentName.assigneesPatch(for: .daneel, existing: ["JBCrane13"])
+                == ["JBCrane13"]
+        )
+    }
+
     // MARK: - UI call-site pins
 
     @Test func createIssueSheetForwardsPickedAgentAsAssignee() throws {
@@ -36,8 +72,8 @@ struct GitHubAssigneeForwardingTests {
             "create() still hardcodes an empty assignees array"
         )
         #expect(
-            source.contains("githubUsername"),
-            "create() does not map the picked agent to a GitHub username"
+            source.contains("AgentName.assigneesPatch(for: selectedAgent, existing: [])"),
+            "create() does not route the picked agent through assigneesPatch"
         )
     }
 
@@ -48,8 +84,8 @@ struct GitHubAssigneeForwardingTests {
             "save() still hardcodes an empty assignees array"
         )
         #expect(
-            source.contains("githubUsername"),
-            "save() does not map the picked agent to a GitHub username"
+            source.contains("AgentName.assigneesPatch(for: editAgent, existing: item.assignees)"),
+            "save() must merge the picked agent with the issue's existing assignees"
         )
     }
 

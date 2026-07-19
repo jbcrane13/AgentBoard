@@ -47,4 +47,18 @@ public enum AgentName: String, Codable, CaseIterable, Identifiable, Sendable {
     public var githubUsername: String {
         "jbcrane13"
     }
+
+    /// Assignees array to send in an issue create/update for a picked agent,
+    /// given the issue's current assignees. `nil` means leave the field
+    /// untouched (issue #12 edge cases): no agent picked must not clear
+    /// assignees set outside the app, and picking one must merge — not
+    /// replace — the existing list. GitHub logins compare case-insensitively.
+    public static func assigneesPatch(for agent: AgentName?, existing: [String]) -> [String]? {
+        guard let agent else { return nil }
+        let username = agent.githubUsername
+        let alreadyAssigned = existing.contains {
+            $0.caseInsensitiveCompare(username) == .orderedSame
+        }
+        return alreadyAssigned ? existing : existing + [username]
+    }
 }
