@@ -141,6 +141,7 @@
 		BC1CCDB452C13C403BFA1460 /* DomainPills.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A169A5D550028B6D20B397D /* DomainPills.swift */; };
 		BCE6371A2B658B37FE0C3124 /* LinkPreviewService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54CA712A46E969ED79300E4F /* LinkPreviewService.swift */; };
 		C03DE2AB570D615F55142A44 /* AgentBoardCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3024AF0B4A66DE64BDB27E15 /* AgentBoardCache.swift */; };
+		C06103B898C1EB5CEEB4BB2A /* KanbanCLIWriterPathTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5102C6664EC788E01AFFE8E9 /* KanbanCLIWriterPathTests.swift */; };
 		C23BCB5CF1615F000459D9E7 /* HermesGatewayClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7B2891F313F2E1804101D36 /* HermesGatewayClient.swift */; };
 		C32F8741DFBEF1D329D356E0 /* KanbanDataService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9896F487D5B25505452683B /* KanbanDataService.swift */; };
 		C533F4D91531479ECC82DC9E /* KanbanBoardMove.swift in Sources */ = {isa = PBXBuildFile; fileRef = 275D2D504EF7D2F320157884 /* KanbanBoardMove.swift */; };
@@ -326,6 +327,7 @@
 		4A978B41E9572538A1E74E5C /* EmbeddedTerminalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbeddedTerminalView.swift; sourceTree = "<group>"; };
 		4E8BA0A7421FAF69CBF5AD4F /* MarkdownBlockParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownBlockParser.swift; sourceTree = "<group>"; };
 		4F7D59DE18AF7B3E0D84EF9A /* DesktopSidebar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesktopSidebar.swift; sourceTree = "<group>"; };
+		5102C6664EC788E01AFFE8E9 /* KanbanCLIWriterPathTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KanbanCLIWriterPathTests.swift; sourceTree = "<group>"; };
 		52959B32060C120BA1BB1AB7 /* ShellEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShellEnvironment.swift; sourceTree = "<group>"; };
 		538A290820D417392EDCC67A /* GitHubAssigneeForwardingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubAssigneeForwardingTests.swift; sourceTree = "<group>"; };
 		542D187F8CE06B1BF01B7BB8 /* SessionAttachmentControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionAttachmentControllerTests.swift; sourceTree = "<group>"; };
@@ -501,6 +503,7 @@
 				1F06E0C2FFE9CAC90D48662B /* HermesGatewayClientTests.swift */,
 				6A0D9C21BA312AB952D0E48B /* KanbanAssigneePickerTests.swift */,
 				3540D69FA92919FFD0494695 /* KanbanBoardMoveTests.swift */,
+				5102C6664EC788E01AFFE8E9 /* KanbanCLIWriterPathTests.swift */,
 				AE3F349D2B17FA90738CCDD5 /* KanbanModelsTests.swift */,
 				8562113DB3BC11316C4B4A50 /* LabelSchemaTests.swift */,
 				CA23E07815EFC6866337CE51 /* LaunchConfigStoreTests.swift */,
@@ -1063,6 +1066,7 @@
 				62108DFBD6C8CF3265C4F8A5 /* HermesGatewayClientTests.swift in Sources */,
 				0B3C6DC24A36FE8A19357506 /* KanbanAssigneePickerTests.swift in Sources */,
 				9EAC1A69746A2ABCB376F952 /* KanbanBoardMoveTests.swift in Sources */,
+				C06103B898C1EB5CEEB4BB2A /* KanbanCLIWriterPathTests.swift in Sources */,
 				DAAA6677EBC51F4C7796E505 /* KanbanModelsTests.swift in Sources */,
 				E9D09CAC0D952EE1295DFA60 /* LabelSchemaTests.swift in Sources */,
 				743347AAF487757311534AC7 /* LaunchConfigStoreTests.swift in Sources */,
