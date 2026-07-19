@@ -25,3 +25,9 @@ Project-specific lessons. Global lessons live in `~/.claude/lessons-learned.md`.
 - The test target can only import Core/CompanionKit; UI files compile into app targets. Testable logic goes in Core; UI is pinned via source-text tests.
 - Architecture guardrails to plan around: `ChatStore.swift` line-count cap (use `ChatStore+Internals.swift`), SwiftLint actor-body/file-length caps (file-scope structs, `+Feature.swift` extensions).
 - Hermes deployment reality: kanban tasks execute inline in long-lived per-profile gateway daemons — per-task process identity does not exist externally. Any "which task is this agent running" feature must come from kanban.db state, not process observation, unless Hermes itself changes.
+
+## 2026-07-19 issue #12 assignee forwarding
+
+### Process
+
+- **Two agent sessions sharing one checkout race each other's git operations.** A concurrent process's crashed commit left a stale `index.lock`, its commit message got attached to this session's staged files, `git stash` captured its uncommitted `KanbanCLIWriter` rework (nearly lost when the stash was dropped — recovered via the stash SHA), and it reset/renamed branches mid-session. Before any stash/reset/amend, run `git status` + check for other live sessions; verify every commit's stat AND message immediately after creating it; never drop a stash without `git show --stat` on it first.
