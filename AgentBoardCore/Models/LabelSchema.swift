@@ -40,4 +40,11 @@ public enum AgentName: String, Codable, CaseIterable, Identifiable, Sendable {
     public var labelValue: String {
         "agent:\(rawValue)"
     }
+
+    /// GitHub login to set in the issue's `assignees` field for this agent (issue #12).
+    /// Every agent operates under the repo owner's account — GitHub only accepts
+    /// assignees with repo access, and agent identity is carried by the `agent:` label.
+    public var githubUsername: String {
+        "jbcrane13"
+    }
 }

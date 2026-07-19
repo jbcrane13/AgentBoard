@@ -2,6 +2,10 @@
 
 Project-specific lessons. Global lessons live in `~/.claude/lessons-learned.md`.
 
+## 2026-07-19 issue #12 RED phase (assignee forwarding tests)
+
+- **The pre-commit hook can silently drop staged *modified* files from a commit** — a 3-file commit landed with only the newly added file; the two modified files were left staged-but-uncommitted. Always check `git show --stat HEAD` after committing. A guardrail hook also blocks `git push --force-with-lease`, so recover with a follow-up commit, not an amend.
+
 ## 2026-07 feature-complete effort (issues #138–#146 + follow-ups, PRs #147–#163)
 
 ### Process
