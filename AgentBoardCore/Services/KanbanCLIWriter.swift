@@ -46,46 +46,44 @@ public actor KanbanCLIWriter: KanbanCLIWriting {
         self.timeoutSeconds = timeoutSeconds
     }
 
-    /// Resolve hermes binary path dynamically.
-    private func resolveHermes() async throws -> String {
-        // Try the configured path first
-        if !hermesPath.isEmpty, FileManager.default.isExecutableFile(atPath: hermesPath) {
+    /// Resolve the hermes binary path. The explicitly configured `hermesPath`
+    /// wins, then we probe a list of common install locations. macOS GUI apps
+    /// are launched without inheriting the user's interactive-shell PATH, so a
+    /// bare `hermes` name won't resolve via `Process` — we must locate the
+    /// absolute path ourselves. As a final fallback we return `hermes` so
+    /// callers that do have a usable PATH still work.
+    nonisolated func resolveHermes() -> String {
+        if FileManager.default.isExecutableFile(atPath: hermesPath) {
             return hermesPath
         }
-        // Fall back to a PATH lookup so we don't depend on a hardcoded install
-        // location (e.g. Homebrew's /opt/homebrew/bin vs a user's ~/.local/bin).
-        if let resolved = await whichHermes(), !resolved.isEmpty {
-            return resolved
+        let home = NSHomeDirectory()
+        let candidates = [
+            "/opt/homebrew/bin/hermes",
+            "/usr/local/bin/hermes",
+            (home as NSString).appendingPathComponent(".local/bin/hermes"),
+            (home as NSString).appendingPathComponent(".hermes/hermes-agent/venv/bin/hermes"),
+            "/usr/bin/hermes"
+        ]
+        for candidate in candidates where FileManager.default.isExecutableFile(atPath: candidate) {
+            return candidate
         }
-        // Last resort: return the configured path (or "hermes") so Process
-        // surfaces a clear "not found" error rather than launching a wrong binary.
-        return hermesPath.isEmpty ? "hermes" : hermesPath
+        if let pathResolved = resolveFromPath("hermes") {
+            return pathResolved
+        }
+        return "hermes"
     }
 
-    /// Locate `hermes` on the user's PATH via the shell resolver.
-    private func whichHermes() async -> String? {
-        await withCheckedContinuation { continuation in
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: "/bin/sh")
-            process.arguments = ["-c", "command -v hermes"]
-            let stdout = Pipe()
-            process.standardOutput = stdout
-            process.terminationHandler = { proc in
-                guard proc.terminationStatus == 0 else {
-                    continuation.resume(returning: nil)
-                    return
-                }
-                let data = stdout.fileHandleForReading.readDataToEndOfFile()
-                let path = String(data: data, encoding: .utf8)?
-                    .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                continuation.resume(returning: path.isEmpty ? nil : path)
-            }
-            do {
-                try process.run()
-            } catch {
-                continuation.resume(returning: nil)
+    // Best-effort PATH lookup. Returns the first executable matching `name`.
+    // swiftlint:disable:next modifier_order
+    private nonisolated func resolveFromPath(_ name: String) -> String? {
+        let pathEnv = ProcessInfo.processInfo.environment["PATH"] ?? ""
+        for dir in pathEnv.split(separator: ":") {
+            let candidate = (dir as NSString).appendingPathComponent(name)
+            if FileManager.default.isExecutableFile(atPath: candidate) {
+                return candidate
             }
         }
+        return nil
     }
 
     // MARK: - Create
@@ -157,7 +155,7 @@ public actor KanbanCLIWriter: KanbanCLIWriting {
 
     private func runHermes(_ args: [String]) async throws -> String {
         #if os(macOS)
-            let hermes = try await resolveHermes()
+            let hermes = resolveHermes()
 
             return try await withCheckedThrowingContinuation { continuation in
                 let process = Process()

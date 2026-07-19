@@ -10,11 +10,11 @@ import Testing
 /// the hardcoded `/opt/homebrew/bin/hermes`.
 @Suite("KanbanCLIWriter.resolveHermes path discovery")
 struct KanbanCLIWriterPathTests {
-    @Test func fallsBackToCommonLocationsWhenConfiguredPathMissing() {
+    @Test func fallsBackToCommonLocationsWhenConfiguredPathMissing() async {
         // Writer created with a bogus configured path; resolution must still
         // find a real hermes install (e.g. ~/.local/bin/hermes) without throwing.
         let writer = KanbanCLIWriter(hermesPath: "/nonexistent/hermes")
-        let resolved = writer.test_resolveHermes()
+        let resolved = await writer.resolveHermes()
         // Either we found a real binary, or we returned the bare "hermes"
         // fallback — never an empty string or the bogus configured path.
         #expect(!resolved.isEmpty)
@@ -24,7 +24,7 @@ struct KanbanCLIWriterPathTests {
         }
     }
 
-    @Test func configuredPathWinsWhenValid() {
+    @Test func configuredPathWinsWhenValid() async {
         let home = NSHomeDirectory()
         let realBinary = (home as NSString).appendingPathComponent(".local/bin/hermes")
         guard FileManager.default.isExecutableFile(atPath: realBinary) else {
@@ -32,10 +32,10 @@ struct KanbanCLIWriterPathTests {
             return
         }
         let writer = KanbanCLIWriter(hermesPath: realBinary)
-        #expect(writer.test_resolveHermes() == realBinary)
+        #expect(await writer.resolveHermes() == realBinary)
     }
 
-    @Test func probeFindsLocalBinInstall() {
+    @Test func probeFindsLocalBinInstall() async {
         let home = NSHomeDirectory()
         let realBinary = (home as NSString).appendingPathComponent(".local/bin/hermes")
         guard FileManager.default.isExecutableFile(atPath: realBinary) else {
@@ -43,6 +43,6 @@ struct KanbanCLIWriterPathTests {
         }
         // No configured path set; must probe and find ~/.local/bin/hermes.
         let writer = KanbanCLIWriter(hermesPath: "/opt/homebrew/bin/hermes")
-        #expect(writer.test_resolveHermes() == realBinary)
+        #expect(await writer.resolveHermes() == realBinary)
     }
 }
