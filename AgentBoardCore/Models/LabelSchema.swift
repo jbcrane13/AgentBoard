@@ -40,4 +40,9 @@ public enum AgentName: String, Codable, CaseIterable, Identifiable, Sendable {
     public var labelValue: String {
         "agent:\(rawValue)"
     }
+
+    /// GitHub login to set in the issue's `assignees` field for this agent (issue #12).
+    public var githubUsername: String {
+        ""
+    }
 }
