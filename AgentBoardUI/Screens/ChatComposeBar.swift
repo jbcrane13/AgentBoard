@@ -188,6 +188,7 @@ struct ChatComposeBar: View {
 
     private var sendButtonForeground: Color {
         let chatStore = appModel.chatStore
+        // Justified: icon drawn on the solid `.red` stop-button fill below.
         if chatStore.isStreaming { return .white }
         return canSend ? NeuPalette.accentForeground : NeuPalette.textSecondary
     }

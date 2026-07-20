@@ -126,7 +126,8 @@ struct VideoAttachmentView: View {
                     .fill(NeuPalette.surface)
             }
 
-            // Play button overlay
+            // Play button overlay. Justified: fixed-contrast scrim + icon on
+            // top of an arbitrary video thumbnail, independent of light/dark mode.
             Circle()
                 .fill(.black.opacity(0.5))
                 .frame(width: 48, height: 48)
@@ -136,7 +137,7 @@ struct VideoAttachmentView: View {
                         .foregroundStyle(.white)
                 }
 
-            // Duration badge
+            // Duration badge — same justification as the play button above.
             if let duration = duration {
                 VStack {
                     Spacer()

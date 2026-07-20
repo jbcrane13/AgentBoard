@@ -294,6 +294,8 @@ struct AttachmentPreviewStrip: View {
                             Button {
                                 attachments.remove(at: index)
                             } label: {
+                                // Justified: fixed-contrast remove badge drawn on top of an
+                                // arbitrary photo thumbnail, independent of light/dark mode.
                                 Image(systemName: "xmark.circle.fill")
                                     .font(.caption)
                                     .foregroundColor(.white)

@@ -30,10 +30,12 @@ private struct MarkdownBlockView: View {
             proseText(text)
 
         case let .heading(level, text):
+            // No explicit foregroundStyle: prose inherits the ambient color the
+            // caller sets (NeuChatBubble varies this per role — .primary on the
+            // assistant's material surface, .white on the user's accent fill).
             Text(text)
                 .font(.system(size: max(22 - CGFloat(level) * 2, 13), weight: .bold))
                 .textSelection(.enabled)
-                .foregroundStyle(.white)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 2)
 
@@ -46,7 +48,7 @@ private struct MarkdownBlockView: View {
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
                         Text(ordered && item.depth == 0 ? "\(orderedIndex(items, upTo: index))." : "•")
                             .font(.callout.monospacedDigit())
-                            .foregroundStyle(.white.opacity(0.55))
+                            .foregroundStyle(.secondary)
                         proseText(item.text)
                     }
                     .padding(.leading, CGFloat(item.depth) * 16)
@@ -56,7 +58,7 @@ private struct MarkdownBlockView: View {
         case let .blockquote(inner):
             HStack(alignment: .top, spacing: 8) {
                 RoundedRectangle(cornerRadius: 1.5)
-                    .fill(Color.white.opacity(0.35))
+                    .fill(NeuPalette.borderSoft)
                     .frame(width: 3)
                 VStack(alignment: .leading, spacing: 6) {
                     ForEach(Array(inner.enumerated()), id: \.offset) { _, innerBlock in
@@ -67,22 +69,24 @@ private struct MarkdownBlockView: View {
             }
 
         case let .table(headers, rows):
+            // Tables sit on their own inset fill (independent of the enclosing
+            // bubble/background), so text color is explicit rather than inherited.
             ScrollView(.horizontal, showsIndicators: false) {
                 Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 6) {
                     GridRow {
                         ForEach(Array(headers.enumerated()), id: \.offset) { _, header in
                             Text(header)
                                 .font(.footnote.weight(.semibold))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(.primary)
                         }
                     }
-                    Divider().overlay(Color.white.opacity(0.2))
+                    Divider()
                     ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
                         GridRow {
                             ForEach(Array(row.enumerated()), id: \.offset) { _, cell in
                                 Text(cell)
                                     .font(.footnote)
-                                    .foregroundStyle(.white.opacity(0.9))
+                                    .foregroundStyle(.secondary)
                             }
                         }
                     }
@@ -91,18 +95,17 @@ private struct MarkdownBlockView: View {
             }
             .background(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(Color.black.opacity(0.24))
+                    .fill(NeuPalette.inset)
             )
 
         case .thematicBreak:
-            Divider().overlay(Color.white.opacity(0.2))
+            Divider()
         }
     }
 
     private func proseText(_ text: AttributedString) -> some View {
         Text(text)
             .textSelection(.enabled)
-            .foregroundStyle(.white)
             .fixedSize(horizontal: false, vertical: true)
     }
 
@@ -113,17 +116,21 @@ private struct MarkdownBlockView: View {
     }
 
     private func codeBlock(_ code: String, language: String?) -> some View {
+        // Code blocks render on their own `inset` fill (independent of the
+        // enclosing bubble/background), so text color is explicit `.primary`
+        // rather than inherited — matches the spec's "code blocks on inset
+        // fill with .primary monospaced text" guidance.
         VStack(alignment: .leading, spacing: 4) {
             if let language, !language.isEmpty {
                 Text(language.uppercased())
                     .font(.caption2.weight(.semibold))
                     .tracking(1.2)
-                    .foregroundStyle(.white.opacity(0.5))
+                    .foregroundStyle(.secondary)
             }
             ScrollView(.horizontal, showsIndicators: false) {
                 Text(code)
                     .font(.system(.footnote, design: .monospaced))
-                    .foregroundStyle(.green)
+                    .foregroundStyle(.primary)
                     .textSelection(.enabled)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
@@ -131,11 +138,11 @@ private struct MarkdownBlockView: View {
         }
         .background(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Color.black.opacity(0.32))
+                .fill(NeuPalette.inset)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                .stroke(NeuPalette.borderSoft, lineWidth: 1)
         )
     }
 }
