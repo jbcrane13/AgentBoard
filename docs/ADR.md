@@ -226,4 +226,23 @@ Agents → CompanionServer → FSEvents + ps
 
 ---
 
+## ADR-016: Native Apple / Liquid Glass design language (completes ADR-015)
+**Date:** 2026-07-20
+**Status:** Active
+**Decision:** Complete the native-chrome direction ADR-015 started: adopt system semantic colors and materials as the actual visual language (not just platform-native surface *colours*), replacing the brand-teal accent with the system accent color, removing permanent card/bubble shadows, and adding real `glassEffect`/`Material` translucency on floating chrome. Supersedes ADR-015's "brand teal preserved" detail and ADR-010's visual direction; this is the concrete implementation of the redesign scoped in `docs/superpowers/specs/2026-07-19-native-ui-redesign-design.md`.
+
+**Context:** ADR-015 (2026-07-19) moved surface/text/background colours onto `NSColor`/`UIColor` so light/dark adapted automatically, but kept a bespoke brand-teal `Color(red:green:blue:)` literal for the accent, kept a permanent drop shadow on `.neuExtruded()`, and had no glass/material treatment on floating chrome (compose bar, terminal header). A follow-up design pass (`2026-07-19-native-ui-redesign-design.md`, approved by Blake) specified a stricter, more literal native/Liquid-Glass treatment — system accent color, material-backed flat cards with no permanent elevation, and `glassEffect` on the two surfaces where it reads well. This ADR records that refinement; issue #183 tracked the implementation (PR P, `feat/native-ui-tokens`).
+
+**Consequences:**
+- `NeuPalette.accentCyan`/`accentCyanBright`/`accentForeground` now read `Color.accentColor` (the project's existing `AccentColor` asset) instead of a hardcoded teal RGB literal; `accentCoral` maps to system `.red`; `statusClosed` maps to `.secondary`. A new `NeuPalette.surfaceMaterial: Material` sibling accessor lets call sites opt into a real material without changing the existing `Color`-typed tokens.
+- `NeuExtrudedModifier` (shared card chrome) drops its permanent drop shadow — cards are flat at rest; `.draggable()`'s own system lift/shadow covers the "elevated while dragging" case with no bespoke `isDragging` plumbing.
+- `NeuChatBubble` differentiates by role: assistant on `.regularMaterial` with a hairline stroke, user on an accent-tinted fill with white text (justified: text on accent fill), system/info on a quiet `.tertiary` fill — replacing the old binary assistant/other split and its permanent shadow.
+- `glassEffect(.regular)` lands on the chat compose bar. The session terminal header degrades to `.thinMaterial` per the design spec's explicit legibility fallback (dense status pills/buttons over a busy live-terminal backdrop); the terminal content itself stays fully opaque.
+- `MarkdownText`/`MarkdownBlockView` no longer hardcodes `.white` prose, `.green` code text, or `Color.black` code/table backgrounds — prose inherits its caller's ambient foreground (so `NeuChatBubble`'s per-role text color actually takes effect), de-emphasized accents use `.secondary`/`.separator`, and code/table blocks sit on their own `inset` fill with explicit `.primary` text.
+- Repo-wide sweep of every remaining `.white`/`Color.black` hit in `AgentBoardUI`/`AgentBoard`/`AgentBoardMobile`: `LaunchSessionSheet`/`QuickLaunchSheet`'s selected-row highlight (was invisible-to-wrong `Color.white.opacity(0.05)` against light backgrounds) is now a semantic `NeuPalette.accentCyan.opacity(0.12)` tint; the remaining hits (compose bar stop-button icon, accent foreground, chat bubble user text, the fullscreen media viewer's fixed black/white chrome, attachment thumbnail overlay badges) are justified in place as text/icon-on-fixed-fill.
+- The Settings theme picker UI is removed (appearance now follows the system); the underlying `designTheme` store plumbing and `NeuTheme.preset`/`NeuPalette.apply` machinery are left in place for PR Q's mechanical `NeuPalette → AppTheme` rename and cleanup.
+- `DesignSemanticsTests` is re-pinned as the regression fence: it asserts `NeumorphicTheme.swift`'s accent tokens resolve to `.accentColor` (not a brand-RGB literal), that `NeuExtrudedModifier` carries no permanent shadow, and that the shared chrome components (`MarkdownText`, `BoardChrome`, `ChatBubble`) don't hardcode `.white`/`Color.black` outside the one documented justified case.
+
+---
+
 *To add a new ADR: append with the next number, include date, status, decision, context, and consequences.*

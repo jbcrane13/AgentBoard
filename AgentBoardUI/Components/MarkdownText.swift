@@ -31,8 +31,9 @@ private struct MarkdownBlockView: View {
 
         case let .heading(level, text):
             // No explicit foregroundStyle: prose inherits the ambient color the
-            // caller sets (NeuChatBubble varies this per role — .primary on the
-            // assistant's material surface, .white on the user's accent fill).
+            // caller sets (NeuChatBubble varies this per role — primary text on
+            // the assistant's material surface, light text on the user's
+            // accent fill).
             Text(text)
                 .font(.system(size: max(22 - CGFloat(level) * 2, 13), weight: .bold))
                 .textSelection(.enabled)

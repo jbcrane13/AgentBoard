@@ -19,7 +19,6 @@ struct AccessibilityIdentifierTests {
         let source = try readUISource("Screens/SettingsScreen.swift")
         let required = [
             "screen_settings",
-            "settings_picker_theme",
             "settings_textfield_hermes_gateway_url",
             "settings_textfield_hermes_model",
             "settings_securefield_hermes_api_key",
