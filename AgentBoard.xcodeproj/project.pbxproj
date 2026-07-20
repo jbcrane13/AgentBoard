@@ -97,6 +97,7 @@
 		745D4F6C8C8317CA446F822D /* DashboardScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D1FF2AE621C085664C1C791 /* DashboardScreen.swift */; };
 		76B247EEC86F1DB735601C7C /* TranscriptCaptureThrottleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA9D4BB1359158928CC39AD6 /* TranscriptCaptureThrottleTests.swift */; };
 		77E2DDC0D4C0CA009FD508F0 /* EmbeddedTerminalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A978B41E9572538A1E74E5C /* EmbeddedTerminalView.swift */; };
+		79F62FC563C11FE5E3E5D40F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 42F140C5437FCF5266C39015 /* Assets.xcassets */; };
 		7AC30545E6D54E227C8831BA /* AgentBoardCompanionKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DB3E71CE348AC298EB4048DE /* AgentBoardCompanionKit.framework */; };
 		7BC603692D8E25BF51DF8F9D /* SessionAttachmentControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 542D187F8CE06B1BF01B7BB8 /* SessionAttachmentControllerTests.swift */; };
 		7DE9CA2273E136476F38D922 /* TaskDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 651B64AF0921713BAE550D2D /* TaskDetailSheet.swift */; };
@@ -180,6 +181,7 @@
 		F595A9354548F0B6A8A8F2E3 /* AgentBoardCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2B26E0DCF07C395E5DA349A4 /* AgentBoardCore.framework */; };
 		F6BC6F7575EEA3C8449D315C /* DashboardSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F09EF2B1D929363AF662D5F /* DashboardSnapshot.swift */; };
 		F78742DD742A458919E091C0 /* AgentBoardCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 2B26E0DCF07C395E5DA349A4 /* AgentBoardCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		F868DDCF037E6B0A6FF03EAA /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 42F140C5437FCF5266C39015 /* Assets.xcassets */; };
 		FD03671AAB65C52CE827D3DA /* AgentBoardCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2B26E0DCF07C395E5DA349A4 /* AgentBoardCore.framework */; };
 		FD05A98C162D7CC536D93096 /* AgentBoardApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC92FF930020DC82D470A002 /* AgentBoardApp.swift */; };
 		FD12EEBFD3C62E6F30A61E92 /* MarkdownBlockParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4637D9675B1C126E65C54970 /* MarkdownBlockParserTests.swift */; };
@@ -322,6 +324,7 @@
 		3D4A3C7FF45B9DFB948ABE9F /* AgentBoardCache+KanbanTasks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AgentBoardCache+KanbanTasks.swift"; sourceTree = "<group>"; };
 		3E3C09A95E37674D30B6072F /* AttachmentPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentPicker.swift; sourceTree = "<group>"; };
 		3FEBA7BFDBBBF6316B340FAA /* VoiceViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceViews.swift; sourceTree = "<group>"; };
+		42F140C5437FCF5266C39015 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		4637D9675B1C126E65C54970 /* MarkdownBlockParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownBlockParserTests.swift; sourceTree = "<group>"; };
 		4A978B41E9572538A1E74E5C /* EmbeddedTerminalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbeddedTerminalView.swift; sourceTree = "<group>"; };
 		4E8BA0A7421FAF69CBF5AD4F /* MarkdownBlockParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownBlockParser.swift; sourceTree = "<group>"; };
@@ -582,6 +585,7 @@
 				991F58B2CE08FFEEBCA38614 /* AgentBoardMobile */,
 				3377BF40CC9BC55EF11371E5 /* AgentBoardTests */,
 				C9DEF9226CA1EC38306486CC /* AgentBoardUI */,
+				BA3FF95E3BA060D89D917BC1 /* SharedResources */,
 				81E8705C0A4C85BE52A078CB /* Products */,
 			);
 			sourceTree = "<group>";
@@ -727,6 +731,14 @@
 			path = Stores;
 			sourceTree = "<group>";
 		};
+		BA3FF95E3BA060D89D917BC1 /* SharedResources */ = {
+			isa = PBXGroup;
+			children = (
+				42F140C5437FCF5266C39015 /* Assets.xcassets */,
+			);
+			path = SharedResources;
+			sourceTree = "<group>";
+		};
 		C9DEF9226CA1EC38306486CC /* AgentBoardUI */ = {
 			isa = PBXGroup;
 			children = (
@@ -788,6 +800,7 @@
 			buildPhases = (
 				5E82D9649EAB64B0B502346D /* SwiftLint */,
 				3BE47098CA2D198988BC5FCB /* Sources */,
+				B8CD560B9622BB0BA229BEE7 /* Resources */,
 				6EF8E0BE154BB913794037D3 /* Frameworks */,
 				E0510FAFD961E02F730428C2 /* Embed Frameworks */,
 			);
@@ -812,6 +825,7 @@
 			buildPhases = (
 				9CBC21EBDA194E9153C0AC28 /* SwiftLint */,
 				85EAF994BCC10B6019478E5B /* Sources */,
+				7B6DFBF6D575BF9C656A6254 /* Resources */,
 				0D326533098B690337045128 /* Frameworks */,
 				2CB69FB7FA132091FBEB8464 /* Embed Frameworks */,
 			);
@@ -933,6 +947,25 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		7B6DFBF6D575BF9C656A6254 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				79F62FC563C11FE5E3E5D40F /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B8CD560B9622BB0BA229BEE7 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F868DDCF037E6B0A6FF03EAA /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
 		5E82D9649EAB64B0B502346D /* SwiftLint */ = {
