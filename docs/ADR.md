@@ -245,4 +245,18 @@ Agents → CompanionServer → FSEvents + ps
 
 ---
 
+## ADR-017: GitHub CLI fallback must preserve REST request semantics
+**Date:** 2026-07-20
+**Status:** Active
+**Decision:** When the macOS Work service falls back from a rejected stored GitHub token to the authenticated `gh` CLI, invoke `gh api` with an explicit `--method GET` before adding query fields.
+
+**Context:** `gh api -f state=all` defaults to POST unless the method is explicit. The previous fallback therefore posted to the issues collection, received HTTP 422 (`title` missing), and surfaced the result as “GitHub repository not found.” A stale Keychain token then left the entire Work board empty despite a valid `gh` login.
+
+**Consequences:**
+- A stale or under-scoped in-app token can still use the local authenticated `gh` session for Work reads.
+- A regression test drives the full 401-to-CLI path with a fake executable that accepts only `--method GET`.
+- Token-backed REST remains the primary cross-platform path; the CLI fallback remains macOS-only.
+
+---
+
 *To add a new ADR: append with the next number, include date, status, decision, context, and consequences.*

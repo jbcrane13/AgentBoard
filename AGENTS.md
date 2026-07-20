@@ -203,3 +203,6 @@ fix the ui theme
 
 ## Activity — 2026-05-25
 - Fixed open ticket batch #130-#133: Work board repository selection now persists per scene and seeds create-issue sheets; create issue dismisses based on a successful created item; launched sessions auto-open the terminal; tmux `EXITED:` output now drives completed/failed state; companion-backed session details expose an interactive terminal tab when a tmux session is available.
+
+## Activity — 2026-07-20
+- Fixed GitHub Work reads with stale stored tokens: the macOS `gh api` fallback now forces GET semantics instead of accidentally POSTing query fields to the issues endpoint (issue #191, ADR-017).
