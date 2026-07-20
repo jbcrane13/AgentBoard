@@ -27,7 +27,7 @@ struct DashboardScreen: View {
 
     var body: some View {
         ZStack {
-            NeuBackground()
+            AppBackground()
 
             VStack(spacing: 0) {
                 header
@@ -58,7 +58,7 @@ struct DashboardScreen: View {
                 AgentBoardEyebrow(text: "DASHBOARD")
                 Text("Home")
                     .font(.system(size: isCompact ? 34 : 30, weight: .bold))
-                    .foregroundStyle(NeuPalette.textPrimary)
+                    .foregroundStyle(AppTheme.textPrimary)
                     .tracking(-0.8)
             }
             Spacer()
@@ -67,7 +67,7 @@ struct DashboardScreen: View {
             } label: {
                 Image(systemName: "arrow.clockwise")
             }
-            .buttonStyle(NeuButtonTarget(isAccent: false))
+            .buttonStyle(AppButtonStyle(isAccent: false))
             .accessibilityIdentifier("dashboard_button_refresh")
         }
     }
@@ -76,14 +76,14 @@ struct DashboardScreen: View {
         DashboardTile(
             title: "Agent Tasks",
             systemImage: AppDestination.agents.systemImage,
-            accentColor: NeuPalette.accentCyan
+            accentColor: AppTheme.accentCyan
         ) {
             appModel.selectedDestination = .agents
         } content: {
             HStack(spacing: 14) {
-                statPill(label: "Running", count: snapshot.kanban.running, color: NeuPalette.statusSuccess)
-                statPill(label: "Ready", count: snapshot.kanban.ready, color: NeuPalette.accentCyan)
-                statPill(label: "Blocked", count: snapshot.kanban.blocked, color: NeuPalette.accentOrange)
+                statPill(label: "Running", count: snapshot.kanban.running, color: AppTheme.statusSuccess)
+                statPill(label: "Ready", count: snapshot.kanban.ready, color: AppTheme.accentCyan)
+                statPill(label: "Blocked", count: snapshot.kanban.blocked, color: AppTheme.accentOrange)
             }
             previewList(snapshot.runningTaskTitles, emptyText: "No tasks running")
         }
@@ -94,14 +94,14 @@ struct DashboardScreen: View {
         DashboardTile(
             title: "Work Items",
             systemImage: AppDestination.work.systemImage,
-            accentColor: NeuPalette.statusBlue
+            accentColor: AppTheme.statusBlue
         ) {
             appModel.selectedDestination = .work
         } content: {
             HStack(spacing: 14) {
-                statPill(label: "To Do", count: snapshot.work.todo, color: NeuPalette.statusBlue)
-                statPill(label: "In Progress", count: snapshot.work.inProgress, color: NeuPalette.accentOrange)
-                statPill(label: "Resolved", count: snapshot.work.resolved, color: NeuPalette.accentGreen)
+                statPill(label: "To Do", count: snapshot.work.todo, color: AppTheme.statusBlue)
+                statPill(label: "In Progress", count: snapshot.work.inProgress, color: AppTheme.accentOrange)
+                statPill(label: "Resolved", count: snapshot.work.resolved, color: AppTheme.accentGreen)
             }
         }
         .accessibilityIdentifier("dashboard_tile_work")
@@ -111,17 +111,17 @@ struct DashboardScreen: View {
         DashboardTile(
             title: "Sessions",
             systemImage: AppDestination.sessions.systemImage,
-            accentColor: NeuPalette.statusIdle
+            accentColor: AppTheme.statusIdle
         ) {
             appModel.selectedDestination = .sessions
         } content: {
             HStack(spacing: 14) {
-                statPill(label: "Active", count: snapshot.sessions.active, color: NeuPalette.statusSuccess)
-                statPill(label: "Total", count: snapshot.sessions.total, color: NeuPalette.textSecondary)
+                statPill(label: "Active", count: snapshot.sessions.active, color: AppTheme.statusSuccess)
+                statPill(label: "Total", count: snapshot.sessions.total, color: AppTheme.textSecondary)
             }
             Text(snapshot.sessions.syncStatus.title)
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(NeuPalette.textSecondary)
+                .foregroundStyle(AppTheme.textSecondary)
         }
         .accessibilityIdentifier("dashboard_tile_sessions")
     }
@@ -130,7 +130,7 @@ struct DashboardScreen: View {
         DashboardTile(
             title: "Chat",
             systemImage: AppDestination.chat.systemImage,
-            accentColor: NeuPalette.accentPurple
+            accentColor: AppTheme.accentPurple
         ) {
             if let onOpenChat {
                 onOpenChat()
@@ -140,7 +140,7 @@ struct DashboardScreen: View {
         } content: {
             Text(snapshot.chatConnection.title)
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(NeuPalette.textSecondary)
+                .foregroundStyle(AppTheme.textSecondary)
             previewList(
                 snapshot.recentConversations.map(\.title),
                 emptyText: "No conversations yet"
@@ -158,10 +158,10 @@ struct DashboardScreen: View {
             Text("\(count)")
                 .font(.system(.subheadline, design: .rounded, weight: .bold))
                 .monospacedDigit()
-                .foregroundStyle(NeuPalette.textPrimary)
+                .foregroundStyle(AppTheme.textPrimary)
             Text(label)
                 .font(.caption)
-                .foregroundStyle(NeuPalette.textSecondary)
+                .foregroundStyle(AppTheme.textSecondary)
         }
     }
 
@@ -170,16 +170,16 @@ struct DashboardScreen: View {
             if lines.isEmpty {
                 Text(emptyText)
                     .font(.caption)
-                    .foregroundStyle(NeuPalette.textTertiary)
+                    .foregroundStyle(AppTheme.textTertiary)
             } else {
                 ForEach(lines, id: \.self) { line in
                     HStack(spacing: 6) {
                         Circle()
-                            .fill(NeuPalette.textTertiary)
+                            .fill(AppTheme.textTertiary)
                             .frame(width: 4, height: 4)
                         Text(line)
                             .font(.caption)
-                            .foregroundStyle(NeuPalette.textSecondary)
+                            .foregroundStyle(AppTheme.textSecondary)
                             .lineLimit(1)
                     }
                 }
@@ -209,20 +209,20 @@ private struct DashboardTile<Content: View>: View {
 
                     Text(title)
                         .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(NeuPalette.textPrimary)
+                        .foregroundStyle(AppTheme.textPrimary)
 
                     Spacer()
 
                     Image(systemName: "chevron.right")
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(NeuPalette.textTertiary)
+                        .foregroundStyle(AppTheme.textTertiary)
                 }
 
                 content
             }
             .padding(18)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .neuExtruded(cornerRadius: 22, elevation: 8)
+            .cardSurface(cornerRadius: 22, elevation: 8)
         }
         .buttonStyle(.plain)
     }

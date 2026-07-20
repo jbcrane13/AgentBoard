@@ -87,16 +87,16 @@ struct ImageAttachmentView: View {
 
     private func placeholder(icon: String, label: String) -> some View {
         RoundedRectangle(cornerRadius: 12)
-            .fill(NeuPalette.surface)
+            .fill(AppTheme.surface)
             .frame(width: 200, height: 140)
             .overlay {
                 VStack(spacing: 8) {
                     Image(systemName: icon)
                         .font(.title2)
-                        .foregroundStyle(NeuPalette.textSecondary)
+                        .foregroundStyle(AppTheme.textSecondary)
                     Text(label)
                         .font(.caption)
-                        .foregroundStyle(NeuPalette.textSecondary)
+                        .foregroundStyle(AppTheme.textSecondary)
                 }
             }
     }
@@ -118,12 +118,12 @@ struct VideoAttachmentView: View {
                             .aspectRatio(contentMode: .fill)
                     } else {
                         RoundedRectangle(cornerRadius: 12)
-                            .fill(NeuPalette.surface)
+                            .fill(AppTheme.surface)
                     }
                 }
             } else {
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(NeuPalette.surface)
+                    .fill(AppTheme.surface)
             }
 
             // Play button overlay. Justified: fixed-contrast scrim + icon on
@@ -186,19 +186,19 @@ struct FileAttachmentView: View {
         HStack(spacing: 12) {
             Image(systemName: fileIcon)
                 .font(.title2)
-                .foregroundStyle(NeuPalette.accentCyan)
+                .foregroundStyle(AppTheme.accentCyan)
                 .frame(width: 36, height: 36)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(fileName)
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(NeuPalette.textPrimary)
+                    .foregroundStyle(AppTheme.textPrimary)
                     .lineLimit(1)
 
                 if let fileSize = fileSize {
                     Text(ByteCountFormatter.string(fromByteCount: fileSize, countStyle: .file))
                         .font(.caption)
-                        .foregroundStyle(NeuPalette.textSecondary)
+                        .foregroundStyle(AppTheme.textSecondary)
                 }
             }
 
@@ -216,7 +216,7 @@ struct FileAttachmentView: View {
         }
         .padding(12)
         .frame(maxWidth: 280)
-        .background(NeuPalette.surface, in: RoundedRectangle(cornerRadius: 12))
+        .background(AppTheme.surface, in: RoundedRectangle(cornerRadius: 12))
     }
 
     private var fileName: String {
@@ -252,18 +252,18 @@ struct AudioAttachmentView: View {
         HStack(spacing: 12) {
             Image(systemName: "waveform")
                 .font(.title2)
-                .foregroundStyle(NeuPalette.accentCyan)
+                .foregroundStyle(AppTheme.accentCyan)
                 .frame(width: 36, height: 36)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Audio")
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(NeuPalette.textPrimary)
+                    .foregroundStyle(AppTheme.textPrimary)
 
                 if case let .audio(payload) = attachment.payload, let duration = payload.duration {
                     Text(formatDuration(duration))
                         .font(.caption)
-                        .foregroundStyle(NeuPalette.textSecondary)
+                        .foregroundStyle(AppTheme.textSecondary)
                 }
             }
 
@@ -271,11 +271,11 @@ struct AudioAttachmentView: View {
 
             Image(systemName: "play.circle.fill")
                 .font(.title)
-                .foregroundStyle(NeuPalette.accentCyan)
+                .foregroundStyle(AppTheme.accentCyan)
         }
         .padding(12)
         .frame(maxWidth: 280)
-        .background(NeuPalette.surface, in: RoundedRectangle(cornerRadius: 12))
+        .background(AppTheme.surface, in: RoundedRectangle(cornerRadius: 12))
     }
 
     private func formatDuration(_ duration: TimeInterval) -> String {
@@ -308,14 +308,14 @@ struct LinkPreviewCard: View {
                 if let title = payload.title {
                     Text(title)
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(NeuPalette.textPrimary)
+                        .foregroundStyle(AppTheme.textPrimary)
                         .lineLimit(2)
                 }
 
                 if let description = payload.description {
                     Text(description)
                         .font(.caption)
-                        .foregroundStyle(NeuPalette.textSecondary)
+                        .foregroundStyle(AppTheme.textSecondary)
                         .lineLimit(3)
                 }
 
@@ -325,13 +325,13 @@ struct LinkPreviewCard: View {
                     Text(payload.siteName ?? payload.url.host() ?? payload.url.absoluteString)
                         .font(.caption2)
                 }
-                .foregroundStyle(NeuPalette.textSecondary)
+                .foregroundStyle(AppTheme.textSecondary)
             }
             .padding(.horizontal, 4)
         }
         .padding(12)
         .frame(maxWidth: 280)
-        .background(NeuPalette.surface, in: RoundedRectangle(cornerRadius: 12))
+        .background(AppTheme.surface, in: RoundedRectangle(cornerRadius: 12))
     }
 }
 

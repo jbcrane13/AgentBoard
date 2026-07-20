@@ -18,7 +18,7 @@ struct TaskDetailSheet: View {
     var body: some View {
         NavigationStack {
             ZStack(alignment: .top) {
-                NeuBackground()
+                AppBackground()
 
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 24) {
@@ -36,7 +36,7 @@ struct TaskDetailSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close") { dismiss() }
-                        .foregroundStyle(NeuPalette.textPrimary)
+                        .foregroundStyle(AppTheme.textPrimary)
                         .accessibilityIdentifier("task_detail_button_close")
                 }
                 ToolbarItem(placement: .primaryAction) {
@@ -54,7 +54,7 @@ struct TaskDetailSheet: View {
                     } label: {
                         Image(systemName: "ellipsis.circle")
                     }
-                    .buttonStyle(NeuButtonTarget(isAccent: false))
+                    .buttonStyle(AppButtonStyle(isAccent: false))
                     .accessibilityIdentifier("task_detail_menu_actions")
                 }
             }
@@ -75,36 +75,36 @@ struct TaskDetailSheet: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(task.displayPriority)
                         .font(.caption.weight(.bold))
-                        .foregroundStyle(NeuPalette.accentCyan)
+                        .foregroundStyle(AppTheme.accentCyan)
                     if let tenant = task.tenant {
                         Text(tenant)
                             .font(.caption2.monospaced())
-                            .foregroundStyle(NeuPalette.textSecondary)
+                            .foregroundStyle(AppTheme.textSecondary)
                     }
                 }
                 Spacer()
                 Text(task.status.title.uppercased())
                     .font(.caption2.weight(.bold))
                     .tracking(1)
-                    .foregroundStyle(NeuPalette.textSecondary)
+                    .foregroundStyle(AppTheme.textSecondary)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
-                    .neuRecessed(cornerRadius: 12, depth: 3)
+                    .insetSurface(cornerRadius: 12, depth: 3)
             }
 
             Text(task.title)
                 .font(.title3.weight(.bold))
-                .foregroundStyle(NeuPalette.textPrimary)
+                .foregroundStyle(AppTheme.textPrimary)
                 .multilineTextAlignment(.leading)
 
             HStack(spacing: 6) {
                 Image(systemName: "person.fill").font(.system(size: 10))
                 Text(task.displayAssignee).font(.caption.weight(.bold))
             }
-            .foregroundStyle(NeuPalette.accentOrange)
+            .foregroundStyle(AppTheme.accentOrange)
         }
         .padding(24)
-        .neuExtruded(cornerRadius: 24, elevation: 8)
+        .cardSurface(cornerRadius: 24, elevation: 8)
     }
 
     private var bodySection: some View {
@@ -112,14 +112,14 @@ struct TaskDetailSheet: View {
             Text("BODY")
                 .font(.caption.weight(.bold))
                 .tracking(1)
-                .foregroundStyle(NeuPalette.textSecondary)
+                .foregroundStyle(AppTheme.textSecondary)
             Text(task.bodyOrEmpty)
                 .font(.body)
-                .foregroundStyle(NeuPalette.textPrimary)
+                .foregroundStyle(AppTheme.textPrimary)
                 .multilineTextAlignment(.leading)
         }
         .padding(24)
-        .neuExtruded(cornerRadius: 24, elevation: 8)
+        .cardSurface(cornerRadius: 24, elevation: 8)
     }
 
     private var runHistorySection: some View {
@@ -127,12 +127,12 @@ struct TaskDetailSheet: View {
             Text("RUN HISTORY")
                 .font(.caption.weight(.bold))
                 .tracking(1)
-                .foregroundStyle(NeuPalette.textSecondary)
+                .foregroundStyle(AppTheme.textSecondary)
 
             if runs.isEmpty {
                 Text("No runs yet")
                     .font(.subheadline)
-                    .foregroundStyle(NeuPalette.textTertiary)
+                    .foregroundStyle(AppTheme.textTertiary)
             } else {
                 ForEach(runs) { run in
                     VStack(alignment: .leading, spacing: 8) {
@@ -142,20 +142,20 @@ struct TaskDetailSheet: View {
                                 .frame(width: 8, height: 8)
                             Text(run.profile ?? "unknown")
                                 .font(.subheadline.weight(.bold))
-                                .foregroundStyle(NeuPalette.textPrimary)
+                                .foregroundStyle(AppTheme.textPrimary)
                             Spacer()
                             Text(run.outcome?.rawValue.replacingOccurrences(of: "_", with: " ") ?? run.status)
                                 .font(.caption2.weight(.bold))
                                 .foregroundStyle(runOutcomeColor(run.outcome))
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 3)
-                                .neuRecessed(cornerRadius: 8, depth: 2)
+                                .insetSurface(cornerRadius: 8, depth: 2)
                         }
 
                         if let summary = run.summary, !summary.isEmpty {
                             Text(summary)
                                 .font(.caption)
-                                .foregroundStyle(NeuPalette.textSecondary)
+                                .foregroundStyle(AppTheme.textSecondary)
                                 .lineLimit(3)
                         }
 
@@ -163,21 +163,21 @@ struct TaskDetailSheet: View {
                             if let duration = run.duration {
                                 Text(String(format: "%.0fs", duration))
                                     .font(.caption2.monospaced())
-                                    .foregroundStyle(NeuPalette.textTertiary)
+                                    .foregroundStyle(AppTheme.textTertiary)
                             }
                             Spacer()
                             Text(run.startedAt, style: .relative)
                                 .font(.caption2)
-                                .foregroundStyle(NeuPalette.textTertiary)
+                                .foregroundStyle(AppTheme.textTertiary)
                         }
                     }
                     .padding(16)
-                    .neuExtruded(cornerRadius: 18, elevation: 4)
+                    .cardSurface(cornerRadius: 18, elevation: 4)
                 }
             }
         }
         .padding(24)
-        .neuExtruded(cornerRadius: 24, elevation: 8)
+        .cardSurface(cornerRadius: 24, elevation: 8)
     }
 
     private var commentsSection: some View {
@@ -186,41 +186,41 @@ struct TaskDetailSheet: View {
                 Text("COMMENTS")
                     .font(.caption.weight(.bold))
                     .tracking(1)
-                    .foregroundStyle(NeuPalette.textSecondary)
+                    .foregroundStyle(AppTheme.textSecondary)
                 Spacer()
                 Text("\(comments.count)")
                     .font(.caption2.monospaced())
-                    .foregroundStyle(NeuPalette.textTertiary)
+                    .foregroundStyle(AppTheme.textTertiary)
             }
 
             if comments.isEmpty {
                 Text("No comments yet")
                     .font(.subheadline)
-                    .foregroundStyle(NeuPalette.textTertiary)
+                    .foregroundStyle(AppTheme.textTertiary)
             } else {
                 ForEach(comments) { comment in
                     VStack(alignment: .leading, spacing: 6) {
                         HStack {
                             Text(comment.author)
                                 .font(.subheadline.weight(.bold))
-                                .foregroundStyle(NeuPalette.accentCyan)
+                                .foregroundStyle(AppTheme.accentCyan)
                             Spacer()
                             Text(comment.createdAt, style: .relative)
                                 .font(.caption2)
-                                .foregroundStyle(NeuPalette.textTertiary)
+                                .foregroundStyle(AppTheme.textTertiary)
                         }
                         Text(comment.body)
                             .font(.body)
-                            .foregroundStyle(NeuPalette.textPrimary)
+                            .foregroundStyle(AppTheme.textPrimary)
                             .multilineTextAlignment(.leading)
                     }
                     .padding(16)
-                    .neuExtruded(cornerRadius: 18, elevation: 4)
+                    .cardSurface(cornerRadius: 18, elevation: 4)
                 }
             }
         }
         .padding(24)
-        .neuExtruded(cornerRadius: 24, elevation: 8)
+        .cardSurface(cornerRadius: 24, elevation: 8)
     }
 
     private var dependencySection: some View {
@@ -228,20 +228,20 @@ struct TaskDetailSheet: View {
             Text("DEPENDENCIES")
                 .font(.caption.weight(.bold))
                 .tracking(1)
-                .foregroundStyle(NeuPalette.textSecondary)
+                .foregroundStyle(AppTheme.textSecondary)
 
             if !parents.isEmpty {
                 HStack(spacing: 8) {
                     Text("Blocks on:")
                         .font(.caption.weight(.bold))
-                        .foregroundStyle(NeuPalette.textSecondary)
+                        .foregroundStyle(AppTheme.textSecondary)
                     ForEach(parents, id: \.self) { parentID in
                         Text(parentID)
                             .font(.caption2.monospaced())
-                            .foregroundStyle(NeuPalette.accentOrange)
+                            .foregroundStyle(AppTheme.accentOrange)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 3)
-                            .neuRecessed(cornerRadius: 8, depth: 2)
+                            .insetSurface(cornerRadius: 8, depth: 2)
                     }
                 }
             }
@@ -250,14 +250,14 @@ struct TaskDetailSheet: View {
                 HStack(spacing: 8) {
                     Text("Blocking:")
                         .font(.caption.weight(.bold))
-                        .foregroundStyle(NeuPalette.textSecondary)
+                        .foregroundStyle(AppTheme.textSecondary)
                     ForEach(children, id: \.self) { childID in
                         Text(childID)
                             .font(.caption2.monospaced())
-                            .foregroundStyle(NeuPalette.accentCyan)
+                            .foregroundStyle(AppTheme.accentCyan)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 3)
-                            .neuRecessed(cornerRadius: 8, depth: 2)
+                            .insetSurface(cornerRadius: 8, depth: 2)
                     }
                 }
             }
@@ -265,11 +265,11 @@ struct TaskDetailSheet: View {
             if parents.isEmpty && children.isEmpty {
                 Text("No dependencies")
                     .font(.subheadline)
-                    .foregroundStyle(NeuPalette.textTertiary)
+                    .foregroundStyle(AppTheme.textTertiary)
             }
         }
         .padding(24)
-        .neuExtruded(cornerRadius: 24, elevation: 8)
+        .cardSurface(cornerRadius: 24, elevation: 8)
     }
 
     // MARK: - Actions
@@ -354,12 +354,12 @@ struct TaskDetailSheet: View {
 
     private func runOutcomeColor(_ outcome: KanbanRunOutcome?) -> Color {
         switch outcome {
-        case .completed: NeuPalette.statusSuccess
-        case .blocked: NeuPalette.accentOrange
+        case .completed: AppTheme.statusSuccess
+        case .blocked: AppTheme.accentOrange
         case .crashed, .timedOut: .red
-        case .spawnFailed, .gaveUp: NeuPalette.accentOrange
-        case .reclaimed: NeuPalette.statusIdle
-        case nil: NeuPalette.textSecondary
+        case .spawnFailed, .gaveUp: AppTheme.accentOrange
+        case .reclaimed: AppTheme.statusIdle
+        case nil: AppTheme.textSecondary
         }
     }
 }

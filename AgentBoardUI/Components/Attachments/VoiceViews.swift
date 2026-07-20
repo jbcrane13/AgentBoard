@@ -31,7 +31,7 @@ struct VoiceRecordingButton: View {
         } label: {
             Image(systemName: "mic")
                 .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(NeuPalette.accentOrange)
+                .foregroundStyle(AppTheme.accentOrange)
                 .frame(width: 22, height: 22)
                 .contentShape(Rectangle())
         }
@@ -61,7 +61,7 @@ struct VoiceRecordingButton: View {
             // Duration
             Text(formatDuration(recorder.duration))
                 .font(.caption.monospacedDigit())
-                .foregroundStyle(NeuPalette.textSecondary)
+                .foregroundStyle(AppTheme.textSecondary)
 
             // Pause/Resume
             Button {
@@ -72,7 +72,7 @@ struct VoiceRecordingButton: View {
                 }
             } label: {
                 Image(systemName: recorder.isPaused ? "play.fill" : "pause.fill")
-                    .foregroundStyle(NeuPalette.textPrimary)
+                    .foregroundStyle(AppTheme.textPrimary)
             }
             .accessibilityIdentifier("voice_button_pause")
 
@@ -85,13 +85,13 @@ struct VoiceRecordingButton: View {
             } label: {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.title2)
-                    .foregroundStyle(NeuPalette.accentCyan)
+                    .foregroundStyle(AppTheme.accentCyan)
             }
             .accessibilityIdentifier("voice_button_send")
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(NeuPalette.surface, in: RoundedRectangle(cornerRadius: 20))
+        .background(AppTheme.surface, in: RoundedRectangle(cornerRadius: 20))
     }
 
     private func formatDuration(_ duration: TimeInterval) -> String {
@@ -118,7 +118,7 @@ struct WaveformView: View {
             HStack(alignment: .center, spacing: 2) {
                 ForEach(Array(bars.enumerated()), id: \.offset) { _, height in
                     RoundedRectangle(cornerRadius: 1)
-                        .fill(NeuPalette.accentCyan)
+                        .fill(AppTheme.accentCyan)
                         .frame(width: 2, height: CGFloat(height) * geometry.size.height)
                 }
             }
@@ -163,7 +163,7 @@ struct VoicePlaybackView: View {
             } label: {
                 Image(systemName: isPlaying ? "pause.circle.fill" : "play.circle.fill")
                     .font(.title)
-                    .foregroundStyle(NeuPalette.accentCyan)
+                    .foregroundStyle(AppTheme.accentCyan)
             }
             .accessibilityIdentifier("voice_playback_toggle")
 
@@ -176,11 +176,11 @@ struct VoicePlaybackView: View {
                     HStack {
                         Text(formatDuration(payload.duration ?? 0))
                             .font(.caption2.monospacedDigit())
-                            .foregroundStyle(NeuPalette.textSecondary)
+                            .foregroundStyle(AppTheme.textSecondary)
                         Spacer()
                         Text(formatDuration(remainingTime))
                             .font(.caption2.monospacedDigit())
-                            .foregroundStyle(NeuPalette.textSecondary)
+                            .foregroundStyle(AppTheme.textSecondary)
                     }
                 }
 
@@ -192,7 +192,7 @@ struct VoicePlaybackView: View {
             }
         }
         .padding(12)
-        .background(NeuPalette.surface, in: RoundedRectangle(cornerRadius: 12))
+        .background(AppTheme.surface, in: RoundedRectangle(cornerRadius: 12))
     }
 
     private func togglePlayback() async {
@@ -239,7 +239,7 @@ struct VoicePlaybackView: View {
             HStack(alignment: .center, spacing: 2) {
                 ForEach(Array(bars.enumerated()), id: \.offset) { index, height in
                     RoundedRectangle(cornerRadius: 1)
-                        .fill(index < playedIndex ? NeuPalette.accentCyan : NeuPalette.textSecondary.opacity(0.4))
+                        .fill(index < playedIndex ? AppTheme.accentCyan : AppTheme.textSecondary.opacity(0.4))
                         .frame(width: 2, height: CGFloat(height) * geometry.size.height)
                 }
             }

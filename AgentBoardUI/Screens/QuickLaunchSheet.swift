@@ -16,7 +16,7 @@ struct QuickLaunchSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                NeuBackground()
+                AppBackground()
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
@@ -24,29 +24,29 @@ struct QuickLaunchSheet: View {
                             Text("QUICK LAUNCH")
                                 .font(.caption.weight(.bold))
                                 .tracking(1)
-                                .foregroundStyle(NeuPalette.textSecondary)
+                                .foregroundStyle(AppTheme.textSecondary)
 
                             VStack(alignment: .leading, spacing: 6) {
-                                Text("Task Title").font(.headline).foregroundStyle(NeuPalette.textPrimary)
-                                NeuTextField(placeholder: "e.g. Implement feature X", text: $taskTitle)
+                                Text("Task Title").font(.headline).foregroundStyle(AppTheme.textPrimary)
+                                AppTextField(placeholder: "e.g. Implement feature X", text: $taskTitle)
                                     .accessibilityIdentifier("quick_launch_textfield_task_title")
                             }
 
                             HStack(spacing: 16) {
                                 VStack(alignment: .leading, spacing: 6) {
-                                    Text("Issue #").font(.headline).foregroundStyle(NeuPalette.textPrimary)
-                                    NeuTextField(placeholder: "72", text: $issueNumber)
+                                    Text("Issue #").font(.headline).foregroundStyle(AppTheme.textPrimary)
+                                    AppTextField(placeholder: "72", text: $issueNumber)
                                         .accessibilityIdentifier("quick_launch_textfield_issue_number")
                                 }
                                 VStack(alignment: .leading, spacing: 6) {
-                                    Text("Repository").font(.headline).foregroundStyle(NeuPalette.textPrimary)
-                                    NeuTextField(placeholder: "AgentBoard", text: $repoName)
+                                    Text("Repository").font(.headline).foregroundStyle(AppTheme.textPrimary)
+                                    AppTextField(placeholder: "AgentBoard", text: $repoName)
                                         .accessibilityIdentifier("quick_launch_textfield_repo_name")
                                 }
                             }
 
                             VStack(alignment: .leading, spacing: 12) {
-                                Text("Agent").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                                Text("Agent").font(.headline).foregroundStyle(AppTheme.textPrimary)
                                 ForEach(SessionLauncher.AgentType.allCases) { agent in
                                     Button {
                                         selectedAgent = agent
@@ -54,24 +54,24 @@ struct QuickLaunchSheet: View {
                                         HStack(spacing: 12) {
                                             Image(systemName: agent.icon)
                                                 .frame(width: 24)
-                                                .foregroundStyle(selectedAgent == agent ? NeuPalette
-                                                    .accentCyan : NeuPalette.textSecondary)
+                                                .foregroundStyle(selectedAgent == agent ? AppTheme
+                                                    .accentCyan : AppTheme.textSecondary)
 
                                             Text(agent.displayName)
                                                 .font(.subheadline.weight(.semibold))
-                                                .foregroundStyle(NeuPalette.textPrimary)
+                                                .foregroundStyle(AppTheme.textPrimary)
 
                                             Spacer()
 
                                             if selectedAgent == agent {
                                                 Image(systemName: "checkmark.circle.fill")
-                                                    .foregroundStyle(NeuPalette.accentCyan)
+                                                    .foregroundStyle(AppTheme.accentCyan)
                                             }
                                         }
                                         .padding(12)
                                         .background(
                                             RoundedRectangle(cornerRadius: 12)
-                                                .fill(selectedAgent == agent ? NeuPalette.accentCyan.opacity(0.12) : Color
+                                                .fill(selectedAgent == agent ? AppTheme.accentCyan.opacity(0.12) : Color
                                                     .clear)
                                         )
                                     }
@@ -81,7 +81,7 @@ struct QuickLaunchSheet: View {
                             }
 
                             VStack(alignment: .leading, spacing: 12) {
-                                Text("Execution Preset").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                                Text("Execution Preset").font(.headline).foregroundStyle(AppTheme.textPrimary)
                                 ForEach(SessionLauncher.ExecutionPreset.allCases) { preset in
                                     Button {
                                         selectedPreset = preset
@@ -90,16 +90,16 @@ struct QuickLaunchSheet: View {
                                         HStack(spacing: 12) {
                                             Image(systemName: preset.icon)
                                                 .frame(width: 24)
-                                                .foregroundStyle(selectedPreset == preset ? NeuPalette
-                                                    .accentCyan : NeuPalette.textSecondary)
+                                                .foregroundStyle(selectedPreset == preset ? AppTheme
+                                                    .accentCyan : AppTheme.textSecondary)
 
                                             VStack(alignment: .leading, spacing: 2) {
                                                 Text(preset.rawValue)
                                                     .font(.subheadline.weight(.semibold))
-                                                    .foregroundStyle(NeuPalette.textPrimary)
+                                                    .foregroundStyle(AppTheme.textPrimary)
                                                 Text(preset.description)
                                                     .font(.caption)
-                                                    .foregroundStyle(NeuPalette.textSecondary)
+                                                    .foregroundStyle(AppTheme.textSecondary)
                                                     .lineLimit(2)
                                             }
 
@@ -107,13 +107,13 @@ struct QuickLaunchSheet: View {
 
                                             if selectedPreset == preset {
                                                 Image(systemName: "checkmark.circle.fill")
-                                                    .foregroundStyle(NeuPalette.accentCyan)
+                                                    .foregroundStyle(AppTheme.accentCyan)
                                             }
                                         }
                                         .padding(12)
                                         .background(
                                             RoundedRectangle(cornerRadius: 12)
-                                                .fill(selectedPreset == preset ? NeuPalette.accentCyan.opacity(0.12) : Color
+                                                .fill(selectedPreset == preset ? AppTheme.accentCyan.opacity(0.12) : Color
                                                     .clear)
                                         )
                                     }
@@ -123,22 +123,22 @@ struct QuickLaunchSheet: View {
                             }
 
                             VStack(alignment: .leading, spacing: 6) {
-                                Text("Custom Instructions").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                                Text("Custom Instructions").font(.headline).foregroundStyle(AppTheme.textPrimary)
                                 TextEditor(text: $customInstructions)
                                     .scrollContentBackground(.hidden)
                                     .frame(minHeight: 80)
                                     .padding(12)
-                                    .neuRecessed(cornerRadius: 16, depth: 6)
-                                    .foregroundStyle(NeuPalette.textPrimary)
+                                    .insetSurface(cornerRadius: 16, depth: 6)
+                                    .foregroundStyle(AppTheme.textPrimary)
                                     .accessibilityIdentifier("quick_launch_texteditor_custom_instructions")
                             }
                         }
                         .padding(24)
-                        .neuExtruded(cornerRadius: 24, elevation: 8)
+                        .cardSurface(cornerRadius: 24, elevation: 8)
 
                         if isLaunching {
                             ProgressView("Launching session…")
-                                .foregroundStyle(NeuPalette.textPrimary)
+                                .foregroundStyle(AppTheme.textPrimary)
                                 .frame(maxWidth: .infinity, alignment: .center)
                         } else if let error = appModel.sessionLauncher.lastError {
                             Text(error)
@@ -155,12 +155,12 @@ struct QuickLaunchSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
-                        .foregroundStyle(NeuPalette.textPrimary)
+                        .foregroundStyle(AppTheme.textPrimary)
                         .accessibilityIdentifier("quick_launch_button_cancel")
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Launch") { launch() }
-                        .buttonStyle(NeuButtonTarget(isAccent: true))
+                        .buttonStyle(AppButtonStyle(isAccent: true))
                         .disabled(isLaunching || repoName.trimmedOrNil == nil || taskTitle.trimmedOrNil == nil)
                         .accessibilityIdentifier("quick_launch_button_launch")
                 }

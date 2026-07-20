@@ -15,7 +15,7 @@ struct ChatMessageList: View {
             } else {
                 LazyVStack(spacing: 24) {
                     ForEach(appModel.chatStore.messages) { message in
-                        NeuChatBubble(message: message)
+                        ChatBubbleView(message: message)
                             .id(message.id)
                     }
                 }
@@ -41,17 +41,17 @@ struct ChatMessageList: View {
         VStack(spacing: 16) {
             Image(systemName: "sparkles")
                 .font(.system(size: 48, weight: .thin))
-                .foregroundStyle(NeuPalette.accentCyan)
+                .foregroundStyle(AppTheme.accentCyan)
             Text("Start a conversation")
                 .font(.title3.weight(.bold))
-                .foregroundStyle(NeuPalette.textPrimary)
+                .foregroundStyle(AppTheme.textPrimary)
             Text("Your messages stream live from the Hermes gateway and are saved locally.")
                 .font(.subheadline)
-                .foregroundStyle(NeuPalette.textSecondary)
+                .foregroundStyle(AppTheme.textSecondary)
                 .multilineTextAlignment(.center)
         }
         .padding(40)
-        .neuExtruded(cornerRadius: 32, elevation: 12)
+        .cardSurface(cornerRadius: 32, elevation: 12)
         .padding(32)
     }
 }

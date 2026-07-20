@@ -27,7 +27,7 @@ struct CreateIssueSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                NeuBackground()
+                AppBackground()
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
@@ -35,7 +35,7 @@ struct CreateIssueSheet: View {
                             Text("NEW ISSUE")
                                 .font(.caption.weight(.bold))
                                 .tracking(1)
-                                .foregroundStyle(NeuPalette.textSecondary)
+                                .foregroundStyle(AppTheme.textSecondary)
 
                             // ── Repository (required) ──
                             labelDropdown(
@@ -55,22 +55,22 @@ struct CreateIssueSheet: View {
                             // ── Title (required) ──
                             VStack(alignment: .leading, spacing: 6) {
                                 HStack(spacing: 4) {
-                                    Text("Title").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                                    Text("Title").font(.headline).foregroundStyle(AppTheme.textPrimary)
                                     Text("•").foregroundStyle(.red).font(.caption)
                                 }
-                                NeuTextField(placeholder: "Issue title", text: $title)
+                                AppTextField(placeholder: "Issue title", text: $title)
                                     .accessibilityIdentifier("create_issue_textfield_title")
                             }
 
                             // ── Description ──
                             VStack(alignment: .leading, spacing: 6) {
-                                Text("Description").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                                Text("Description").font(.headline).foregroundStyle(AppTheme.textPrimary)
                                 TextEditor(text: $issueBody)
                                     .scrollContentBackground(.hidden)
                                     .frame(minHeight: 120)
                                     .padding(12)
-                                    .neuRecessed(cornerRadius: 16, depth: 6)
-                                    .foregroundStyle(NeuPalette.textPrimary)
+                                    .insetSurface(cornerRadius: 16, depth: 6)
+                                    .foregroundStyle(AppTheme.textPrimary)
                                     .accessibilityIdentifier("create_issue_texteditor_body")
                             }
 
@@ -133,14 +133,14 @@ struct CreateIssueSheet: View {
 
                             // ── Milestone (optional) ──
                             VStack(alignment: .leading, spacing: 6) {
-                                Text("Milestone").font(.headline).foregroundStyle(NeuPalette.textPrimary)
-                                NeuTextField(placeholder: "Optional milestone", text: $milestoneText)
+                                Text("Milestone").font(.headline).foregroundStyle(AppTheme.textPrimary)
+                                AppTextField(placeholder: "Optional milestone", text: $milestoneText)
                                     .accessibilityIdentifier("create_issue_textfield_milestone")
                             }
 
                             // ── Attachment (optional) ──
                             VStack(alignment: .leading, spacing: 6) {
-                                Text("Attachment").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                                Text("Attachment").font(.headline).foregroundStyle(AppTheme.textPrimary)
                                 if !pendingAttachments.isEmpty {
                                     AttachmentPreviewStrip(attachments: $pendingAttachments)
                                 }
@@ -152,22 +152,22 @@ struct CreateIssueSheet: View {
                                         Text("Add attachment…")
                                     }
                                     .font(.subheadline)
-                                    .foregroundStyle(NeuPalette.textSecondary)
+                                    .foregroundStyle(AppTheme.textSecondary)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .padding(.horizontal, 16)
                                     .padding(.vertical, 12)
-                                    .neuRecessed(cornerRadius: 16, depth: 6)
+                                    .insetSurface(cornerRadius: 16, depth: 6)
                                 }
                                 .buttonStyle(.plain)
                                 .accessibilityIdentifier("create_issue_button_add_attachment")
                             }
                         }
                         .padding(24)
-                        .neuExtruded(cornerRadius: 24, elevation: 8)
+                        .cardSurface(cornerRadius: 24, elevation: 8)
 
                         if isCreating {
                             ProgressView("Creating…")
-                                .foregroundStyle(NeuPalette.textPrimary)
+                                .foregroundStyle(AppTheme.textPrimary)
                                 .frame(maxWidth: .infinity, alignment: .center)
                         } else if let error = appModel.workStore.errorMessage {
                             Text(error)
@@ -184,12 +184,12 @@ struct CreateIssueSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
-                        .foregroundStyle(NeuPalette.textPrimary)
+                        .foregroundStyle(AppTheme.textPrimary)
                         .accessibilityIdentifier("create_issue_button_cancel")
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Create") { create() }
-                        .buttonStyle(NeuButtonTarget(isAccent: true))
+                        .buttonStyle(AppButtonStyle(isAccent: true))
                         .disabled(isCreating || title.trimmedOrNil == nil || selectedRepository == nil)
                         .accessibilityIdentifier("create_issue_button_create")
                 }
@@ -280,21 +280,21 @@ struct CreateIssueSheet: View {
         @ViewBuilder content: () -> Content
     ) -> some View {
         HStack(spacing: 12) {
-            Text(label).font(.headline).foregroundStyle(NeuPalette.textPrimary)
+            Text(label).font(.headline).foregroundStyle(AppTheme.textPrimary)
             if required {
                 Text("•").foregroundStyle(.red).font(.caption)
             }
             Spacer(minLength: 8)
             content()
-                .tint(NeuPalette.accentCyan)
+                .tint(AppTheme.accentCyan)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 .background(
                     Capsule()
-                        .fill(NeuPalette.inset.opacity(0.55))
+                        .fill(AppTheme.inset.opacity(0.55))
                         .overlay(
                             Capsule()
-                                .stroke(NeuPalette.borderSoft, lineWidth: 1)
+                                .stroke(AppTheme.borderSoft, lineWidth: 1)
                         )
                 )
         }

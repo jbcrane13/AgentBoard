@@ -23,7 +23,7 @@ struct ChatScreen: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            NeuBackground()
+            AppBackground()
 
             VStack(spacing: 0) {
                 ChatHeader(
@@ -34,10 +34,10 @@ struct ChatScreen: View {
                 .padding(.horizontal, 16)
                 .padding(.top, isCompact ? 12 : 10)
                 .padding(.bottom, 8)
-                .background(NeuPalette.surface.ignoresSafeArea())
+                .background(AppTheme.surface.ignoresSafeArea())
                 .overlay(alignment: .bottom) {
                     Rectangle()
-                        .fill(NeuPalette.borderSoft)
+                        .fill(AppTheme.borderSoft)
                         .frame(height: 1)
                 }
 

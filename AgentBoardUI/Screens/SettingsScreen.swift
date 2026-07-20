@@ -23,7 +23,7 @@ struct SettingsScreen: View {
         @Bindable var settingsStore = appModel.settingsStore
 
         ZStack {
-            NeuBackground()
+            AppBackground()
             VStack(spacing: 0) {
                 header
                     .padding(isCompact ? 16 : 24)
@@ -54,16 +54,16 @@ struct SettingsScreen: View {
         return VStack(alignment: .leading, spacing: 16) {
             sectionHeader("HERMES GATEWAY")
             VStack(spacing: 20) {
-                NeuTextField(placeholder: "Gateway URL", text: $s.hermesGatewayURL)
+                AppTextField(placeholder: "Gateway URL", text: $s.hermesGatewayURL)
                     .accessibilityIdentifier("settings_textfield_hermes_gateway_url")
-                NeuTextField(placeholder: "Preferred model", text: $s.hermesModelID)
+                AppTextField(placeholder: "Preferred model", text: $s.hermesModelID)
                     .accessibilityIdentifier("settings_textfield_hermes_model")
-                NeuSecureField(placeholder: "API key (optional)", text: $s.hermesAPIKey)
+                AppSecureField(placeholder: "API key (optional)", text: $s.hermesAPIKey)
                     .accessibilityIdentifier("settings_securefield_hermes_api_key")
                 profilesSection(s: s)
             }
             .padding(24)
-            .neuExtruded(cornerRadius: 24, elevation: 8)
+            .cardSurface(cornerRadius: 24, elevation: 8)
         }
     }
 
@@ -72,7 +72,7 @@ struct SettingsScreen: View {
         return VStack(alignment: .leading, spacing: 12) {
             Text("Saved Profiles")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(NeuPalette.textPrimary)
+                .foregroundStyle(AppTheme.textPrimary)
 
             if !s.hermesProfiles.isEmpty {
                 VStack(spacing: 12) {
@@ -80,34 +80,34 @@ struct SettingsScreen: View {
                         HStack(spacing: 12) {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(profile.name).font(.subheadline.weight(.medium))
-                                    .foregroundStyle(NeuPalette.textPrimary)
+                                    .foregroundStyle(AppTheme.textPrimary)
                                 Text(profile.gatewayURL).font(.caption)
-                                    .foregroundStyle(NeuPalette.textSecondary).lineLimit(1)
+                                    .foregroundStyle(AppTheme.textSecondary).lineLimit(1)
                             }
                             Spacer()
                             Button("Use") { s.selectHermesProfile(id: profile.id) }
-                                .buttonStyle(NeuButtonTarget(isAccent: s.selectedHermesProfileID == profile.id))
+                                .buttonStyle(AppButtonStyle(isAccent: s.selectedHermesProfileID == profile.id))
                                 .accessibilityIdentifier("settings_button_use_hermes_profile_\(profile.id)")
                             Button(role: .destructive) { s.removeHermesProfile(profile) } label: {
                                 Image(systemName: "trash.fill").foregroundStyle(.red).padding(10)
                             }
-                            .background(Circle().fill(NeuPalette.background)).buttonStyle(.plain)
+                            .background(Circle().fill(AppTheme.background)).buttonStyle(.plain)
                             .accessibilityIdentifier("settings_button_remove_hermes_profile_\(profile.id)")
                         }
                         .padding(.horizontal, 16).padding(.vertical, 10)
-                        .neuRecessed(cornerRadius: 16, depth: 4)
+                        .insetSurface(cornerRadius: 16, depth: 4)
                     }
                 }
             }
 
             HStack(spacing: 12) {
-                NeuTextField(placeholder: "Profile name", text: $hermesProfileName)
+                AppTextField(placeholder: "Profile name", text: $hermesProfileName)
                     .accessibilityIdentifier("settings_textfield_hermes_profile_name")
                 Button("Save Current") {
                     s.saveCurrentHermesProfile(named: hermesProfileName)
                     if s.errorMessage == nil { hermesProfileName = "" }
                 }
-                .buttonStyle(NeuButtonTarget(isAccent: !hermesProfileName.isEmpty))
+                .buttonStyle(AppButtonStyle(isAccent: !hermesProfileName.isEmpty))
                 .disabled(hermesProfileName.isEmpty)
                 .accessibilityIdentifier("settings_button_save_hermes_profile")
             }
@@ -121,43 +121,43 @@ struct SettingsScreen: View {
         return VStack(alignment: .leading, spacing: 16) {
             sectionHeader("GITHUB ISSUES")
             VStack(alignment: .leading, spacing: 20) {
-                NeuSecureField(placeholder: "GitHub token", text: $s.githubToken)
+                AppSecureField(placeholder: "GitHub token", text: $s.githubToken)
                     .accessibilityIdentifier("settings_securefield_github_token")
                 if !s.repositories.isEmpty {
                     VStack(spacing: 12) {
                         ForEach(s.repositories) { repo in
                             HStack {
                                 Text(repo.fullName).font(.subheadline.weight(.medium))
-                                    .foregroundStyle(NeuPalette.textPrimary)
+                                    .foregroundStyle(AppTheme.textPrimary)
                                 Spacer()
                                 Button(role: .destructive) { s.removeRepository(repo) } label: {
                                     Image(systemName: "trash.fill").foregroundStyle(.red).padding(10)
                                 }
-                                .background(Circle().fill(NeuPalette.background)).buttonStyle(.plain)
+                                .background(Circle().fill(AppTheme.background)).buttonStyle(.plain)
                                 .accessibilityIdentifier("settings_button_remove_repository_\(repo.id)")
                             }
                             .padding(.horizontal, 16).padding(.vertical, 8)
-                            .neuRecessed(cornerRadius: 16, depth: 4)
+                            .insetSurface(cornerRadius: 16, depth: 4)
                         }
                     }
                 }
                 HStack(spacing: 12) {
-                    NeuTextField(placeholder: "Owner", text: $repositoryOwner)
+                    AppTextField(placeholder: "Owner", text: $repositoryOwner)
                         .accessibilityIdentifier("settings_textfield_repository_owner")
-                    NeuTextField(placeholder: "Repo", text: $repositoryName)
+                    AppTextField(placeholder: "Repo", text: $repositoryName)
                         .accessibilityIdentifier("settings_textfield_repository_name")
                     Button {
                         s.addRepository(owner: repositoryOwner, name: repositoryName)
                         repositoryOwner = ""
                         repositoryName = ""
                     } label: { Image(systemName: "plus") }
-                        .buttonStyle(NeuButtonTarget(isAccent: !(repositoryOwner.isEmpty || repositoryName.isEmpty)))
+                        .buttonStyle(AppButtonStyle(isAccent: !(repositoryOwner.isEmpty || repositoryName.isEmpty)))
                         .disabled(repositoryOwner.isEmpty || repositoryName.isEmpty)
                         .accessibilityIdentifier("settings_button_add_repository")
                 }
             }
             .padding(24)
-            .neuExtruded(cornerRadius: 24, elevation: 8)
+            .cardSurface(cornerRadius: 24, elevation: 8)
         }
     }
 
@@ -168,24 +168,24 @@ struct SettingsScreen: View {
         return VStack(alignment: .leading, spacing: 16) {
             sectionHeader("COMPANION SERVICE")
             VStack(spacing: 20) {
-                NeuTextField(placeholder: "Companion URL", text: $s.companionURL)
+                AppTextField(placeholder: "Companion URL", text: $s.companionURL)
                     .accessibilityIdentifier("settings_textfield_companion_url")
-                NeuSecureField(placeholder: "Companion token", text: $s.companionToken)
+                AppSecureField(placeholder: "Companion token", text: $s.companionToken)
                     .accessibilityIdentifier("settings_securefield_companion_token")
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
-                        Text("Auto refresh").font(.subheadline).foregroundStyle(NeuPalette.textPrimary)
+                        Text("Auto refresh").font(.subheadline).foregroundStyle(AppTheme.textPrimary)
                         Spacer()
                         Text("\(Int(s.autoRefreshInterval))s").font(.subheadline.weight(.bold))
-                            .foregroundStyle(NeuPalette.accentCyan)
+                            .foregroundStyle(AppTheme.accentCyan)
                     }
                     Slider(value: $s.autoRefreshInterval, in: 30 ... 300, step: 30)
-                        .tint(NeuPalette.accentCyan)
+                        .tint(AppTheme.accentCyan)
                         .accessibilityIdentifier("settings_slider_auto_refresh")
                 }
             }
             .padding(24)
-            .neuExtruded(cornerRadius: 24, elevation: 8)
+            .cardSurface(cornerRadius: 24, elevation: 8)
         }
     }
 
@@ -197,7 +197,7 @@ struct SettingsScreen: View {
             VStack(alignment: .leading, spacing: 16) {
                 Text("Export your configuration to restore on another device or after a fresh install.")
                     .font(.caption)
-                    .foregroundStyle(NeuPalette.textSecondary)
+                    .foregroundStyle(AppTheme.textSecondary)
 
                 HStack(spacing: 12) {
                     Button {
@@ -206,7 +206,7 @@ struct SettingsScreen: View {
                         Label("Export Config", systemImage: "square.and.arrow.up")
                             .font(.subheadline.weight(.medium))
                     }
-                    .buttonStyle(NeuButtonTarget(isAccent: true))
+                    .buttonStyle(AppButtonStyle(isAccent: true))
                     .accessibilityIdentifier("settings_button_export_config")
 
                     Button {
@@ -215,7 +215,7 @@ struct SettingsScreen: View {
                         Label("Import Config", systemImage: "square.and.arrow.down")
                             .font(.subheadline.weight(.medium))
                     }
-                    .buttonStyle(NeuButtonTarget(isAccent: false))
+                    .buttonStyle(AppButtonStyle(isAccent: false))
                     .accessibilityIdentifier("settings_button_import_config")
                 }
 
@@ -223,28 +223,28 @@ struct SettingsScreen: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Pending Import Preview")
                             .font(.caption.weight(.bold))
-                            .foregroundStyle(NeuPalette.accentCyan)
+                            .foregroundStyle(AppTheme.accentCyan)
                         Text(summary.description)
                             .font(.caption)
-                            .foregroundStyle(NeuPalette.textPrimary)
+                            .foregroundStyle(AppTheme.textPrimary)
                         Button("Apply Backup") {
                             Task { await applyPendingBackup() }
                         }
-                        .buttonStyle(NeuButtonTarget(isAccent: true))
+                        .buttonStyle(AppButtonStyle(isAccent: true))
                         .accessibilityIdentifier("settings_button_apply_backup")
                     }
                     .padding(12)
-                    .neuRecessed(cornerRadius: 12, depth: 4)
+                    .insetSurface(cornerRadius: 12, depth: 4)
                 }
 
                 if let msg = backupStatusMessage {
                     Text(msg)
                         .font(.caption)
-                        .foregroundStyle(NeuPalette.textSecondary)
+                        .foregroundStyle(AppTheme.textSecondary)
                 }
             }
             .padding(24)
-            .neuExtruded(cornerRadius: 24, elevation: 8)
+            .cardSurface(cornerRadius: 24, elevation: 8)
         }
         .onAppear {
             if backupService == nil {
@@ -276,23 +276,23 @@ struct SettingsScreen: View {
             VStack(spacing: 16) {
                 Text("Backup exported to:").font(.headline)
                 Text(url.lastPathComponent).font(.caption)
-                    .foregroundStyle(NeuPalette.textSecondary)
+                    .foregroundStyle(AppTheme.textSecondary)
                 HStack {
                     Button("Copy Path") {
                         NSPasteboard.general.clearContents()
                         NSPasteboard.general.setString(url.path, forType: .string)
                     }
-                    .buttonStyle(NeuButtonTarget(isAccent: false))
+                    .buttonStyle(AppButtonStyle(isAccent: false))
                     .accessibilityIdentifier("settings_button_copy_export_path")
 
                     Button("Open in Finder") {
                         NSWorkspace.shared.activateFileViewerSelecting([url])
                     }
-                    .buttonStyle(NeuButtonTarget(isAccent: true))
+                    .buttonStyle(AppButtonStyle(isAccent: true))
                     .accessibilityIdentifier("settings_button_open_in_finder")
 
                     Button("Close") { showExportShare = false }
-                        .buttonStyle(NeuButtonTarget(isAccent: false))
+                        .buttonStyle(AppButtonStyle(isAccent: false))
                         .accessibilityIdentifier("settings_button_close_export_share")
                 }
             }
@@ -357,7 +357,7 @@ struct SettingsScreen: View {
             Button("Save and Refresh") {
                 Task { await appModel.saveSettingsAndReconnect() }
             }
-            .buttonStyle(NeuButtonTarget(isAccent: true))
+            .buttonStyle(AppButtonStyle(isAccent: true))
             .accessibilityIdentifier("settings_button_save_and_refresh")
 
             Button("Refresh Hermes") {
@@ -366,13 +366,13 @@ struct SettingsScreen: View {
                     await appModel.chatStore.refreshModels()
                 }
             }
-            .buttonStyle(NeuButtonTarget(isAccent: false))
+            .buttonStyle(AppButtonStyle(isAccent: false))
             .accessibilityIdentifier("settings_button_refresh_hermes")
 
             Button("Diagnose Hermes") {
                 Task { await appModel.chatStore.diagnoseConnection() }
             }
-            .buttonStyle(NeuButtonTarget(isAccent: false))
+            .buttonStyle(AppButtonStyle(isAccent: false))
             .accessibilityIdentifier("settings_button_diagnose_hermes")
 
             if let msg = appModel.settingsStore.errorMessage
@@ -385,7 +385,7 @@ struct SettingsScreen: View {
                     .foregroundStyle(
                         appModel.settingsStore.errorMessage == nil
                             && appModel.chatStore.errorMessage == nil
-                            ? NeuPalette.textSecondary : .red
+                            ? AppTheme.textSecondary : .red
                     )
                     .multilineTextAlignment(.center)
                     .padding(.top, 8)
@@ -403,7 +403,7 @@ struct SettingsScreen: View {
                 AgentBoardEyebrow(text: "SETTINGS")
                 Text("Configuration")
                     .font(.system(size: 32, weight: .bold))
-                    .foregroundStyle(NeuPalette.textPrimary)
+                    .foregroundStyle(AppTheme.textPrimary)
                     .tracking(-0.8)
             }
             Spacer()
@@ -414,14 +414,14 @@ struct SettingsScreen: View {
         Text(title)
             .font(.caption.weight(.bold))
             .tracking(1)
-            .foregroundStyle(NeuPalette.textSecondary)
+            .foregroundStyle(AppTheme.textSecondary)
             .padding(.horizontal, 8)
     }
 }
 
 // MARK: - Shared Components
 
-struct NeuTextField: View {
+struct AppTextField: View {
     let placeholder: String
     @Binding var text: String
 
@@ -433,7 +433,7 @@ struct NeuTextField: View {
     }
 }
 
-struct NeuSecureField: View {
+struct AppSecureField: View {
     let placeholder: String
     @Binding var text: String
 

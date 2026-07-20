@@ -31,7 +31,7 @@ private struct MarkdownBlockView: View {
 
         case let .heading(level, text):
             // No explicit foregroundStyle: prose inherits the ambient color the
-            // caller sets (NeuChatBubble varies this per role — primary text on
+            // caller sets (ChatBubbleView varies this per role — primary text on
             // the assistant's material surface, light text on the user's
             // accent fill).
             Text(text)
@@ -59,7 +59,7 @@ private struct MarkdownBlockView: View {
         case let .blockquote(inner):
             HStack(alignment: .top, spacing: 8) {
                 RoundedRectangle(cornerRadius: 1.5)
-                    .fill(NeuPalette.borderSoft)
+                    .fill(AppTheme.borderSoft)
                     .frame(width: 3)
                 VStack(alignment: .leading, spacing: 6) {
                     ForEach(Array(inner.enumerated()), id: \.offset) { _, innerBlock in
@@ -96,7 +96,7 @@ private struct MarkdownBlockView: View {
             }
             .background(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(NeuPalette.inset)
+                    .fill(AppTheme.inset)
             )
 
         case .thematicBreak:
@@ -139,11 +139,11 @@ private struct MarkdownBlockView: View {
         }
         .background(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(NeuPalette.inset)
+                .fill(AppTheme.inset)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .stroke(NeuPalette.borderSoft, lineWidth: 1)
+                .stroke(AppTheme.borderSoft, lineWidth: 1)
         )
     }
 }

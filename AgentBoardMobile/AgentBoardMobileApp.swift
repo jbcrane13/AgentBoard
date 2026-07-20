@@ -6,7 +6,6 @@ import SwiftUI
 struct AgentBoardMobileApp: App {
     private static let logger = Logger(subsystem: "com.agentboard.modern", category: "Bootstrap")
     @State private var appModel = AgentBoardBootstrap.makeLiveAppModel()
-    @State private var appliedTheme: AgentBoardDesignTheme = .blue
     @State private var audioPlaybackService = AudioPlaybackService()
 
     init() {
@@ -16,25 +15,12 @@ struct AgentBoardMobileApp: App {
     var body: some Scene {
         WindowGroup {
             MobileRootView()
-                .id(appliedTheme)
                 .environment(appModel)
                 .environment(audioPlaybackService)
-                .onAppear {
-                    applyTheme(appModel.settingsStore.designTheme)
-                }
-                .onChange(of: appModel.settingsStore.designTheme) {
-                    applyTheme(appModel.settingsStore.designTheme)
-                }
                 .task {
                     await appModel.bootstrap()
-                    applyTheme(appModel.settingsStore.designTheme)
                 }
         }
-    }
-
-    private func applyTheme(_ designTheme: AgentBoardDesignTheme) {
-        NeuPalette.apply(designTheme)
-        appliedTheme = designTheme
     }
 
     private static func logRuntimeConfiguration() {

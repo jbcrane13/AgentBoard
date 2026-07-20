@@ -257,7 +257,6 @@ struct DomainModelsTests {
         #expect(settings.companionURL == "http://127.0.0.1:8742")
         #expect(settings.repositories.isEmpty)
         #expect(settings.autoRefreshInterval == 30)
-        #expect(settings.designTheme == .blue)
     }
 
     @Test func agentBoardSettingsDecodingRespectsExplicitValues() throws {
@@ -271,7 +270,6 @@ struct DomainModelsTests {
         let settings = try JSONDecoder().decode(AgentBoardSettings.self, from: Data(json.utf8))
         #expect(settings.hermesGatewayURL == "http://example.com:1234")
         #expect(settings.autoRefreshInterval == 5)
-        #expect(settings.designTheme == .grey)
     }
 
     @Test func agentBoardSettingsRoundTripsThroughJSON() throws {
@@ -280,8 +278,7 @@ struct DomainModelsTests {
             hermesModelID: "hermes-test",
             companionURL: "http://localhost:9001",
             repositories: [ConfiguredRepository(owner: "acme", name: "demo")],
-            autoRefreshInterval: 12,
-            designTheme: .grey
+            autoRefreshInterval: 12
         )
         let data = try JSONEncoder().encode(original)
         let decoded = try JSONDecoder().decode(AgentBoardSettings.self, from: data)

@@ -10,11 +10,11 @@ struct WorkStatusPill: View {
 
     private var tint: Color {
         switch state {
-        case .ready: NeuPalette.statusBlue
-        case .inProgress: NeuPalette.accentOrange
+        case .ready: AppTheme.statusBlue
+        case .inProgress: AppTheme.accentOrange
         case .blocked: .red
         case .review: .purple
-        case .done: NeuPalette.accentGreen
+        case .done: AppTheme.accentGreen
         }
     }
 
@@ -38,7 +38,7 @@ struct PriorityPill: View {
             systemImage: "flag.fill",
             tint: priority == .p0
                 ? .red
-                : priority == .p1 ? .orange : NeuPalette.statusBlue
+                : priority == .p1 ? .orange : AppTheme.statusBlue
         )
     }
 }
@@ -52,9 +52,9 @@ struct AgentHealthPill: View {
 
     private var tint: Color {
         switch health {
-        case .online: NeuPalette.statusSuccess
-        case .idle: NeuPalette.statusIdle
-        case .warning: NeuPalette.accentOrange
+        case .online: AppTheme.statusSuccess
+        case .idle: AppTheme.statusIdle
+        case .warning: AppTheme.accentOrange
         case .offline: .red
         }
     }
@@ -69,9 +69,9 @@ struct SessionStatusPill: View {
 
     private var tint: Color {
         switch status {
-        case .running: NeuPalette.statusSuccess
-        case .idle: NeuPalette.statusIdle
-        case .stopped: NeuPalette.accentOrange
+        case .running: AppTheme.statusSuccess
+        case .idle: AppTheme.statusIdle
+        case .stopped: AppTheme.accentOrange
         case .error: .red
         }
     }

@@ -45,9 +45,9 @@
 		2DC5A28990E375C68274D794 /* KanbanCLIWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E52428296B715E26DCC31E00 /* KanbanCLIWriter.swift */; };
 		2E95ECA2CB484B2089146AD0 /* QuickLaunchSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FFDF3222AEE5530E6C58DFC /* QuickLaunchSheet.swift */; };
 		2EFC8887C151538585798677 /* SessionDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A145F7A1A70B53DF066DBD /* SessionDetailSheet.swift */; };
-		30B2D9B7D1BFC77B6964A96C /* AgentBoardDesignTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4542E208AACDF95595A0B0D4 /* AgentBoardDesignTheme.swift */; };
 		31F4BD470BD142ABB72D00E8 /* AgentsStoreCreateTaskTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5C500C7AF3B484DBB847E3A /* AgentsStoreCreateTaskTests.swift */; };
 		329205BFE190D828D883FF89 /* WorkBoardColumnTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F00F0612428FF4A1858440A /* WorkBoardColumnTests.swift */; };
+		34A0AFA4D7C5A198EE2606B2 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E061D59E950232583C7958 /* AppTheme.swift */; };
 		34C9CEDCDFB2E84348A0EDB4 /* ChatEndpointValidatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08FC87E1E7EE82E2FE4C749F /* ChatEndpointValidatorTests.swift */; };
 		37F82839F098968527158CC9 /* EmbeddedTerminalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A978B41E9572538A1E74E5C /* EmbeddedTerminalView.swift */; };
 		38E1089316EEC57E444A6FB1 /* MockURLProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 957114148477B05585A13D7C /* MockURLProtocol.swift */; };
@@ -63,6 +63,7 @@
 		53760C00A84FA2ED25C37019 /* SwiftTerm in Frameworks */ = {isa = PBXBuildFile; productRef = AA65C204A6A99CEBA3E4B8C4 /* SwiftTerm */; };
 		5407CC8EF71865713E95B1BF /* SessionsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5B9C06C17BE65937A00661D /* SessionsStore.swift */; };
 		5465A4B2305DAE7211F8A390 /* ChatHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82BF95164B1DFE66D15CB770 /* ChatHeader.swift */; };
+		5637A1075AA3594AD4B4067E /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E061D59E950232583C7958 /* AppTheme.swift */; };
 		58446795E6F62924439AD001 /* CompanionSQLiteStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B56A44BC3ACA67014432FDD4 /* CompanionSQLiteStoreTests.swift */; };
 		593E56157C2853690F31D9F4 /* SessionTerminalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEDFAB3DEE21BBA70FAF2EBD /* SessionTerminalView.swift */; };
 		5B810A52F3C78D394BE76608 /* SettingsRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A55C723CBBB22E568A7E3D63 /* SettingsRepository.swift */; };
@@ -70,7 +71,6 @@
 		6140061EE8C8004E8BB033F2 /* AgentBoardMobileApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B7442B7AA1CFE33776582C1 /* AgentBoardMobileApp.swift */; };
 		61D20F70FEBDECFDE252645F /* AgentBoardCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 2B26E0DCF07C395E5DA349A4 /* AgentBoardCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		62108DFBD6C8CF3265C4F8A5 /* HermesGatewayClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F06E0C2FFE9CAC90D48662B /* HermesGatewayClientTests.swift */; };
-		624514151F83E5FC8A4EB2F2 /* NeumorphicTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA4BD1071B801A6A1C9E1CEF /* NeumorphicTheme.swift */; };
 		624951F647E5293DE73A2AA6 /* AgentBoardCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 2B26E0DCF07C395E5DA349A4 /* AgentBoardCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		62B59C34430276AC70136C6D /* MediaViewerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33A8E745C7552F0B5FDF7C25 /* MediaViewerView.swift */; };
 		637450D78114326A95AE3D39 /* CompanionServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0117F7D499C266663690C9B6 /* CompanionServer.swift */; };
@@ -159,7 +159,6 @@
 		DAAA6677EBC51F4C7796E505 /* KanbanModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE3F349D2B17FA90738CCDD5 /* KanbanModelsTests.swift */; };
 		DAB3EA4A5AF33E4165CD6551 /* PRDComposerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9503F3F8C1E54BE6D35A3641 /* PRDComposerTests.swift */; };
 		DB87AF9AF4B7456FBDD3F011 /* SettingsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7A095E80382BA922486329A /* SettingsScreen.swift */; };
-		DC38BD815D6E073F6D62E1D7 /* NeumorphicTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA4BD1071B801A6A1C9E1CEF /* NeumorphicTheme.swift */; };
 		DD6C36042860EA2D423261EE /* SessionDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05A145F7A1A70B53DF066DBD /* SessionDetailSheet.swift */; };
 		DE5629641FE81BB20A7186A9 /* MarkdownText.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A2BE598EEDA7A998AEA8DE /* MarkdownText.swift */; };
 		DF0EA5DC994F51BF546BA378 /* NoopAgentBoardCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6350F1AD876CFC0042771A6F /* NoopAgentBoardCache.swift */; };
@@ -281,6 +280,7 @@
 		066AD427D541EBD8687B6276 /* ChatStore+SlashCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ChatStore+SlashCommands.swift"; sourceTree = "<group>"; };
 		06C0FE6A5C6D69E553E904D0 /* CompanionSQLiteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompanionSQLiteStore.swift; sourceTree = "<group>"; };
 		06CD1EF1E211EE615B37F28B /* AgentBoardCompanionMain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentBoardCompanionMain.swift; sourceTree = "<group>"; };
+		06E061D59E950232583C7958 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
 		08B7CE4C138A75D87781C1DB /* SessionLauncher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionLauncher.swift; sourceTree = "<group>"; };
 		08C9688956A467F60F3B9B34 /* KanbanDataReading.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KanbanDataReading.swift; sourceTree = "<group>"; };
 		08DECA7202D65BF712C34B76 /* TmuxControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TmuxControllerTests.swift; sourceTree = "<group>"; };
@@ -322,7 +322,6 @@
 		3D4A3C7FF45B9DFB948ABE9F /* AgentBoardCache+KanbanTasks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AgentBoardCache+KanbanTasks.swift"; sourceTree = "<group>"; };
 		3E3C09A95E37674D30B6072F /* AttachmentPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentPicker.swift; sourceTree = "<group>"; };
 		3FEBA7BFDBBBF6316B340FAA /* VoiceViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceViews.swift; sourceTree = "<group>"; };
-		4542E208AACDF95595A0B0D4 /* AgentBoardDesignTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentBoardDesignTheme.swift; sourceTree = "<group>"; };
 		4637D9675B1C126E65C54970 /* MarkdownBlockParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownBlockParserTests.swift; sourceTree = "<group>"; };
 		4A978B41E9572538A1E74E5C /* EmbeddedTerminalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbeddedTerminalView.swift; sourceTree = "<group>"; };
 		4E8BA0A7421FAF69CBF5AD4F /* MarkdownBlockParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownBlockParser.swift; sourceTree = "<group>"; };
@@ -410,7 +409,6 @@
 		F6FDDFF5030B377E6973E969 /* ChatScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatScreen.swift; sourceTree = "<group>"; };
 		F805B62EF3A45AAE4426A3AA /* DashboardSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardSnapshotTests.swift; sourceTree = "<group>"; };
 		F876603AEC9BE7B94289CA01 /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
-		FA4BD1071B801A6A1C9E1CEF /* NeumorphicTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NeumorphicTheme.swift; sourceTree = "<group>"; };
 		FFA60A5A5B633630F99A562B /* GitHubWorkService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubWorkService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -529,7 +527,6 @@
 		3F5E9E3E868FF270A2BE8B10 /* Models */ = {
 			isa = PBXGroup;
 			children = (
-				4542E208AACDF95595A0B0D4 /* AgentBoardDesignTheme.swift */,
 				78ED2576E35E0964839427AD /* AppDestination.swift */,
 				C9D42E5CA1B251EA0284E8C6 /* AttachmentModels.swift */,
 				A062681C1E251F786843C99C /* ChatCapability.swift */,
@@ -569,8 +566,8 @@
 		62C5AF3274822FACE4922D9A /* Theme */ = {
 			isa = PBXGroup;
 			children = (
+				06E061D59E950232583C7958 /* AppTheme.swift */,
 				63376B7513D3E5CFE45372D6 /* BoardPalette.swift */,
-				FA4BD1071B801A6A1C9E1CEF /* NeumorphicTheme.swift */,
 			);
 			path = Theme;
 			sourceTree = "<group>";
@@ -993,6 +990,7 @@
 			files = (
 				FD05A98C162D7CC536D93096 /* AgentBoardApp.swift in Sources */,
 				287C52CFEE7CDAF30B54A224 /* AgentsScreen.swift in Sources */,
+				34A0AFA4D7C5A198EE2606B2 /* AppTheme.swift in Sources */,
 				FE8D645DBA85A27F0139427B /* AttachmentInteractions.swift in Sources */,
 				97BD3D8CCE198A034A5E0C2F /* AttachmentPicker.swift in Sources */,
 				E1F05B25E20BE9959941A7A9 /* AttachmentViews.swift in Sources */,
@@ -1014,7 +1012,6 @@
 				7E6D512A772F03628C275D52 /* LaunchSessionSheet.swift in Sources */,
 				DE5629641FE81BB20A7186A9 /* MarkdownText.swift in Sources */,
 				62B59C34430276AC70136C6D /* MediaViewerView.swift in Sources */,
-				624514151F83E5FC8A4EB2F2 /* NeumorphicTheme.swift in Sources */,
 				2E95ECA2CB484B2089146AD0 /* QuickLaunchSheet.swift in Sources */,
 				DD6C36042860EA2D423261EE /* SessionDetailSheet.swift in Sources */,
 				593E56157C2853690F31D9F4 /* SessionTerminalView.swift in Sources */,
@@ -1096,7 +1093,6 @@
 				3EE1B666C90DC07CC4346BC0 /* AgentBoardCache+KanbanTasks.swift in Sources */,
 				C03DE2AB570D615F55142A44 /* AgentBoardCache.swift in Sources */,
 				95B74484E3270FC9A0F596CE /* AgentBoardCacheProtocol.swift in Sources */,
-				30B2D9B7D1BFC77B6964A96C /* AgentBoardDesignTheme.swift in Sources */,
 				81239439DAB83C92B81C7C96 /* AgentsStore.swift in Sources */,
 				F374477884080894A1322DCE /* AppDestination.swift in Sources */,
 				A51107E477749B979572DD17 /* AttachmentModels.swift in Sources */,
@@ -1149,6 +1145,7 @@
 			files = (
 				6140061EE8C8004E8BB033F2 /* AgentBoardMobileApp.swift in Sources */,
 				21BD68D1C8793B9DA7441B08 /* AgentsScreen.swift in Sources */,
+				5637A1075AA3594AD4B4067E /* AppTheme.swift in Sources */,
 				4E523683F87984FFDF08FC54 /* AttachmentInteractions.swift in Sources */,
 				735B9E32C6B9218218F1CB8D /* AttachmentPicker.swift in Sources */,
 				961E593801A91A1EE5E55F76 /* AttachmentViews.swift in Sources */,
@@ -1170,7 +1167,6 @@
 				15369C112AA2304F032D157F /* MarkdownText.swift in Sources */,
 				8AD4D2CC8A4C831C10AD484D /* MediaViewerView.swift in Sources */,
 				6A4091B95B722862F973E0BC /* MobileRootView.swift in Sources */,
-				DC38BD815D6E073F6D62E1D7 /* NeumorphicTheme.swift in Sources */,
 				86474D9EDB4C400C89B3F5FF /* QuickLaunchSheet.swift in Sources */,
 				2EFC8887C151538585798677 /* SessionDetailSheet.swift in Sources */,
 				5364836AF5802F65E8F2B521 /* SessionTerminalView.swift in Sources */,

@@ -5,7 +5,7 @@ import Testing
 /// Guardrail tests for the native (ADR-015/ADR-016) design language. These are
 /// source-text checks rather than instantiated-view checks: the test target
 /// doesn't link AgentBoardUI (see `NativeSwiftUIInterfaceTests`), so pinning
-/// `NeuPalette`'s semantics means asserting on `NeumorphicTheme.swift`'s
+/// `AppTheme`'s semantics means asserting on `AppTheme.swift`'s
 /// source, and the "no hardcoded white/black" rule means asserting on the
 /// shared chrome components' source.
 struct DesignSemanticsTests {
@@ -16,8 +16,8 @@ struct DesignSemanticsTests {
         #expect(WorkState.review.designColumnTitle == "REVIEW")
     }
 
-    @Test func neuPaletteAccentsResolveToSystemAccentColor() throws {
-        let source = try Self.source("AgentBoardUI/Theme/NeumorphicTheme.swift")
+    @Test func appThemeAccentsResolveToSystemAccentColor() throws {
+        let source = try Self.source("AgentBoardUI/Theme/AppTheme.swift")
 
         #expect(source.contains("primaryAccent: .accentColor"))
         #expect(source.contains("primaryAccentBright: .accentColor"))
@@ -25,12 +25,12 @@ struct DesignSemanticsTests {
         #expect(!source.contains("red: 0.106, green: 0.749, blue: 0.651"))
     }
 
-    @Test func neuExtrudedCardHasNoPermanentDropShadow() throws {
-        let source = try Self.source("AgentBoardUI/Theme/NeumorphicTheme.swift")
+    @Test func cardSurfaceModifierHasNoPermanentDropShadow() throws {
+        let source = try Self.source("AgentBoardUI/Theme/AppTheme.swift")
 
-        guard let start = source.range(of: "struct NeuExtrudedModifier"),
-              let end = source.range(of: "struct NeuRecessedModifier") else {
-            Issue.record("Could not locate NeuExtrudedModifier in NeumorphicTheme.swift")
+        guard let start = source.range(of: "struct CardSurfaceModifier"),
+              let end = source.range(of: "struct InsetSurfaceModifier") else {
+            Issue.record("Could not locate CardSurfaceModifier in AppTheme.swift")
             return
         }
         let modifierBody = source[start.lowerBound ..< end.lowerBound]
@@ -43,14 +43,14 @@ struct DesignSemanticsTests {
     @Test func sharedChromeComponentsDoNotHardcodeWhiteOrBlack() throws {
         // The two fully-flat shared components (the P3 markdown landmine and
         // the shared card chrome) must never hardcode white/black — every
-        // color there should flow through a semantic NeuPalette token.
+        // color there should flow through a semantic AppTheme token.
         for path in ["AgentBoardUI/Components/MarkdownText.swift", "AgentBoardUI/Components/BoardChrome.swift"] {
             let source = try Self.source(path)
             #expect(!source.contains(".white"), "\(path) should not hardcode .white")
             #expect(!source.contains("Color.black"), "\(path) should not hardcode Color.black")
         }
 
-        // NeuChatBubble's one hardcoded `.white` (text on the user bubble's
+        // ChatBubbleView's one hardcoded `.white` (text on the user bubble's
         // accent fill) is the justified exception — pinned here so a future
         // edit can't silently drop the justifying comment or add a new,
         // unjustified hardcoded color alongside it.

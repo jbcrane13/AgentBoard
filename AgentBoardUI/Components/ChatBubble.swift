@@ -1,9 +1,9 @@
 import AgentBoardCore
 import SwiftUI
 
-// MARK: - NeuChatBubble
+// MARK: - ChatBubbleView
 
-struct NeuChatBubble: View {
+struct ChatBubbleView: View {
     let message: ConversationMessage
 
     var body: some View {
@@ -31,9 +31,9 @@ struct NeuChatBubble: View {
     /// here as text drawn directly on the user bubble's accent-tinted fill.
     private var bubbleTextColor: Color {
         switch message.role {
-        case .assistant: NeuPalette.textPrimary
+        case .assistant: AppTheme.textPrimary
         case .user: .white
-        case .system: NeuPalette.textSecondary
+        case .system: AppTheme.textSecondary
         }
     }
 
@@ -42,13 +42,13 @@ struct NeuChatBubble: View {
             HStack(spacing: 8) {
                 Text(senderLabel)
                     .font(.caption2.weight(.bold))
-                    .foregroundStyle(message.role == .assistant ? NeuPalette.accentCyan : NeuPalette.accentOrange)
+                    .foregroundStyle(message.role == .assistant ? AppTheme.accentCyan : AppTheme.accentOrange)
                     .tracking(1)
 
                 if message.isStreaming {
                     ProgressView()
                         .controlSize(.mini)
-                        .tint(NeuPalette.accentCyan)
+                        .tint(AppTheme.accentCyan)
                 }
             }
 
@@ -79,7 +79,7 @@ struct NeuChatBubble: View {
         .background(bubbleBackground)
         .overlay(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(NeuPalette.borderSoft, lineWidth: message.role == .user ? 0 : 1)
+                .stroke(AppTheme.borderSoft, lineWidth: message.role == .user ? 0 : 1)
         )
     }
 
@@ -92,7 +92,7 @@ struct NeuChatBubble: View {
         case .assistant:
             shape.fill(.regularMaterial)
         case .user:
-            shape.fill(NeuPalette.accentCyan)
+            shape.fill(AppTheme.accentCyan)
         case .system:
             shape.fill(.tertiary)
         }
@@ -132,33 +132,13 @@ private struct ToolActivityChip: View {
             }
         }
         .font(.caption)
-        .foregroundStyle(NeuPalette.textSecondary)
+        .foregroundStyle(AppTheme.textSecondary)
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
         .background(
-            Capsule().fill(NeuPalette.surfaceHover)
+            Capsule().fill(AppTheme.surfaceHover)
         )
         .opacity(activity.isComplete ? 0.65 : 1.0)
         .accessibilityIdentifier("chat_chip_tool_\(activity.id)")
-    }
-}
-
-// MARK: - AnyViewModifier
-
-struct AnyViewModifier: ViewModifier {
-    let modifier: Any
-
-    init<M: ViewModifier>(_ modifier: M) {
-        self.modifier = modifier
-    }
-
-    func body(content: Content) -> some View {
-        if let neuromod = modifier as? NeuExtrudedModifier {
-            content.modifier(neuromod)
-        } else if let neuromod = modifier as? NeuRecessedModifier {
-            content.modifier(neuromod)
-        } else {
-            content
-        }
     }
 }
