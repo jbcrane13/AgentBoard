@@ -354,6 +354,7 @@ public actor GitHubWorkService: GitHubWorkServicing {
                     executablePath: ghExecutablePath ?? Self.resolvedGHPath(),
                     arguments: [
                         "api", "repos/\(repository.owner)/\(repository.name)/issues",
+                        "--method", "GET",
                         "-f", "state=all",
                         "-f", "per_page=100",
                         "-q", "[.[] | select(.pull_request == null)]"

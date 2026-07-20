@@ -145,6 +145,47 @@ struct GitHubWorkServiceTests {
 
     #if os(macOS)
         @Test
+        func fetchWorkItemsUsesGETForCLIFallback() async throws {
+            let directory = FileManager.default.temporaryDirectory
+                .appendingPathComponent(UUID().uuidString, isDirectory: true)
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            defer { try? FileManager.default.removeItem(at: directory) }
+
+            let executable = directory.appendingPathComponent("gh")
+            let payload = "[\(issueJSON(number: 33))]"
+            let script = """
+            #!/bin/sh
+            case " $* " in
+              *" --method GET "*) printf '%s' '\(payload)' ;;
+              *) echo 'expected --method GET' >&2; exit 64 ;;
+            esac
+            """
+            try script.write(to: executable, atomically: true, encoding: .utf8)
+            try FileManager.default.setAttributes(
+                [.posixPermissions: 0o755],
+                ofItemAtPath: executable.path
+            )
+
+            let service = GitHubWorkService(session: makeMockSession { request in
+                let response = HTTPURLResponse(
+                    url: request.url!,
+                    statusCode: 401,
+                    httpVersion: nil,
+                    headerFields: ["Content-Type": "application/json"]
+                )!
+                return (response, Data("{\"message\":\"Bad credentials\"}".utf8))
+            }, ghExecutablePath: executable.path)
+            await service.configure(
+                repositories: [ConfiguredRepository(owner: "acme", name: "widgets")],
+                token: "stale-token"
+            )
+
+            let fetch = try await service.fetchWorkItems()
+            #expect(fetch.items.count == 1)
+            #expect(fetch.items.first?.issueNumber == 33)
+        }
+
+        @Test
         func resolvedGHPathPrefersHomebrewARM() {
             let path = GitHubWorkService.resolvedGHPath { $0 == "/opt/homebrew/bin/gh" }
             #expect(path == "/opt/homebrew/bin/gh")
