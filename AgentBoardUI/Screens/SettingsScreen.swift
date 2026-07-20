@@ -413,7 +413,11 @@ struct SettingsScreen: View {
         .padding(.vertical, 16)
     }
 
-    // MARK: - Helpers
+}
+
+// MARK: - Helpers
+
+private extension SettingsScreen {
 
     /// Wraps a form control with a small caption label above it.
     private func labeledField<Content: View>(
