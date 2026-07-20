@@ -85,7 +85,8 @@ public final class WorkStore {
         await configureServiceIfNeeded()
 
         do {
-            let fresh = try await service.fetchWorkItems()
+            let fetch = try await service.fetchWorkItems()
+            let fresh = fetch.items
             let newFingerprint = fingerprint(fresh)
 
             // Only update items if the data actually changed
@@ -94,6 +95,12 @@ public final class WorkStore {
                 lastFingerprint = newFingerprint
                 try cache.replaceWorkItems(items)
                 statusMessage = "Loaded \(items.count) GitHub issues."
+            }
+            // Unreachable repositories must stay visible even when the
+            // reachable data is unchanged (deleted/renamed repo in Settings).
+            if !fetch.failures.isEmpty {
+                let names = fetch.failures.map(\.repository).joined(separator: ", ")
+                statusMessage = "Loaded \(items.count) issues — unavailable: \(names)"
             }
             // Data unchanged — skip the update entirely, no SwiftUI invalidation
             // Also skip statusMessage update to avoid unnecessary re-renders

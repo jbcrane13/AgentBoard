@@ -751,6 +751,39 @@ struct WorkStoreTests {
         #expect(store.items.first?.status == .inProgress)
     }
 
+    @Test
+    func refreshSurfacesUnavailableRepositoriesInStatusMessage() async throws {
+        let service = GitHubWorkService(session: makeMockSession { request in
+            let path = request.url?.path ?? ""
+            let status = path.contains("/repos/org/ghost/") ? 404 : 200
+            let response = HTTPURLResponse(
+                url: request.url!,
+                statusCode: status,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            let body = status == 200 ? "[]" : "{\"message\":\"Not Found\"}"
+            return (response, Data(body.utf8))
+        }, ghExecutablePath: "/nonexistent/gh")
+        let cache = try AgentBoardCache(inMemory: true)
+        let repo = SettingsRepository(
+            suiteName: "WorkStoreTests-\(UUID().uuidString)",
+            serviceName: "WorkStoreTests-\(UUID().uuidString)"
+        )
+        let settingsStore = SettingsStore(repository: repo)
+        settingsStore.githubToken = "ghp_test"
+        settingsStore.repositories = [
+            ConfiguredRepository(owner: "org", name: "ghost"),
+            ConfiguredRepository(owner: "org", name: "repo")
+        ]
+        let store = WorkStore(service: service, cache: cache, settingsStore: settingsStore)
+
+        await store.refresh()
+
+        #expect(store.errorMessage == nil)
+        #expect(store.statusMessage?.contains("unavailable: org/ghost") == true)
+    }
+
     private func makeClosedIssueJSON(number: Int, title: String, labels: [String]) -> String {
         let labelsJSON = labels.map { #"{"name": "\#($0)"}"# }.joined(separator: ", ")
         return """
@@ -780,8 +813,8 @@ private actor CountingGitHubWorkService: GitHubWorkServicing {
         configurations.append((repositories, token))
     }
 
-    func fetchWorkItems() async throws -> [WorkItem] {
-        []
+    func fetchWorkItems() async throws -> GitHubWorkFetch {
+        GitHubWorkFetch(items: [], failures: [])
     }
 
     func createIssue(
