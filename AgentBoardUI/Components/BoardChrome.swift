@@ -12,6 +12,10 @@ struct BoardSurface<Content: View>: View {
             .padding(16)
             .background(BoardPalette.surface)
             .clipShape(RoundedRectangle(cornerRadius: 10))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(.separator, lineWidth: 0.5)
+            )
     }
 }
 

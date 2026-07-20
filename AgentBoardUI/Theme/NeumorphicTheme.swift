@@ -253,9 +253,12 @@ public struct NeuBackground: View {
     }
 }
 
-/// Raised card — a standard material-backed rounded rectangle with a hairline
-/// border and a single subtle drop shadow. Replaces the neumorphic
-/// dual-shadow "extruded" look with native chrome.
+/// Raised card — a flat material-backed rounded rectangle with a hairline
+/// border. Replaces the neumorphic dual-shadow "extruded" look with native
+/// chrome. No permanent drop shadow: cards read as flat native surfaces at
+/// rest, and `.draggable()` already gives the system's own lifted-preview
+/// shadow while a card is actually being dragged, so no bespoke `isDragging`
+/// state is needed to satisfy "shadow only while dragging".
 public struct NeuExtrudedModifier: ViewModifier {
     public let cornerRadius: CGFloat
     public let elevation: CGFloat
@@ -274,12 +277,6 @@ public struct NeuExtrudedModifier: ViewModifier {
             .overlay(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .stroke(NeuPalette.borderSoft, lineWidth: 0.5)
-            )
-            .shadow(
-                color: NeuPalette.shadowDark,
-                radius: max(elevation * 0.4, 2),
-                x: 0,
-                y: max(elevation * 0.2, 1)
             )
     }
 }

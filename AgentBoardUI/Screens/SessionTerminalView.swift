@@ -237,13 +237,13 @@ struct SessionTerminalView: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
-        .background(
-            LinearGradient(
-                colors: [NeuPalette.surface, NeuPalette.background],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        )
+        // The spec calls for real glass on the terminal header, but this bar
+        // packs several small status pills/buttons directly above a live
+        // terminal backdrop that can scroll busy, high-contrast text — full
+        // `glassEffect` risks legibility there, so this degrades to
+        // `.thinMaterial` per the spec's explicit fallback. The terminal
+        // content itself (`liveTerminalView`) stays fully opaque.
+        .background(.thinMaterial)
         .overlay(alignment: .bottom) {
             Rectangle()
                 .fill(NeuPalette.borderSoft)

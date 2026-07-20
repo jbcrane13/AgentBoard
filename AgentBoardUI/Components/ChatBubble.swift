@@ -18,10 +18,29 @@ struct NeuChatBubble: View {
         }
     }
 
+    private var senderLabel: String {
+        switch message.role {
+        case .assistant: "Hermes"
+        case .user: "You"
+        case .system: "System"
+        }
+    }
+
+    /// Bubble text color, threaded down through `MarkdownText` (which inherits
+    /// this ambient color rather than hardcoding its own): white is justified
+    /// here as text drawn directly on the user bubble's accent-tinted fill.
+    private var bubbleTextColor: Color {
+        switch message.role {
+        case .assistant: NeuPalette.textPrimary
+        case .user: .white
+        case .system: NeuPalette.textSecondary
+        }
+    }
+
     private var bubble: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                Text(message.role == .assistant ? "Hermes" : "You")
+                Text(senderLabel)
                     .font(.caption2.weight(.bold))
                     .foregroundStyle(message.role == .assistant ? NeuPalette.accentCyan : NeuPalette.accentOrange)
                     .tracking(1)
@@ -39,10 +58,10 @@ struct NeuChatBubble: View {
 
             if message.isStreaming, message.content.isEmpty {
                 Text("typing...")
-                    .foregroundStyle(NeuPalette.textSecondary)
+                    .foregroundStyle(bubbleTextColor)
             } else {
                 MarkdownText(content: message.content)
-                    .foregroundStyle(NeuPalette.textPrimary)
+                    .foregroundStyle(bubbleTextColor)
             }
 
             // Render attachments
@@ -57,16 +76,26 @@ struct NeuChatBubble: View {
             }
         }
         .padding(20)
-        .background(
-            message.role == .assistant
-                ? RoundedRectangle(cornerRadius: 24, style: .continuous).fill(NeuPalette.surfaceRaised)
-                : RoundedRectangle(cornerRadius: 24, style: .continuous).fill(NeuPalette.surfaceHover)
-        )
+        .background(bubbleBackground)
         .overlay(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(NeuPalette.borderSoft, lineWidth: 1)
+                .stroke(NeuPalette.borderSoft, lineWidth: message.role == .user ? 0 : 1)
         )
-        .shadow(color: NeuPalette.shadowDark.opacity(0.6), radius: 8, x: 0, y: 4)
+    }
+
+    /// Assistant = material surface with a hairline stroke; user = accent-
+    /// tinted fill; system/info = a quiet tertiary fill.
+    @ViewBuilder
+    private var bubbleBackground: some View {
+        let shape = RoundedRectangle(cornerRadius: 24, style: .continuous)
+        switch message.role {
+        case .assistant:
+            shape.fill(.regularMaterial)
+        case .user:
+            shape.fill(NeuPalette.accentCyan)
+        case .system:
+            shape.fill(.tertiary)
+        }
     }
 
     private var toolActivityChips: some View {
