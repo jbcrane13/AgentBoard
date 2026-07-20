@@ -43,7 +43,7 @@ struct LaunchSessionSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                NeuBackground()
+                AppBackground()
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
@@ -51,36 +51,36 @@ struct LaunchSessionSheet: View {
                             Text("LAUNCH SESSION")
                                 .font(.caption.weight(.bold))
                                 .tracking(1)
-                                .foregroundStyle(NeuPalette.textSecondary)
+                                .foregroundStyle(AppTheme.textSecondary)
 
                             VStack(alignment: .leading, spacing: 6) {
-                                Text("Task").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                                Text("Task").font(.headline).foregroundStyle(AppTheme.textPrimary)
                                 Text(displayTitle)
                                     .font(.subheadline)
-                                    .foregroundStyle(NeuPalette.textSecondary)
+                                    .foregroundStyle(AppTheme.textSecondary)
                                     .padding(12)
                                     .frame(maxWidth: .infinity, alignment: .leading)
-                                    .neuRecessed(cornerRadius: 12, depth: 4)
+                                    .insetSurface(cornerRadius: 12, depth: 4)
                             }
 
                             // If launched from a work item (GitHub issue), show the issue ref
                             if let workItem {
                                 VStack(alignment: .leading, spacing: 6) {
-                                    Text("Issue").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                                    Text("Issue").font(.headline).foregroundStyle(AppTheme.textPrimary)
                                     Text(workItem.issueReference)
                                         .font(.subheadline.monospaced())
-                                        .foregroundStyle(NeuPalette.accentCyan)
+                                        .foregroundStyle(AppTheme.accentCyan)
                                 }
                             }
 
                             VStack(alignment: .leading, spacing: 6) {
-                                Text("Repository Folder").font(.headline).foregroundStyle(NeuPalette.textPrimary)
-                                NeuTextField(placeholder: "e.g. AgentBoard", text: $repoName)
+                                Text("Repository Folder").font(.headline).foregroundStyle(AppTheme.textPrimary)
+                                AppTextField(placeholder: "e.g. AgentBoard", text: $repoName)
                                     .accessibilityIdentifier("launchSession_textfield_repoName")
                             }
 
                             VStack(alignment: .leading, spacing: 12) {
-                                Text("Agent").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                                Text("Agent").font(.headline).foregroundStyle(AppTheme.textPrimary)
                                 ForEach(SessionLauncher.AgentType.allCases) { agent in
                                     Button {
                                         selectedAgent = agent
@@ -88,24 +88,24 @@ struct LaunchSessionSheet: View {
                                         HStack(spacing: 12) {
                                             Image(systemName: agent.icon)
                                                 .frame(width: 24)
-                                                .foregroundStyle(selectedAgent == agent ? NeuPalette
-                                                    .accentCyan : NeuPalette.textSecondary)
+                                                .foregroundStyle(selectedAgent == agent ? AppTheme
+                                                    .accentCyan : AppTheme.textSecondary)
 
                                             Text(agent.displayName)
                                                 .font(.subheadline.weight(.semibold))
-                                                .foregroundStyle(NeuPalette.textPrimary)
+                                                .foregroundStyle(AppTheme.textPrimary)
 
                                             Spacer()
 
                                             if selectedAgent == agent {
                                                 Image(systemName: "checkmark.circle.fill")
-                                                    .foregroundStyle(NeuPalette.accentCyan)
+                                                    .foregroundStyle(AppTheme.accentCyan)
                                             }
                                         }
                                         .padding(12)
                                         .background(
                                             RoundedRectangle(cornerRadius: 12)
-                                                .fill(selectedAgent == agent ? NeuPalette.accentCyan.opacity(0.12) : Color
+                                                .fill(selectedAgent == agent ? AppTheme.accentCyan.opacity(0.12) : Color
                                                     .clear)
                                         )
                                     }
@@ -115,7 +115,7 @@ struct LaunchSessionSheet: View {
                             }
 
                             VStack(alignment: .leading, spacing: 12) {
-                                Text("Execution Preset").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                                Text("Execution Preset").font(.headline).foregroundStyle(AppTheme.textPrimary)
                                 ForEach(SessionLauncher.ExecutionPreset.allCases) { preset in
                                     Button {
                                         selectedPreset = preset
@@ -124,16 +124,16 @@ struct LaunchSessionSheet: View {
                                         HStack(spacing: 12) {
                                             Image(systemName: preset.icon)
                                                 .frame(width: 24)
-                                                .foregroundStyle(selectedPreset == preset ? NeuPalette
-                                                    .accentCyan : NeuPalette.textSecondary)
+                                                .foregroundStyle(selectedPreset == preset ? AppTheme
+                                                    .accentCyan : AppTheme.textSecondary)
 
                                             VStack(alignment: .leading, spacing: 2) {
                                                 Text(preset.rawValue)
                                                     .font(.subheadline.weight(.semibold))
-                                                    .foregroundStyle(NeuPalette.textPrimary)
+                                                    .foregroundStyle(AppTheme.textPrimary)
                                                 Text(preset.description)
                                                     .font(.caption)
-                                                    .foregroundStyle(NeuPalette.textSecondary)
+                                                    .foregroundStyle(AppTheme.textSecondary)
                                                     .lineLimit(2)
                                             }
 
@@ -141,13 +141,13 @@ struct LaunchSessionSheet: View {
 
                                             if selectedPreset == preset {
                                                 Image(systemName: "checkmark.circle.fill")
-                                                    .foregroundStyle(NeuPalette.accentCyan)
+                                                    .foregroundStyle(AppTheme.accentCyan)
                                             }
                                         }
                                         .padding(12)
                                         .background(
                                             RoundedRectangle(cornerRadius: 12)
-                                                .fill(selectedPreset == preset ? NeuPalette.accentCyan.opacity(0.12) : Color
+                                                .fill(selectedPreset == preset ? AppTheme.accentCyan.opacity(0.12) : Color
                                                     .clear)
                                         )
                                     }
@@ -157,22 +157,22 @@ struct LaunchSessionSheet: View {
                             }
 
                             VStack(alignment: .leading, spacing: 6) {
-                                Text("Custom Instructions").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                                Text("Custom Instructions").font(.headline).foregroundStyle(AppTheme.textPrimary)
                                 TextEditor(text: $customInstructions)
                                     .scrollContentBackground(.hidden)
                                     .frame(minHeight: 80)
                                     .padding(12)
-                                    .neuRecessed(cornerRadius: 16, depth: 6)
-                                    .foregroundStyle(NeuPalette.textPrimary)
+                                    .insetSurface(cornerRadius: 16, depth: 6)
+                                    .foregroundStyle(AppTheme.textPrimary)
                                     .accessibilityIdentifier("launchSession_textEditor_customInstructions")
                             }
                         }
                         .padding(24)
-                        .neuExtruded(cornerRadius: 24, elevation: 8)
+                        .cardSurface(cornerRadius: 24, elevation: 8)
 
                         if isLaunching {
                             ProgressView("Launching session…")
-                                .foregroundStyle(NeuPalette.textPrimary)
+                                .foregroundStyle(AppTheme.textPrimary)
                                 .frame(maxWidth: .infinity, alignment: .center)
                         } else if let error = appModel.sessionLauncher.lastError {
                             Text(error)
@@ -189,12 +189,12 @@ struct LaunchSessionSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
-                        .foregroundStyle(NeuPalette.textPrimary)
+                        .foregroundStyle(AppTheme.textPrimary)
                         .accessibilityIdentifier("launchSession_button_cancel")
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Launch") { launch() }
-                        .buttonStyle(NeuButtonTarget(isAccent: true))
+                        .buttonStyle(AppButtonStyle(isAccent: true))
                         .disabled(isLaunching || repoName.trimmedOrNil == nil)
                         .accessibilityIdentifier("launchSession_button_launch")
                 }

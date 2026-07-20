@@ -8,7 +8,7 @@ struct NativeSwiftUIInterfaceTests {
         #expect(source.contains("NavigationSplitView"))
         #expect(source.contains(".toolbar"))
         #expect(source.contains(".inspector("))
-        #expect(!source.contains("NeuBackground()"))
+        #expect(!source.contains("AppBackground()"))
         #expect(!source.contains("isChatOnlyMode"))
     }
 
@@ -21,7 +21,7 @@ struct NativeSwiftUIInterfaceTests {
         #expect(source.contains("Section(\"Projects\")"))
         #expect(source.contains("Section(\"Live Sessions\")"))
         #expect(!source.contains("LinearGradient"))
-        #expect(!source.contains("NeuPalette"))
+        #expect(!source.contains("AppTheme"))
     }
 
     @Test func iosRootUsesNativeTabViewWithoutUIKitAppearanceOverrides() throws {

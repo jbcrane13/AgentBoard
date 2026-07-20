@@ -26,7 +26,7 @@ struct ChatComposeBar: View {
         .padding(.horizontal, isCompact ? 0 : 8)
         .padding(.top, 6)
         .padding(.bottom, 10)
-        .background(NeuPalette.background.ignoresSafeArea(edges: .bottom))
+        .background(AppTheme.background.ignoresSafeArea(edges: .bottom))
     }
 
     @ViewBuilder
@@ -40,7 +40,7 @@ struct ChatComposeBar: View {
         } else if let status = chatStore.statusMessage {
             Text(status)
                 .font(.caption)
-                .foregroundStyle(NeuPalette.textSecondary)
+                .foregroundStyle(AppTheme.textSecondary)
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.bottom, 6)
         }
@@ -51,7 +51,7 @@ struct ChatComposeBar: View {
             Button { showAttachmentPicker = true } label: {
                 Image(systemName: "paperclip")
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(NeuPalette.accentCyan)
+                    .foregroundStyle(AppTheme.accentCyan)
                     .frame(width: 22, height: 22)
                     .contentShape(Rectangle())
             }
@@ -90,7 +90,7 @@ struct ChatComposeBar: View {
         return TextField(" Message Hermes...", text: $chatStore.draft, axis: .vertical)
             .lineLimit(1 ... 6)
             .focused(isTextFieldFocused)
-            .foregroundStyle(NeuPalette.textPrimary)
+            .foregroundStyle(AppTheme.textPrimary)
             .textFieldStyle(.plain)
             .submitLabel(.send)
             .accessibilityIdentifier("chat_textfield_draft")
@@ -109,7 +109,7 @@ struct ChatComposeBar: View {
         } label: {
             Image(systemName: chatStore.isStreaming ? "stop.fill" : "arrow.up")
                 .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(canSend ? sendButtonForeground : NeuPalette.textDisabled)
+                .foregroundStyle(canSend ? sendButtonForeground : AppTheme.textDisabled)
                 .frame(width: 22, height: 22)
                 .background(canSend ? sendButtonBackground : Color.clear)
                 .clipShape(Circle())
@@ -137,8 +137,8 @@ struct ChatComposeBar: View {
             .padding(.vertical, 8)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(NeuPalette.background)
-                    .shadow(color: NeuPalette.shadowDark, radius: 4, y: 2)
+                    .fill(AppTheme.background)
+                    .shadow(color: AppTheme.shadowDark, radius: 4, y: 2)
             )
             .padding(.horizontal, isCompact ? 16 : 24)
         }
@@ -148,18 +148,18 @@ struct ChatComposeBar: View {
         HStack(spacing: 8) {
             Text(cmd.name)
                 .font(.system(size: 13, weight: .semibold, design: .monospaced))
-                .foregroundStyle(NeuPalette.accentCyan)
+                .foregroundStyle(AppTheme.accentCyan)
             Text(cmd.description)
                 .font(.system(size: 12))
-                .foregroundStyle(NeuPalette.textSecondary)
+                .foregroundStyle(AppTheme.textSecondary)
                 .lineLimit(1)
             Spacer()
             Text(cmd.category.rawValue)
                 .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(NeuPalette.textTertiary)
+                .foregroundStyle(AppTheme.textTertiary)
                 .padding(.horizontal, 6)
                 .padding(.vertical, 2)
-                .background(Capsule().fill(NeuPalette.surface))
+                .background(Capsule().fill(AppTheme.surface))
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
@@ -190,12 +190,12 @@ struct ChatComposeBar: View {
         let chatStore = appModel.chatStore
         // Justified: icon drawn on the solid `.red` stop-button fill below.
         if chatStore.isStreaming { return .white }
-        return canSend ? NeuPalette.accentForeground : NeuPalette.textSecondary
+        return canSend ? AppTheme.accentForeground : AppTheme.textSecondary
     }
 
     private var sendButtonBackground: Color {
         let chatStore = appModel.chatStore
         if chatStore.isStreaming { return .red }
-        return canSend ? NeuPalette.accentCyan : NeuPalette.surface
+        return canSend ? AppTheme.accentCyan : AppTheme.surface
     }
 }

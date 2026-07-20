@@ -16,7 +16,7 @@ struct SessionDetailSheet: View {
     var body: some View {
         NavigationStack {
             ZStack(alignment: .top) {
-                NeuBackground()
+                AppBackground()
 
                 VStack(spacing: 0) {
                     headerCard
@@ -51,7 +51,7 @@ struct SessionDetailSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close") { dismiss() }
-                        .foregroundStyle(NeuPalette.textPrimary)
+                        .foregroundStyle(AppTheme.textPrimary)
                         .accessibilityIdentifier("session_detail_button_close")
                 }
                 ToolbarItem(placement: .primaryAction) {
@@ -67,7 +67,7 @@ struct SessionDetailSheet: View {
                         }
                     } label: {
                         Image(systemName: "ellipsis.circle")
-                            .foregroundStyle(NeuPalette.textPrimary)
+                            .foregroundStyle(AppTheme.textPrimary)
                     }
                     .accessibilityIdentifier("session_detail_menu_actions")
                 }
@@ -88,24 +88,24 @@ struct SessionDetailSheet: View {
                         Text("PID \(pid)")
                             .font(.caption.monospaced())
                     }
-                    .foregroundStyle(NeuPalette.textSecondary)
+                    .foregroundStyle(AppTheme.textSecondary)
                 }
             }
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(session.source)
                     .font(.title2.weight(.bold))
-                    .foregroundStyle(NeuPalette.textPrimary)
+                    .foregroundStyle(AppTheme.textPrimary)
 
                 if let model = session.model {
                     Text(model)
                         .font(.body.weight(.medium))
-                        .foregroundStyle(NeuPalette.accentOrange)
+                        .foregroundStyle(AppTheme.accentOrange)
                 }
             }
         }
         .padding(24)
-        .neuExtruded(cornerRadius: 24, elevation: 8)
+        .cardSurface(cornerRadius: 24, elevation: 8)
     }
 
     private var overviewTab: some View {
@@ -116,7 +116,7 @@ struct SessionDetailSheet: View {
                         Text("LINKS")
                             .font(.caption.weight(.bold))
                             .tracking(1)
-                            .foregroundStyle(NeuPalette.textSecondary)
+                            .foregroundStyle(AppTheme.textSecondary)
 
                         if let taskID = session.linkedTaskID {
                             HStack(spacing: 12) {
@@ -125,7 +125,7 @@ struct SessionDetailSheet: View {
                                 Text("Task \(taskID)")
                                     .font(.headline)
                             }
-                            .foregroundStyle(NeuPalette.accentCyan)
+                            .foregroundStyle(AppTheme.accentCyan)
                         }
 
                         if let workItem = session.workItem {
@@ -135,42 +135,42 @@ struct SessionDetailSheet: View {
                                 Text(workItem.issueReference)
                                     .font(.headline)
                             }
-                            .foregroundStyle(NeuPalette.accentCyan)
+                            .foregroundStyle(AppTheme.accentCyan)
                         }
                     }
                     .padding(24)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .neuExtruded(cornerRadius: 24, elevation: 8)
+                    .cardSurface(cornerRadius: 24, elevation: 8)
                 }
 
                 VStack(alignment: .leading, spacing: 16) {
                     Text("TIMELINE")
                         .font(.caption.weight(.bold))
                         .tracking(1)
-                        .foregroundStyle(NeuPalette.textSecondary)
+                        .foregroundStyle(AppTheme.textSecondary)
 
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Started")
                                 .font(.caption.weight(.bold))
-                                .foregroundStyle(NeuPalette.textSecondary)
+                                .foregroundStyle(AppTheme.textSecondary)
                             Text(session.startedAt, style: .relative)
                                 .font(.body.weight(.medium))
-                                .foregroundStyle(NeuPalette.textPrimary)
+                                .foregroundStyle(AppTheme.textPrimary)
                         }
                         Spacer()
                         VStack(alignment: .trailing, spacing: 4) {
                             Text("Last Seen")
                                 .font(.caption.weight(.bold))
-                                .foregroundStyle(NeuPalette.textSecondary)
+                                .foregroundStyle(AppTheme.textSecondary)
                             Text(session.lastSeenAt, style: .relative)
                                 .font(.body.weight(.medium))
-                                .foregroundStyle(NeuPalette.textPrimary)
+                                .foregroundStyle(AppTheme.textPrimary)
                         }
                     }
                 }
                 .padding(24)
-                .neuExtruded(cornerRadius: 24, elevation: 8)
+                .cardSurface(cornerRadius: 24, elevation: 8)
             }
             .padding(.horizontal, 24)
         }
@@ -185,18 +185,18 @@ struct SessionDetailSheet: View {
                     } else if let out = finalOutput, !out.isEmpty {
                         Text(out)
                             .font(.caption.monospaced())
-                            .foregroundStyle(NeuPalette.textPrimary)
+                            .foregroundStyle(AppTheme.textPrimary)
                             .padding(16)
                     } else {
                         Text("No logs available")
-                            .foregroundStyle(NeuPalette.textSecondary)
+                            .foregroundStyle(AppTheme.textSecondary)
                             .padding()
                     }
                 }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .neuRecessed(cornerRadius: 16, depth: 6)
+        .insetSurface(cornerRadius: 16, depth: 6)
         .padding(.horizontal, 24)
         .padding(.bottom, 24)
         .task {
@@ -223,19 +223,19 @@ struct SessionDetailSheet: View {
                 } else if let transcript, !transcript.content.isEmpty {
                     Text(transcript.content)
                         .font(.caption.monospaced())
-                        .foregroundStyle(NeuPalette.textPrimary)
+                        .foregroundStyle(AppTheme.textPrimary)
                         .textSelection(.enabled)
                         .padding(16)
                 } else {
                     Text("No transcript available yet")
-                        .foregroundStyle(NeuPalette.textSecondary)
+                        .foregroundStyle(AppTheme.textSecondary)
                         .padding()
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .neuRecessed(cornerRadius: 16, depth: 6)
+        .insetSurface(cornerRadius: 16, depth: 6)
         .padding(.horizontal, 24)
         .padding(.bottom, 24)
         .accessibilityIdentifier("session_transcript_view")
@@ -281,7 +281,7 @@ struct SessionDetailSheet: View {
 
     private var terminalUnavailableView: some View {
         Text("No terminal available")
-            .foregroundStyle(NeuPalette.textSecondary)
+            .foregroundStyle(AppTheme.textSecondary)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding(24)
     }

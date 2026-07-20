@@ -25,7 +25,7 @@ struct IssueDetailSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                NeuBackground()
+                AppBackground()
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
                         if isEditing {
@@ -42,29 +42,29 @@ struct IssueDetailSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close") { dismiss() }
-                        .foregroundStyle(NeuPalette.textPrimary)
+                        .foregroundStyle(AppTheme.textPrimary)
                         .accessibilityIdentifier("issue_detail_button_close")
                 }
                 ToolbarItemGroup(placement: .primaryAction) {
                     if isEditing {
                         Button("Save") { save() }
-                            .buttonStyle(NeuButtonTarget(isAccent: true))
+                            .buttonStyle(AppButtonStyle(isAccent: true))
                             .disabled(isSaving || editTitle.trimmedOrNil == nil)
                             .accessibilityIdentifier("issue_detail_button_save")
                     } else {
                         if item.status == .done {
                             Button("Reopen") { closeOrReopen() }
-                                .buttonStyle(NeuButtonTarget(isAccent: false))
+                                .buttonStyle(AppButtonStyle(isAccent: false))
                                 .disabled(isClosing)
                                 .accessibilityIdentifier("issue_detail_button_toolbar_reopen")
                         } else {
                             Button("Close Issue") { closeOrReopen() }
-                                .buttonStyle(NeuButtonTarget(isAccent: true))
+                                .buttonStyle(AppButtonStyle(isAccent: true))
                                 .disabled(isClosing)
                                 .accessibilityIdentifier("issue_detail_button_toolbar_close_issue")
                         }
                         Button("Edit") { beginEditing() }
-                            .buttonStyle(NeuButtonTarget(isAccent: false))
+                            .buttonStyle(AppButtonStyle(isAccent: false))
                             .accessibilityIdentifier("issue_detail_button_edit")
                     }
                 }
@@ -90,7 +90,7 @@ struct IssueDetailSheet: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text(item.title)
                     .font(.title2.weight(.bold))
-                    .foregroundStyle(NeuPalette.textPrimary)
+                    .foregroundStyle(AppTheme.textPrimary)
 
                 // Structured pills
                 FlowLayout(spacing: 8) {
@@ -105,7 +105,7 @@ struct IssueDetailSheet: View {
                 }
             }
             .padding(24)
-            .neuExtruded(cornerRadius: 24, elevation: 8)
+            .cardSurface(cornerRadius: 24, elevation: 8)
 
             descriptionCard
             closeActionCard
@@ -120,14 +120,14 @@ struct IssueDetailSheet: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Description")
                     .font(.headline)
-                    .foregroundStyle(NeuPalette.textPrimary)
+                    .foregroundStyle(AppTheme.textPrimary)
                 Text(item.bodySummary)
                     .font(.body)
-                    .foregroundStyle(NeuPalette.textSecondary)
+                    .foregroundStyle(AppTheme.textSecondary)
                     .textSelection(.enabled)
             }
             .padding(24)
-            .neuExtruded(cornerRadius: 24, elevation: 8)
+            .cardSurface(cornerRadius: 24, elevation: 8)
         }
     }
 
@@ -136,21 +136,21 @@ struct IssueDetailSheet: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Created")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(NeuPalette.textSecondary)
+                    .foregroundStyle(AppTheme.textSecondary)
                 Text(item.createdAt, style: .relative)
-                    .foregroundStyle(NeuPalette.textPrimary)
+                    .foregroundStyle(AppTheme.textPrimary)
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 4) {
                 Text("Updated")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(NeuPalette.textSecondary)
+                    .foregroundStyle(AppTheme.textSecondary)
                 Text(item.updatedAt, style: .relative)
-                    .foregroundStyle(NeuPalette.textPrimary)
+                    .foregroundStyle(AppTheme.textPrimary)
             }
         }
         .padding(24)
-        .neuExtruded(cornerRadius: 24, elevation: 8)
+        .cardSurface(cornerRadius: 24, elevation: 8)
     }
 
     private var launchSessionCard: some View {
@@ -158,7 +158,7 @@ struct IssueDetailSheet: View {
             Text("CODING SESSION")
                 .font(.caption.weight(.bold))
                 .tracking(1)
-                .foregroundStyle(NeuPalette.textSecondary)
+                .foregroundStyle(AppTheme.textSecondary)
 
             Button {
                 isPresentingLaunchSession = true
@@ -171,26 +171,26 @@ struct IssueDetailSheet: View {
                             .font(.subheadline.weight(.bold))
                         Text("Start an agent session for this issue")
                             .font(.caption)
-                            .foregroundStyle(NeuPalette.textSecondary)
+                            .foregroundStyle(AppTheme.textSecondary)
                     }
                     Spacer()
                     Image(systemName: "chevron.right")
                         .font(.caption.weight(.bold))
                 }
-                .foregroundStyle(NeuPalette.accentCyanBright)
+                .foregroundStyle(AppTheme.accentCyanBright)
                 .padding(16)
-                .background(NeuPalette.accentCyan.opacity(0.08))
+                .background(AppTheme.accentCyan.opacity(0.08))
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .overlay {
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(NeuPalette.accentCyan.opacity(0.2), lineWidth: 1)
+                        .stroke(AppTheme.accentCyan.opacity(0.2), lineWidth: 1)
                 }
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("issue_detail_launch_session")
         }
         .padding(24)
-        .neuExtruded(cornerRadius: 24, elevation: 8)
+        .cardSurface(cornerRadius: 24, elevation: 8)
     }
 
     // MARK: - Edit Form
@@ -201,24 +201,24 @@ struct IssueDetailSheet: View {
                 Text("EDIT ISSUE")
                     .font(.caption.weight(.bold))
                     .tracking(1)
-                    .foregroundStyle(NeuPalette.textSecondary)
+                    .foregroundStyle(AppTheme.textSecondary)
 
                 // Title
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Title").font(.headline).foregroundStyle(NeuPalette.textPrimary)
-                    NeuTextField(placeholder: "Issue title", text: $editTitle)
+                    Text("Title").font(.headline).foregroundStyle(AppTheme.textPrimary)
+                    AppTextField(placeholder: "Issue title", text: $editTitle)
                         .accessibilityIdentifier("issue_detail_textfield_title")
                 }
 
                 // Description
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Description").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                    Text("Description").font(.headline).foregroundStyle(AppTheme.textPrimary)
                     TextEditor(text: $editBody)
                         .scrollContentBackground(.hidden)
                         .frame(minHeight: 100)
                         .padding(12)
-                        .neuRecessed(cornerRadius: 16, depth: 6)
-                        .foregroundStyle(NeuPalette.textPrimary)
+                        .insetSurface(cornerRadius: 16, depth: 6)
+                        .foregroundStyle(AppTheme.textPrimary)
                         .accessibilityIdentifier("issue_detail_texteditor_body")
                 }
 
@@ -269,14 +269,14 @@ struct IssueDetailSheet: View {
 
                 // Milestone (optional)
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Milestone").font(.headline).foregroundStyle(NeuPalette.textPrimary)
-                    NeuTextField(placeholder: "Optional milestone", text: $editMilestone)
+                    Text("Milestone").font(.headline).foregroundStyle(AppTheme.textPrimary)
+                    AppTextField(placeholder: "Optional milestone", text: $editMilestone)
                         .accessibilityIdentifier("issue_detail_textfield_milestone")
                 }
 
                 // Attachment (optional)
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Attachment").font(.headline).foregroundStyle(NeuPalette.textPrimary)
+                    Text("Attachment").font(.headline).foregroundStyle(AppTheme.textPrimary)
                     if !pendingAttachments.isEmpty {
                         AttachmentPreviewStrip(attachments: $pendingAttachments)
                     }
@@ -288,22 +288,22 @@ struct IssueDetailSheet: View {
                             Text("Add attachment…")
                         }
                         .font(.subheadline)
-                        .foregroundStyle(NeuPalette.textSecondary)
+                        .foregroundStyle(AppTheme.textSecondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 12)
-                        .neuRecessed(cornerRadius: 16, depth: 6)
+                        .insetSurface(cornerRadius: 16, depth: 6)
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("issue_detail_button_add_attachment")
                 }
             }
             .padding(24)
-            .neuExtruded(cornerRadius: 24, elevation: 8)
+            .cardSurface(cornerRadius: 24, elevation: 8)
 
             if isSaving {
                 ProgressView("Saving…")
-                    .foregroundStyle(NeuPalette.textPrimary)
+                    .foregroundStyle(AppTheme.textPrimary)
                     .frame(maxWidth: .infinity, alignment: .center)
             }
         }
@@ -323,20 +323,20 @@ struct IssueDetailSheet: View {
                                 .font(.subheadline.weight(.bold))
                             Text("Move back to Ready")
                                 .font(.caption)
-                                .foregroundStyle(NeuPalette.textSecondary)
+                                .foregroundStyle(AppTheme.textSecondary)
                         }
                         Spacer()
                         if isClosing {
                             ProgressView()
                         }
                     }
-                    .foregroundStyle(NeuPalette.accentCyanBright)
+                    .foregroundStyle(AppTheme.accentCyanBright)
                     .padding(16)
-                    .background(NeuPalette.accentCyan.opacity(0.08))
+                    .background(AppTheme.accentCyan.opacity(0.08))
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     .overlay {
                         RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .stroke(NeuPalette.accentCyan.opacity(0.2), lineWidth: 1)
+                            .stroke(AppTheme.accentCyan.opacity(0.2), lineWidth: 1)
                     }
                 }
                 .buttonStyle(.plain)
@@ -354,20 +354,20 @@ struct IssueDetailSheet: View {
                                 .font(.subheadline.weight(.bold))
                             Text("Mark as Done")
                                 .font(.caption)
-                                .foregroundStyle(NeuPalette.textSecondary)
+                                .foregroundStyle(AppTheme.textSecondary)
                         }
                         Spacer()
                         if isClosing {
                             ProgressView()
                         }
                     }
-                    .foregroundStyle(NeuPalette.accentGreen)
+                    .foregroundStyle(AppTheme.accentGreen)
                     .padding(16)
-                    .background(NeuPalette.accentGreen.opacity(0.08))
+                    .background(AppTheme.accentGreen.opacity(0.08))
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     .overlay {
                         RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .stroke(NeuPalette.accentGreen.opacity(0.2), lineWidth: 1)
+                            .stroke(AppTheme.accentGreen.opacity(0.2), lineWidth: 1)
                     }
                 }
                 .buttonStyle(.plain)
@@ -376,7 +376,7 @@ struct IssueDetailSheet: View {
             }
         }
         .padding(24)
-        .neuExtruded(cornerRadius: 24, elevation: 8)
+        .cardSurface(cornerRadius: 24, elevation: 8)
     }
 
     // MARK: - Actions
@@ -493,21 +493,21 @@ struct IssueDetailSheet: View {
         @ViewBuilder content: () -> Content
     ) -> some View {
         HStack(spacing: 12) {
-            Text(label).font(.headline).foregroundStyle(NeuPalette.textPrimary)
+            Text(label).font(.headline).foregroundStyle(AppTheme.textPrimary)
             if required {
                 Text("•").foregroundStyle(.red).font(.caption)
             }
             Spacer(minLength: 8)
             content()
-                .tint(NeuPalette.accentCyan)
+                .tint(AppTheme.accentCyan)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 .background(
                     Capsule()
-                        .fill(NeuPalette.inset.opacity(0.55))
+                        .fill(AppTheme.inset.opacity(0.55))
                         .overlay(
                             Capsule()
-                                .stroke(NeuPalette.borderSoft, lineWidth: 1)
+                                .stroke(AppTheme.borderSoft, lineWidth: 1)
                         )
                 )
         }

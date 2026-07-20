@@ -38,7 +38,7 @@ struct WorkScreen: View {
 
     var body: some View {
         ZStack {
-            NeuBackground()
+            AppBackground()
 
             VStack(alignment: .leading, spacing: 0) {
                 header
@@ -52,7 +52,7 @@ struct WorkScreen: View {
                     if let statusMessage = appModel.workStore.statusMessage, filteredItems.isEmpty {
                         Text(statusMessage)
                             .font(.subheadline)
-                            .foregroundStyle(NeuPalette.textSecondary)
+                            .foregroundStyle(AppTheme.textSecondary)
                             .padding(.horizontal, 24)
                             .padding(.bottom, 8)
                     }
@@ -137,17 +137,17 @@ struct WorkScreen: View {
                     statChip(
                         label: "Open",
                         count: counts.open,
-                        color: NeuPalette.statusBlue
+                        color: AppTheme.statusBlue
                     )
                     statChip(
                         label: "In Progress",
                         count: counts.inProgress,
-                        color: NeuPalette.accentOrange
+                        color: AppTheme.accentOrange
                     )
                     statChip(
                         label: "Done",
                         count: counts.done,
-                        color: NeuPalette.accentGreen
+                        color: AppTheme.accentGreen
                     )
                 }
             }
@@ -157,9 +157,9 @@ struct WorkScreen: View {
             if isCompact {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 14))
-                    .foregroundStyle(NeuPalette.textSecondary)
+                    .foregroundStyle(AppTheme.textSecondary)
                     .frame(width: 32, height: 32)
-                    .background(NeuPalette.inset)
+                    .background(AppTheme.inset)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     .accessibilityLabel("Search")
                     .accessibilityIdentifier("work_button_search")
@@ -167,17 +167,17 @@ struct WorkScreen: View {
                 HStack(spacing: 6) {
                     Image(systemName: "magnifyingglass")
                         .font(.caption)
-                        .foregroundStyle(NeuPalette.textSecondary)
+                        .foregroundStyle(AppTheme.textSecondary)
                     TextField("Search issues…", text: $workStore.searchText)
                         .textFieldStyle(.plain)
                         .font(.caption)
-                        .foregroundStyle(NeuPalette.textPrimary)
+                        .foregroundStyle(AppTheme.textPrimary)
                         .frame(maxWidth: 180)
                         .accessibilityIdentifier("work_textfield_search")
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
-                .background(NeuPalette.inset)
+                .background(AppTheme.inset)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
             }
 
@@ -186,12 +186,12 @@ struct WorkScreen: View {
             } label: {
                 Image(systemName: "plus")
                     .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(NeuPalette.accentForeground)
+                    .foregroundStyle(AppTheme.accentForeground)
                     .frame(width: 28, height: 28)
-                    .background(NeuPalette.accentCyan)
+                    .background(AppTheme.accentCyan)
                     .clipShape(Circle())
-                    .overlay(Circle().stroke(NeuPalette.borderSoft, lineWidth: 0.5))
-                    .shadow(color: NeuPalette.shadowDark.opacity(0.4), radius: 3, x: 0, y: 1)
+                    .overlay(Circle().stroke(AppTheme.borderSoft, lineWidth: 0.5))
+                    .shadow(color: AppTheme.shadowDark.opacity(0.4), radius: 3, x: 0, y: 1)
             }
             .buttonStyle(.plain)
             .disabled(!appModel.settingsStore.isGitHubConfigured)
@@ -210,10 +210,10 @@ struct WorkScreen: View {
                     }
                 }
                 .pickerStyle(.menu)
-                .tint(NeuPalette.accentOrange)
+                .tint(AppTheme.accentOrange)
                 .accessibilityIdentifier("work_picker_repository")
             } else {
-                AgentBoardPill(text: "All repos", color: NeuPalette.accentOrange)
+                AgentBoardPill(text: "All repos", color: AppTheme.accentOrange)
             }
         }
     }
@@ -227,10 +227,10 @@ struct WorkScreen: View {
             Text("\(count)")
                 .font(.system(.caption, design: .rounded, weight: .semibold))
                 .monospacedDigit()
-                .foregroundStyle(NeuPalette.textPrimary)
+                .foregroundStyle(AppTheme.textPrimary)
             Text(label)
                 .font(.caption)
-                .foregroundStyle(NeuPalette.textSecondary)
+                .foregroundStyle(AppTheme.textSecondary)
         }
     }
 
@@ -249,24 +249,24 @@ struct WorkScreen: View {
                                 Text(column.column.title.uppercased())
                                     .font(.system(size: 11, weight: .semibold, design: .monospaced))
                                     .tracking(1.2)
-                                    .foregroundStyle(NeuPalette.textPrimary)
+                                    .foregroundStyle(AppTheme.textPrimary)
                                 Text("\(column.items.count)")
                                     .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                                    .foregroundStyle(NeuPalette.textTertiary)
+                                    .foregroundStyle(AppTheme.textTertiary)
                                     .padding(.horizontal, 6)
                                     .padding(.vertical, 2)
-                                    .background(NeuPalette.inset)
+                                    .background(AppTheme.inset)
                                     .clipShape(Capsule())
                                 Spacer()
                                 Image(systemName: "plus")
                                     .font(.system(size: 11, weight: .semibold))
-                                    .foregroundStyle(NeuPalette.textTertiary)
+                                    .foregroundStyle(AppTheme.textTertiary)
                             }
                             .padding(.horizontal, 6)
                             .padding(.bottom, 10)
                             .overlay(alignment: .bottom) {
                                 Rectangle()
-                                    .fill(NeuPalette.borderSoft)
+                                    .fill(AppTheme.borderSoft)
                                     .frame(height: 1)
                             }
 
@@ -274,11 +274,11 @@ struct WorkScreen: View {
                         }
                         .frame(width: columnWidth, height: proxy.size.height - 28, alignment: .topLeading)
                         .padding(12)
-                        .background(NeuPalette.inset)
+                        .background(AppTheme.inset)
                         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                         .overlay {
                             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .stroke(NeuPalette.border, lineWidth: 1)
+                                .stroke(AppTheme.border, lineWidth: 1)
                         }
                     }
                 }
@@ -294,7 +294,7 @@ struct WorkScreen: View {
                 Spacer()
                 Text("None")
                     .font(.subheadline)
-                    .foregroundStyle(NeuPalette.textTertiary)
+                    .foregroundStyle(AppTheme.textTertiary)
                     .frame(maxWidth: .infinity, alignment: .center)
                 Spacer()
             } else {
@@ -331,7 +331,7 @@ struct WorkScreen: View {
                     Spacer()
                     Text("\(filteredItems.count) items")
                         .font(.caption)
-                        .foregroundStyle(NeuPalette.textSecondary)
+                        .foregroundStyle(AppTheme.textSecondary)
                 }
                 .padding(.horizontal, 8)
 
@@ -354,7 +354,7 @@ private struct WorkCardNeu: View {
                 HStack(alignment: .top) {
                     Text(item.issueReference)
                         .font(.system(size: 10.5, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(NeuPalette.accentCyanBright)
+                        .foregroundStyle(AppTheme.accentCyanBright)
                         .lineLimit(1)
                         .truncationMode(.middle)
 
@@ -364,10 +364,10 @@ private struct WorkCardNeu: View {
                         if item.status == .blocked {
                             Text("Blocked")
                                 .font(.system(size: 9, weight: .bold))
-                                .foregroundStyle(NeuPalette.accentCoral)
+                                .foregroundStyle(AppTheme.accentCoral)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
-                                .background(NeuPalette.accentCoral.opacity(0.15))
+                                .background(AppTheme.accentCoral.opacity(0.15))
                                 .clipShape(Capsule())
                                 .accessibilityIdentifier("work_badge_blocked_\(item.id)")
                         }
@@ -378,14 +378,14 @@ private struct WorkCardNeu: View {
 
                 Text(item.title)
                     .font(.system(size: 12.5, weight: .semibold))
-                    .foregroundStyle(NeuPalette.textPrimary)
+                    .foregroundStyle(AppTheme.textPrimary)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
 
                 if !item.bodySummary.isEmpty {
                     Text(item.bodySummary)
                         .font(.system(size: 11.5))
-                        .foregroundStyle(NeuPalette.textTertiary)
+                        .foregroundStyle(AppTheme.textTertiary)
                         .lineLimit(1)
                         .multilineTextAlignment(.leading)
                 }
@@ -394,21 +394,21 @@ private struct WorkCardNeu: View {
                     HStack(spacing: -8) {
                         if item.assignees.isEmpty {
                             Circle()
-                                .fill(NeuPalette.background)
+                                .fill(AppTheme.background)
                                 .frame(width: 24, height: 24)
                                 .overlay(Image(systemName: "person").font(.system(size: 10))
-                                    .foregroundStyle(NeuPalette.textSecondary))
+                                    .foregroundStyle(AppTheme.textSecondary))
                         } else {
                             ForEach(Array(item.assignees.prefix(3).enumerated()), id: \.offset) { index, assignee in
                                 Circle()
-                                    .fill(NeuPalette.surface)
+                                    .fill(AppTheme.surface)
                                     .frame(width: 24, height: 24)
                                     .overlay(
                                         Text(String(assignee.prefix(1).uppercased()))
                                             .font(.system(size: 10, weight: .bold))
-                                            .foregroundStyle(NeuPalette.textPrimary)
+                                            .foregroundStyle(AppTheme.textPrimary)
                                     )
-                                    .overlay(Circle().stroke(NeuPalette.background, lineWidth: 2))
+                                    .overlay(Circle().stroke(AppTheme.background, lineWidth: 2))
                                     .zIndex(Double(3 - index))
                             }
                         }
@@ -417,11 +417,11 @@ private struct WorkCardNeu: View {
                     Spacer()
                     Text(item.updatedAt, style: .relative)
                         .font(.caption2)
-                        .foregroundStyle(NeuPalette.textSecondary)
+                        .foregroundStyle(AppTheme.textSecondary)
                 }
             }
             .padding(10)
-            .neuExtruded(cornerRadius: 14, elevation: 7)
+            .cardSurface(cornerRadius: 14, elevation: 7)
         }
         .buttonStyle(.plain)
     }
@@ -448,30 +448,30 @@ struct PriorityNeu: View {
 @MainActor
 private func workStateColor(_ state: WorkState) -> Color {
     switch state {
-    case .ready: NeuPalette.statusBlue
-    case .inProgress: NeuPalette.accentOrange
-    case .blocked: NeuPalette.accentCoral
+    case .ready: AppTheme.statusBlue
+    case .inProgress: AppTheme.accentOrange
+    case .blocked: AppTheme.accentCoral
     case .review: .purple
-    case .done: NeuPalette.accentGreen
+    case .done: AppTheme.accentGreen
     }
 }
 
 @MainActor
 private func workBoardColumnColor(_ column: WorkBoardColumn) -> Color {
     switch column {
-    case .todo: NeuPalette.statusBlue
-    case .inProgress: NeuPalette.accentOrange
-    case .resolved: NeuPalette.accentGreen
+    case .todo: AppTheme.statusBlue
+    case .inProgress: AppTheme.accentOrange
+    case .resolved: AppTheme.accentGreen
     }
 }
 
 @MainActor
 private func priorityColor(_ priority: WorkPriority) -> Color {
     switch priority {
-    case .p0: NeuPalette.accentCoral
-    case .p1: NeuPalette.accentCoral.opacity(0.82)
-    case .p2: NeuPalette.accentOrange
-    case .p3: NeuPalette.textTertiary
+    case .p0: AppTheme.accentCoral
+    case .p1: AppTheme.accentCoral.opacity(0.82)
+    case .p2: AppTheme.accentOrange
+    case .p3: AppTheme.textTertiary
     }
 }
 

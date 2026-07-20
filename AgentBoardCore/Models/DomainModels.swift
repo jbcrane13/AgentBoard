@@ -506,7 +506,6 @@ public struct AgentBoardSettings: Codable, Hashable, Sendable {
     public var companionURL: String
     public var repositories: [ConfiguredRepository]
     public var autoRefreshInterval: TimeInterval
-    public var designTheme: AgentBoardDesignTheme
 
     private enum CodingKeys: String, CodingKey {
         case hermesGatewayURL
@@ -516,7 +515,6 @@ public struct AgentBoardSettings: Codable, Hashable, Sendable {
         case companionURL
         case repositories
         case autoRefreshInterval
-        case designTheme
     }
 
     public init(
@@ -526,8 +524,7 @@ public struct AgentBoardSettings: Codable, Hashable, Sendable {
         selectedHermesProfileID: String? = nil,
         companionURL: String = "http://127.0.0.1:8742",
         repositories: [ConfiguredRepository] = [],
-        autoRefreshInterval: TimeInterval = 30,
-        designTheme: AgentBoardDesignTheme = .blue
+        autoRefreshInterval: TimeInterval = 30
     ) {
         self.hermesGatewayURL = hermesGatewayURL
         self.hermesModelID = hermesModelID
@@ -536,7 +533,6 @@ public struct AgentBoardSettings: Codable, Hashable, Sendable {
         self.companionURL = companionURL
         self.repositories = repositories
         self.autoRefreshInterval = autoRefreshInterval
-        self.designTheme = designTheme
     }
 
     public init(from decoder: Decoder) throws {
@@ -550,7 +546,6 @@ public struct AgentBoardSettings: Codable, Hashable, Sendable {
             ?? "http://127.0.0.1:8742"
         repositories = try container.decodeIfPresent([ConfiguredRepository].self, forKey: .repositories) ?? []
         autoRefreshInterval = try container.decodeIfPresent(TimeInterval.self, forKey: .autoRefreshInterval) ?? 30
-        designTheme = try container.decodeIfPresent(AgentBoardDesignTheme.self, forKey: .designTheme) ?? .blue
     }
 }
 

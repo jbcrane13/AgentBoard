@@ -1,61 +1,56 @@
-import AgentBoardCore
 import SwiftUI
 
 // MARK: - Design Theme
 
 //
 // AgentBoard renders with standard macOS / iOS chrome rather than a custom
-// neumorphic (skeuomorphic double-shadow) treatment. The public symbol names
-// in this file are preserved so every existing call site keeps compiling:
+// neumorphic (skeuomorphic double-shadow) treatment. Semantic names below:
 //
-//   - `NeuPalette.*`          semantic + surface colors (platform-aware)
-//   - `NeuBackground()`       window/scene background
-//   - `.neuExtruded(...)`     raised card → .regularMaterial rounded rect
-//   - `.neuRecessed(...)`     inset well → grouped-background rounded rect
-//   - `NeuButtonTarget(...)`  button style → .bordered / .borderedProminent
+//   - `AppTheme.*`               semantic + surface colors (platform-aware)
+//   - `AppBackground()`          window/scene background
+//   - `.cardSurface(...)`        raised card → .regularMaterial rounded rect
+//   - `.insetSurface(...)`       inset well → grouped-background rounded rect
+//   - `AppButtonStyle(...)`      button style → .bordered / .borderedProminent
 //
 // The colour ramp stays brand-toned (accent teal / status colours) so the
 // kanban pills and status indicators keep their meaning, but surfaces now use
 // the platform's native materials and window colours instead of hand-rolled
 // gradients, dual shadows, and extruded/recessed effects.
 
-/// Surface + semantic colours. `NeuPalette` reads through these so light and
+/// Surface + semantic colours. `AppTheme` reads through these so light and
 /// dark mode, and macOS vs iOS, all resolve to the correct native colour.
-public struct NeuTheme: Sendable {
-    public let background: Color
-    public let surface: Color
-    public let surfaceRaised: Color
-    public let surfaceHover: Color
-    public let inset: Color
-    public let gradientTop: Color
-    public let gradientBottom: Color
+private struct AppThemeTokens: Sendable {
+    let background: Color
+    let surface: Color
+    let surfaceRaised: Color
+    let surfaceHover: Color
+    let inset: Color
 
-    public let accentOrange: Color
-    public let primaryAccent: Color
-    public let primaryAccentBright: Color
-    public let primaryAccentForeground: Color
-    public let accentCoral: Color
-    public let accentPurple: Color
-    public let statusOpen: Color
-    public let statusClosed: Color
-    public let statusSuccess: Color
-    public let statusIdle: Color
+    let accentOrange: Color
+    let primaryAccent: Color
+    let primaryAccentBright: Color
+    let primaryAccentForeground: Color
+    let accentCoral: Color
+    let accentPurple: Color
+    let statusOpen: Color
+    let statusClosed: Color
+    let statusSuccess: Color
+    let statusIdle: Color
 
-    public let textPrimary: Color
-    public let textSecondary: Color
-    public let textTertiary: Color
-    public let textDisabled: Color
-    public let borderSoft: Color
-    public let border: Color
-    public let borderStrong: Color
+    let textPrimary: Color
+    let textSecondary: Color
+    let textTertiary: Color
+    let textDisabled: Color
+    let borderSoft: Color
+    let border: Color
+    let borderStrong: Color
 
-    public let shadowDark: Color
-    public let shadowLight: Color
+    let shadowDark: Color
 
     /// Platform-aware native surfaces. Backgrounds and text come from the OS
     /// (`NSColor` / `UIColor`) so they adapt to light/dark automatically.
     /// Accents and status colours stay fixed for brand + semantic meaning.
-    private static func makeNative() -> NeuTheme {
+    static func makeNative() -> AppThemeTokens {
         #if os(macOS)
             let background = Color(nsColor: .windowBackgroundColor)
             let surface = Color(nsColor: .controlBackgroundColor)
@@ -80,14 +75,12 @@ public struct NeuTheme: Sendable {
             let border = Color(uiColor: .separator)
         #endif
 
-        return NeuTheme(
+        return AppThemeTokens(
             background: background,
             surface: surface,
             surfaceRaised: surfaceRaised,
             surfaceHover: surfaceHover,
             inset: inset,
-            gradientTop: background,
-            gradientBottom: background,
             accentOrange: .orange,
             primaryAccent: .accentColor, // system accent (Assets AccentColor), not a bespoke brand color
             primaryAccentBright: .accentColor,
@@ -105,38 +98,25 @@ public struct NeuTheme: Sendable {
             borderSoft: border.opacity(0.5),
             border: border,
             borderStrong: border.opacity(0.8),
-            shadowDark: .black.opacity(0.20),
-            shadowLight: .clear
+            shadowDark: .black.opacity(0.20)
         )
-    }
-
-    public static let blue = NeuTheme.makeNative()
-    public static let grey = NeuTheme.makeNative()
-
-    /// Kept for API compatibility; both presets resolve to the same native theme.
-    public static func preset(_: AgentBoardDesignTheme) -> NeuTheme {
-        .makeNative()
     }
 }
 
 @MainActor
-public enum NeuPalette {
-    private static var active = NeuTheme.blue
-
-    public static func apply(_ designTheme: AgentBoardDesignTheme) {
-        active = .preset(designTheme)
-    }
+public enum AppTheme {
+    private static let tokens = AppThemeTokens.makeNative()
 
     public static var background: Color {
-        active.background
+        tokens.background
     }
 
     public static var surface: Color {
-        active.surface
+        tokens.surface
     }
 
     public static var surfaceRaised: Color {
-        active.surfaceRaised
+        tokens.surfaceRaised
     }
 
     /// Sibling `Material` accessor for `surfaceRaised`. Floating/raised chrome
@@ -148,108 +128,96 @@ public enum NeuPalette {
     }
 
     public static var surfaceHover: Color {
-        active.surfaceHover
+        tokens.surfaceHover
     }
 
     public static var inset: Color {
-        active.inset
-    }
-
-    public static var gradientTop: Color {
-        active.gradientTop
-    }
-
-    public static var gradientBottom: Color {
-        active.gradientBottom
+        tokens.inset
     }
 
     public static var accentOrange: Color {
-        active.accentOrange
+        tokens.accentOrange
     }
 
     public static var accentCyan: Color {
-        active.primaryAccent
+        tokens.primaryAccent
     }
 
     public static var accentCyanBright: Color {
-        active.primaryAccentBright
+        tokens.primaryAccentBright
     }
 
     public static var accentForeground: Color {
-        active.primaryAccentForeground
+        tokens.primaryAccentForeground
     }
 
     public static var accentCoral: Color {
-        active.accentCoral
+        tokens.accentCoral
     }
 
     public static var accentPurple: Color {
-        active.accentPurple
+        tokens.accentPurple
     }
 
     public static var accentGreen: Color {
-        active.statusSuccess
+        tokens.statusSuccess
     }
 
     public static var statusBlue: Color {
-        active.statusOpen
+        tokens.statusOpen
     }
 
     public static var statusClosed: Color {
-        active.statusClosed
+        tokens.statusClosed
     }
 
     public static var statusSuccess: Color {
-        active.statusSuccess
+        tokens.statusSuccess
     }
 
     public static var statusIdle: Color {
-        active.statusIdle
+        tokens.statusIdle
     }
 
     public static var textPrimary: Color {
-        active.textPrimary
+        tokens.textPrimary
     }
 
     public static var textSecondary: Color {
-        active.textSecondary
+        tokens.textSecondary
     }
 
     public static var textTertiary: Color {
-        active.textTertiary
+        tokens.textTertiary
     }
 
     public static var textDisabled: Color {
-        active.textDisabled
+        tokens.textDisabled
     }
 
     public static var borderSoft: Color {
-        active.borderSoft
+        tokens.borderSoft
     }
 
     public static var border: Color {
-        active.border
+        tokens.border
     }
 
     public static var borderStrong: Color {
-        active.borderStrong
+        tokens.borderStrong
     }
 
     public static var shadowDark: Color {
-        active.shadowDark
-    }
-
-    public static var shadowLight: Color {
-        active.shadowLight
+        tokens.shadowDark
     }
 }
 
 /// Scene background. Uses the native window/background colour so the app sits
 /// correctly in light and dark mode with no hand-drawn gradient.
-public struct NeuBackground: View {
+public struct AppBackground: View {
     public init() {}
     public var body: some View {
-        NeuPalette.background.ignoresSafeArea()
+        AppTheme.background.ignoresSafeArea()
     }
 }
 
@@ -259,7 +227,7 @@ public struct NeuBackground: View {
 /// rest, and `.draggable()` already gives the system's own lifted-preview
 /// shadow while a card is actually being dragged, so no bespoke `isDragging`
 /// state is needed to satisfy "shadow only while dragging".
-public struct NeuExtrudedModifier: ViewModifier {
+public struct CardSurfaceModifier: ViewModifier {
     public let cornerRadius: CGFloat
     public let elevation: CGFloat
 
@@ -276,14 +244,14 @@ public struct NeuExtrudedModifier: ViewModifier {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .stroke(NeuPalette.borderSoft, lineWidth: 0.5)
+                    .stroke(AppTheme.borderSoft, lineWidth: 0.5)
             )
     }
 }
 
 /// Inset well — a flat grouped-background rounded rectangle. Replaces the
 /// neumorphic blurred "recessed" look with a subtle native inset surface.
-public struct NeuRecessedModifier: ViewModifier {
+public struct InsetSurfaceModifier: ViewModifier {
     public let cornerRadius: CGFloat
     public let depth: CGFloat
 
@@ -296,22 +264,22 @@ public struct NeuRecessedModifier: ViewModifier {
         content
             .background(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(NeuPalette.inset)
+                    .fill(AppTheme.inset)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .stroke(NeuPalette.borderSoft, lineWidth: 0.5)
+                    .stroke(AppTheme.borderSoft, lineWidth: 0.5)
             )
     }
 }
 
 public extension View {
-    func neuExtruded(cornerRadius: CGFloat = 24, elevation: CGFloat = 10) -> some View {
-        modifier(NeuExtrudedModifier(cornerRadius: cornerRadius, elevation: elevation))
+    func cardSurface(cornerRadius: CGFloat = 24, elevation: CGFloat = 10) -> some View {
+        modifier(CardSurfaceModifier(cornerRadius: cornerRadius, elevation: elevation))
     }
 
-    func neuRecessed(cornerRadius: CGFloat = 16, depth: CGFloat = 4) -> some View {
-        modifier(NeuRecessedModifier(cornerRadius: cornerRadius, depth: depth))
+    func insetSurface(cornerRadius: CGFloat = 16, depth: CGFloat = 4) -> some View {
+        modifier(InsetSurfaceModifier(cornerRadius: cornerRadius, depth: depth))
     }
 }
 
@@ -319,7 +287,7 @@ public extension View {
 /// (filled) button; regular buttons render as the standard bordered button.
 /// Pressed state relies on the system feedback rather than a custom scale +
 /// shadow animation.
-public struct NeuButtonTarget: ButtonStyle {
+public struct AppButtonStyle: ButtonStyle {
     public let isAccent: Bool
     public init(isAccent: Bool = false) {
         self.isAccent = isAccent
@@ -328,20 +296,20 @@ public struct NeuButtonTarget: ButtonStyle {
     public func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.subheadline.weight(.semibold))
-            .foregroundStyle(isAccent ? NeuPalette.accentForeground : NeuPalette.textPrimary)
+            .foregroundStyle(isAccent ? AppTheme.accentForeground : AppTheme.textPrimary)
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
             .background(
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(isAccent ? NeuPalette.accentCyan : Color.clear)
+                    .fill(isAccent ? AppTheme.accentCyan : Color.clear)
             )
             .background(
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(isAccent ? Color.clear : NeuPalette.surfaceHover)
+                    .fill(isAccent ? Color.clear : AppTheme.surfaceHover)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .stroke(isAccent ? Color.clear : NeuPalette.border, lineWidth: 0.5)
+                    .stroke(isAccent ? Color.clear : AppTheme.border, lineWidth: 0.5)
             )
             .opacity(configuration.isPressed ? 0.7 : 1.0)
     }
@@ -354,7 +322,7 @@ struct AgentBoardEyebrow: View {
         Text(text.uppercased())
             .font(.caption.weight(.semibold))
             .tracking(1.2)
-            .foregroundStyle(NeuPalette.textSecondary)
+            .foregroundStyle(AppTheme.textSecondary)
     }
 }
 

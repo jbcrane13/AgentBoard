@@ -27,7 +27,7 @@ struct AgentsScreen: View {
 
     var body: some View {
         ZStack {
-            NeuBackground()
+            AppBackground()
 
             VStack(spacing: 0) {
                 header
@@ -73,7 +73,7 @@ struct AgentsScreen: View {
                 AgentBoardEyebrow(text: "KANBAN")
                 Text("Task Board")
                     .font(.system(size: isCompact ? 34 : 30, weight: .bold))
-                    .foregroundStyle(NeuPalette.textPrimary)
+                    .foregroundStyle(AppTheme.textPrimary)
                     .tracking(-0.8)
             }
             Spacer()
@@ -89,7 +89,7 @@ struct AgentsScreen: View {
             } label: {
                 Image(systemName: "plus")
             }
-            .buttonStyle(NeuButtonTarget(isAccent: true))
+            .buttonStyle(AppButtonStyle(isAccent: true))
             .accessibilityIdentifier("kanban_button_new_task")
         }
     }
@@ -100,25 +100,25 @@ struct AgentsScreen: View {
                 ForEach(appModel.agentsStore.summaries) { summary in
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text(summary.name).font(.title3.weight(.bold)).foregroundStyle(NeuPalette.textPrimary)
+                            Text(summary.name).font(.title3.weight(.bold)).foregroundStyle(AppTheme.textPrimary)
                             Spacer()
                             AgentHealthNeu(health: summary.health)
                         }
                         Text(summary.recentActivity)
                             .font(.caption)
-                            .foregroundStyle(NeuPalette.textSecondary)
+                            .foregroundStyle(AppTheme.textSecondary)
                             .lineLimit(1)
                         HStack(spacing: 6) {
                             Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(NeuPalette.statusSuccess)
+                                .foregroundStyle(AppTheme.statusSuccess)
                             Text("\(summary.activeTaskCount)")
                         }
                         .font(.caption.weight(.bold))
-                        .foregroundStyle(NeuPalette.textPrimary)
+                        .foregroundStyle(AppTheme.textPrimary)
                     }
                     .padding(20)
                     .frame(width: 260)
-                    .neuExtruded(cornerRadius: 24, elevation: 8)
+                    .cardSurface(cornerRadius: 24, elevation: 8)
                 }
             }
             .padding(24)
@@ -184,14 +184,14 @@ struct AgentsScreen: View {
                                 .padding(.bottom, 10)
                                 .overlay(alignment: .bottom) {
                                     Rectangle()
-                                        .fill(NeuPalette.borderSoft)
+                                        .fill(AppTheme.borderSoft)
                                         .frame(height: 1)
                                 }
 
                             if columnTasks.isEmpty {
                                 Text("None")
                                     .font(.subheadline)
-                                    .foregroundStyle(NeuPalette.textTertiary)
+                                    .foregroundStyle(AppTheme.textTertiary)
                                     .frame(maxWidth: .infinity, alignment: .center)
                                     .padding(.vertical, 24)
                             } else {
@@ -213,11 +213,11 @@ struct AgentsScreen: View {
                         }
                         .frame(width: columnWidth, alignment: .topLeading)
                         .padding(12)
-                        .background(NeuPalette.background.opacity(0.62))
+                        .background(AppTheme.background.opacity(0.62))
                         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                         .overlay {
                             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .stroke(NeuPalette.borderSoft, lineWidth: 1)
+                                .stroke(AppTheme.borderSoft, lineWidth: 1)
                         }
                         .dropDestination(for: KanbanTaskID.self) { ids, _ in
                             handleDrop(ids, to: status)
@@ -251,13 +251,13 @@ struct AgentsScreen: View {
             Text(status.title.uppercased())
                 .font(.system(size: 11, weight: .semibold, design: .monospaced))
                 .tracking(1.2)
-                .foregroundStyle(NeuPalette.textPrimary)
+                .foregroundStyle(AppTheme.textPrimary)
             Text("\(count)")
                 .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                .foregroundStyle(NeuPalette.textTertiary)
+                .foregroundStyle(AppTheme.textTertiary)
                 .padding(.horizontal, 6)
                 .padding(.vertical, 2)
-                .background(NeuPalette.inset)
+                .background(AppTheme.inset)
                 .clipShape(Capsule())
             Spacer()
         }
@@ -269,12 +269,12 @@ struct AgentsScreen: View {
     private func compactDropzonePlaceholder(status: KanbanStatus) -> some View {
         Text("Drop tasks here")
             .font(.caption)
-            .foregroundStyle(NeuPalette.textTertiary)
+            .foregroundStyle(AppTheme.textTertiary)
             .frame(maxWidth: .infinity, alignment: .center)
             .padding(.vertical, 14)
             .overlay {
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .stroke(NeuPalette.borderSoft, style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
+                    .stroke(AppTheme.borderSoft, style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
             }
             .accessibilityIdentifier("kanban_dropzone_\(status.rawValue)")
     }
@@ -305,7 +305,7 @@ struct AgentsScreen: View {
                         Text("P3").tag(3)
                     }
                     .pickerStyle(.segmented)
-                    .tint(NeuPalette.accentOrange)
+                    .tint(AppTheme.accentOrange)
                     .accessibilityIdentifier("kanban_picker_priority")
                 }
 
@@ -316,7 +316,7 @@ struct AgentsScreen: View {
                                 .foregroundStyle(Color.yellow)
                             Text(error)
                                 .font(.callout)
-                                .foregroundStyle(NeuPalette.textSecondary)
+                                .foregroundStyle(AppTheme.textSecondary)
                         }
                     }
                 }
@@ -394,26 +394,26 @@ private struct KanbanTaskRow: View {
                 HStack {
                     Text(task.displayPriority)
                         .font(.caption.weight(.bold))
-                        .foregroundStyle(NeuPalette.accentCyan)
+                        .foregroundStyle(AppTheme.accentCyan)
                     Spacer()
                     if let tenant = task.tenant {
                         Text(tenant)
                             .font(.caption2.monospaced())
-                            .foregroundStyle(NeuPalette.textSecondary)
+                            .foregroundStyle(AppTheme.textSecondary)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 3)
-                            .neuRecessed(cornerRadius: 8, depth: 2)
+                            .insetSurface(cornerRadius: 8, depth: 2)
                     }
                 }
 
                 Text(task.title)
                     .font(.body.weight(.medium))
-                    .foregroundStyle(NeuPalette.textPrimary)
+                    .foregroundStyle(AppTheme.textPrimary)
 
                 if let body = task.body, !body.isEmpty {
                     Text(body)
                         .font(.subheadline)
-                        .foregroundStyle(NeuPalette.textSecondary)
+                        .foregroundStyle(AppTheme.textSecondary)
                         .lineLimit(2)
                 }
 
@@ -422,17 +422,17 @@ private struct KanbanTaskRow: View {
                         Image(systemName: "person.fill").font(.system(size: 10))
                         Text(task.displayAssignee).font(.caption.weight(.bold))
                     }
-                    .foregroundStyle(NeuPalette.accentOrange)
+                    .foregroundStyle(AppTheme.accentOrange)
 
                     Spacer()
 
                     Text(task.createdAt, style: .relative)
                         .font(.caption2)
-                        .foregroundStyle(NeuPalette.textTertiary)
+                        .foregroundStyle(AppTheme.textTertiary)
                 }
             }
             .padding(20)
-            .neuExtruded(cornerRadius: 24, elevation: 8)
+            .cardSurface(cornerRadius: 24, elevation: 8)
         }
         .buttonStyle(.plain)
         .contextMenu {
@@ -475,12 +475,12 @@ private struct KanbanTaskID: Codable, Hashable, Transferable {
 private func kanbanStatusColor(_ status: KanbanStatus) -> Color {
     switch status {
     case .triage: Color.gray
-    case .todo: NeuPalette.statusIdle
-    case .ready: NeuPalette.accentCyan
-    case .running: NeuPalette.statusSuccess
-    case .blocked: NeuPalette.accentOrange
-    case .done: NeuPalette.textSecondary
-    case .archived: NeuPalette.textTertiary
+    case .todo: AppTheme.statusIdle
+    case .ready: AppTheme.accentCyan
+    case .running: AppTheme.statusSuccess
+    case .blocked: AppTheme.accentOrange
+    case .done: AppTheme.textSecondary
+    case .archived: AppTheme.textTertiary
     }
 }
 
@@ -494,18 +494,18 @@ struct AgentHealthNeu: View {
             Text(health.title.uppercased())
                 .font(.caption2.weight(.bold))
                 .tracking(1)
-                .foregroundStyle(NeuPalette.textSecondary)
+                .foregroundStyle(AppTheme.textSecondary)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .neuRecessed(cornerRadius: 12, depth: 3)
+        .insetSurface(cornerRadius: 12, depth: 3)
     }
 
     private var healthColor: Color {
         switch health {
-        case .online: NeuPalette.statusSuccess
-        case .idle: NeuPalette.statusIdle
-        case .warning: NeuPalette.accentOrange
+        case .online: AppTheme.statusSuccess
+        case .idle: AppTheme.statusIdle
+        case .warning: AppTheme.accentOrange
         case .offline: .red
         }
     }

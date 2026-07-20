@@ -17,7 +17,7 @@ struct ChatHeader: View {
                     Image(systemName: isChatOnlyMode ? "rectangle.split.3x1" : "rectangle.righthalf.inset.filled")
                         .font(.system(size: 13, weight: .semibold))
                 }
-                .buttonStyle(NeuButtonTarget(isAccent: isChatOnlyMode))
+                .buttonStyle(AppButtonStyle(isAccent: isChatOnlyMode))
                 .accessibilityLabel(isChatOnlyMode
                     ? "Restore the sidebar and board"
                     : "Hide the sidebar and board, shrink the window to chat-only")
@@ -52,7 +52,7 @@ struct ChatHeader: View {
                 }
                 .accessibilityLabel("Refresh Hermes connection and models")
                 .accessibilityHint("Reconnects to Hermes and reloads the available models.")
-                .buttonStyle(NeuButtonTarget(isAccent: false))
+                .buttonStyle(AppButtonStyle(isAccent: false))
                 .accessibilityIdentifier("chat_button_refresh")
             }
         }
@@ -137,10 +137,10 @@ struct ChatHeader: View {
         } label: {
             Text(appModel.chatStore.selectedConversation?.title.prefix(10) ?? "session")
                 .font(.system(size: 10.5, weight: .medium, design: .monospaced))
-                .foregroundStyle(NeuPalette.textTertiary)
+                .foregroundStyle(AppTheme.textTertiary)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 3)
-                .background(NeuPalette.inset)
+                .background(AppTheme.inset)
                 .clipShape(Capsule())
         }
         .menuStyle(.borderlessButton)
@@ -156,10 +156,10 @@ struct ChatHeader: View {
         } label: {
             Text(appModel.settingsStore.activeHermesProfile?.name ?? portLabel)
                 .font(.system(size: 10.5, weight: .medium, design: .monospaced))
-                .foregroundStyle(NeuPalette.accentCyanBright)
+                .foregroundStyle(AppTheme.accentCyanBright)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 3)
-                .background(NeuPalette.accentCyan.opacity(0.08))
+                .background(AppTheme.accentCyan.opacity(0.08))
                 .clipShape(Capsule())
         }
         .menuStyle(.borderlessButton)
@@ -173,26 +173,26 @@ struct ChatHeader: View {
         HStack(spacing: 6) {
             Image(systemName: icon)
                 .font(.caption2)
-                .foregroundStyle(NeuPalette.accentCyan)
+                .foregroundStyle(AppTheme.accentCyan)
             Text(text)
                 .font(.caption.weight(.medium))
-                .foregroundStyle(NeuPalette.textPrimary)
+                .foregroundStyle(AppTheme.textPrimary)
                 .lineLimit(1)
             Image(systemName: "chevron.down")
                 .font(.system(size: 8, weight: .bold))
-                .foregroundStyle(NeuPalette.textSecondary)
+                .foregroundStyle(AppTheme.textSecondary)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .neuExtruded(cornerRadius: 12, elevation: 2)
+        .cardSurface(cornerRadius: 12, elevation: 2)
     }
 
     private var connectionTint: Color {
         switch appModel.chatStore.connectionState {
-        case .connected: NeuPalette.accentCyan
-        case .connecting, .reconnecting: NeuPalette.accentOrange
+        case .connected: AppTheme.accentCyan
+        case .connecting, .reconnecting: AppTheme.accentOrange
         case .failed: .red
-        case .disconnected: NeuPalette.textSecondary
+        case .disconnected: AppTheme.textSecondary
         }
     }
 

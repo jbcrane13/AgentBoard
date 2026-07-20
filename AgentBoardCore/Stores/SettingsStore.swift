@@ -21,7 +21,6 @@ public final class SettingsStore {
     public var githubToken = ""
     public var repositories: [ConfiguredRepository] = []
     public var autoRefreshInterval: TimeInterval = 30
-    public var designTheme: AgentBoardDesignTheme = .blue
 
     public var isLoaded = false
     public var statusMessage: String?
@@ -40,8 +39,7 @@ public final class SettingsStore {
             selectedHermesProfileID: selectedHermesProfileID,
             companionURL: companionURL.trimmedOrNil ?? "http://127.0.0.1:8742",
             repositories: repositories,
-            autoRefreshInterval: max(30, autoRefreshInterval),
-            designTheme: designTheme
+            autoRefreshInterval: max(30, autoRefreshInterval)
         )
     }
 
@@ -228,7 +226,6 @@ public final class SettingsStore {
         githubToken = secrets.githubToken ?? ""
         repositories = settings.repositories
         autoRefreshInterval = settings.autoRefreshInterval
-        designTheme = settings.designTheme
     }
 
     private var currentHermesProfileName: String {

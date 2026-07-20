@@ -13,7 +13,7 @@ struct SessionsScreen: View {
 
     var body: some View {
         ZStack {
-            NeuBackground()
+            AppBackground()
 
             VStack(spacing: 0) {
                 header
@@ -108,7 +108,7 @@ struct SessionsScreen: View {
                 AgentBoardEyebrow(text: "SESSIONS")
                 Text("Runtime Engine")
                     .font(.system(size: 32, weight: .bold))
-                    .foregroundStyle(NeuPalette.textPrimary)
+                    .foregroundStyle(AppTheme.textPrimary)
                     .tracking(-0.8)
             }
             Spacer()
@@ -117,7 +117,7 @@ struct SessionsScreen: View {
             } label: {
                 Image(systemName: "arrow.clockwise")
             }
-            .buttonStyle(NeuButtonTarget(isAccent: false))
+            .buttonStyle(AppButtonStyle(isAccent: false))
             .accessibilityIdentifier("sessions_button_refresh")
         }
     }
@@ -134,11 +134,11 @@ private struct SessionCardNeu: View {
                 if let pid = session.pid {
                     Text("PID \(pid)")
                         .font(.caption.monospaced())
-                        .foregroundStyle(NeuPalette.textSecondary)
+                        .foregroundStyle(AppTheme.textSecondary)
                 } else {
                     Text(session.id)
                         .font(.caption.monospaced())
-                        .foregroundStyle(NeuPalette.textSecondary)
+                        .foregroundStyle(AppTheme.textSecondary)
                         .lineLimit(1)
                         .truncationMode(.middle)
                         .frame(width: 80)
@@ -148,12 +148,12 @@ private struct SessionCardNeu: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(session.source)
                     .font(.title3.weight(.bold))
-                    .foregroundStyle(NeuPalette.textPrimary)
+                    .foregroundStyle(AppTheme.textPrimary)
 
                 if let model = session.model {
                     Text(model)
                         .font(.subheadline.weight(.medium))
-                        .foregroundStyle(NeuPalette.accentOrange)
+                        .foregroundStyle(AppTheme.accentOrange)
                 }
             }
 
@@ -166,7 +166,7 @@ private struct SessionCardNeu: View {
                             Text("Task \(taskID)")
                                 .font(.subheadline)
                         }
-                        .foregroundStyle(NeuPalette.textSecondary)
+                        .foregroundStyle(AppTheme.textSecondary)
                     }
 
                     if let workItem = session.workItem {
@@ -176,35 +176,35 @@ private struct SessionCardNeu: View {
                             Text(workItem.issueReference)
                                 .font(.subheadline)
                         }
-                        .foregroundStyle(NeuPalette.textSecondary)
+                        .foregroundStyle(AppTheme.textSecondary)
                     }
                 }
                 .padding(12)
-                .neuRecessed(cornerRadius: 12, depth: 3)
+                .insetSurface(cornerRadius: 12, depth: 3)
             }
 
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Started")
                         .font(.caption.weight(.bold))
-                        .foregroundStyle(NeuPalette.textSecondary)
+                        .foregroundStyle(AppTheme.textSecondary)
                     Text(session.startedAt, style: .relative)
                         .font(.subheadline.weight(.medium))
-                        .foregroundStyle(NeuPalette.textPrimary)
+                        .foregroundStyle(AppTheme.textPrimary)
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 4) {
                     Text("Last Seen")
                         .font(.caption.weight(.bold))
-                        .foregroundStyle(NeuPalette.textSecondary)
+                        .foregroundStyle(AppTheme.textSecondary)
                     Text(session.lastSeenAt, style: .relative)
                         .font(.subheadline.weight(.medium))
-                        .foregroundStyle(NeuPalette.textPrimary)
+                        .foregroundStyle(AppTheme.textPrimary)
                 }
             }
         }
         .padding(20)
-        .neuExtruded(cornerRadius: 24, elevation: 8)
+        .cardSurface(cornerRadius: 24, elevation: 8)
     }
 }
 
@@ -222,8 +222,8 @@ struct SyncStatusBanner: View {
 
     private var accentColor: Color {
         switch tone {
-        case .warning: NeuPalette.accentOrange
-        case .info: NeuPalette.textSecondary
+        case .warning: AppTheme.accentOrange
+        case .info: AppTheme.textSecondary
         }
     }
 
@@ -237,11 +237,11 @@ struct SyncStatusBanner: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(NeuPalette.textPrimary)
+                    .foregroundStyle(AppTheme.textPrimary)
 
                 Text(message)
                     .font(.caption)
-                    .foregroundStyle(NeuPalette.textSecondary)
+                    .foregroundStyle(AppTheme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
@@ -249,7 +249,7 @@ struct SyncStatusBanner: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .neuRecessed(cornerRadius: 16, depth: 4)
+        .insetSurface(cornerRadius: 16, depth: 4)
         .accessibilityIdentifier(identifier)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(title). \(message)")
@@ -261,16 +261,16 @@ struct SessionStatusNeu: View {
     var body: some View {
         HStack(spacing: 6) {
             Circle()
-                .fill(status == .running ? NeuPalette.accentCyan : status == .stopped ? NeuPalette
-                    .accentOrange : status == .error ? .red : NeuPalette.textSecondary)
+                .fill(status == .running ? AppTheme.accentCyan : status == .stopped ? AppTheme
+                    .accentOrange : status == .error ? .red : AppTheme.textSecondary)
                 .frame(width: 8, height: 8)
             Text(status.title.uppercased())
                 .font(.caption2.weight(.bold))
                 .tracking(1)
-                .foregroundStyle(NeuPalette.textSecondary)
+                .foregroundStyle(AppTheme.textSecondary)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .neuRecessed(cornerRadius: 12, depth: 3)
+        .insetSurface(cornerRadius: 12, depth: 3)
     }
 }

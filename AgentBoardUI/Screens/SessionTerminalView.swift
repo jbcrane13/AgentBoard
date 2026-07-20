@@ -38,10 +38,10 @@ struct SessionTerminalView: View {
 
     private var statusColor: Color {
         switch session.status {
-        case .running: NeuPalette.accentCyan
-        case .completed: NeuPalette.statusClosed
+        case .running: AppTheme.accentCyan
+        case .completed: AppTheme.statusClosed
         case .failed: .red
-        case .stalled: NeuPalette.accentOrange
+        case .stalled: AppTheme.accentOrange
         }
     }
 
@@ -56,7 +56,7 @@ struct SessionTerminalView: View {
 
     var body: some View {
         ZStack {
-            NeuBackground()
+            AppBackground()
 
             VStack(spacing: 0) {
                 header
@@ -96,14 +96,14 @@ struct SessionTerminalView: View {
 
             Text(session.agentType.displayName)
                 .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(NeuPalette.textPrimary)
+                .foregroundStyle(AppTheme.textPrimary)
 
             Text(session.preset.rawValue)
                 .font(.caption.weight(.medium))
-                .foregroundStyle(NeuPalette.accentOrange)
+                .foregroundStyle(AppTheme.accentOrange)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 3)
-                .background(NeuPalette.accentOrange.opacity(0.12))
+                .background(AppTheme.accentOrange.opacity(0.12))
                 .clipShape(Capsule())
 
             Text(statusTitle)
@@ -119,11 +119,11 @@ struct SessionTerminalView: View {
 
             Text("Issue #\(session.issueNumber)")
                 .font(.caption.monospaced())
-                .foregroundStyle(NeuPalette.accentCyan)
+                .foregroundStyle(AppTheme.accentCyan)
 
             Text(session.elapsed)
                 .font(.caption.monospaced().weight(.semibold))
-                .foregroundStyle(NeuPalette.textTertiary)
+                .foregroundStyle(AppTheme.textTertiary)
 
             if session.status == .running || session.status == .completed {
                 Button {
@@ -133,7 +133,7 @@ struct SessionTerminalView: View {
                         "arrow.up.left.and.arrow.down.right")
                         .font(.system(size: 12, weight: .semibold))
                 }
-                .buttonStyle(NeuButtonTarget(isAccent: false))
+                .buttonStyle(AppButtonStyle(isAccent: false))
                 .accessibilityLabel(isExpanded ? "Collapse terminal" : "Expand terminal to full width")
                 .accessibilityIdentifier("session_terminal_toggle_expand")
 
@@ -147,7 +147,7 @@ struct SessionTerminalView: View {
                             .font(.caption.weight(.semibold))
                     }
                 }
-                .buttonStyle(NeuButtonTarget(isAccent: true))
+                .buttonStyle(AppButtonStyle(isAccent: true))
                 .accessibilityLabel("Open session in Terminal.app")
                 .accessibilityIdentifier("session_terminal_open_terminal")
 
@@ -166,7 +166,7 @@ struct SessionTerminalView: View {
                                 .font(.caption.weight(.semibold))
                         }
                     }
-                    .buttonStyle(NeuButtonTarget(isAccent: !isReadOnly))
+                    .buttonStyle(AppButtonStyle(isAccent: !isReadOnly))
                     .disabled(showsAttachmentFallback)
                     .accessibilityLabel(isReadOnly ? "Take keyboard control of session" : "Release keyboard control")
                     .accessibilityIdentifier("session_button_takecontrol")
@@ -187,7 +187,7 @@ struct SessionTerminalView: View {
                                 .font(.caption.weight(.semibold))
                         }
                     }
-                    .buttonStyle(NeuButtonTarget(isAccent: false))
+                    .buttonStyle(AppButtonStyle(isAccent: false))
                     .accessibilityLabel("Restart session")
                     .accessibilityIdentifier("session_button_restart")
                 }
@@ -204,7 +204,7 @@ struct SessionTerminalView: View {
                                 .font(.caption.weight(.semibold))
                         }
                     }
-                    .buttonStyle(NeuButtonTarget(isAccent: false))
+                    .buttonStyle(AppButtonStyle(isAccent: false))
                     .accessibilityLabel("Kill session")
                     .accessibilityIdentifier("session_button_kill")
                     .confirmationDialog(
@@ -229,7 +229,7 @@ struct SessionTerminalView: View {
             } label: {
                 Image(systemName: "xmark.circle.fill")
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(NeuPalette.textSecondary)
+                    .foregroundStyle(AppTheme.textSecondary)
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Minimize session terminal")
@@ -246,7 +246,7 @@ struct SessionTerminalView: View {
         .background(.thinMaterial)
         .overlay(alignment: .bottom) {
             Rectangle()
-                .fill(NeuPalette.borderSoft)
+                .fill(AppTheme.borderSoft)
                 .frame(height: 1)
         }
     }
@@ -265,10 +265,10 @@ struct SessionTerminalView: View {
             VStack(spacing: 12) {
                 Image(systemName: "desktopcomputer.trianglebadge.exclamationmark")
                     .font(.system(size: 36))
-                    .foregroundStyle(NeuPalette.textSecondary)
+                    .foregroundStyle(AppTheme.textSecondary)
                 Text("Interactive terminal is available on macOS only")
                     .font(.subheadline)
-                    .foregroundStyle(NeuPalette.textSecondary)
+                    .foregroundStyle(AppTheme.textSecondary)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         #endif
@@ -309,11 +309,11 @@ struct SessionTerminalView: View {
                 Text("Keyboard input live")
                     .font(.caption.weight(.bold))
             }
-            .foregroundStyle(NeuPalette.accentCyan)
+            .foregroundStyle(AppTheme.accentCyan)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
-            .background(NeuPalette.accentCyan.opacity(0.12))
+            .background(AppTheme.accentCyan.opacity(0.12))
         }
 
         private var transcriptContent: String {
@@ -327,16 +327,16 @@ struct SessionTerminalView: View {
             VStack(spacing: 16) {
                 Image(systemName: "text.alignleft")
                     .font(.system(size: 40))
-                    .foregroundStyle(NeuPalette.textSecondary)
+                    .foregroundStyle(AppTheme.textSecondary)
 
                 Text(attachmentFailureMessage != nil ? "Attachment Failed" : "Session Ended")
                     .font(.title3.weight(.bold))
-                    .foregroundStyle(NeuPalette.textPrimary)
+                    .foregroundStyle(AppTheme.textPrimary)
 
                 if let message = attachmentFailureMessage {
                     Text(message)
                         .font(.caption.monospaced())
-                        .foregroundStyle(NeuPalette.textTertiary)
+                        .foregroundStyle(AppTheme.textTertiary)
                         .padding(12)
                         .background(Color.red.opacity(0.08))
                         .clipShape(RoundedRectangle(cornerRadius: 8))
@@ -345,12 +345,12 @@ struct SessionTerminalView: View {
                 ScrollView(showsIndicators: false) {
                     Text(transcriptContent)
                         .font(.caption.monospaced())
-                        .foregroundStyle(NeuPalette.textPrimary)
+                        .foregroundStyle(AppTheme.textPrimary)
                         .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(16)
                 }
-                .neuRecessed(cornerRadius: 16, depth: 6)
+                .insetSurface(cornerRadius: 16, depth: 6)
             }
             .padding(24)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -374,18 +374,18 @@ private extension SessionTerminalView {
 
             Text("Session Failed")
                 .font(.title2.weight(.bold))
-                .foregroundStyle(NeuPalette.textPrimary)
+                .foregroundStyle(AppTheme.textPrimary)
 
             Text("The agent session encountered an error and could not continue.")
                 .font(.subheadline)
-                .foregroundStyle(NeuPalette.textSecondary)
+                .foregroundStyle(AppTheme.textSecondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 400)
 
             if let error = appModel.sessionLauncher.lastError {
                 Text(error)
                     .font(.caption.monospaced())
-                    .foregroundStyle(NeuPalette.textTertiary)
+                    .foregroundStyle(AppTheme.textTertiary)
                     .padding(12)
                     .background(Color.red.opacity(0.08))
                     .clipShape(RoundedRectangle(cornerRadius: 8))
@@ -401,7 +401,7 @@ private extension SessionTerminalView {
                     }
                     .font(.subheadline.weight(.semibold))
                 }
-                .buttonStyle(NeuButtonTarget(isAccent: true))
+                .buttonStyle(AppButtonStyle(isAccent: true))
                 .accessibilityLabel("Open failed session in Terminal.app")
                 .accessibilityIdentifier("session_terminal_failed_open_terminal")
 
@@ -414,7 +414,7 @@ private extension SessionTerminalView {
                     }
                     .font(.subheadline.weight(.semibold))
                 }
-                .buttonStyle(NeuButtonTarget(isAccent: false))
+                .buttonStyle(AppButtonStyle(isAccent: false))
                 .accessibilityLabel("Close failed session view")
                 .accessibilityIdentifier("session_terminal_failed_close")
             }
@@ -426,15 +426,15 @@ private extension SessionTerminalView {
         VStack(spacing: 20) {
             Image(systemName: "hourglass")
                 .font(.system(size: 48))
-                .foregroundStyle(NeuPalette.accentOrange)
+                .foregroundStyle(AppTheme.accentOrange)
 
             Text("Session Stalled")
                 .font(.title2.weight(.bold))
-                .foregroundStyle(NeuPalette.textPrimary)
+                .foregroundStyle(AppTheme.textPrimary)
 
             Text("The agent session appears to be inactive. It may have stopped producing output.")
                 .font(.subheadline)
-                .foregroundStyle(NeuPalette.textSecondary)
+                .foregroundStyle(AppTheme.textSecondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 400)
 
@@ -448,7 +448,7 @@ private extension SessionTerminalView {
                     }
                     .font(.subheadline.weight(.semibold))
                 }
-                .buttonStyle(NeuButtonTarget(isAccent: true))
+                .buttonStyle(AppButtonStyle(isAccent: true))
                 .accessibilityLabel("Open stalled session in Terminal.app")
                 .accessibilityIdentifier("session_terminal_stalled_open_terminal")
 
@@ -461,7 +461,7 @@ private extension SessionTerminalView {
                     }
                     .font(.subheadline.weight(.semibold))
                 }
-                .buttonStyle(NeuButtonTarget(isAccent: false))
+                .buttonStyle(AppButtonStyle(isAccent: false))
                 .accessibilityLabel("Close stalled session view")
                 .accessibilityIdentifier("session_terminal_stalled_close")
             }
@@ -494,7 +494,7 @@ private extension SessionTerminalView {
                 TextField("Nudge session...", text: $nudgeText)
                     .textFieldStyle(.plain)
                     .font(.caption.monospaced())
-                    .foregroundStyle(NeuPalette.textPrimary)
+                    .foregroundStyle(AppTheme.textPrimary)
                     .onSubmit { sendNudge() }
                     .accessibilityIdentifier("session_textfield_nudge")
 
@@ -504,14 +504,14 @@ private extension SessionTerminalView {
                     Image(systemName: "arrow.turn.down.left")
                         .font(.system(size: 11, weight: .semibold))
                 }
-                .buttonStyle(NeuButtonTarget(isAccent: true))
+                .buttonStyle(AppButtonStyle(isAccent: true))
                 .disabled(nudgeText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 .accessibilityLabel("Send nudge to session")
                 .accessibilityIdentifier("session_button_nudge_send")
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 8)
-            .background(NeuPalette.surface.opacity(0.6))
+            .background(AppTheme.surface.opacity(0.6))
         }
 
         func sendNudge() {
