@@ -54,12 +54,18 @@ struct SettingsScreen: View {
         return VStack(alignment: .leading, spacing: 16) {
             sectionHeader("HERMES GATEWAY")
             VStack(spacing: 20) {
-                AppTextField(placeholder: "Gateway URL", text: $s.hermesGatewayURL)
-                    .accessibilityIdentifier("settings_textfield_hermes_gateway_url")
-                AppTextField(placeholder: "Preferred model", text: $s.hermesModelID)
-                    .accessibilityIdentifier("settings_textfield_hermes_model")
-                AppSecureField(placeholder: "API key (optional)", text: $s.hermesAPIKey)
-                    .accessibilityIdentifier("settings_securefield_hermes_api_key")
+                labeledField("Gateway URL") {
+                    AppTextField(placeholder: "Gateway URL", text: $s.hermesGatewayURL)
+                        .accessibilityIdentifier("settings_textfield_hermes_gateway_url")
+                }
+                labeledField("Preferred Model") {
+                    AppTextField(placeholder: "Preferred model", text: $s.hermesModelID)
+                        .accessibilityIdentifier("settings_textfield_hermes_model")
+                }
+                labeledField("API Key (optional)") {
+                    AppSecureField(placeholder: "API key (optional)", text: $s.hermesAPIKey)
+                        .accessibilityIdentifier("settings_securefield_hermes_api_key")
+                }
                 profilesSection(s: s)
             }
             .padding(24)
@@ -101,8 +107,10 @@ struct SettingsScreen: View {
             }
 
             HStack(spacing: 12) {
-                AppTextField(placeholder: "Profile name", text: $hermesProfileName)
-                    .accessibilityIdentifier("settings_textfield_hermes_profile_name")
+                labeledField("Profile Name", alignment: .top) {
+                    AppTextField(placeholder: "Profile name", text: $hermesProfileName)
+                        .accessibilityIdentifier("settings_textfield_hermes_profile_name")
+                }
                 Button("Save Current") {
                     s.saveCurrentHermesProfile(named: hermesProfileName)
                     if s.errorMessage == nil { hermesProfileName = "" }
@@ -121,8 +129,10 @@ struct SettingsScreen: View {
         return VStack(alignment: .leading, spacing: 16) {
             sectionHeader("GITHUB ISSUES")
             VStack(alignment: .leading, spacing: 20) {
-                AppSecureField(placeholder: "GitHub token", text: $s.githubToken)
-                    .accessibilityIdentifier("settings_securefield_github_token")
+                labeledField("GitHub Token") {
+                    AppSecureField(placeholder: "GitHub token", text: $s.githubToken)
+                        .accessibilityIdentifier("settings_securefield_github_token")
+                }
                 if !s.repositories.isEmpty {
                     VStack(spacing: 12) {
                         ForEach(s.repositories) { repo in
@@ -142,10 +152,14 @@ struct SettingsScreen: View {
                     }
                 }
                 HStack(spacing: 12) {
-                    AppTextField(placeholder: "Owner", text: $repositoryOwner)
-                        .accessibilityIdentifier("settings_textfield_repository_owner")
-                    AppTextField(placeholder: "Repo", text: $repositoryName)
-                        .accessibilityIdentifier("settings_textfield_repository_name")
+                    labeledField("Owner") {
+                        AppTextField(placeholder: "Owner", text: $repositoryOwner)
+                            .accessibilityIdentifier("settings_textfield_repository_owner")
+                    }
+                    labeledField("Repo") {
+                        AppTextField(placeholder: "Repo", text: $repositoryName)
+                            .accessibilityIdentifier("settings_textfield_repository_name")
+                    }
                     Button {
                         s.addRepository(owner: repositoryOwner, name: repositoryName)
                         repositoryOwner = ""
@@ -168,10 +182,14 @@ struct SettingsScreen: View {
         return VStack(alignment: .leading, spacing: 16) {
             sectionHeader("COMPANION SERVICE")
             VStack(spacing: 20) {
-                AppTextField(placeholder: "Companion URL", text: $s.companionURL)
-                    .accessibilityIdentifier("settings_textfield_companion_url")
-                AppSecureField(placeholder: "Companion token", text: $s.companionToken)
-                    .accessibilityIdentifier("settings_securefield_companion_token")
+                labeledField("Companion URL") {
+                    AppTextField(placeholder: "Companion URL", text: $s.companionURL)
+                        .accessibilityIdentifier("settings_textfield_companion_url")
+                }
+                labeledField("Companion Token") {
+                    AppSecureField(placeholder: "Companion token", text: $s.companionToken)
+                        .accessibilityIdentifier("settings_securefield_companion_token")
+                }
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
                         Text("Auto refresh").font(.subheadline).foregroundStyle(AppTheme.textPrimary)
@@ -396,6 +414,21 @@ struct SettingsScreen: View {
     }
 
     // MARK: - Helpers
+
+    /// Wraps a form control with a small caption label above it.
+    private func labeledField<Content: View>(
+        _ title: String,
+        alignment: VerticalAlignment = .center,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        HStack(alignment: alignment, spacing: 12) {
+            Text(title)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(AppTheme.textPrimary)
+                .frame(minWidth: 140, alignment: .leading)
+            content()
+        }
+    }
 
     private var header: some View {
         HStack(alignment: .top) {
