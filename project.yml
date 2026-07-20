@@ -80,11 +80,11 @@ targets:
     sources:
       - path: AgentBoard
       - path: AgentBoardUI
-    resources:
       - path: SharedResources/Assets.xcassets
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.agentboard.AgentBoard
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: 1
         SWIFT_STRICT_CONCURRENCY: complete
@@ -137,11 +137,11 @@ targets:
     sources:
       - path: AgentBoardMobile
       - path: AgentBoardUI
-    resources:
       - path: SharedResources/Assets.xcassets
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.agentboard.AgentBoardMobile
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: 1
         SWIFT_STRICT_CONCURRENCY: complete

@@ -31,3 +31,6 @@ Project-specific lessons. Global lessons live in `~/.claude/lessons-learned.md`.
 ### Process
 
 - **Two agent sessions sharing one checkout race each other's git operations.** A concurrent process's crashed commit left a stale `index.lock`, its commit message got attached to this session's staged files, `git stash` captured its uncommitted `KanbanCLIWriter` rework (nearly lost when the stash was dropped — recovered via the stash SHA), and it reset/renamed branches mid-session. Before any stash/reset/amend, run `git status` + check for other live sessions; verify every commit's stat AND message immediately after creating it; never drop a stash without `git show --stat` on it first.
+
+## 2026-07-20 — App icon / asset catalog
+- xcodegen has **no `resources:` target key** — the repo's `resources: - path: SharedResources/Assets.xcassets` blocks were silently ignored for months, so the asset catalog (AppIcon AND AccentColor) never compiled into any app bundle; the app silently fell back to system-blue accent. Fix: list `.xcassets` under `sources:` (xcodegen auto-routes it to the resources phase) and set `ASSETCATALOG_COMPILER_APPICON_NAME`. The global "verify compiled output, not git diff" rule caught it: always `plutil -p Built.app/Contents/Info.plist | grep -i icon` + check for `Assets.car`.
