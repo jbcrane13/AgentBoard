@@ -47,12 +47,35 @@ public struct GitHubIssueDraft: Sendable {
     }
 }
 
+/// Outcome of a multi-repository fetch: issues from every reachable
+/// repository plus per-repository failures. One bad repo (deleted, renamed,
+/// no access) must not blank the whole board.
+public struct GitHubRepoFailure: Equatable, Sendable {
+    public let repository: String
+    public let message: String
+
+    public init(repository: String, message: String) {
+        self.repository = repository
+        self.message = message
+    }
+}
+
+public struct GitHubWorkFetch: Sendable {
+    public let items: [WorkItem]
+    public let failures: [GitHubRepoFailure]
+
+    public init(items: [WorkItem], failures: [GitHubRepoFailure]) {
+        self.items = items
+        self.failures = failures
+    }
+}
+
 public protocol GitHubWorkServicing: Actor {
     func configure(
         repositories: [ConfiguredRepository],
         token: String?
     )
-    func fetchWorkItems() async throws -> [WorkItem]
+    func fetchWorkItems() async throws -> GitHubWorkFetch
     func createIssue(
         repository: ConfiguredRepository,
         draft: GitHubIssueDraft
@@ -137,9 +160,13 @@ public actor GitHubWorkService: GitHubWorkServicing {
         return formatter
     }()
 
-    public init(session: URLSession = .shared) {
+    public init(session: URLSession = .shared, ghExecutablePath: String? = nil) {
         self.session = session
+        self.ghExecutablePath = ghExecutablePath
     }
+
+    /// Test seam: overrides gh CLI resolution for the macOS fallback path.
+    private let ghExecutablePath: String?
 
     public func configure(
         repositories: [ConfiguredRepository],
@@ -149,22 +176,39 @@ public actor GitHubWorkService: GitHubWorkServicing {
         self.token = token?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
     }
 
-    public func fetchWorkItems() async throws -> [WorkItem] {
+    public func fetchWorkItems() async throws -> GitHubWorkFetch {
         guard !repositories.isEmpty, let token, !token.isEmpty else {
             throw ServiceError.missingConfiguration
         }
 
         var mapped: [WorkItem] = []
+        var failures: [GitHubRepoFailure] = []
+        var firstError: Error?
         for repository in repositories {
-            try mapped.append(contentsOf: await fetchIssues(for: repository, token: token))
+            do {
+                try mapped.append(contentsOf: await fetchIssues(for: repository, token: token))
+            } catch {
+                firstError = firstError ?? error
+                failures.append(GitHubRepoFailure(
+                    repository: repository.fullName,
+                    message: error.localizedDescription
+                ))
+            }
         }
 
-        return mapped.sorted { lhs, rhs in
+        // Every repository failed: the whole fetch is down (bad token, no
+        // network) — throw so the store surfaces a real error state.
+        if mapped.isEmpty, let firstError, failures.count == repositories.count {
+            throw firstError
+        }
+
+        let sorted = mapped.sorted { lhs, rhs in
             if lhs.priority.rank != rhs.priority.rank {
                 return lhs.priority.rank < rhs.priority.rank
             }
             return lhs.updatedAt > rhs.updatedAt
         }
+        return GitHubWorkFetch(items: sorted, failures: failures)
     }
 
     public func createIssue(
@@ -307,7 +351,7 @@ public actor GitHubWorkService: GitHubWorkServicing {
             let result: ProcessResult
             do {
                 result = try await Process.runAsync(
-                    executablePath: Self.resolvedGHPath(),
+                    executablePath: ghExecutablePath ?? Self.resolvedGHPath(),
                     arguments: [
                         "api", "repos/\(repository.owner)/\(repository.name)/issues",
                         "-f", "state=all",

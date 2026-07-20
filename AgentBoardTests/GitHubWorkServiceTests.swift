@@ -65,7 +65,7 @@ struct GitHubWorkServiceTests {
             token: "ghp_example"
         )
 
-        let items = try await service.fetchWorkItems()
+        let items = try await service.fetchWorkItems().items
         #expect(items.count == 2)
 
         let first = try #require(items.first)
@@ -162,6 +162,56 @@ struct GitHubWorkServiceTests {
             #expect(path == "gh")
         }
     #endif
+
+    @Test
+    func fetchWorkItemsContinuesPastFailingRepository() async throws {
+        let service = GitHubWorkService(session: makeMockSession { request in
+            let path = request.url?.path ?? ""
+            let status = path.contains("/repos/acme/ghost/") ? 404 : 200
+            let response = HTTPURLResponse(
+                url: request.url!,
+                statusCode: status,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            let body = status == 200 ? "[\(self.issueJSON(number: 7))]" : "{\"message\":\"Not Found\"}"
+            return (response, Data(body.utf8))
+        }, ghExecutablePath: "/nonexistent/gh")
+        await service.configure(
+            repositories: [
+                ConfiguredRepository(owner: "acme", name: "ghost"),
+                ConfiguredRepository(owner: "acme", name: "alive")
+            ],
+            token: "ghp_example"
+        )
+
+        let fetch = try await service.fetchWorkItems()
+        #expect(fetch.items.count == 1)
+        #expect(fetch.items.first?.issueNumber == 7)
+        #expect(fetch.failures.count == 1)
+        #expect(fetch.failures.first?.repository == "acme/ghost")
+    }
+
+    @Test
+    func fetchWorkItemsThrowsWhenAllRepositoriesFail() async throws {
+        let service = GitHubWorkService(session: makeMockSession { request in
+            let response = HTTPURLResponse(
+                url: request.url!,
+                statusCode: 404,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            return (response, Data("{}".utf8))
+        }, ghExecutablePath: "/nonexistent/gh")
+        await service.configure(
+            repositories: [ConfiguredRepository(owner: "acme", name: "ghost")],
+            token: "ghp_example"
+        )
+
+        await #expect(throws: (any Error).self) {
+            _ = try await service.fetchWorkItems()
+        }
+    }
 
     private func issueJSON(number: Int) -> String {
         """
