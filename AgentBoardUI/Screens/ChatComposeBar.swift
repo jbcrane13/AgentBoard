@@ -74,10 +74,11 @@ struct ChatComposeBar: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(NeuPalette.surfaceRaised)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(NeuPalette.borderSoft, lineWidth: 1))
-        .shadow(color: NeuPalette.shadowDark.opacity(0.4), radius: 3, x: 0, y: 1)
+        // Floating chrome per the native redesign: the compose bar is one of
+        // the two surfaces that gets real glass (the other is the session
+        // terminal header) — legibility here holds up fine against chat
+        // content scrolling behind it.
+        .glassEffect(.regular, in: .rect(cornerRadius: 12))
         .padding(.horizontal, 12)
         .padding(.top, 6)
         .padding(.bottom, 10)
@@ -187,6 +188,7 @@ struct ChatComposeBar: View {
 
     private var sendButtonForeground: Color {
         let chatStore = appModel.chatStore
+        // Justified: icon drawn on the solid `.red` stop-button fill below.
         if chatStore.isStreaming { return .white }
         return canSend ? NeuPalette.accentForeground : NeuPalette.textSecondary
     }

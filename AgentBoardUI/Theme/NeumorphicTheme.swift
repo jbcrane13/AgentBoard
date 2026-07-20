@@ -89,13 +89,13 @@ public struct NeuTheme: Sendable {
             gradientTop: background,
             gradientBottom: background,
             accentOrange: .orange,
-            primaryAccent: Color(red: 0.106, green: 0.749, blue: 0.651), // brand teal
-            primaryAccentBright: Color(red: 0.310, green: 0.851, blue: 0.773),
-            primaryAccentForeground: .white,
-            accentCoral: .pink,
+            primaryAccent: .accentColor, // system accent (Assets AccentColor), not a bespoke brand color
+            primaryAccentBright: .accentColor,
+            primaryAccentForeground: .white, // justified: white text drawn on top of an accent-filled surface
+            accentCoral: .red,
             accentPurple: .purple,
             statusOpen: .blue,
-            statusClosed: .gray,
+            statusClosed: .secondary,
             statusSuccess: .green,
             statusIdle: .blue,
             textPrimary: textPrimary,
@@ -137,6 +137,14 @@ public enum NeuPalette {
 
     public static var surfaceRaised: Color {
         active.surfaceRaised
+    }
+
+    /// Sibling `Material` accessor for `surfaceRaised`. Floating/raised chrome
+    /// (cards, compose bar, headers) can opt into the real translucent
+    /// material instead of the flat fallback `Color` without changing the
+    /// existing `Color`-typed token's call sites.
+    public static var surfaceMaterial: Material {
+        .regular
     }
 
     public static var surfaceHover: Color {
@@ -245,9 +253,12 @@ public struct NeuBackground: View {
     }
 }
 
-/// Raised card — a standard material-backed rounded rectangle with a hairline
-/// border and a single subtle drop shadow. Replaces the neumorphic
-/// dual-shadow "extruded" look with native chrome.
+/// Raised card — a flat material-backed rounded rectangle with a hairline
+/// border. Replaces the neumorphic dual-shadow "extruded" look with native
+/// chrome. No permanent drop shadow: cards read as flat native surfaces at
+/// rest, and `.draggable()` already gives the system's own lifted-preview
+/// shadow while a card is actually being dragged, so no bespoke `isDragging`
+/// state is needed to satisfy "shadow only while dragging".
 public struct NeuExtrudedModifier: ViewModifier {
     public let cornerRadius: CGFloat
     public let elevation: CGFloat
@@ -266,12 +277,6 @@ public struct NeuExtrudedModifier: ViewModifier {
             .overlay(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .stroke(NeuPalette.borderSoft, lineWidth: 0.5)
-            )
-            .shadow(
-                color: NeuPalette.shadowDark,
-                radius: max(elevation * 0.4, 2),
-                x: 0,
-                y: max(elevation * 0.2, 1)
             )
     }
 }

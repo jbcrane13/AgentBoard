@@ -16,6 +16,11 @@ struct MediaViewerView: View {
     }
 
     var body: some View {
+        // Justified: this is a fixed-chrome fullscreen media viewer (the
+        // standard Photos.app-style pattern) — the black backdrop and white
+        // overlay text/icons are intentionally independent of system
+        // light/dark mode so they read consistently against arbitrary photo
+        // and video content, not app chrome.
         ZStack {
             Color.black.ignoresSafeArea()
 

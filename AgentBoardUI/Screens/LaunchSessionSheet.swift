@@ -105,7 +105,7 @@ struct LaunchSessionSheet: View {
                                         .padding(12)
                                         .background(
                                             RoundedRectangle(cornerRadius: 12)
-                                                .fill(selectedAgent == agent ? Color.white.opacity(0.05) : Color
+                                                .fill(selectedAgent == agent ? NeuPalette.accentCyan.opacity(0.12) : Color
                                                     .clear)
                                         )
                                     }
@@ -147,7 +147,7 @@ struct LaunchSessionSheet: View {
                                         .padding(12)
                                         .background(
                                             RoundedRectangle(cornerRadius: 12)
-                                                .fill(selectedPreset == preset ? Color.white.opacity(0.05) : Color
+                                                .fill(selectedPreset == preset ? NeuPalette.accentCyan.opacity(0.12) : Color
                                                     .clear)
                                         )
                                     }
