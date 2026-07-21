@@ -131,6 +131,7 @@
 		A86A0A76B46CE6265194C0A6 /* PRDComposer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A04B1F730472F1F23A283354 /* PRDComposer.swift */; };
 		AB66AFF4128BA91808D24DB5 /* GitHubWorkService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFA60A5A5B633630F99A562B /* GitHubWorkService.swift */; };
 		ABB3B9109C6F6749E7933CF2 /* DesktopRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAD7F0F3E84953BCE4E07275 /* DesktopRootView.swift */; };
+		AC8B2E7387022BF2B3D3F789 /* ProjectPathResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6760063FCA24EDD06D227E5C /* ProjectPathResolver.swift */; };
 		AC9718464408D550B64EFB4E /* ConfigBackupServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E15329720160FF009D5B1535 /* ConfigBackupServiceTests.swift */; };
 		B01C8989FACCB9D76DD46CDF /* ChatStoreSlashCommandTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0551DF2CA889DD84A9EFF3B7 /* ChatStoreSlashCommandTests.swift */; };
 		B05AB72D9955BEF4CD1E3B7A /* KanbanModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A55930915B4E8B29ECFC5DD /* KanbanModels.swift */; };
@@ -153,6 +154,7 @@
 		C951731D05F7310888D29149 /* ChatComposeBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EA4419D691667740AA51BAC /* ChatComposeBar.swift */; };
 		C993681ECCC427965F61D4E6 /* SlashCommandHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0FBEDFA7766F71A98B48E3 /* SlashCommandHandler.swift */; };
 		CB10A2005C3CAEE8253B7324 /* LabelSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE2A97A08B0556443C6746EC /* LabelSchema.swift */; };
+		CED1FA08FB8AA0D59D31F5BA /* ProjectPathResolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDEA9F8B6A2B82B98A68C526 /* ProjectPathResolverTests.swift */; };
 		D2F03218C8433B59598A04D5 /* GitHubWorkServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C0ED2A504BC7E3CA18E4094 /* GitHubWorkServiceTests.swift */; };
 		D4674853A5F6064FC3E65542 /* SettingsStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4813FBD80F9AC10D1A51841 /* SettingsStoreTests.swift */; };
 		D5FE06BE70E2B8AFB20C40B5 /* DesktopSidebar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F7D59DE18AF7B3E0D84EF9A /* DesktopSidebar.swift */; };
@@ -341,6 +343,7 @@
 		63376B7513D3E5CFE45372D6 /* BoardPalette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardPalette.swift; sourceTree = "<group>"; };
 		6350F1AD876CFC0042771A6F /* NoopAgentBoardCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoopAgentBoardCache.swift; sourceTree = "<group>"; };
 		651B64AF0921713BAE550D2D /* TaskDetailSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskDetailSheet.swift; sourceTree = "<group>"; };
+		6760063FCA24EDD06D227E5C /* ProjectPathResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectPathResolver.swift; sourceTree = "<group>"; };
 		6A0D9C21BA312AB952D0E48B /* KanbanAssigneePickerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KanbanAssigneePickerTests.swift; sourceTree = "<group>"; };
 		6C0ED2A504BC7E3CA18E4094 /* GitHubWorkServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubWorkServiceTests.swift; sourceTree = "<group>"; };
 		6D876290D32059BAB65A9F02 /* WorkScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkScreen.swift; sourceTree = "<group>"; };
@@ -409,6 +412,7 @@
 		E8CF0F5C192569919CF193BC /* AgentsStoreCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentsStoreCacheTests.swift; sourceTree = "<group>"; };
 		EA26177C115F337F0AC82395 /* SlashCommandHandlerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlashCommandHandlerTests.swift; sourceTree = "<group>"; };
 		EA9D4BB1359158928CC39AD6 /* TranscriptCaptureThrottleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptCaptureThrottleTests.swift; sourceTree = "<group>"; };
+		EDEA9F8B6A2B82B98A68C526 /* ProjectPathResolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectPathResolverTests.swift; sourceTree = "<group>"; };
 		F31C11E46072F7E4A9FFADDB /* AttachmentInteractions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentInteractions.swift; sourceTree = "<group>"; };
 		F5C500C7AF3B484DBB847E3A /* AgentsStoreCreateTaskTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentsStoreCreateTaskTests.swift; sourceTree = "<group>"; };
 		F6FDDFF5030B377E6973E969 /* ChatScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatScreen.swift; sourceTree = "<group>"; };
@@ -516,6 +520,7 @@
 				0B023A92D06AE2F3272FC200 /* NoopAgentBoardCacheTests.swift */,
 				9503F3F8C1E54BE6D35A3641 /* PRDComposerTests.swift */,
 				73A0E1B6A0075D96DFCD4D22 /* ProcessAsyncTests.swift */,
+				EDEA9F8B6A2B82B98A68C526 /* ProjectPathResolverTests.swift */,
 				542D187F8CE06B1BF01B7BB8 /* SessionAttachmentControllerTests.swift */,
 				CE1B1DC901AD1D60B3855D38 /* SessionLauncherTests.swift */,
 				92E0CE9F3A8E9CA87A6C3B95 /* SessionsStoreTests.swift */,
@@ -609,6 +614,7 @@
 				A9896F487D5B25505452683B /* KanbanDataService.swift */,
 				54CA712A46E969ED79300E4F /* LinkPreviewService.swift */,
 				A04B1F730472F1F23A283354 /* PRDComposer.swift */,
+				6760063FCA24EDD06D227E5C /* ProjectPathResolver.swift */,
 				08B7CE4C138A75D87781C1DB /* SessionLauncher.swift */,
 				52959B32060C120BA1BB1AB7 /* ShellEnvironment.swift */,
 				0D0FBEDFA7766F71A98B48E3 /* SlashCommandHandler.swift */,
@@ -1109,6 +1115,7 @@
 				B13E9A7DA4903C65AE1FEEC6 /* NoopAgentBoardCacheTests.swift in Sources */,
 				DAB3EA4A5AF33E4165CD6551 /* PRDComposerTests.swift in Sources */,
 				59D68A2AB772E261C6BB7A0F /* ProcessAsyncTests.swift in Sources */,
+				CED1FA08FB8AA0D59D31F5BA /* ProjectPathResolverTests.swift in Sources */,
 				7BC603692D8E25BF51DF8F9D /* SessionAttachmentControllerTests.swift in Sources */,
 				9A90C5EF45CA6630C7EA64CD /* SessionLauncherTests.swift in Sources */,
 				F18232EF1BD587C14FCCD06F /* SessionsStoreTests.swift in Sources */,
@@ -1163,6 +1170,7 @@
 				DF0EA5DC994F51BF546BA378 /* NoopAgentBoardCache.swift in Sources */,
 				A86A0A76B46CE6265194C0A6 /* PRDComposer.swift in Sources */,
 				D806724D20A2D1EC0A81416B /* ProcessAsync.swift in Sources */,
+				AC8B2E7387022BF2B3D3F789 /* ProjectPathResolver.swift in Sources */,
 				19C152C9A61C6B7530B2672B /* SessionAttachmentController.swift in Sources */,
 				9EAAAF4FFBF10F8A576AF5BD /* SessionLauncher.swift in Sources */,
 				5407CC8EF71865713E95B1BF /* SessionsStore.swift in Sources */,

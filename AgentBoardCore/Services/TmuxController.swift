@@ -18,8 +18,13 @@ public enum TmuxError: LocalizedError, Sendable {
 /// in-memory fake instead of spawning real /opt/homebrew/bin/tmux. The
 /// production conformer is `LiveTmuxController`.
 public protocol TmuxControlling: Sendable {
+    /// Create or reuse an isolated Git worktree for one launched session.
+    /// Returning a session-specific path prevents concurrent agents from
+    /// sharing a branch or writable checkout.
+    func prepareWorkspace(name: String, repoPath: String) async throws -> String
+
     /// Spawn a detached tmux session that runs `ralphy --<agent> --prd <path>`
-    /// inside the named repo's working directory.
+    /// inside the prepared session workspace.
     func launchSession(
         name: String,
         repoPath: String,
@@ -59,6 +64,23 @@ public actor LiveTmuxController: TmuxControlling {
             .path
     }
 
+    public static func workspacePath(
+        repoPath: String,
+        sessionName: String,
+        homeDirectory: URL = URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true)
+    ) -> String {
+        let repoDirectory = URL(fileURLWithPath: repoPath, isDirectory: true).lastPathComponent
+        return homeDirectory
+            .appendingPathComponent(".agentboard/worktrees", isDirectory: true)
+            .appendingPathComponent(repoDirectory, isDirectory: true)
+            .appendingPathComponent(sessionName, isDirectory: true)
+            .standardizedFileURL.path
+    }
+
+    public static func workspaceBranch(for sessionName: String) -> String {
+        "agentboard/\(sessionName)"
+    }
+
     public static func attachCommand(for sessionName: String) -> (executable: String, arguments: [String]) {
         (tmuxExecutablePath, ["-S", tmuxSocketPath, "attach", "-t", sessionName])
     }
@@ -78,6 +100,62 @@ public actor LiveTmuxController: TmuxControlling {
     }
 
     public init() {}
+
+    public func prepareWorkspace(name: String, repoPath: String) async throws -> String {
+        #if os(macOS)
+            let workspacePath = Self.workspacePath(repoPath: repoPath, sessionName: name)
+            let environment = await ShellEnvironment.enrichedEnvironment()
+
+            if FileManager.default.fileExists(atPath: workspacePath) {
+                let verification = try await runGit(
+                    ["-C", workspacePath, "rev-parse", "--is-inside-work-tree"],
+                    environment: environment
+                )
+                guard verification.succeeded else {
+                    throw TmuxError.launchFailed(
+                        "session workspace exists but is not a Git worktree: \(workspacePath)"
+                    )
+                }
+                return workspacePath
+            }
+
+            try FileManager.default.createDirectory(
+                at: URL(fileURLWithPath: workspacePath).deletingLastPathComponent(),
+                withIntermediateDirectories: true
+            )
+
+            let fetch = try await runGit(
+                ["-C", repoPath, "fetch", "origin", "--prune"],
+                environment: environment
+            )
+            guard fetch.succeeded else {
+                throw TmuxError.launchFailed(processFailure("git fetch", result: fetch))
+            }
+
+            let branch = Self.workspaceBranch(for: name)
+            let branchCheck = try await runGit(
+                ["-C", repoPath, "show-ref", "--verify", "--quiet", "refs/heads/\(branch)"],
+                environment: environment
+            )
+            let addArguments: [String]
+            if branchCheck.succeeded {
+                addArguments = ["-C", repoPath, "worktree", "add", workspacePath, branch]
+            } else {
+                addArguments = [
+                    "-C", repoPath, "worktree", "add", "-b", branch,
+                    workspacePath, "origin/HEAD"
+                ]
+            }
+
+            let add = try await runGit(addArguments, environment: environment)
+            guard add.succeeded else {
+                throw TmuxError.launchFailed(processFailure("git worktree add", result: add))
+            }
+            return workspacePath
+        #else
+            throw TmuxError.unsupportedPlatform
+        #endif
+    }
 
     public func launchSession(
         name: String,
@@ -113,6 +191,28 @@ public actor LiveTmuxController: TmuxControlling {
         #else
             throw TmuxError.unsupportedPlatform
         #endif
+    }
+
+    #if os(macOS)
+        private func runGit(
+            _ arguments: [String],
+            environment: [String: String]
+        ) async throws -> ProcessResult {
+            do {
+                return try await Process.runAsync(
+                    executablePath: "/usr/bin/git",
+                    arguments: arguments,
+                    environment: environment
+                )
+            } catch let ProcessRunError.launchFailed(msg) {
+                throw TmuxError.launchFailed(msg)
+            }
+        }
+    #endif
+
+    private func processFailure(_ operation: String, result: ProcessResult) -> String {
+        let output = result.stderrString.isEmpty ? result.stdoutString : result.stderrString
+        return output.isEmpty ? "\(operation) failed" : "\(operation) failed: \(output)"
     }
 
     public func hasSession(name: String) async throws -> Bool {

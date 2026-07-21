@@ -307,6 +307,10 @@ private actor FakeTmuxController: TmuxControlling {
         self.killSessionError = killSessionError
     }
 
+    func prepareWorkspace(name: String, repoPath: String) async throws -> String {
+        "\(repoPath)/.agentboard-test-worktrees/\(name)"
+    }
+
     func launchSession(
         name: String,
         repoPath _: String,

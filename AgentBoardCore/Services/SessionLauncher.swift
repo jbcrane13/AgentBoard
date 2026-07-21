@@ -11,6 +11,7 @@ public final class SessionLauncher {
     private let prdComposer: PRDComposer
     private let tmux: any TmuxControlling
     private let launchConfigStore: LaunchConfigStore
+    private let projectPathResolver: ProjectPathResolver
 
     // MARK: - Models
 
@@ -195,11 +196,13 @@ public final class SessionLauncher {
     public init(
         prdComposer: PRDComposer = PRDComposer(),
         tmux: any TmuxControlling = LiveTmuxController(),
-        launchConfigStore: LaunchConfigStore = LaunchConfigStore()
+        launchConfigStore: LaunchConfigStore = LaunchConfigStore(),
+        projectPathResolver: ProjectPathResolver = ProjectPathResolver()
     ) {
         self.prdComposer = prdComposer
         self.tmux = tmux
         self.launchConfigStore = launchConfigStore
+        self.projectPathResolver = projectPathResolver
     }
 
     // MARK: - Launch
@@ -216,14 +219,20 @@ public final class SessionLauncher {
         let prdPath = "docs/PRD-issue-\(config.issueNumber).md"
 
         do {
+            let canonicalRepoPath = projectPathResolver.resolve(
+                repoName: config.repo,
+                fullRepo: config.fullRepo
+            )
+            let workspacePath = try await tmux.prepareWorkspace(
+                name: sessionName,
+                repoPath: canonicalRepoPath
+            )
             let prd = prdComposer.compose(config: config)
-            try writePRD(repo: config.repo, path: prdPath, content: prd)
-
-            let repoPath = Self.repoPath(for: config.repo)
+            try writePRD(repoPath: workspacePath, path: prdPath, content: prd)
             do {
                 try await tmux.launchSession(
                     name: sessionName,
-                    repoPath: repoPath,
+                    repoPath: workspacePath,
                     agentLaunchFlag: config.agentType.launchFlag,
                     prdPath: prdPath
                 )
@@ -406,10 +415,9 @@ public final class SessionLauncher {
 
     // MARK: - PRD file I/O
 
-    private func writePRD(repo: String, path: String, content: String) throws {
+    private func writePRD(repoPath: String, path: String, content: String) throws {
         #if os(macOS)
-            let home = FileManager.default.homeDirectoryForCurrentUser
-            let projectDir = home.appendingPathComponent("Projects").appendingPathComponent(repo)
+            let projectDir = URL(fileURLWithPath: repoPath, isDirectory: true)
             let prdDir = projectDir.appendingPathComponent("docs")
 
             try FileManager.default.createDirectory(at: prdDir, withIntermediateDirectories: true)
@@ -418,15 +426,6 @@ public final class SessionLauncher {
             try content.write(to: prdFile, atomically: true, encoding: .utf8)
         #else
             throw LaunchError.unsupportedPlatform
-        #endif
-    }
-
-    private static func repoPath(for repo: String) -> String {
-        #if os(macOS)
-            let home = FileManager.default.homeDirectoryForCurrentUser
-            return home.appendingPathComponent("Projects").appendingPathComponent(repo).path
-        #else
-            return "/" // unreachable — launch() throws unsupportedPlatform via tmux on iOS
         #endif
     }
 }
