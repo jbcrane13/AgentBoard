@@ -274,4 +274,20 @@ Agents → CompanionServer → FSEvents + ps
 
 ---
 
+## ADR-019: Agent launches use canonical projects and isolated Git worktrees
+**Date:** 2026-07-21
+**Status:** Active
+**Decision:** Resolve each launch's GitHub repository through the Hermes project registry before using the legacy `~/Projects/<repo>` fallback, and prepare a stable session-specific Git worktree under `~/.agentboard/worktrees/` before writing the PRD or launching tmux. Generated PRDs are repository-neutral and defer toolchain rules to repository-local agent instructions.
+
+**Context:** AgentBoard previously derived every checkout as `~/Projects/<GitHub repo name>` and launched all sessions directly in that mutable checkout. LeadScout's canonical Hermes project is `/Users/blake/Projects/LeadFeed`, so issue #40, #51, and #54 sessions were instead launched in a second `/Users/blake/Projects/LeadScout` clone. Those sessions shared one branch and working tree, mixing unrelated issue commits and leaving issue #54 changes uncommitted. The generated PRDs also imposed AgentBoard-specific Swift 6, accessibility-identifier, and `xcodebuild` instructions on the TypeScript/Electron LeadScout repository.
+
+**Consequences:**
+- A matching `repo:` entry in `~/.hermes/projects.yaml` selects the canonical checkout; repositories absent from the registry retain the existing `~/Projects/<repo>` fallback.
+- Each tmux session gets a stable `agentboard/<session-name>` branch and worktree under `~/.agentboard/worktrees/<canonical-directory>/<session-name>`; relaunching the same session reuses its worktree while different sessions cannot share one.
+- PRDs are written inside the prepared worktree, so the agent sees its task file without dirtying the canonical checkout.
+- Cross-repository presets describe implementation, tests, review, and repository-defined quality gates without assuming Swift, Xcode, or AgentBoard accessibility conventions.
+- Worktrees are intentionally retained after a session exits so incomplete work remains recoverable; cleanup is an explicit lifecycle operation rather than an automatic destructive step.
+
+---
+
 *To add a new ADR: append with the next number, include date, status, decision, context, and consequences.*

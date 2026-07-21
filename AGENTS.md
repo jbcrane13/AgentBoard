@@ -69,6 +69,12 @@ The active product is the Hermes-first SwiftUI rebuild.
 - **AgentBoard companion** monitors live tmux sessions and agent health (process discovery + tmux pane capture)
 - **GitHub Issues** are the external work-tracking source, consumed by Hermes agents
 
+### Agent launch isolation
+
+- Resolve `owner/repo` through `~/.hermes/projects.yaml` before falling back to `~/Projects/<repo>`.
+- Launch each agent in a session-specific Git worktree under `~/.agentboard/worktrees/`; never launch two agents in the same mutable checkout.
+- Generated PRDs must be repository-neutral and defer build, test, lint, and architecture rules to the target repository's own `AGENTS.md`/`CLAUDE.md`. Do not hardcode AgentBoard's Swift/Xcode rules into cross-repository launches.
+
 ### Key new files (2026-05-01 Kanban migration)
 
 | File | Role |
@@ -116,6 +122,7 @@ Located in `SharedResources/Assets.xcassets/AppIcon.appiconset/`. All 10 macOS s
 ## Design decisions
 
 See `docs/ADR.md` for the full architecture decision record. Key recent ADRs:
+- **ADR-019** (2026-07-21): Agent launches resolve canonical Hermes project paths, use isolated Git worktrees, and generate repository-neutral PRDs.
 - **ADR-013** (2026-05-23): Native SwiftUI app shell controls
 - **ADR-015** (2026-07-19): Replace neumorphic chrome with native macOS/iOS UI — the shared theme primitives in `AgentBoardUI/Theme/NeumorphicTheme.swift` now render platform-native surfaces/materials; screens compile unchanged.
 - **ADR-011** (2026-05-01): Kanban.db as task backend

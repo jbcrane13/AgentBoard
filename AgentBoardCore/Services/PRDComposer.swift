@@ -19,9 +19,10 @@ public struct PRDComposer: Sendable {
 
         prd += """
         ## Constraints
-        - Swift 6 strict concurrency
-        - @Observable not ObservableObject
-        - accessibilityIdentifier on every interactive element
+        - Read and follow the repository-local AGENTS.md, CLAUDE.md, and current status documentation.
+        - Keep changes scoped to this issue and preserve unrelated work.
+        - Use the repository's own build, lint, typecheck, and test commands.
+        - Do not expose credentials or commit generated runtime artifacts.
 
         ## Anti-Stall Rules
         - Never wait for input. Never pause for confirmation. Keep moving.
@@ -43,10 +44,11 @@ public struct PRDComposer: Sendable {
         case .ralphLoop:
             return """
             ## Tasks
+            - [ ] Inspect the issue, repository instructions, and current implementation
             - [ ] Implement \(config.taskTitle)
             - [ ] Handle edge cases and error states
-            - [ ] Add accessibilityIdentifier to every interactive element
-            - [ ] Build verify: xcodebuild -scheme AgentBoard -destination 'platform=macOS' build
+            - [ ] Add or update regression coverage
+            - [ ] Run the repository's required quality gates
 
             """
         case .tddSuperpowers:
@@ -55,8 +57,7 @@ public struct PRDComposer: Sendable {
             - [ ] Write failing tests that define expected behavior
             - [ ] Implement \(config.taskTitle) to pass tests
             - [ ] Handle edge cases
-            - [ ] Add accessibilityIdentifier to every interactive element
-            - [ ] Run full test suite — all tests must pass
+            - [ ] Run the repository's required quality gates
 
             """
         case .claudeToCodex:
@@ -64,7 +65,7 @@ public struct PRDComposer: Sendable {
             ## Phase 1: Implementation (Claude Code)
             - [ ] Implement \(config.taskTitle)
             - [ ] Handle edge cases
-            - [ ] Build verify: xcodebuild -scheme AgentBoard -destination 'platform=macOS' build
+            - [ ] Run the repository's required quality gates
             - [ ] Commit to feature branch
 
             ## Phase 2: Test Validation (Codex — auto-handoff)
@@ -78,10 +79,9 @@ public struct PRDComposer: Sendable {
             return """
             ## Tasks
             - [ ] Implement \(config.taskTitle)
-            - [ ] Run full test suite
+            - [ ] Run the repository's required quality gates
             - [ ] Review code quality and suggest improvements
-            - [ ] Add accessibilityIdentifier to every interactive element
-            - [ ] Build verify: xcodebuild -scheme AgentBoard -destination 'platform=macOS' build
+            - [ ] Add missing regression coverage
 
             """
         case .opencodeSession:
@@ -90,8 +90,7 @@ public struct PRDComposer: Sendable {
             - [ ] Analyze codebase for \(config.taskTitle)
             - [ ] Implement with multi-model approach
             - [ ] Cross-validate with different models
-            - [ ] Add accessibilityIdentifier to every interactive element
-            - [ ] Build verify: xcodebuild -scheme AgentBoard -destination 'platform=macOS' build
+            - [ ] Run the repository's required quality gates
 
             """
         }

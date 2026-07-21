@@ -4,11 +4,11 @@ import Testing
 @Suite("PRDComposer")
 struct PRDComposerTests {
     @Test(arguments: [
-        (SessionLauncher.ExecutionPreset.ralphLoop, "Implement Refactor launcher", "Build verify"),
-        (.tddSuperpowers, "Write failing tests", "Run full test suite"),
+        (SessionLauncher.ExecutionPreset.ralphLoop, "Implement Refactor launcher", "required quality gates"),
+        (.tddSuperpowers, "Write failing tests", "required quality gates"),
         (.claudeToCodex, "Phase 1: Implementation", "Phase 2: Test Validation"),
-        (.codexReview, "Review code quality", "Build verify"),
-        (.opencodeSession, "multi-model approach", "Cross-validate")
+        (.codexReview, "Review code quality", "missing regression coverage"),
+        (.opencodeSession, "multi-model approach", "required quality gates")
     ])
     func composeIncludesPresetSpecificTasks(
         preset: SessionLauncher.ExecutionPreset,
@@ -42,6 +42,17 @@ struct PRDComposerTests {
         let markdown = PRDComposer().compose(config: Self.config(preset: .ralphLoop, customInstructions: ""))
 
         #expect(!markdown.contains("## Custom Instructions"))
+    }
+
+    @Test
+    func composeUsesRepositoryNeutralConstraints() {
+        let markdown = PRDComposer().compose(config: Self.config(preset: .tddSuperpowers))
+
+        #expect(markdown.contains("repository-local AGENTS.md"))
+        #expect(markdown.contains("repository's own build, lint, typecheck, and test commands"))
+        #expect(!markdown.contains("Swift 6"))
+        #expect(!markdown.contains("accessibilityIdentifier"))
+        #expect(!markdown.contains("xcodebuild"))
     }
 
     private static func config(
