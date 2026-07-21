@@ -14,7 +14,9 @@ public struct ProcessResult: Sendable {
         String(data: stderr, encoding: .utf8) ?? ""
     }
 
-    public var succeeded: Bool { exitCode == 0 }
+    public var succeeded: Bool {
+        exitCode == 0
+    }
 }
 
 public enum ProcessRunError: Error, Sendable {
@@ -95,6 +97,50 @@ public enum ProcessRunError: Error, Sendable {
                 }
             }
 
+            final class OutputCollector: @unchecked Sendable {
+                private let lock = NSLock()
+                private let group = DispatchGroup()
+                private let stdoutHandle: FileHandle
+                private let stderrHandle: FileHandle
+                private var stdout = Data()
+                private var stderr = Data()
+
+                init(stdoutHandle: FileHandle, stderrHandle: FileHandle) {
+                    self.stdoutHandle = stdoutHandle
+                    self.stderrHandle = stderrHandle
+                }
+
+                func start() {
+                    group.enter()
+                    DispatchQueue.global(qos: .utility).async { [self] in
+                        let data = (try? stdoutHandle.readToEnd()) ?? Data()
+                        lock.lock()
+                        stdout = data
+                        lock.unlock()
+                        group.leave()
+                    }
+
+                    group.enter()
+                    DispatchQueue.global(qos: .utility).async { [self] in
+                        let data = (try? stderrHandle.readToEnd()) ?? Data()
+                        lock.lock()
+                        stderr = data
+                        lock.unlock()
+                        group.leave()
+                    }
+                }
+
+                func finish(_ completion: @escaping @Sendable (Data, Data) -> Void) {
+                    group.notify(queue: .global(qos: .utility)) { [self] in
+                        lock.lock()
+                        let stdout = self.stdout
+                        let stderr = self.stderr
+                        lock.unlock()
+                        completion(stdout, stderr)
+                    }
+                }
+            }
+
             let state = RunState()
 
             return try await withTaskCancellationHandler {
@@ -113,6 +159,11 @@ public enum ProcessRunError: Error, Sendable {
                     let stderrPipe = Pipe()
                     process.standardOutput = stdoutPipe
                     process.standardError = stderrPipe
+                    let outputCollector = OutputCollector(
+                        stdoutHandle: stdoutPipe.fileHandleForReading,
+                        stderrHandle: stderrPipe.fileHandleForReading
+                    )
+                    outputCollector.start()
 
                     let timer: DispatchSourceTimer?
                     if let timeout {
@@ -133,20 +184,20 @@ public enum ProcessRunError: Error, Sendable {
 
                     process.terminationHandler = { proc in
                         state.cancelTimer()
-                        state.resumeOnce {
-                            if state.wasCancelled() {
-                                continuation.resume(throwing: CancellationError())
-                                return
-                            }
-                            let outData = (try? stdoutPipe.fileHandleForReading.readToEnd()) ?? Data()
-                            let errData = (try? stderrPipe.fileHandleForReading.readToEnd()) ?? Data()
-                            continuation.resume(
-                                returning: ProcessResult(
-                                    exitCode: proc.terminationStatus,
-                                    stdout: outData,
-                                    stderr: errData
+                        outputCollector.finish { outData, errData in
+                            state.resumeOnce {
+                                if state.wasCancelled() {
+                                    continuation.resume(throwing: CancellationError())
+                                    return
+                                }
+                                continuation.resume(
+                                    returning: ProcessResult(
+                                        exitCode: proc.terminationStatus,
+                                        stdout: outData,
+                                        stderr: errData
+                                    )
                                 )
-                            )
+                            }
                         }
                     }
 
@@ -154,6 +205,8 @@ public enum ProcessRunError: Error, Sendable {
                         try process.run()
                     } catch {
                         state.cancelTimer()
+                        try? stdoutPipe.fileHandleForWriting.close()
+                        try? stderrPipe.fileHandleForWriting.close()
                         state.resumeOnce {
                             continuation.resume(throwing: ProcessRunError.launchFailed(error.localizedDescription))
                         }

@@ -66,6 +66,7 @@
 		5637A1075AA3594AD4B4067E /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E061D59E950232583C7958 /* AppTheme.swift */; };
 		58446795E6F62924439AD001 /* CompanionSQLiteStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B56A44BC3ACA67014432FDD4 /* CompanionSQLiteStoreTests.swift */; };
 		593E56157C2853690F31D9F4 /* SessionTerminalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEDFAB3DEE21BBA70FAF2EBD /* SessionTerminalView.swift */; };
+		59D68A2AB772E261C6BB7A0F /* ProcessAsyncTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73A0E1B6A0075D96DFCD4D22 /* ProcessAsyncTests.swift */; };
 		5B810A52F3C78D394BE76608 /* SettingsRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A55C723CBBB22E568A7E3D63 /* SettingsRepository.swift */; };
 		5DC0B92D03F399A54BFFE28F /* AgentsStoreCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8CF0F5C192569919CF193BC /* AgentsStoreCacheTests.swift */; };
 		6140061EE8C8004E8BB033F2 /* AgentBoardMobileApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B7442B7AA1CFE33776582C1 /* AgentBoardMobileApp.swift */; };
@@ -346,6 +347,7 @@
 		6EA4419D691667740AA51BAC /* ChatComposeBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatComposeBar.swift; sourceTree = "<group>"; };
 		6FCC4B5C12958567A1D6D69E /* AppDestinationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDestinationTests.swift; sourceTree = "<group>"; };
 		702A0D71A27F07711AF96C4A /* CreateIssueSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateIssueSheet.swift; sourceTree = "<group>"; };
+		73A0E1B6A0075D96DFCD4D22 /* ProcessAsyncTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessAsyncTests.swift; sourceTree = "<group>"; };
 		7863E93C0B04059321066BCD /* WorkStoreCRUDTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkStoreCRUDTests.swift; sourceTree = "<group>"; };
 		78ED2576E35E0964839427AD /* AppDestination.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDestination.swift; sourceTree = "<group>"; };
 		7ABBA014D0943EA3DA8EEB96 /* FoundationExtras.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoundationExtras.swift; sourceTree = "<group>"; };
@@ -513,6 +515,7 @@
 				BB5CC5206E88A59FBD80A856 /* NativeSwiftUIInterfaceTests.swift */,
 				0B023A92D06AE2F3272FC200 /* NoopAgentBoardCacheTests.swift */,
 				9503F3F8C1E54BE6D35A3641 /* PRDComposerTests.swift */,
+				73A0E1B6A0075D96DFCD4D22 /* ProcessAsyncTests.swift */,
 				542D187F8CE06B1BF01B7BB8 /* SessionAttachmentControllerTests.swift */,
 				CE1B1DC901AD1D60B3855D38 /* SessionLauncherTests.swift */,
 				92E0CE9F3A8E9CA87A6C3B95 /* SessionsStoreTests.swift */,
@@ -1105,6 +1108,7 @@
 				9781E0240F8A4C6FC3DC30B7 /* NativeSwiftUIInterfaceTests.swift in Sources */,
 				B13E9A7DA4903C65AE1FEEC6 /* NoopAgentBoardCacheTests.swift in Sources */,
 				DAB3EA4A5AF33E4165CD6551 /* PRDComposerTests.swift in Sources */,
+				59D68A2AB772E261C6BB7A0F /* ProcessAsyncTests.swift in Sources */,
 				7BC603692D8E25BF51DF8F9D /* SessionAttachmentControllerTests.swift in Sources */,
 				9A90C5EF45CA6630C7EA64CD /* SessionLauncherTests.swift in Sources */,
 				F18232EF1BD587C14FCCD06F /* SessionsStoreTests.swift in Sources */,

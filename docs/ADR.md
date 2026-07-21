@@ -259,4 +259,19 @@ Agents → CompanionServer → FSEvents + ps
 
 ---
 
+## ADR-018: Drain subprocess output while the process is running
+**Date:** 2026-07-20
+**Status:** Active
+**Decision:** `Process.runAsync` must consume stdout and stderr concurrently from process launch through termination rather than waiting for the child to exit before reading either pipe.
+
+**Context:** The GitHub Work fallback can return hundreds of kilobytes of issue JSON. The previous implementation read both pipes only inside `terminationHandler`; once stdout exceeded the system pipe capacity, `gh` blocked waiting for a reader while AgentBoard waited for `gh` to exit. Auto-refresh then accumulated additional blocked children and left the Work board empty.
+
+**Consequences:**
+- Shared subprocess execution drains both streams on background queues and joins the captured data after termination.
+- Commands that emit large stdout or stderr payloads no longer deadlock.
+- Launch failures close both write handles so collector reads can reach EOF.
+- `ProcessAsyncTests` guards simultaneous one-megabyte stdout and stderr capture.
+
+---
+
 *To add a new ADR: append with the next number, include date, status, decision, context, and consequences.*

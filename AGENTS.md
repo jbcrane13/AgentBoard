@@ -206,3 +206,4 @@ fix the ui theme
 
 ## Activity — 2026-07-20
 - Fixed GitHub Work reads with stale stored tokens: the macOS `gh api` fallback now forces GET semantics instead of accidentally POSTing query fields to the issues endpoint (issue #191, ADR-017).
+- Fixed large-output subprocess deadlocks that left the Work board empty during the `gh` fallback: stdout and stderr now drain concurrently, with a one-megabyte-per-stream regression test (issue #194, ADR-018).
