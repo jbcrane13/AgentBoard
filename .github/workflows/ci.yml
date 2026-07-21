@@ -94,7 +94,10 @@ jobs:
             python3 -c "
           import json, sys
           data = json.load(sys.stdin)
-          targets = [t for t in data.get('targets', []) if t.get('name', '') == 'AgentBoardCore']
+          targets = [
+              t for t in data.get('targets', [])
+              if t.get('name', '').removesuffix('.framework') == 'AgentBoardCore'
+          ]
           if targets:
               pct = targets[0]['lineCoverage'] * 100
               print('{:.1f}'.format(pct))
