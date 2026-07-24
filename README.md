@@ -46,6 +46,9 @@ docs/                   architecture, ADRs, readiness notes
 ## Build and test
 
 ```bash
+# one-shot setup (macOS): installs xcodegen + swiftlint, generates the project, installs hooks
+./scripts/setup.sh
+
 # regenerate after project.yml edits
 xcodegen generate
 
