@@ -144,8 +144,8 @@ Steps:
 | SwiftLint CI step | `.github/workflows/ci.yml` | Push / PR to main | `swiftlint lint --strict --reporter github-actions-logging` |
 | Coverage threshold check | `.github/workflows/ci.yml` | After test step | Fails CI if AgentBoard line coverage < 30% |
 | xcresult artifact upload | `.github/workflows/ci.yml` | After tests (always) | Uploads `TestResults.xcresult` for 7 days |
-| bd pre-commit | `.git/hooks/pre-commit` | `git commit` | `bd hook pre-commit` (beads state sync) |
-| bd pre-push | `.git/hooks/pre-push` | `git push` | `bd hook pre-push` (beads validation) |
+| Quality pre-commit | `.git/hooks/pre-commit` | `git commit` | Runs SwiftLint + SwiftFormat via `scripts/pre-commit-quality` |
+| Build pre-push | `.git/hooks/pre-push` | `git push` | Build verification via `scripts/pre-push-quality` |
 
 ---
 

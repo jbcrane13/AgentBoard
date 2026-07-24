@@ -31,21 +31,9 @@ Package.resolved
 *.tmp
 *.bak
 
-# Beads issue tracker (local)
-.beads/
-beads/
-
-# Beads local state (do not commit)
-beads.db
-.beads/dolt/
-.beads/dolt/**
-.beads/interactions.jsonl
-.claude/
-.claude-code-supervisor.yml
-
 # Claude Code
 .claude/
-*/.beads
+.claude-code-supervisor.yml
 
 # jscpd duplicate code detection reports
 reports/
