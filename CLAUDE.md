@@ -26,7 +26,6 @@ Swift 6 / SwiftUI app (macOS 26+ / iOS 26+) for driving Hermes agents: chat, two
 - SwiftData cache records have **fixed column sets**: a new model field silently drops on cache round-trip unless the record type gains the column — write the round-trip test first (this bug shipped twice before the tests caught it).
 - `CompanionSQLiteStore` migrations: `CREATE TABLE IF NOT EXISTS` won't alter existing tables — use the file's `PRAGMA table_info` + `ALTER TABLE` pattern. SQLite string binds from Swift need `SQLITE_TRANSIENT`, not `SQLITE_STATIC`.
 - A qa-agent guard hook blocks Edit/Write tool payloads containing the dot-env secret-file pattern — it false-positives on SwiftUI's `.environment(` modifier (and on this very sentence); apply such edits via a bash/python script instead.
-- A `bd`/dolt post-checkout hook emits CGO errors on every branch switch — harmless noise, ignore it.
 
 ## Conventions
 
