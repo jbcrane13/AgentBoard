@@ -89,31 +89,9 @@ struct SessionTerminalView: View {
 
     private var header: some View {
         HStack(spacing: 12) {
-            Circle()
-                .fill(statusColor)
-                .frame(width: 8, height: 8)
-                .shadow(color: statusColor.opacity(0.6), radius: 6)
-
-            Text(session.agentType.displayName)
-                .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(AppTheme.textPrimary)
-
-            Text(session.preset.rawValue)
-                .font(.caption.weight(.medium))
-                .foregroundStyle(AppTheme.accentOrange)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 3)
-                .background(AppTheme.accentOrange.opacity(0.12))
-                .clipShape(Capsule())
-
-            Text(statusTitle)
-                .font(.caption2.weight(.bold).monospaced())
-                .tracking(0.8)
-                .foregroundStyle(statusColor)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 3)
-                .background(statusColor.opacity(0.08))
-                .clipShape(Capsule())
+            // Compound status pill: status dot + agent name + preset + status
+            // title collapsed into one capsule, per the ADR-015 distill pass.
+            compoundStatusPill
 
             Spacer()
 
@@ -137,90 +115,75 @@ struct SessionTerminalView: View {
                 .accessibilityLabel(isExpanded ? "Collapse terminal" : "Expand terminal to full width")
                 .accessibilityIdentifier("session_terminal_toggle_expand")
 
-                Button {
-                    appModel.sessionLauncher.openInTerminal(sessionName: session.sessionName)
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "macwindow")
-                            .font(.system(size: 11, weight: .semibold))
-                        Text("Detach")
-                            .font(.caption.weight(.semibold))
-                    }
-                }
-                .buttonStyle(AppButtonStyle(isAccent: true))
-                .accessibilityLabel("Open session in Terminal.app")
-                .accessibilityIdentifier("session_terminal_open_terminal")
-
+                // ONE primary action: Detach (open in Terminal.app) when owned,
+                // otherwise the Take Control / Release toggle is the primary
+                // affordance. Secondary destructive ops live in the overflow
+                // Menu below.
                 #if os(macOS) && canImport(SwiftTerm)
-                    Button {
-                        if isReadOnly {
+                    if isReadOnly {
+                        Button {
                             attachmentController.takeControl()
-                        } else {
-                            attachmentController.releaseControl()
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "keyboard")
+                                    .font(.system(size: 11, weight: .semibold))
+                                Text("Take Control")
+                                    .font(.caption.weight(.semibold))
+                            }
                         }
+                        .buttonStyle(AppButtonStyle(isAccent: true))
+                        .disabled(showsAttachmentFallback)
+                        .accessibilityLabel("Take keyboard control of session")
+                        .accessibilityIdentifier("session_button_takecontrol")
+                    } else {
+                        Button {
+                            appModel.sessionLauncher.openInTerminal(sessionName: session.sessionName)
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "macwindow")
+                                    .font(.system(size: 11, weight: .semibold))
+                                Text("Detach")
+                                    .font(.caption.weight(.semibold))
+                            }
+                        }
+                        .buttonStyle(AppButtonStyle(isAccent: true))
+                        .accessibilityLabel("Open session in Terminal.app")
+                        .accessibilityIdentifier("session_terminal_open_terminal")
+
+                        Button {
+                            attachmentController.releaseControl()
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "keyboard.fill")
+                                    .font(.system(size: 11, weight: .semibold))
+                                Text("Release")
+                                    .font(.caption.weight(.semibold))
+                            }
+                        }
+                        .buttonStyle(AppButtonStyle(isAccent: false))
+                        .disabled(showsAttachmentFallback)
+                        .accessibilityLabel("Release keyboard control")
+                        .accessibilityIdentifier("session_button_takecontrol")
+                    }
+                #else
+                    Button {
+                        appModel.sessionLauncher.openInTerminal(sessionName: session.sessionName)
                     } label: {
                         HStack(spacing: 4) {
-                            Image(systemName: isReadOnly ? "keyboard" : "keyboard.fill")
+                            Image(systemName: "macwindow")
                                 .font(.system(size: 11, weight: .semibold))
-                            Text(isReadOnly ? "Take Control" : "Release")
+                            Text("Detach")
                                 .font(.caption.weight(.semibold))
                         }
                     }
-                    .buttonStyle(AppButtonStyle(isAccent: !isReadOnly))
-                    .disabled(showsAttachmentFallback)
-                    .accessibilityLabel(isReadOnly ? "Take keyboard control of session" : "Release keyboard control")
-                    .accessibilityIdentifier("session_button_takecontrol")
+                    .buttonStyle(AppButtonStyle(isAccent: true))
+                    .accessibilityLabel("Open session in Terminal.app")
+                    .accessibilityIdentifier("session_terminal_open_terminal")
                 #endif
             }
 
             #if os(macOS) && canImport(SwiftTerm)
-                // Restart applies whenever AgentBoard launched the session (a stored
-                // LaunchConfig exists) — including failed sessions, where it matters most.
-                if appModel.sessionLauncher.canRelaunch(sessionName: session.sessionName) {
-                    Button {
-                        restart()
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "arrow.clockwise")
-                                .font(.system(size: 11, weight: .semibold))
-                            Text("Restart")
-                                .font(.caption.weight(.semibold))
-                        }
-                    }
-                    .buttonStyle(AppButtonStyle(isAccent: false))
-                    .accessibilityLabel("Restart session")
-                    .accessibilityIdentifier("session_button_restart")
-                }
-
-                // Kill applies to any still-alive tmux session, including stalled ones.
-                if session.status == .running || session.status == .completed || session.status == .stalled {
-                    Button {
-                        showKillConfirmation = true
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "xmark.octagon")
-                                .font(.system(size: 11, weight: .semibold))
-                            Text("Kill")
-                                .font(.caption.weight(.semibold))
-                        }
-                    }
-                    .buttonStyle(AppButtonStyle(isAccent: false))
-                    .accessibilityLabel("Kill session")
-                    .accessibilityIdentifier("session_button_kill")
-                    .confirmationDialog(
-                        "Kill this session?",
-                        isPresented: $showKillConfirmation,
-                        titleVisibility: .visible
-                    ) {
-                        Button("Kill Session", role: .destructive) {
-                            Task {
-                                await appModel.sessionLauncher.killSession(sessionName: session.sessionName)
-                                attachmentController.detach()
-                            }
-                        }
-                        Button("Cancel", role: .cancel) {}
-                    }
-                }
+                overflowMenu
             #endif
 
             Button {
@@ -250,6 +213,87 @@ struct SessionTerminalView: View {
                 .frame(height: 1)
         }
     }
+
+    /// Status dot + agent name + preset + status title collapsed into one
+    /// capsule. The status dot is the only element that keeps a subtle glow,
+    /// and only while the session is actively running (a live indicator).
+    private var compoundStatusPill: some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(statusColor)
+                .frame(width: 8, height: 8)
+                .shadow(color: session.status == .running ? statusColor.opacity(0.6) : .clear, radius: 6)
+
+            Text(session.agentType.displayName)
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(AppTheme.textPrimary)
+
+            Text(session.preset.rawValue)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(AppTheme.accentOrange)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(AppTheme.accentOrange.opacity(0.12))
+                .clipShape(Capsule())
+
+            Text(statusTitle)
+                .font(.caption2.weight(.bold).monospaced())
+                .tracking(0.8)
+                .foregroundStyle(statusColor)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(statusColor.opacity(0.08))
+                .clipShape(Capsule())
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(session.agentType.displayName), \(statusTitle), preset \(session.preset.rawValue)")
+    }
+
+    #if os(macOS) && canImport(SwiftTerm)
+        /// Overflow menu for secondary lifecycle ops (Restart, Kill), mirroring
+        /// `SessionDetailSheet`'s ellipsis Menu. The destructive Kill stays
+        /// visually distinct (red) and keeps its confirmation dialog.
+        private var overflowMenu: some View {
+            Menu {
+                if appModel.sessionLauncher.canRelaunch(sessionName: session.sessionName) {
+                    Button {
+                        restart()
+                    } label: {
+                        Label("Restart", systemImage: "arrow.clockwise")
+                    }
+                    .accessibilityIdentifier("session_button_restart")
+                }
+
+                if session.status == .running || session.status == .completed || session.status == .stalled {
+                    Divider()
+                    Button(role: .destructive) {
+                        showKillConfirmation = true
+                    } label: {
+                        Label("Kill", systemImage: "xmark.octagon")
+                    }
+                    .accessibilityIdentifier("session_button_kill")
+                }
+            } label: {
+                Image(systemName: "ellipsis.circle")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(AppTheme.textPrimary)
+            }
+            .accessibilityIdentifier("session_terminal_menu_actions")
+            .confirmationDialog(
+                "Kill this session?",
+                isPresented: $showKillConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Kill Session", role: .destructive) {
+                    Task {
+                        await appModel.sessionLauncher.killSession(sessionName: session.sessionName)
+                        attachmentController.detach()
+                    }
+                }
+                Button("Cancel", role: .cancel) {}
+            }
+        }
+    #endif
 
     // MARK: - Live Terminal
 
@@ -350,7 +394,7 @@ struct SessionTerminalView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(16)
                 }
-                .insetSurface(cornerRadius: 16, depth: 6)
+                .insetSurface(cornerRadius: 16)
             }
             .padding(24)
             .frame(maxWidth: .infinity, maxHeight: .infinity)

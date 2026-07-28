@@ -156,7 +156,7 @@ struct ChatHeader: View {
         } label: {
             Text(appModel.settingsStore.activeHermesProfile?.name ?? portLabel)
                 .font(.system(size: 10.5, weight: .medium, design: .monospaced))
-                .foregroundStyle(AppTheme.accentCyanBright)
+                .foregroundStyle(AppTheme.accentCyan)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 3)
                 .background(AppTheme.accentCyan.opacity(0.08))
@@ -184,7 +184,7 @@ struct ChatHeader: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .cardSurface(cornerRadius: 12, elevation: 2)
+        .cardSurface(cornerRadius: 12)
     }
 
     private var connectionTint: Color {

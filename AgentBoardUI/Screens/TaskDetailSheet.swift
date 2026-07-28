@@ -89,7 +89,7 @@ struct TaskDetailSheet: View {
                     .foregroundStyle(AppTheme.textSecondary)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
-                    .insetSurface(cornerRadius: 12, depth: 3)
+                    .insetSurface(cornerRadius: 12)
             }
 
             Text(task.title)
@@ -104,7 +104,7 @@ struct TaskDetailSheet: View {
             .foregroundStyle(AppTheme.accentOrange)
         }
         .padding(24)
-        .cardSurface(cornerRadius: 24, elevation: 8)
+        .cardSurface(cornerRadius: 16)
     }
 
     private var bodySection: some View {
@@ -119,7 +119,7 @@ struct TaskDetailSheet: View {
                 .multilineTextAlignment(.leading)
         }
         .padding(24)
-        .cardSurface(cornerRadius: 24, elevation: 8)
+        .cardSurface(cornerRadius: 16)
     }
 
     private var runHistorySection: some View {
@@ -149,7 +149,7 @@ struct TaskDetailSheet: View {
                                 .foregroundStyle(runOutcomeColor(run.outcome))
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 3)
-                                .insetSurface(cornerRadius: 8, depth: 2)
+                                .insetSurface(cornerRadius: 8)
                         }
 
                         if let summary = run.summary, !summary.isEmpty {
@@ -172,12 +172,12 @@ struct TaskDetailSheet: View {
                         }
                     }
                     .padding(16)
-                    .cardSurface(cornerRadius: 18, elevation: 4)
+                    .cardSurface(cornerRadius: 16)
                 }
             }
         }
         .padding(24)
-        .cardSurface(cornerRadius: 24, elevation: 8)
+        .cardSurface(cornerRadius: 16)
     }
 
     private var commentsSection: some View {
@@ -215,12 +215,12 @@ struct TaskDetailSheet: View {
                             .multilineTextAlignment(.leading)
                     }
                     .padding(16)
-                    .cardSurface(cornerRadius: 18, elevation: 4)
+                    .cardSurface(cornerRadius: 16)
                 }
             }
         }
         .padding(24)
-        .cardSurface(cornerRadius: 24, elevation: 8)
+        .cardSurface(cornerRadius: 16)
     }
 
     private var dependencySection: some View {
@@ -241,7 +241,7 @@ struct TaskDetailSheet: View {
                             .foregroundStyle(AppTheme.accentOrange)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 3)
-                            .insetSurface(cornerRadius: 8, depth: 2)
+                            .insetSurface(cornerRadius: 8)
                     }
                 }
             }
@@ -257,7 +257,7 @@ struct TaskDetailSheet: View {
                             .foregroundStyle(AppTheme.accentCyan)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 3)
-                            .insetSurface(cornerRadius: 8, depth: 2)
+                            .insetSurface(cornerRadius: 8)
                     }
                 }
             }
@@ -269,7 +269,7 @@ struct TaskDetailSheet: View {
             }
         }
         .padding(24)
-        .cardSurface(cornerRadius: 24, elevation: 8)
+        .cardSurface(cornerRadius: 16)
     }
 
     // MARK: - Actions
@@ -358,7 +358,7 @@ struct TaskDetailSheet: View {
         case .blocked: AppTheme.accentOrange
         case .crashed, .timedOut: .red
         case .spawnFailed, .gaveUp: AppTheme.accentOrange
-        case .reclaimed: AppTheme.statusIdle
+        case .reclaimed: AppTheme.accentCyan
         case nil: AppTheme.textSecondary
         }
     }

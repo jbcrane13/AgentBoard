@@ -107,7 +107,9 @@ struct MarkdownBlockParserTests {
     func thematicBreakParses() {
         let blocks = MarkdownBlockParser.parse("above\n\n---\n\nbelow")
         #expect(blocks.contains { block in
-            if case .thematicBreak = block { return true }
+            if case .thematicBreak = block {
+                return true
+            }
             return false
         })
     }
@@ -122,8 +124,14 @@ struct MarkdownBlockParserTests {
         let markdown = "# Head\n\nBody text\n\n```\ncode\n```"
         let blocks = MarkdownBlockParser.parse(markdown)
         #expect(blocks.count == 3)
-        if case .heading = blocks[0] {} else { Issue.record("blocks[0] should be heading") }
-        if case .paragraph = blocks[1] {} else { Issue.record("blocks[1] should be paragraph") }
-        if case .code = blocks[2] {} else { Issue.record("blocks[2] should be code") }
+        if case .heading = blocks[0] {} else {
+            Issue.record("blocks[0] should be heading")
+        }
+        if case .paragraph = blocks[1] {} else {
+            Issue.record("blocks[1] should be paragraph")
+        }
+        if case .code = blocks[2] {} else {
+            Issue.record("blocks[2] should be code")
+        }
     }
 }

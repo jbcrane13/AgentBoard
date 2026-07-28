@@ -19,6 +19,16 @@ struct WorkScreen: View {
     @State private var selectedItem: WorkItem?
     @State private var isPresentingCreate = false
     @SceneStorage("work.selectedRepository") private var selectedRepo: String = "all"
+    /// The column currently being hovered by a drag (`isTargeted`), used to
+    /// render the pre-drop affordance (semantic border + transition caption).
+    @State private var dropTargetColumn: WorkBoardColumn?
+    /// The most recent successful drop, surfaced as a transient Undo toast.
+    @State private var undoOpportunity: UndoOpportunity?
+    /// Inline rejection message rendered under a column header for 3s after
+    /// the backend refuses a transition.
+    @State private var dropErrorMessage: String?
+    @State private var dropErrorColumn: WorkBoardColumn?
+    @State private var dropErrorTask: Task<Void, Never>?
 
     private var isCompact: Bool {
         #if os(macOS)
@@ -137,7 +147,7 @@ struct WorkScreen: View {
                     statChip(
                         label: "Open",
                         count: counts.open,
-                        color: AppTheme.statusBlue
+                        color: AppTheme.accentCyan
                     )
                     statChip(
                         label: "In Progress",
@@ -220,10 +230,7 @@ struct WorkScreen: View {
 
     private func statChip(label: String, count: Int, color: Color) -> some View {
         HStack(spacing: 5) {
-            Circle()
-                .fill(color)
-                .frame(width: 7, height: 7)
-                .shadow(color: color.opacity(0.6), radius: 4)
+            StatusDot(color: color, size: 7)
             Text("\(count)")
                 .font(.system(.caption, design: .rounded, weight: .semibold))
                 .monospacedDigit()
@@ -242,10 +249,7 @@ struct WorkScreen: View {
                     ForEach(groupedFilteredItems, id: \.column) { column in
                         VStack(alignment: .leading, spacing: 10) {
                             HStack(spacing: 8) {
-                                Circle()
-                                    .fill(workBoardColumnColor(column.column))
-                                    .frame(width: 7, height: 7)
-                                    .shadow(color: workBoardColumnColor(column.column).opacity(0.6), radius: 8)
+                                StatusDot(color: workBoardColumnColor(column.column), size: 7)
                                 Text(column.column.title.uppercased())
                                     .font(.system(size: 11, weight: .semibold, design: .monospaced))
                                     .tracking(1.2)
@@ -278,18 +282,36 @@ struct WorkScreen: View {
                         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                         .overlay {
                             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .stroke(AppTheme.border, lineWidth: 1)
+                                .stroke(
+                                    dropTargetColumn == column.column
+                                        ? workBoardColumnColor(column.column)
+                                        : AppTheme.border,
+                                    lineWidth: dropTargetColumn == column.column ? 2 : 1
+                                )
                         }
                     }
                 }
                 .frame(minWidth: proxy.size.width, alignment: .topLeading)
                 .padding(.horizontal, 28)
+                .overlay(alignment: .bottom) {
+                    if let undoOpportunity {
+                        undoToast(for: undoOpportunity)
+                    }
+                }
             }
         }
     }
 
     private func boardColumnContent(for column: (column: WorkBoardColumn, items: [WorkItem])) -> some View {
         VStack(spacing: 8) {
+            if let dropErrorMessage, dropErrorColumn == column.column {
+                Text(dropErrorMessage)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.red)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.bottom, 4)
+                    .transition(.opacity)
+            }
             if column.items.isEmpty {
                 Spacer()
                 Text("None")
@@ -301,7 +323,7 @@ struct WorkScreen: View {
                 ScrollView(showsIndicators: false) {
                     LazyVStack(spacing: 8) {
                         ForEach(column.items) { item in
-                            WorkCardNeu(item: item) { selectedItem = item }
+                            WorkCard(item: item) { selectedItem = item }
                                 .draggable(WorkItemID(item.id))
                         }
                     }
@@ -311,15 +333,34 @@ struct WorkScreen: View {
         }
         .accessibilityIdentifier("work_column_\(column.column.rawValue)")
         .dropDestination(for: WorkItemID.self) { ids, _ in
+            dropTargetColumn = nil
             guard let id = ids.first?.rawValue,
                   let item = filteredItems.first(where: { $0.id == id }) else {
                 return false
             }
+            let priorStatus = item.status
+            let targetState = column.column.dropTargetState
 
             Task { @MainActor in
-                await appModel.workStore.updateStatus(for: item, to: column.column.dropTargetState)
+                await appModel.workStore.updateStatus(for: item, to: targetState)
+                if appModel.workStore.errorMessage != nil {
+                    surfaceDropError(appModel.workStore.errorMessage ?? "Transition rejected", in: column.column)
+                } else if item.status != targetState {
+                    // Optimistically no-op (e.g. same-status drop); no toast.
+                } else {
+                    undoOpportunity = UndoOpportunity(
+                        itemID: item.id,
+                        priorStatus: priorStatus,
+                        until: Date().addingTimeInterval(5)
+                    )
+                    scheduleUndoDismiss()
+                }
             }
             return true
+        } isTargeted: { targeted in
+            withAnimation(.easeInOut(duration: 0.15)) {
+                dropTargetColumn = targeted ? column.column : nil
+            }
         }
     }
 
@@ -336,7 +377,7 @@ struct WorkScreen: View {
                 .padding(.horizontal, 8)
 
                 ForEach(filteredItems) { item in
-                    WorkCardNeu(item: item) { selectedItem = item }
+                    WorkCard(item: item) { selectedItem = item }
                 }
             }
             .padding(isCompact ? 16 : 24)
@@ -344,7 +385,7 @@ struct WorkScreen: View {
     }
 }
 
-private struct WorkCardNeu: View {
+private struct WorkCard: View {
     let item: WorkItem
     let onTap: () -> Void
 
@@ -354,7 +395,7 @@ private struct WorkCardNeu: View {
                 HStack(alignment: .top) {
                     Text(item.issueReference)
                         .font(.system(size: 10.5, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(AppTheme.accentCyanBright)
+                        .foregroundStyle(AppTheme.accentCyan)
                         .lineLimit(1)
                         .truncationMode(.middle)
 
@@ -371,8 +412,8 @@ private struct WorkCardNeu: View {
                                 .clipShape(Capsule())
                                 .accessibilityIdentifier("work_badge_blocked_\(item.id)")
                         }
-                        WorkStatusNeu(state: item.status)
-                        PriorityNeu(priority: item.priority)
+                        StatusDot(color: workStateColor(item.status))
+                        PriorityFlag(priority: item.priority)
                     }
                 }
 
@@ -421,34 +462,16 @@ private struct WorkCardNeu: View {
                 }
             }
             .padding(10)
-            .cardSurface(cornerRadius: 14, elevation: 7)
+            .cardSurface(cornerRadius: 16)
         }
         .buttonStyle(.plain)
-    }
-}
-
-struct WorkStatusNeu: View {
-    let state: WorkState
-    var body: some View {
-        Circle()
-            .fill(workStateColor(state))
-            .frame(width: 10, height: 10)
-    }
-}
-
-struct PriorityNeu: View {
-    let priority: WorkPriority
-    var body: some View {
-        Image(systemName: "flag.fill")
-            .font(.system(size: 10))
-            .foregroundStyle(priorityColor(priority))
     }
 }
 
 @MainActor
 private func workStateColor(_ state: WorkState) -> Color {
     switch state {
-    case .ready: AppTheme.statusBlue
+    case .ready: AppTheme.accentCyan
     case .inProgress: AppTheme.accentOrange
     case .blocked: AppTheme.accentCoral
     case .review: .purple
@@ -459,19 +482,86 @@ private func workStateColor(_ state: WorkState) -> Color {
 @MainActor
 private func workBoardColumnColor(_ column: WorkBoardColumn) -> Color {
     switch column {
-    case .todo: AppTheme.statusBlue
+    case .todo: AppTheme.accentCyan
     case .inProgress: AppTheme.accentOrange
     case .resolved: AppTheme.accentGreen
     }
 }
 
-@MainActor
-private func priorityColor(_ priority: WorkPriority) -> Color {
-    switch priority {
-    case .p0: AppTheme.accentCoral
-    case .p1: AppTheme.accentCoral.opacity(0.82)
-    case .p2: AppTheme.accentOrange
-    case .p3: AppTheme.textTertiary
+// MARK: - Drag undo / error feedback
+
+private struct UndoOpportunity: Identifiable {
+    let id: String
+    let itemID: String
+    let priorStatus: WorkState
+    let until: Date
+
+    init(itemID: String, priorStatus: WorkState, until: Date) {
+        self.id = "\(itemID)-\(until.timeIntervalSince1970)"
+        self.itemID = itemID
+        self.priorStatus = priorStatus
+        self.until = until
+    }
+}
+
+extension WorkScreen {
+    /// The transient Undo capsule pinned to the bottom of the board area.
+    @ViewBuilder
+    fileprivate func undoToast(for opportunity: UndoOpportunity) -> some View {
+        HStack(spacing: 10) {
+            Text("Moved — undo?")
+                .font(.caption.weight(.medium))
+                .foregroundStyle(AppTheme.textPrimary)
+            Spacer(minLength: 0)
+            Button("Undo") {
+                revertUndo(opportunity)
+            }
+            .buttonStyle(AppButtonStyle(isAccent: true))
+            .accessibilityIdentifier("work_button_undo_move")
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .frame(maxWidth: 320)
+        .background(AppTheme.surface)
+        .clipShape(Capsule())
+        .overlay(Capsule().stroke(AppTheme.border, lineWidth: 1))
+        .padding(.bottom, 12)
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+    }
+
+    fileprivate func scheduleUndoDismiss() {
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            if let opportunity = undoOpportunity, Date() >= opportunity.until {
+                withAnimation { undoOpportunity = nil }
+            }
+        }
+    }
+
+    fileprivate func revertUndo(_ opportunity: UndoOpportunity) {
+        guard let item = appModel.workStore.items.first(where: { $0.id == opportunity.itemID }) else {
+            undoOpportunity = nil
+            return
+        }
+        let prior = opportunity.priorStatus
+        undoOpportunity = nil
+        Task { @MainActor in
+            await appModel.workStore.updateStatus(for: item, to: prior)
+        }
+    }
+
+    fileprivate func surfaceDropError(_ message: String, in column: WorkBoardColumn) {
+        withAnimation(.easeInOut(duration: 0.2)) {
+            dropErrorMessage = message
+            dropErrorColumn = column
+        }
+        dropErrorTask?.cancel()
+        dropErrorTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            if !Task.isCancelled {
+                withAnimation { dropErrorMessage = nil }
+            }
+        }
     }
 }
 

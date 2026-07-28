@@ -4,7 +4,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct AgentsScreen: View {
-    @Environment(AgentBoardAppModel.self) private var appModel
+    @Environment(AgentBoardAppModel.self) var appModel
     @Environment(\.horizontalSizeClass) private var hSizeClass
     @State private var isPresentingCreateSheet = false
     @State private var selectedTask: KanbanTask?
@@ -20,6 +20,16 @@ struct AgentsScreen: View {
     /// out before mutating view state if the counter has moved on, so a
     /// dismissed-then-reopened sheet can't be slammed shut by a stale write.
     @State private var createGeneration = 0
+    /// The kanban column currently targeted by a drag (pre-drop affordance).
+    /// Internal so the undo helpers in `AgentsScreen+Undo.swift` can mutate it.
+    @State var dropTargetStatus: KanbanStatus?
+    /// The most recent successful task move, surfaced as a transient Undo toast.
+    @State var undoOpportunity: KanbanUndoOpportunity?
+    /// Inline rejection message rendered under a column header for 3s.
+    /// Internal so the undo helpers in `AgentsScreen+Undo.swift` can mutate it.
+    @State var dropErrorMessage: String?
+    @State var dropErrorStatus: KanbanStatus?
+    @State var dropErrorTask: Task<Void, Never>?
 
     private var isCompact: Bool {
         hSizeClass == .compact
@@ -102,7 +112,7 @@ struct AgentsScreen: View {
                         HStack {
                             Text(summary.name).font(.title3.weight(.bold)).foregroundStyle(AppTheme.textPrimary)
                             Spacer()
-                            AgentHealthNeu(health: summary.health)
+                            AgentHealthPill(health: summary.health)
                         }
                         Text(summary.recentActivity)
                             .font(.caption)
@@ -118,7 +128,7 @@ struct AgentsScreen: View {
                     }
                     .padding(20)
                     .frame(width: 260)
-                    .cardSurface(cornerRadius: 24, elevation: 8)
+                    .cardSurface(cornerRadius: 16)
                 }
             }
             .padding(24)
@@ -154,11 +164,21 @@ struct AgentsScreen: View {
                                 }
                             }
                             .dropDestination(for: KanbanTaskID.self) { ids, _ in
-                                handleDrop(ids, to: status)
+                                dropTargetStatus = nil
+                                return handleDrop(ids, to: status)
+                            } isTargeted: { targeted in
+                                withAnimation(.easeInOut(duration: 0.15)) {
+                                    dropTargetStatus = targeted ? status : nil
+                                }
                             }
                         }
                     }
                     .padding(24)
+                    .overlay(alignment: .bottom) {
+                        if let undoOpportunity {
+                            undoToast(for: undoOpportunity)
+                        }
+                    }
                 }
             } else {
                 VStack(spacing: 0) {
@@ -187,6 +207,15 @@ struct AgentsScreen: View {
                                         .fill(AppTheme.borderSoft)
                                         .frame(height: 1)
                                 }
+
+                            if let dropErrorMessage, dropErrorStatus == status {
+                                Text(dropErrorMessage)
+                                    .font(.caption2.weight(.semibold))
+                                    .foregroundStyle(.red)
+                                    .frame(maxWidth: .infinity, alignment: .center)
+                                    .padding(.bottom, 4)
+                                    .transition(.opacity)
+                            }
 
                             if columnTasks.isEmpty {
                                 Text("None")
@@ -217,37 +246,70 @@ struct AgentsScreen: View {
                         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                         .overlay {
                             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .stroke(AppTheme.borderSoft, lineWidth: 1)
+                                .stroke(
+                                    dropTargetStatus == status
+                                        ? kanbanStatusColor(status)
+                                        : AppTheme.borderSoft,
+                                    lineWidth: dropTargetStatus == status ? 2 : 1
+                                )
                         }
                         .dropDestination(for: KanbanTaskID.self) { ids, _ in
-                            handleDrop(ids, to: status)
+                            dropTargetStatus = nil
+                            return handleDrop(ids, to: status)
+                        } isTargeted: { targeted in
+                            withAnimation(.easeInOut(duration: 0.15)) {
+                                dropTargetStatus = targeted ? status : nil
+                            }
                         }
                     }
                 }
                 .frame(minWidth: proxy.size.width, alignment: .topLeading)
                 .padding(.horizontal, 28)
                 .padding(.bottom, 28)
+                .overlay(alignment: .bottom) {
+                    if let undoOpportunity {
+                        undoToast(for: undoOpportunity)
+                    }
+                }
             }
         }
     }
 
     /// Drops a dragged task onto `status`. `AgentsStore.moveTask` maps the
     /// drop onto the one legal Hermes transition (or surfaces a rejection
-    /// message) — this just forwards the drag payload.
+    /// message) — this forwards the drag payload and records an Undo
+    /// opportunity for legal moves.
     private func handleDrop(_ ids: [KanbanTaskID], to status: KanbanStatus) -> Bool {
-        guard let id = ids.first?.rawValue else { return false }
+        guard let id = ids.first?.rawValue,
+              let task = appModel.agentsStore.tasks.first(where: { $0.id == id }) else {
+            return false
+        }
+        let priorStatus = task.status
+        let priorTitle = task.title
         Task { @MainActor in
             await appModel.agentsStore.moveTask(id: id, to: status)
+            if appModel.agentsStore.errorMessage != nil {
+                surfaceDropError(appModel.agentsStore.errorMessage ?? "Transition rejected", in: status)
+            } else if let statusMessage = appModel.agentsStore.statusMessage,
+                      statusMessage.contains("isn't supported") || statusMessage.contains("can't be dragged")
+                || statusMessage.contains("already in") || statusMessage.contains("can't be moved") {
+                surfaceDropError(statusMessage, in: status)
+            } else if priorStatus != status {
+                undoOpportunity = KanbanUndoOpportunity(
+                    taskID: id,
+                    taskTitle: priorTitle,
+                    priorStatus: priorStatus,
+                    until: Date().addingTimeInterval(5)
+                )
+                scheduleUndoDismiss()
+            }
         }
         return true
     }
 
     private func kanbanColumnHeader(status: KanbanStatus, count: Int) -> some View {
         HStack(spacing: 8) {
-            Circle()
-                .fill(kanbanStatusColor(status))
-                .frame(width: 7, height: 7)
-                .shadow(color: kanbanStatusColor(status).opacity(0.6), radius: 8)
+            StatusDot(color: kanbanStatusColor(status), size: 7)
             Text(status.title.uppercased())
                 .font(.system(size: 11, weight: .semibold, design: .monospaced))
                 .tracking(1.2)
@@ -402,7 +464,7 @@ private struct KanbanTaskRow: View {
                             .foregroundStyle(AppTheme.textSecondary)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 3)
-                            .insetSurface(cornerRadius: 8, depth: 2)
+                            .insetSurface(cornerRadius: 8)
                     }
                 }
 
@@ -432,7 +494,7 @@ private struct KanbanTaskRow: View {
                 }
             }
             .padding(20)
-            .cardSurface(cornerRadius: 24, elevation: 8)
+            .cardSurface(cornerRadius: 16)
         }
         .buttonStyle(.plain)
         .contextMenu {
@@ -475,38 +537,11 @@ private struct KanbanTaskID: Codable, Hashable, Transferable {
 private func kanbanStatusColor(_ status: KanbanStatus) -> Color {
     switch status {
     case .triage: Color.gray
-    case .todo: AppTheme.statusIdle
+    case .todo: AppTheme.accentCyan
     case .ready: AppTheme.accentCyan
     case .running: AppTheme.statusSuccess
     case .blocked: AppTheme.accentOrange
     case .done: AppTheme.textSecondary
     case .archived: AppTheme.textTertiary
-    }
-}
-
-struct AgentHealthNeu: View {
-    let health: AgentHealthStatus
-    var body: some View {
-        HStack(spacing: 6) {
-            Circle()
-                .fill(healthColor)
-                .frame(width: 8, height: 8)
-            Text(health.title.uppercased())
-                .font(.caption2.weight(.bold))
-                .tracking(1)
-                .foregroundStyle(AppTheme.textSecondary)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .insetSurface(cornerRadius: 12, depth: 3)
-    }
-
-    private var healthColor: Color {
-        switch health {
-        case .online: AppTheme.statusSuccess
-        case .idle: AppTheme.statusIdle
-        case .warning: AppTheme.accentOrange
-        case .offline: .red
-        }
     }
 }

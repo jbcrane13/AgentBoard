@@ -42,7 +42,7 @@ struct SessionsScreen: View {
                                 Button {
                                     selectedSession = session
                                 } label: {
-                                    SessionCardNeu(session: session)
+                                    SessionCard(session: session)
                                 }
                                 .buttonStyle(.plain)
                                 .accessibilityIdentifier("sessions_cell_session_\(session.id)")
@@ -57,7 +57,7 @@ struct SessionsScreen: View {
                                 Button {
                                     selectedSession = session
                                 } label: {
-                                    SessionCardNeu(session: session)
+                                    SessionCard(session: session)
                                 }
                                 .buttonStyle(.plain)
                                 .accessibilityIdentifier("sessions_cell_session_\(session.id)")
@@ -106,7 +106,7 @@ struct SessionsScreen: View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 6) {
                 AgentBoardEyebrow(text: "SESSIONS")
-                Text("Runtime Engine")
+                Text("Sessions")
                     .font(.system(size: 32, weight: .bold))
                     .foregroundStyle(AppTheme.textPrimary)
                     .tracking(-0.8)
@@ -123,13 +123,13 @@ struct SessionsScreen: View {
     }
 }
 
-private struct SessionCardNeu: View {
+private struct SessionCard: View {
     let session: AgentSession
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                SessionStatusNeu(status: session.status)
+                SessionStatusPill(status: session.status)
                 Spacer()
                 if let pid = session.pid {
                     Text("PID \(pid)")
@@ -180,7 +180,7 @@ private struct SessionCardNeu: View {
                     }
                 }
                 .padding(12)
-                .insetSurface(cornerRadius: 12, depth: 3)
+                .insetSurface(cornerRadius: 12)
             }
 
             HStack {
@@ -204,7 +204,7 @@ private struct SessionCardNeu: View {
             }
         }
         .padding(20)
-        .cardSurface(cornerRadius: 24, elevation: 8)
+        .cardSurface(cornerRadius: 16)
     }
 }
 
@@ -249,28 +249,9 @@ struct SyncStatusBanner: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .insetSurface(cornerRadius: 16, depth: 4)
+        .insetSurface(cornerRadius: 16)
         .accessibilityIdentifier(identifier)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(title). \(message)")
-    }
-}
-
-struct SessionStatusNeu: View {
-    let status: AgentSessionStatus
-    var body: some View {
-        HStack(spacing: 6) {
-            Circle()
-                .fill(status == .running ? AppTheme.accentCyan : status == .stopped ? AppTheme
-                    .accentOrange : status == .error ? .red : AppTheme.textSecondary)
-                .frame(width: 8, height: 8)
-            Text(status.title.uppercased())
-                .font(.caption2.weight(.bold))
-                .tracking(1)
-                .foregroundStyle(AppTheme.textSecondary)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .insetSurface(cornerRadius: 12, depth: 3)
     }
 }

@@ -20,7 +20,6 @@ struct DesignSemanticsTests {
         let source = try Self.source("AgentBoardUI/Theme/AppTheme.swift")
 
         #expect(source.contains("primaryAccent: .accentColor"))
-        #expect(source.contains("primaryAccentBright: .accentColor"))
         // No bespoke brand-teal RGB literal should reappear as the accent.
         #expect(!source.contains("red: 0.106, green: 0.749, blue: 0.651"))
     }

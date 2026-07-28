@@ -51,7 +51,7 @@ struct ChatMessageList: View {
                 .multilineTextAlignment(.center)
         }
         .padding(40)
-        .cardSurface(cornerRadius: 32, elevation: 12)
+        .cardSurface(cornerRadius: 32)
         .padding(32)
     }
 }

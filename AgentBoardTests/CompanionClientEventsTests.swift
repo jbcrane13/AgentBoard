@@ -42,7 +42,9 @@ struct CompanionClientEventsTests {
         var received: [CompanionEvent] = []
         for try await event in try await client.events() {
             received.append(event)
-            if received.count == 2 { break }
+            if received.count == 2 {
+                break
+            }
         }
 
         #expect(received.map(\.id) == [firstID, secondID])

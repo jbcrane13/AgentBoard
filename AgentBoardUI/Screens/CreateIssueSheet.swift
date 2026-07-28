@@ -69,7 +69,7 @@ struct CreateIssueSheet: View {
                                     .scrollContentBackground(.hidden)
                                     .frame(minHeight: 120)
                                     .padding(12)
-                                    .insetSurface(cornerRadius: 16, depth: 6)
+                                    .insetSurface(cornerRadius: 16)
                                     .foregroundStyle(AppTheme.textPrimary)
                                     .accessibilityIdentifier("create_issue_texteditor_body")
                             }
@@ -156,14 +156,14 @@ struct CreateIssueSheet: View {
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .padding(.horizontal, 16)
                                     .padding(.vertical, 12)
-                                    .insetSurface(cornerRadius: 16, depth: 6)
+                                    .insetSurface(cornerRadius: 16)
                                 }
                                 .buttonStyle(.plain)
                                 .accessibilityIdentifier("create_issue_button_add_attachment")
                             }
                         }
                         .padding(24)
-                        .cardSurface(cornerRadius: 24, elevation: 8)
+                        .cardSurface(cornerRadius: 16)
 
                         if isCreating {
                             ProgressView("Creating…")

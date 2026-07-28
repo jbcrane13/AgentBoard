@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-25T00:00:00Z",
+  "title": "Design System: AgentBoard",
+  "extensions": {
+    "colorMeta": {
+      "system-accent": { "role": "primary", "displayName": "System Accent", "canonical": "#0A84FF", "tonalRamp": ["#0A84FF", "#2A93FF", "#4AA2FF", "#6AB1FF", "#8AC0FF", "#AACFFF", "#CADEFF", "#EAEDF5"] },
+      "window": { "role": "neutral", "displayName": "Window", "canonical": "#ECECEC", "tonalRamp": ["#1C1C1E", "#2C2C2E", "#3A3A3C", "#545456", "#8E8E93", "#BFBFBF", "#E5E5E5", "#F5F5F5"] },
+      "control": { "role": "neutral", "displayName": "Control", "canonical": "#FFFFFF", "tonalRamp": ["#1C1C1E", "#2C2C2E", "#48484A", "#636366", "#8E8E93", "#C7C7CC", "#E5E5EA", "#FFFFFF"] },
+      "inset": { "role": "neutral", "displayName": "Inset", "canonical": "#F5F5F5", "tonalRamp": ["#1C1C1E", "#2C2C2E", "#3A3A3C", "#545456", "#8E8E93", "#BFBFBF", "#E5E5E5", "#F5F5F5"] },
+      "status-success": { "role": "semantic", "displayName": "Status Success", "canonical": "#34C759", "tonalRamp": ["#248A3D", "#34C759", "#5AD07D", "#80D99C", "#A6E3BB", "#CDEDD6", "#E6F6EC", "#F4FBF6"] },
+      "accent-orange": { "role": "semantic", "displayName": "Accent Orange", "canonical": "#FF9500", "tonalRamp": ["#C93408", "#E36209", "#FF9500", "#FFAB38", "#FFC16E", "#FFD7A1", "#FFE8CB", "#FFF6E9"] },
+      "accent-coral": { "role": "semantic", "displayName": "Accent Coral", "canonical": "#FF3B30", "tonalRamp": ["#A61C12", "#D70015", "#FF3B30", "#FF6B5E", "#FF9B91", "#FFC4BD", "#FFE0DC", "#FFF0EE"] },
+      "accent-purple": { "role": "semantic", "displayName": "Accent Purple", "canonical": "#AF52DE", "tonalRamp": ["#5856D6", "#7B47E8", "#AF52DE", "#C37BF0", "#D7A4F7", "#E6C6FB", "#F1E0FD", "#FAF2FE"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Screen titles, one per screen. SF Pro Display 700." },
+      "headline": { "displayName": "Headline", "purpose": "Section and sheet titles." },
+      "title": { "displayName": "Title", "purpose": "Card and tile titles." },
+      "body": { "displayName": "Body", "purpose": "Default body and descriptions." },
+      "label": { "displayName": "Label (Eyebrow)", "purpose": "Uppercase tracked instrument labels for status/section meaning." },
+      "mono": { "displayName": "Mono", "purpose": "Issue references, counts, slash-command names." }
+    },
+    "shadows": [
+      { "name": "floating-chrome", "value": "0 2px 4px rgba(0,0,0,0.20)", "purpose": "Compose bar glass and slash-command popover. State-driven, not ambient." },
+      { "name": "card-lift", "value": "0 1px 3px rgba(0,0,0,0.13)", "purpose": "Create-issue primary-action circle. Affordance, not resting decoration." }
+    ],
+    "motion": [
+      { "name": "pressed-opacity", "value": "opacity 1.0 -> 0.7", "purpose": "Button pressed state. No scale or shadow animation." }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Filled system-accent button. The only filled button on a screen; reserved for the primary action.",
+      "html": "<button class=\"ds-btn-primary\">Quick Launch</button>",
+      "css": ".ds-btn-primary { background: #0A84FF; color: #FFFFFF; font-family: -apple-system, system-ui, sans-serif; font-size: 13px; font-weight: 600; padding: 8px 14px; border: none; border-radius: 8px; transition: opacity 0.15s; } .ds-btn-primary:active { opacity: 0.7; } .ds-btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(10,132,255,0.35); }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Quiet bordered button. The default button; clear fill over hover tint with a 0.5px border.",
+      "html": "<button class=\"ds-btn-secondary\">Refresh</button>",
+      "css": ".ds-btn-secondary { background: transparent; color: #000000; font-family: -apple-system, system-ui, sans-serif; font-size: 13px; font-weight: 600; padding: 8px 14px; border: 0.5px solid rgba(60,60,67,0.3); border-radius: 8px; } .ds-btn-secondary:hover { background: rgba(0,0,0,0.08); } .ds-btn-secondary:active { opacity: 0.7; } .ds-btn-secondary:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(10,132,255,0.35); }"
+    },
+    {
+      "name": "Status Pill",
+      "kind": "chip",
+      "refersTo": "pill-status",
+      "description": "Capsule encoding one status. Color at 12% fill, semibold caption text in the color, 6px dot or 9px SF Symbol.",
+      "html": "<span class=\"ds-pill\"><span class=\"ds-pill-dot\"></span>Ready</span>",
+      "css": ".ds-pill { display: inline-flex; align-items: center; gap: 5px; font-family: -apple-system, system-ui, sans-serif; font-size: 11px; font-weight: 600; color: #0A84FF; background: rgba(10,132,255,0.12); padding: 4px 8px; border-radius: 999px; } .ds-pill-dot { width: 6px; height: 6px; border-radius: 50%; background: #0A84FF; }"
+    },
+    {
+      "name": "Stat Pill",
+      "kind": "chip",
+      "refersTo": "pill-status",
+      "description": "Instrument-reading stat: 7px filled dot with glow, rounded-bold count, caption label.",
+      "html": "<span class=\"ds-stat\"><span class=\"ds-stat-dot\"></span><b>3</b> Running</span>",
+      "css": ".ds-stat { display: inline-flex; align-items: center; gap: 5px; font-family: -apple-system, system-ui, sans-serif; } .ds-stat-dot { width: 7px; height: 7px; border-radius: 50%; background: #34C759; box-shadow: 0 0 4px rgba(52,199,89,0.6); } .ds-stat b { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; } .ds-stat { color: #3C3C4399; font-size: 11px; }"
+    },
+    {
+      "name": "Raised Card / Tile",
+      "kind": "card",
+      "refersTo": "card-raised",
+      "description": "Material-backed rounded rectangle with a hairline border. Flat at rest; system provides drag shadow. 22px radius for tiles, 14px for work cards.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-head\"><span class=\"ds-card-icon\">▣</span><span class=\"ds-card-title\">Agent Tasks</span><span class=\"ds-card-chevron\">›</span></div><div class=\"ds-card-body\">content</div></div>",
+      "css": ".ds-card { display: flex; flex-direction: column; gap: 16px; padding: 18px; background: rgba(255,255,255,0.7); backdrop-filter: blur(20px); border: 0.5px solid rgba(60,60,67,0.18); border-radius: 22px; font-family: -apple-system, system-ui, sans-serif; } .ds-card-head { display: flex; align-items: center; gap: 10px; } .ds-card-icon { display: inline-flex; width: 30px; height: 30px; align-items: center; justify-content: center; font-size: 14px; color: #0A84FF; background: rgba(10,132,255,0.12); border-radius: 9px; } .ds-card-title { font-size: 15px; font-weight: 700; color: #000000; } .ds-card-chevron { margin-left: auto; font-size: 11px; color: #3C3C434C; } .ds-card-body { color: #000000; }"
+    },
+    {
+      "name": "Inset Well / Kanban Column",
+      "kind": "card",
+      "refersTo": "inset-well",
+      "description": "Recessed rounded rectangle for fields and kanban columns. Inset fill, 0.5–1px border, 16px radius.",
+      "html": "<div class=\"ds-inset\"><div class=\"ds-inset-head\"><span class=\"ds-inset-dot\"></span><span class=\"ds-inset-title\">TO DO</span><span class=\"ds-inset-count\">4</span></div></div>",
+      "css": ".ds-inset { padding: 12px; background: #F5F5F5; border: 1px solid rgba(60,60,67,0.3); border-radius: 14px; font-family: -apple-system, system-ui, sans-serif; } .ds-inset-head { display: flex; align-items: center; gap: 8px; padding-bottom: 10px; border-bottom: 1px solid rgba(60,60,67,0.18); } .ds-inset-dot { width: 7px; height: 7px; border-radius: 50%; background: #0A84FF; box-shadow: 0 0 8px rgba(10,132,255,0.6); } .ds-inset-title { font-family: ui-monospace, SF Mono, monospace; font-size: 11px; font-weight: 600; letter-spacing: 1.2px; color: #000000; } .ds-inset-count { font-family: ui-monospace, SF Mono, monospace; font-size: 10px; font-weight: 600; color: #3C3C434C; background: #E5E5EA; padding: 2px 6px; border-radius: 999px; }"
+    },
+    {
+      "name": "Chat Bubble (Assistant)",
+      "kind": "custom",
+      "refersTo": "card-raised",
+      "description": "Material-backed assistant bubble, 24px radius, accent-cyan Hermes label, tool chips above content.",
+      "html": "<div class=\"ds-bubble ds-bubble-assistant\"><span class=\"ds-bubble-sender\">HERMES</span><p>Here is the plan…</p></div>",
+      "css": ".ds-bubble { padding: 20px; border-radius: 24px; font-family: -apple-system, system-ui, sans-serif; font-size: 13px; line-height: 1.4; max-width: 65ch; } .ds-bubble-assistant { background: rgba(255,255,255,0.7); backdrop-filter: blur(20px); border: 1px solid rgba(60,60,67,0.18); color: #000000; } .ds-bubble-sender { display: block; font-size: 11px; font-weight: 700; letter-spacing: 1px; color: #0A84FF; margin-bottom: 8px; }"
+    },
+    {
+      "name": "Chat Bubble (User)",
+      "kind": "custom",
+      "refersTo": "button-primary",
+      "description": "Solid accent-filled user bubble, no border, white text, accent-orange You label.",
+      "html": "<div class=\"ds-bubble ds-bubble-user\"><span class=\"ds-bubble-sender-you\">YOU</span><p>Refactor the store.</p></div>",
+      "css": ".ds-bubble-user { background: #0A84FF; border: none; color: #FFFFFF; padding: 20px; border-radius: 24px; font-family: -apple-system, system-ui, sans-serif; font-size: 13px; line-height: 1.4; max-width: 65ch; margin-left: 40px; } .ds-bubble-sender-you { display: block; font-size: 11px; font-weight: 700; letter-spacing: 1px; color: #FF9500; margin-bottom: 8px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Control Surface",
+    "overview": "AgentBoard is a native console for a fleet of Hermes-driven coding agents. The aesthetic is calm at idle, clear in motion. The user is a power developer who runs multiple agent sessions, triages work, and steers agents mid-flight; the interface treats them as someone who knows what they're doing and stays out of their way. The system is native macOS/iOS first. Surfaces, materials, controls, and motion come from the platform; depth is carried by native materials and hairline borders, not bespoke shadows. Color is semantic: a small consistent vocabulary maps kanban columns, work states, session states, and chat connection to meaning. Decoration carries no weight; if a color or motion does not encode state, it does not belong.",
+    "keyCharacteristics": [
+      "Native chrome over custom chrome (NavigationSplitView, .inspector, .sidebar, system materials, system accent)",
+      "Flat by default; shadows appear only on state (drag, float)",
+      "Restrained color: one accent, a small semantic status vocabulary, tinted-native neutrals",
+      "Dense information for power users, progressive disclosure at decision points",
+      "Consistent component vocabulary screen to screen; delight saved for moments, not pages"
+    ],
+    "rules": [
+      { "name": "The One Voice Rule", "body": "The system accent is used on primary actions, current selection, and the ready/open status only, never as decoration. ≤10% of any screen.", "section": "colors" },
+      { "name": "The Semantic Color Rule", "body": "Orange means progress or blocked; coral means error or stop; green means success; the accent means primary/open. Never repaint a status color for variety.", "section": "colors" },
+      { "name": "The Native Neutrals Rule", "body": "Neutrals come from the OS (windowBackgroundColor, controlBackgroundColor, underPageBackgroundColor). Never hand-roll a neutral hex; the OS owns light/dark adaptation.", "section": "colors" },
+      { "name": "The One Family Rule", "body": "SF Pro carries headings, body, labels, and data. No display/body pairing, no editorial serif. System fonts are a feature.", "section": "typography" },
+      { "name": "The Eyebrow Is Not Decoration Rule", "body": "The uppercase tracked label style signals instrument label and maps to status/section meaning. If a label carries no semantic weight, set it in body weight, not eyebrow.", "section": "typography" },
+      { "name": "The Flat-By-Default Rule", "body": "Surfaces are flat at rest. Shadows appear only as a response to state (drag, float, focus). Never add an ambient card shadow.", "section": "elevation" },
+      { "name": "The Material Hierarchy Rule", "body": "Raised = .regularMaterial or Control; recessed = Inset or .tertiary. Do not invent a third material layer.", "section": "elevation" },
+      { "name": "The Hairline Rule", "body": "Borders are 0.5px (soft) or 1px (standard). Anything thicker is skeuomorphic and forbidden.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do use native platform materials and colors (windowBackgroundColor, controlBackgroundColor, underPageBackgroundColor, .regularMaterial). The OS owns light/dark adaptation.",
+      "Do keep the System Accent to primary actions, current selection, and the ready/open status — ≤10% of any screen (The One Voice Rule).",
+      "Do map every status to the semantic vocabulary: orange = progress/blocked, coral = error/stop, green = success, accent = primary/open. Pair color with a dot, icon, or text label so it reads beyond hue.",
+      "Do carry depth with materials and 0.5–1px hairlines. Shadows appear only on state: drag, float, the primary action's lift (The Flat-By-Default Rule).",
+      "Do use SF Pro for everything; create hierarchy with weight and scale (≥1.25 step ratio). Reserve the uppercase tracked eyebrow for instrument labels that carry meaning.",
+      "Do put accessibility identifiers on every interactive element ({screen}_{element}_{description}) and .monospacedDigit() on all numeric stats.",
+      "Do keep component vocabulary consistent screen to screen — same button shape, same pill style, same card radius family."
+    ],
+    "donts": [
+      "Don't use neumorphic double-shadows, extruded/recessed skeuomorphic surfaces, or any vestige of the retired beads prototype.",
+      "Don't paint in the AI dashboard slop lane — dark navy backgrounds, neon accent glows, gradient text (background-clip: text + gradient), hero-metric templates, or identical icon+heading+text card grids.",
+      "Don't add ambient card shadows at rest. If it is not being dragged or floating, it is flat.",
+      "Don't use a border-left/border-right greater than 1px as a colored side-stripe accent on cards, list items, or callouts.",
+      "Don't reinvent standard affordances — custom scrollbars, non-native form controls, Electron-grade chrome. The app reads as a first-class macOS/iOS citizen.",
+      "Don't repaint a status color for variety or decoration. Color means state, always.",
+      "Don't put a display font in a UI label, button, or data cell. The eyebrow style is uppercase tracked, not decorative.",
+      "Don't use glassmorphism decoratively. Glass is reserved for floating chrome (compose bar, terminal header) where content scrolls behind it.",
+      "Don't use em dashes in copy. Use commas, colons, semicolons, periods, or parentheses."
+    ]
+  }
+}

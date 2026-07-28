@@ -60,7 +60,7 @@ struct LaunchSessionSheet: View {
                                     .foregroundStyle(AppTheme.textSecondary)
                                     .padding(12)
                                     .frame(maxWidth: .infinity, alignment: .leading)
-                                    .insetSurface(cornerRadius: 12, depth: 4)
+                                    .insetSurface(cornerRadius: 12)
                             }
 
                             // If launched from a work item (GitHub issue), show the issue ref
@@ -162,13 +162,13 @@ struct LaunchSessionSheet: View {
                                     .scrollContentBackground(.hidden)
                                     .frame(minHeight: 80)
                                     .padding(12)
-                                    .insetSurface(cornerRadius: 16, depth: 6)
+                                    .insetSurface(cornerRadius: 16)
                                     .foregroundStyle(AppTheme.textPrimary)
                                     .accessibilityIdentifier("launchSession_textEditor_customInstructions")
                             }
                         }
                         .padding(24)
-                        .cardSurface(cornerRadius: 24, elevation: 8)
+                        .cardSurface(cornerRadius: 16)
 
                         if isLaunching {
                             ProgressView("Launching session…")

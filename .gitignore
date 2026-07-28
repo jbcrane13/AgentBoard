@@ -38,3 +38,4 @@ Package.resolved
 # jscpd duplicate code detection reports
 reports/
 .jscpd-report/
+.beads/

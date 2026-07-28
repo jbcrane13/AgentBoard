@@ -1,7 +1,6 @@
 import AgentBoardCore
 import SwiftUI
 
-// swiftlint:disable:next type_body_length
 struct IssueDetailSheet: View {
     @Environment(AgentBoardAppModel.self) private var appModel
     @Environment(\.dismiss) private var dismiss
@@ -105,7 +104,7 @@ struct IssueDetailSheet: View {
                 }
             }
             .padding(24)
-            .cardSurface(cornerRadius: 24, elevation: 8)
+            .cardSurface(cornerRadius: 16)
 
             descriptionCard
             closeActionCard
@@ -127,7 +126,7 @@ struct IssueDetailSheet: View {
                     .textSelection(.enabled)
             }
             .padding(24)
-            .cardSurface(cornerRadius: 24, elevation: 8)
+            .cardSurface(cornerRadius: 16)
         }
     }
 
@@ -150,7 +149,7 @@ struct IssueDetailSheet: View {
             }
         }
         .padding(24)
-        .cardSurface(cornerRadius: 24, elevation: 8)
+        .cardSurface(cornerRadius: 16)
     }
 
     private var launchSessionCard: some View {
@@ -160,37 +159,18 @@ struct IssueDetailSheet: View {
                 .tracking(1)
                 .foregroundStyle(AppTheme.textSecondary)
 
-            Button {
+            TintedActionCard(
+                title: "Launch Session",
+                subtitle: "Start an agent session for this issue",
+                systemImage: "bolt.horizontal.circle.fill",
+                tint: AppTheme.accentCyan
+            ) {
                 isPresentingLaunchSession = true
-            } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: "bolt.horizontal.circle.fill")
-                        .font(.system(size: 18))
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Launch Session")
-                            .font(.subheadline.weight(.bold))
-                        Text("Start an agent session for this issue")
-                            .font(.caption)
-                            .foregroundStyle(AppTheme.textSecondary)
-                    }
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.caption.weight(.bold))
-                }
-                .foregroundStyle(AppTheme.accentCyanBright)
-                .padding(16)
-                .background(AppTheme.accentCyan.opacity(0.08))
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(AppTheme.accentCyan.opacity(0.2), lineWidth: 1)
-                }
             }
-            .buttonStyle(.plain)
             .accessibilityIdentifier("issue_detail_launch_session")
         }
         .padding(24)
-        .cardSurface(cornerRadius: 24, elevation: 8)
+        .cardSurface(cornerRadius: 16)
     }
 
     // MARK: - Edit Form
@@ -217,7 +197,7 @@ struct IssueDetailSheet: View {
                         .scrollContentBackground(.hidden)
                         .frame(minHeight: 100)
                         .padding(12)
-                        .insetSurface(cornerRadius: 16, depth: 6)
+                        .insetSurface(cornerRadius: 16)
                         .foregroundStyle(AppTheme.textPrimary)
                         .accessibilityIdentifier("issue_detail_texteditor_body")
                 }
@@ -292,14 +272,14 @@ struct IssueDetailSheet: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 12)
-                        .insetSurface(cornerRadius: 16, depth: 6)
+                        .insetSurface(cornerRadius: 16)
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("issue_detail_button_add_attachment")
                 }
             }
             .padding(24)
-            .cardSurface(cornerRadius: 24, elevation: 8)
+            .cardSurface(cornerRadius: 16)
 
             if isSaving {
                 ProgressView("Saving…")
@@ -312,71 +292,37 @@ struct IssueDetailSheet: View {
     private var closeActionCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             if item.status == .done {
-                Button {
+                TintedActionCard(
+                    title: "Reopen Issue",
+                    subtitle: "Move back to Ready",
+                    systemImage: "arrow.uturn.right",
+                    tint: AppTheme.accentCyan
+                ) {
                     closeOrReopen()
-                } label: {
-                    HStack(spacing: 10) {
-                        Image(systemName: "arrow.uturn.right")
-                            .font(.system(size: 16))
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Reopen Issue")
-                                .font(.subheadline.weight(.bold))
-                            Text("Move back to Ready")
-                                .font(.caption)
-                                .foregroundStyle(AppTheme.textSecondary)
-                        }
-                        Spacer()
-                        if isClosing {
-                            ProgressView()
-                        }
-                    }
-                    .foregroundStyle(AppTheme.accentCyanBright)
-                    .padding(16)
-                    .background(AppTheme.accentCyan.opacity(0.08))
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .stroke(AppTheme.accentCyan.opacity(0.2), lineWidth: 1)
-                    }
                 }
-                .buttonStyle(.plain)
+                .overlay(alignment: .trailing) {
+                    if isClosing { ProgressView().padding(.trailing, 16) }
+                }
                 .disabled(isClosing)
                 .accessibilityIdentifier("issue_detail_button_card_reopen")
             } else {
-                Button {
+                TintedActionCard(
+                    title: "Close Issue",
+                    subtitle: "Mark as Done",
+                    systemImage: "checkmark.circle",
+                    tint: AppTheme.accentGreen
+                ) {
                     closeOrReopen()
-                } label: {
-                    HStack(spacing: 10) {
-                        Image(systemName: "checkmark.circle")
-                            .font(.system(size: 16))
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Close Issue")
-                                .font(.subheadline.weight(.bold))
-                            Text("Mark as Done")
-                                .font(.caption)
-                                .foregroundStyle(AppTheme.textSecondary)
-                        }
-                        Spacer()
-                        if isClosing {
-                            ProgressView()
-                        }
-                    }
-                    .foregroundStyle(AppTheme.accentGreen)
-                    .padding(16)
-                    .background(AppTheme.accentGreen.opacity(0.08))
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .stroke(AppTheme.accentGreen.opacity(0.2), lineWidth: 1)
-                    }
                 }
-                .buttonStyle(.plain)
+                .overlay(alignment: .trailing) {
+                    if isClosing { ProgressView().padding(.trailing, 16) }
+                }
                 .disabled(isClosing)
                 .accessibilityIdentifier("issue_detail_button_card_close_issue")
             }
         }
         .padding(24)
-        .cardSurface(cornerRadius: 24, elevation: 8)
+        .cardSurface(cornerRadius: 16)
     }
 
     // MARK: - Actions

@@ -1,613 +1,248 @@
-# AgentBoard — Design Document
-
-> Archived design: this document describes the retired OpenClaw/beads prototype. The active Hermes-first app architecture is documented in `README.md`, `docs/architecture.md`, and `docs/ADR.md`.
-
-**Version:** 0.1 (Draft)
-**Date:** 2026-02-14
-**Author:** Blake Crane + R. Daneel Olivaw
-
+---
+name: AgentBoard
+description: Native macOS/iOS control surface for a Hermes-first agent fleet
+colors:
+  system-accent: "#0A84FF"
+  window: "#ECECEC"
+  control: "#FFFFFF"
+  inset: "#F5F5F5"
+  surface-hover: "#00000014"
+  text-primary: "#000000"
+  text-secondary: "#3C3C4399"
+  text-tertiary: "#3C3C434C"
+  text-disabled: "#3C3C432E"
+  border-soft: "#3C3C4326"
+  border: "#3C3C434D"
+  border-strong: "#3C3C437A"
+  status-open: "#0A84FF"
+  status-success: "#34C759"
+  status-idle: "#0A84FF"
+  accent-orange: "#FF9500"
+  accent-coral: "#FF3B30"
+  accent-purple: "#AF52DE"
+  accent-foreground: "#FFFFFF"
+  shadow-dark: "#00000033"
+typography:
+  display:
+    fontFamily: "SF Pro Display, -apple-system, system-ui, sans-serif"
+    fontSize: "30px"
+    fontWeight: 700
+    lineHeight: 1.1
+    letterSpacing: "-0.8px"
+  headline:
+    fontFamily: "SF Pro Display, -apple-system, system-ui, sans-serif"
+    fontSize: "17px"
+    fontWeight: 700
+    lineHeight: 1.2
+    letterSpacing: "normal"
+  title:
+    fontFamily: "SF Pro Text, -apple-system, system-ui, sans-serif"
+    fontSize: "15px"
+    fontWeight: 700
+    lineHeight: 1.25
+    letterSpacing: "normal"
+  body:
+    fontFamily: "SF Pro Text, -apple-system, system-ui, sans-serif"
+    fontSize: "13px"
+    fontWeight: 400
+    lineHeight: 1.4
+    letterSpacing: "normal"
+  label:
+    fontFamily: "SF Pro Text, -apple-system, system-ui, sans-serif"
+    fontSize: "11px"
+    fontWeight: 600
+    lineHeight: 1.2
+    letterSpacing: "1.2px"
+  mono:
+    fontFamily: "SF Mono, JetBrains Mono, ui-monospace, monospace"
+    fontSize: "11px"
+    fontWeight: 600
+    lineHeight: 1.3
+    letterSpacing: "normal"
+rounded:
+  xs: "8px"
+  sm: "9px"
+  md: "12px"
+  lg: "14px"
+  xl: "16px"
+  card: "22px"
+  bubble: "24px"
+spacing:
+  xs: "4px"
+  sm: "8px"
+  md: "12px"
+  lg: "16px"
+  xl: "20px"
+  xxl: "24px"
+components:
+  button-primary:
+    backgroundColor: "{colors.system-accent}"
+    textColor: "{colors.accent-foreground}"
+    rounded: "{rounded.xs}"
+    padding: "14px 8px"
+  button-primary-pressed:
+    backgroundColor: "{colors.system-accent}"
+    textColor: "{colors.accent-foreground}"
+    rounded: "{rounded.xs}"
+    padding: "14px 8px"
+  button-secondary:
+    backgroundColor: "{colors.surface-hover}"
+    textColor: "{colors.text-primary}"
+    rounded: "{rounded.xs}"
+    padding: "14px 8px"
+  pill-status:
+    backgroundColor: "{colors.system-accent}"
+    textColor: "{colors.system-accent}"
+    rounded: "999px"
+    padding: "8px 4px"
+  card-raised:
+    backgroundColor: "{colors.control}"
+    textColor: "{colors.text-primary}"
+    rounded: "{rounded.card}"
+    padding: "18px"
+  inset-well:
+    backgroundColor: "{colors.inset}"
+    textColor: "{colors.text-primary}"
+    rounded: "{rounded.xl}"
+    padding: "12px"
 ---
 
-## 1. Vision
+# Design System: AgentBoard
 
-AgentBoard is a **native macOS application** for managing AI-assisted software development. It combines a Kanban-style issue tracker (powered by [Beads](https://github.com/openclaw/beads)), a live coding agent session monitor, and a full-featured OpenClaw chat interface with an integrated canvas for visual collaboration.
+## 1. Overview
 
-**The core insight:** Modern AI-assisted dev workflows involve three simultaneous activities — tracking work, communicating with agents, and reviewing agent output. Today these are spread across Terminal, browser, and various CLIs. AgentBoard unifies them into a single, purpose-built interface.
+**Creative North Star: "The Control Surface"**
+
+AgentBoard is a native console for a fleet of Hermes-driven coding agents. The aesthetic is calm at idle, clear in motion. The user is a power developer who runs multiple agent sessions, triages work, and steers agents mid-flight — the interface treats them as someone who knows what they're doing and stays out of their way.
 
-### Target User
+The system is native macOS/iOS first. Surfaces, materials, controls, and motion come from the platform; the app reads as a first-class citizen of the OS, not a bespoke design system fighting it (ADR-015). Depth is carried by native materials and hairline borders, not bespoke shadows. Color is semantic: a small, consistent vocabulary maps kanban columns, work states, session states, and chat connection to meaning. Decoration carries no weight here; if a color or motion does not encode state, it does not belong.
+
+This system explicitly rejects the retired beads prototype's neumorphic double-shadows and skeuomorphic extruded/recessed surfaces, and the generic "AI dashboard" slop lane — dark navy backgrounds, neon accent glows, gradient text, hero-metric templates, and identical icon-card grids. AgentBoard is a tool, not a pitch deck. The web-app-in-a-window feel (custom scrollbars, non-native form controls) is also forbidden.
 
-Solo developers or small teams using OpenClaw with coding agents (Claude Code, Codex CLI, OpenCode). The user manages multiple projects, spawns coding sessions, reviews agent work, and iterates through chat — all from one window.
+**Key Characteristics:**
+- Native chrome over custom chrome: `NavigationSplitView`, `.inspector`, `.sidebar`, system materials, system accent.
+- Flat by default; shadows appear only on state (drag, floating chrome).
+- Restrained color: one accent, a small semantic status vocabulary, tinted-native neutrals.
+- Dense information for power users, progressive disclosure at decision points.
+- Consistent component vocabulary screen to screen; delight is saved for moments, not pages.
+
+## 2. Colors
 
-### Non-Goals (v1)
-
-- Not a full IDE or code editor
-- Not a replacement for Xcode/VS Code (complements them)
-- Not a team collaboration tool (single-user focus for v1)
-- Not a mobile app
-
----
-
-## 2. Architecture Overview
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        AgentBoard.app                           │
-│                    (SwiftUI, macOS 15+)                         │
-├─────────────┬──────────────────────┬────────────────────────────┤
-│  Sidebar    │   Center Panel       │   Right Panel              │
-│             │                      │                            │
-│ • Projects  │ • Board (Kanban)     │ • Chat Mode                │
-│ • Sessions  │ • Epics View         │ • Canvas Mode              │
-│ • Views     │ • Agents View        │ • Split Mode (both)        │
-│ • Actions   │ • Terminal View      │                            │
-│             │ • History View       │                            │
-└──────┬──────┴──────────┬───────────┴──────────┬─────────────────┘
-       │                 │                      │
-       ▼                 ▼                      ▼
-┌──────────────┐ ┌───────────────┐ ┌────────────────────────────┐
-│ SessionMonitor│ │ BeadsWatcher  │ │ OpenClawService            │
-│ (tmux/ps)    │ │ (FSEvents)    │ │ (WebSocket + REST)         │
-└──────────────┘ └───────────────┘ └────────────────────────────┘
-                         │                      │
-                         ▼                      ▼
-                  ┌──────────────┐    ┌─────────────────────┐
-                  │ .beads/ dirs │    │ OpenClaw Gateway     │
-                  │ (filesystem) │    │ ws://127.0.0.1:18789 │
-                  └──────────────┘    └─────────────────────┘
-```
-
-### Technology Stack
-
-| Component | Technology | Rationale |
-|-----------|-----------|-----------|
-| UI Framework | SwiftUI | Native macOS feel, declarative, good for complex layouts |
-| Minimum Target | macOS 15 (Sequoia) | Access to latest SwiftUI features (Inspector, custom containers) |
-| Networking | URLSession + WebSocket | Native, no dependencies for OpenClaw API |
-| Terminal | SwiftTerm (package) | Mature terminal emulator for macOS, renders tmux output |
-| Rich Content | WKWebView | Canvas panel needs HTML/CSS/Markdown rendering |
-| File Watching | DispatchSource / FSEvents | Real-time beads state updates |
-| Data Layer | In-memory + filesystem | Beads files are the source of truth; no local database needed |
-| Markdown | swift-markdown (Apple) | Parse markdown for canvas rendering |
-| Package Manager | Swift Package Manager | Standard, no CocoaPods/Carthage complexity |
-
-### Key Dependencies
-
-```swift
-// Package.swift dependencies
-.package(url: "https://github.com/migueldeicaza/SwiftTerm", from: "1.0.0"),
-.package(url: "https://github.com/apple/swift-markdown", from: "0.4.0"),
-```
-
----
-
-## 3. Data Model
-
-### 3.1 Project
-
-A project maps to a git repository with a `.beads/` directory.
-
-```swift
-struct Project: Identifiable, Hashable {
-    let id: UUID
-    let name: String           // e.g. "NetMonitor-iOS"
-    let path: URL              // e.g. ~/Projects/NetMonitor-iOS
-    let beadsPath: URL         // e.g. ~/Projects/NetMonitor-iOS/.beads
-    let icon: String           // emoji or SF Symbol
-    var isActive: Bool         // currently selected
-
-    // Computed from beads state
-    var openCount: Int
-    var inProgressCount: Int
-    var totalCount: Int
-}
-```
-
-### 3.2 Bead (Issue/Task)
-
-Read from `.beads/issues.jsonl`. Each line is a JSON object representing a bead.
-
-```swift
-struct Bead: Identifiable, Hashable, Codable {
-    let id: String              // bead ID (short hash)
-    let title: String
-    let body: String?
-    let status: BeadStatus      // open, in-progress, blocked, done
-    let kind: BeadKind          // task, bug, feature, epic
-    let epicId: String?         // parent epic ID
-    let labels: [String]
-    let assignee: String?       // "agent" or "human" or specific agent name
-    let createdAt: Date
-    let updatedAt: Date
-    let dependencies: [String]  // other bead IDs
-    let gitBranch: String?
-    let lastCommit: String?     // short SHA
-}
-
-enum BeadStatus: String, Codable, CaseIterable {
-    case open, inProgress = "in-progress", blocked, done
-}
-
-enum BeadKind: String, Codable, CaseIterable {
-    case task, bug, feature, epic
-}
-```
-
-### 3.3 Coding Session
-
-Represents a running (or completed) coding agent session.
-
-```swift
-struct CodingSession: Identifiable {
-    let id: String              // tmux session name or PID
-    let name: String            // display name (e.g. "NetMonitor — NWPath")
-    let agentType: AgentType    // claude-code, codex, opencode
-    let projectPath: URL?
-    let beadId: String?         // linked bead
-    let status: SessionStatus
-    let startedAt: Date
-    let elapsed: TimeInterval
-    let model: String?          // e.g. "claude-opus-4-6"
-}
-
-enum AgentType: String, CaseIterable {
-    case claudeCode = "claude-code"
-    case codex = "codex"
-    case openCode = "opencode"
-}
-
-enum SessionStatus: String {
-    case running, idle, stopped, error
-}
-```
-
-### 3.4 Chat Message
-
-```swift
-struct ChatMessage: Identifiable {
-    let id: UUID
-    let role: MessageRole       // user, assistant, system
-    let content: String
-    let timestamp: Date
-    let beadContext: String?     // linked bead ID
-    let canvasContent: CanvasContent?  // content pushed to canvas
-}
-
-enum MessageRole: String {
-    case user, assistant, system
-}
-```
-
-### 3.5 Canvas Content
-
-Content the agent (or user) pushes to the canvas panel.
-
-```swift
-enum CanvasContent: Identifiable {
-    case markdown(id: UUID, title: String, content: String)
-    case html(id: UUID, title: String, content: String)
-    case image(id: UUID, title: String, url: URL)
-    case diff(id: UUID, title: String, before: String, after: String, filename: String)
-    case diagram(id: UUID, title: String, mermaid: String)
-    case terminal(id: UUID, title: String, output: String)
-}
-```
-
----
-
-## 4. UI Design
-
-### 4.1 Window Layout
-
-```
-┌─────────┬───────────────────────────────────────┬──────────────┐
-│ Sidebar  │ Center Panel                          │ Right Panel  │
-│ (220pt)  │ (flexible, min 400pt)                 │ (340pt)      │
-│          │                                       │              │
-│ Projects │ ┌─────────────────────────────────┐   │ ┌──────────┐ │
-│          │ │ Project Header + Stats          │   │ │ Mode Bar │ │
-│ ──────── │ ├─────────────────────────────────┤   │ │ Chat|Can │ │
-│          │ │ Tabs: Board|Epics|Agents|History│   │ │ |Split   │ │
-│ Sessions │ ├─────────────────────────────────┤   │ ├──────────┤ │
-│ • live   │ │                                 │   │ │          │ │
-│ • idle   │ │  Active Tab Content             │   │ │ Canvas   │ │
-│ • done   │ │  (Board columns, Epics list,    │   │ │ Area     │ │
-│          │ │   Terminal view, etc.)           │   │ │          │ │
-│ ──────── │ │                                 │   │ ├──────────┤ │
-│          │ │                                 │   │ │          │ │
-│ Views    │ │                                 │   │ │ Chat     │ │
-│ Board    │ │                                 │   │ │ Messages │ │
-│ Epics    │ │                                 │   │ │          │ │
-│ History  │ │                                 │   │ ├──────────┤ │
-│ Settings │ │                                 │   │ │ Context  │ │
-│          │ └─────────────────────────────────┘   │ │ Input    │ │
-│ ──────── │                                       │ └──────────┘ │
-│ + New    │                                       │              │
-└─────────┴───────────────────────────────────────┴──────────────┘
-```
-
-### 4.2 Left Sidebar (220pt fixed)
-
-**Dark background** (`#2c2c2e`), consistent with macOS sidebar conventions.
-
-**Sections:**
-
-1. **Projects** — List of configured projects with bead counts. Click to select. Source: user config file (`~/.agentboard/config.json`) listing project paths.
-
-2. **Coding Sessions** — Live list of running/idle/completed coding agent sessions. Each shows:
-   - Status dot (green=running, yellow=idle, gray=done, red=error)
-   - Session name (truncated)
-   - Elapsed time or status label
-   - Click → expands to terminal view in center panel
-
-3. **Views** — Navigation shortcuts: Board, Epics, History, Settings.
-
-4. **Actions** — "+ New Session" button at bottom. Opens a sheet to configure and launch a new coding agent session.
-
-### 4.3 Center Panel (flexible)
-
-**Light background** (`#f5f5f0`), the primary workspace.
-
-**Project Header:**
-- Project name, live status badge
-- "⚡ Live Edit" button (toggles real-time bead sync)
-- "Plan" button (opens epic planning view)
-- Stats: Open / In Progress / Total counts
-
-**Tab Bar:**
-- **Board** — Kanban columns: Open, In Progress, Blocked, Done
-- **Epics** — Grouped view of epics with child beads, progress bars
-- **Agents** — Running sessions detail view (model, tokens, time, linked beads)
-- **History** — Timeline of recent bead changes, commits, session events
-
-**Board View (default):**
-- Four columns with colored headers
-- Task cards show: bead ID, title, kind tag, date, agent indicator
-- Drag-and-drop between columns (writes bead status via `bd` CLI)
-- Right-click context menu: Edit, Assign to Agent, Start Session, Dependencies
-- Filter bar: by kind, assignee, epic, label
-
-**Terminal View (session expand):**
-- When a coding session is clicked in the sidebar
-- Full terminal emulator (SwiftTerm) showing tmux pane output
-- Toolbar: session name, elapsed time, model, linked bead, "Back to Board" button
-- Can send keystrokes to the tmux session (for nudging stuck agents)
-
-### 4.4 Right Panel — Chat + Canvas (340pt)
-
-The right panel has **three modes**, toggled via a segmented control at the top:
-
-#### Chat Mode
-- Standard chat interface connected to OpenClaw gateway
-- Messages stream via WebSocket (SSE fallback)
-- Context chips below messages show linked bead and active sessions
-- Input area with text field and send button
-- Supports markdown rendering in assistant messages
-- Code blocks with syntax highlighting
-
-#### Canvas Mode
-- Rich content area rendered in WKWebView
-- Agent can push content via a canvas protocol (part of the chat API)
-- User can also paste images, HTML, or open local files
-- Toolbar: zoom, export, clear
-- Content types:
-  - **Markdown** — rendered with syntax highlighting
-  - **HTML** — live preview (great for UI mockups)
-  - **Images** — screenshots, diagrams, generated images
-  - **Diffs** — side-by-side or unified diff view
-  - **Mermaid diagrams** — rendered to SVG
-  - **Terminal output** — styled monospace
-
-#### Split Mode (Default)
-- Canvas takes top ~60%, chat takes bottom ~40%
-- Resizable divider
-- Agent messages that include canvas content auto-push to the canvas area
-- Best of both worlds — see what the agent is showing you while continuing to chat
-
-### 4.5 Visual Design Language
-
-| Element | Value |
-|---------|-------|
-| Font (UI) | SF Pro Display |
-| Font (Body) | SF Pro Text |
-| Font (Code) | SF Mono / JetBrains Mono |
-| Accent color | `#ff9500` (warm orange) |
-| Background | `#f5f5f0` (warm cream) |
-| Sidebar bg | `#2c2c2e` (dark gray) |
-| Cards | White with subtle shadow |
-| Border radius | 8px (cards), 12px (containers) |
-| Status colors | Blue=open, Orange=progress, Red=blocked, Green=done |
-
-**Dark Mode:** Invert the cream/white palette. Sidebar stays dark. Cards become `#2c2c2e`. Text inverts. Accent orange stays.
-
----
-
-## 5. Service Layer
-
-### 5.1 OpenClawService
-
-Handles all communication with the OpenClaw gateway.
-
-```swift
-actor OpenClawService {
-    let baseURL: URL           // ws://127.0.0.1:18789
-    let authToken: String
-
-    // Chat
-    func sendMessage(_ text: String, sessionKey: String?) async throws -> AsyncStream<ChatChunk>
-    func getChatHistory(sessionKey: String, limit: Int) async throws -> [ChatMessage]
-
-    // Sessions
-    func listSessions(activeMinutes: Int?) async throws -> [OpenClawSession]
-    func getSessionStatus(sessionKey: String) async throws -> SessionStatus
-
-    // Canvas
-    func pushCanvas(_ content: CanvasContent) async throws
-    func onCanvasUpdate() -> AsyncStream<CanvasContent>
-
-    // Config
-    func getConfig() async throws -> OpenClawConfig
-}
-```
-
-**Connection strategy:**
-1. WebSocket for streaming chat responses (primary)
-2. REST polling for session list, status (every 5s when visible)
-3. SSE fallback if WebSocket unavailable
-
-### 5.2 BeadsWatcher
-
-Watches `.beads/` directories for changes and publishes updates.
-
-```swift
-actor BeadsWatcher {
-    // Watch a project's .beads/ directory
-    func watch(project: Project) async
-
-    // Stop watching
-    func unwatch(project: Project) async
-
-    // Stream of bead state changes
-    var updates: AsyncStream<BeadsUpdate>
-
-    // Read current state
-    func loadBeads(from path: URL) async throws -> [Bead]
-
-    // Write operations (shell out to `bd` CLI)
-    func createBead(title: String, kind: BeadKind, project: Project) async throws -> Bead
-    func updateBead(id: String, status: BeadStatus?, title: String?, project: Project) async throws
-    func createEpic(title: String, children: [String], project: Project) async throws -> Bead
-}
-```
-
-**Implementation:** Uses `DispatchSource.makeFileSystemObjectSource` on the `.beads/issues.jsonl` file. On change, re-parses the file and diffs against in-memory state. Publishes `BeadsUpdate` events for added/changed/removed beads.
-
-**Write operations** shell out to the `bd` CLI to maintain compatibility with the beads ecosystem. We don't write JSONL directly.
-
-### 5.3 SessionMonitor
-
-Monitors coding agent sessions via tmux and process inspection.
-
-```swift
-actor SessionMonitor {
-    let tmuxSocket: String  // /tmp/openclaw-tmux-sockets/openclaw.sock
-
-    // Discover sessions
-    func listSessions() async throws -> [CodingSession]
-
-    // Capture pane output for terminal view
-    func capturePane(session: String, lines: Int) async throws -> String
-
-    // Send keys to session (for nudging)
-    func sendKeys(session: String, keys: String) async throws
-
-    // Stream session state changes
-    var updates: AsyncStream<SessionUpdate>
-}
-```
-
-**Implementation:**
-1. Polls `tmux -S <socket> list-sessions` every 3 seconds
-2. Polls `ps aux | grep -E "claude|codex|opencode"` for agent processes
-3. Matches processes to tmux sessions by TTY
-4. For terminal view: `tmux capture-pane -t <session> -p -S -500` for scrollback
-
-### 5.4 CanvasRenderer
-
-Handles rendering of canvas content in the WKWebView.
-
-```swift
-class CanvasRenderer {
-    let webView: WKWebView
-
-    func render(_ content: CanvasContent)
-    func renderMarkdown(_ md: String)
-    func renderHTML(_ html: String)
-    func renderDiff(before: String, after: String, filename: String)
-    func renderMermaid(_ diagram: String)
-    func renderImage(_ url: URL)
-    func clear()
-    func export() -> NSImage?
-}
-```
-
-**Implementation:** A pre-loaded HTML template with JS libraries (highlight.js, mermaid.js, diff2html). Content is pushed via `webView.evaluateJavaScript()`. The template handles rendering and styling.
-
----
-
-## 6. OpenClaw Integration Protocol
-
-### 6.1 Chat API
-
-Uses the existing OpenClaw chat completions endpoint:
-
-```
-POST /v1/chat/completions
-WebSocket: ws://127.0.0.1:18789/ws
-
-Headers:
-  Authorization: Bearer <gateway-token>
-  X-Agent-Id: main (or specific agent)
-```
-
-### 6.2 Canvas Protocol (New)
-
-Agent messages can include canvas directives via a convention in the response:
-
-```
-<!-- canvas:markdown -->
-# Architecture Review
-...content...
-<!-- /canvas -->
-```
-
-Or via structured tool output that includes canvas content. AgentBoard parses these from the streamed response and routes them to the canvas panel.
-
-**Alternative approach:** Use OpenClaw's existing A2UI canvas feature. AgentBoard registers as a canvas target and receives push updates.
-
-### 6.3 Session Linking
-
-When AgentBoard launches a coding session, it:
-1. Creates a tmux session with a known name pattern: `ab-<project>-<bead-id>`
-2. Starts the coding agent with the bead context as the prompt
-3. Monitors the session via SessionMonitor
-4. When the agent commits with a bead ID in the message, updates the bead status
-
----
-
-## 7. Configuration
-
-### 7.1 App Configuration
-
-Stored at `~/.agentboard/config.json`:
-
-```json
-{
-  "projects": [
-    {
-      "name": "NetMonitor-iOS",
-      "path": "~/Projects/NetMonitor-iOS",
-      "icon": "📡"
-    },
-    {
-      "name": "AgentBoard",
-      "path": "~/Projects/AgentBoard",
-      "icon": "🎛️"
-    }
-  ],
-  "openClaw": {
-    "gatewayUrl": "ws://127.0.0.1:18789",
-    "authToken": null
-  },
-  "tmux": {
-    "socketPath": "/tmp/openclaw-tmux-sockets/openclaw.sock"
-  },
-  "appearance": {
-    "theme": "auto",
-    "accentColor": "#ff9500"
-  },
-  "agents": {
-    "defaultModel": "claude-opus-4-6",
-    "defaultAgent": "claude-code"
-  }
-}
-```
-
-### 7.2 Gateway Token Discovery
-
-On first launch, AgentBoard attempts to read the gateway token from:
-1. `~/.openclaw/openclaw.json` → `gateway.auth.token`
-2. Environment variable `OPENCLAW_GATEWAY_TOKEN`
-3. Prompt user to paste it
-
----
-
-## 8. File Structure
-
-```
-AgentBoard/
-├── AgentBoard.xcodeproj
-├── AgentBoard/
-│   ├── App/
-│   │   ├── AgentBoardApp.swift          // @main, WindowGroup, app lifecycle
-│   │   ├── AppState.swift               // @Observable root state
-│   │   └── AppConfig.swift              // Config loading/saving
-│   ├── Models/
-│   │   ├── Project.swift
-│   │   ├── Bead.swift
-│   │   ├── CodingSession.swift
-│   │   ├── ChatMessage.swift
-│   │   └── CanvasContent.swift
-│   ├── Services/
-│   │   ├── OpenClawService.swift        // Gateway API client
-│   │   ├── BeadsWatcher.swift           // Filesystem watcher for .beads/
-│   │   ├── SessionMonitor.swift         // tmux + process monitoring
-│   │   └── CanvasRenderer.swift         // WKWebView content rendering
-│   ├── Views/
-│   │   ├── MainWindow/
-│   │   │   └── ContentView.swift        // Three-panel NavigationSplitView
-│   │   ├── Sidebar/
-│   │   │   ├── SidebarView.swift
-│   │   │   ├── ProjectListView.swift
-│   │   │   ├── SessionListView.swift
-│   │   │   └── ViewsNavView.swift
-│   │   ├── Board/
-│   │   │   ├── BoardView.swift          // Kanban board
-│   │   │   ├── BoardColumnView.swift
-│   │   │   ├── TaskCardView.swift
-│   │   │   └── TaskDetailSheet.swift
-│   │   ├── Epics/
-│   │   │   ├── EpicsView.swift
-│   │   │   └── EpicRowView.swift
-│   │   ├── Agents/
-│   │   │   └── AgentsView.swift
-│   │   ├── History/
-│   │   │   └── HistoryView.swift
-│   │   ├── Terminal/
-│   │   │   └── TerminalView.swift       // SwiftTerm wrapper
-│   │   ├── Chat/
-│   │   │   ├── ChatPanelView.swift
-│   │   │   ├── ChatMessageView.swift
-│   │   │   └── ChatInputView.swift
-│   │   ├── Canvas/
-│   │   │   ├── CanvasPanelView.swift
-│   │   │   └── CanvasWebView.swift      // WKWebView wrapper
-│   │   └── RightPanel/
-│   │       └── RightPanelView.swift     // Mode switcher (Chat/Canvas/Split)
-│   ├── Utilities/
-│   │   ├── ShellRunner.swift            // Process/exec helper
-│   │   ├── JSONLParser.swift            // Parse .beads/issues.jsonl
-│   │   └── MarkdownRenderer.swift
-│   └── Resources/
-│       ├── Assets.xcassets
-│       ├── canvas-template.html         // WKWebView template with JS libs
-│       └── Preview Content/
-├── AgentBoardTests/
-├── DESIGN.md                            // This file
-├── IMPLEMENTATION-PLAN.md
-└── README.md
-```
-
----
-
-## 9. Open Questions
-
-1. **Canvas protocol:** Should we use OpenClaw's A2UI system, or define our own simpler protocol? A2UI is more capable but adds dependency on OpenClaw's internal API.
-
-2. **Terminal emulator choice:** SwiftTerm is mature but heavy. Alternative: just render captured tmux output as styled AttributedString (simpler, less interactive but covers 90% of use cases).
-
-3. **Multi-window:** Should AgentBoard support detaching the terminal view or canvas into separate windows? Nice to have but adds complexity.
-
-4. **Keyboard shortcuts:** What's the shortcut vocabulary? Cmd+N for new bead, Cmd+Shift+N for new session, Cmd+Enter to send chat, etc.
-
-5. **Auth flow:** Should AgentBoard auto-discover the gateway token from the OpenClaw config, or require explicit setup? (Recommendation: auto-discover with manual override.)
-
----
-
-## 10. References
-
-- **Mockup:** `/Users/blake/Downloads/agentboard-mockup.html`
-- **Beads CLI:** `bd` command — `bd list`, `bd add`, `bd edit`, `bd epic`
-- **OpenClaw Gateway API:** `http://127.0.0.1:18789` — REST + WebSocket
-- **OpenClaw Docs:** `/opt/homebrew/lib/node_modules/openclaw/docs`
-- **SwiftTerm:** https://github.com/migueldeicaza/SwiftTerm
-- **swift-markdown:** https://github.com/apple/swift-markdown
+The palette is Restrained: tinted-native neutrals carry the surface, one system accent carries primary action and selection, and a small semantic vocabulary encodes status. Neutrals resolve to the platform's dynamic window/control/inset colors so light and dark mode are automatic; the values below are the macOS light-mode approximations for reference only — the OS is the source of truth.
+
+### Primary
+- **System Accent** (#0A84FF): the system accent color from the asset catalog. Primary actions, current selection, and the kanban "ready"/"open" status. Used on ≤10% of any screen; its rarity is the point.
+
+### Neutral
+- **Window** (#ECECEC): window/scene background. The canvas behind everything.
+- **Control** (#FFFFFF): control-background and raised-card surface. The resting layer for cards and tiles.
+- **Inset** (#F5F5F5): inset wells, recessed fields, and kanban column backgrounds. One step below Control.
+- **Surface Hover** (#00000014): hover/active tint applied to non-accent controls.
+- **Text Primary** (#000000): primary text. In dark mode this inverts via the OS.
+- **Text Secondary** (#3C3C4399): secondary labels and supporting copy.
+- **Text Tertiary** (#3C3C434C): timestamps, counts, placeholders.
+- **Border Soft** (#3C3C4326): card and inset hairlines at 0.5px.
+- **Border** (#3C3C434D): stronger dividers and column outlines at 1px.
+
+### Semantic Status
+- **Status Open / Idle** (#0A84FF): ready and idle sessions. Reuses the accent.
+- **Status Success** (#34C759): running tasks, resolved work, completed sessions.
+- **Accent Orange** (#FF9500): in-progress work, blocked tasks, stalled sessions, "In Progress" kanban column.
+- **Accent Coral** (#FF3B30): blocked work, error states, the streaming "stop" button.
+- **Accent Purple** (#AF52DE): the chat tile accent and "review" status.
+
+### Named Rules
+**The One Voice Rule.** The system accent is used on primary actions, current selection, and the "ready/open" status only — never as decoration. ≤10% of any screen.
+**The Semantic Color Rule.** Orange means progress or blocked; coral means error or stop; green means success; the accent means primary/open. Never repaint a status color for variety.
+**The Native Neutrals Rule.** Neutrals come from the OS (`windowBackgroundColor`, `controlBackgroundColor`, `underPageBackgroundColor`). Never hand-roll a neutral hex; the OS owns light/dark adaptation.
+
+## 3. Typography
+
+**Display Font:** SF Pro Display (with `-apple-system, system-ui, sans-serif` fallback)
+**Body Font:** SF Pro Text (with `-apple-system, system-ui, sans-serif` fallback)
+**Label/Mono Font:** SF Mono / JetBrains Mono for references, counts, and code
+
+**Character:** One family, system-native, doing everything. No display font in labels; no pairing. Hierarchy comes from weight and scale contrast (≥1.25 ratio between steps), kept tight for product density. The eyebrow/label style is uppercase, tracked, semibold — the only typographic flourish, and it reads as "instrument label," not marketing.
+
+### Hierarchy
+- **Display** (700, 30px / 34px compact, line-height 1.1, letter-spacing -0.8px): screen titles on the dashboard and major headers. Used sparingly — one per screen.
+- **Headline** (700, 17px, line-height 1.2): section and sheet titles.
+- **Title** (700, 15px, line-height 1.25): card and tile titles.
+- **Body** (400, 13px, line-height 1.4): default body and descriptions.
+- **Label** (600, 11px, letter-spacing 1.2px, uppercase): eyebrows, kanban column headers, and sender labels. Tracking is the personality; do not remove it.
+- **Mono** (600, 11px): issue references, counts, slash-command names. `.monospacedDigit()` on all numeric stats.
+
+### Named Rules
+**The One Family Rule.** SF Pro carries headings, body, labels, and data. No display/body pairing, no editorial serif. System fonts are a feature.
+**The Eyebrow Is Not Decoration Rule.** The uppercase tracked label style signals "instrument label" and maps to status/section meaning. If a label carries no semantic weight, set it in body weight, not eyebrow.
+
+## 4. Elevation
+
+Flat by default. Depth is carried by native materials (`.regularMaterial`, `.tertiary`) and hairline borders at 0.5–1px. There is no ambient shadow vocabulary at rest. The system provides its own lifted-preview shadow while a card is being dragged; AgentBoard does not add one. The two deliberate shadow uses are state-driven: a soft shadow on floating chrome (the compose bar's glass, the terminal header) and the tiny lift on a draggable card's create-issue button.
+
+### Shadow Vocabulary (state-only)
+- **Floating Chrome** (`shadow(color: shadowDark, radius: 4, y: 2)`): compose bar glass and slash-command popover. State-driven, not ambient.
+- **Card Lift** (`shadow(color: shadowDark opacity 0.4, radius: 3, y: 1)`): the create-issue plus button. A affordance for the primary action, not resting decoration.
+
+### Named Rules
+**The Flat-By-Default Rule.** Surfaces are flat at rest. Shadows appear only as a response to state (drag, float, focus). Never add an ambient card shadow.
+**The Material Hierarchy Rule.** Raised = `.regularMaterial` or Control; recessed = Inset or `.tertiary`. Do not invent a third material layer.
+**The Hairline Rule.** Borders are 0.5px (soft) or 1px (standard). Anything thicker is skeuomorphic and forbidden.
+
+## 5. Components
+
+### Buttons
+- **Shape:** 8px continuous corner radius (`RoundedRectangle(cornerRadius: 8, style: .continuous)`).
+- **Primary (`AppButtonStyle(isAccent: true)`):** filled with System Accent, white foreground, semibold subheadline, 14×8 padding. The only filled button on a screen.
+- **Secondary (`AppButtonStyle(isAccent: false)`):** clear fill over Surface Hover, text-primary foreground, 0.5px border. The default button.
+- **Pressed:** opacity drops to 0.7; no custom scale or shadow animation. System feedback.
+- **Circular accent:** the create-issue plus button is a 28px circle filled with System Accent, white glyph, 0.5px soft border, and the Card Lift shadow. Reserved for the single primary action of a screen.
+
+### Pills / Chips
+- **Status pill (`AgentBoardPill`):** capsule, color at 12% fill, semibold caption2 text in the color, 8×4 padding, 6px dot or 9px SF Symbol. Encodes one status.
+- **Stat pill (`statPill` / `statChip`):** 7px filled circle with a 0.6-opacity color glow, rounded-bold count, caption label. Reads as "instrument reading."
+- **Tool activity chip:** capsule, Surface Hover fill, text-secondary, 10×5 padding, with a mini ProgressView or checkmark. Fades to 0.65 opacity when complete.
+
+### Cards / Containers
+- **Raised card (`cardSurface`):** `.regularMaterial` fill, 0.5px soft border, 22px continuous radius (tiles) or 14px (work cards). Padding 18px (tiles) or 10px (work cards). Flat at rest.
+- **Inset well (`insetSurface`):** Inset fill, 0.5px soft border, 16px radius. Kanban columns, search fields, slash-command category chips.
+- **Kanban column:** Inset fill, 1px standard border, 14px radius, fixed 170px width, header with a 1px bottom divider and a count capsule.
+
+### Inputs / Fields
+- **Search field:** plain TextField in an Inset well, 8px radius, 10×6 padding, magnifyingglass + caption placeholder. No stroke at rest.
+- **Compose field:** plain TextField, `lineLimit(1...6)`, submit label `.send`. Housed in the glass compose bar, not its own bordered box.
+- **Focus:** relies on system focus; no custom glow or border shift.
+
+### Navigation
+- **Desktop:** `NavigationSplitView` with `.sidebar` list (220–320px), detail, and trailing `.inspector` chat (320–460px). Toolbar primary actions: Quick Launch + chat toggle.
+- **Mobile:** `TabView(selection:)` with `NavigationStack`, inline title, hidden nav bar where the screen owns its header.
+- **Sidebar rows:** native `Label` with SF Symbol, badges for counts, project color from a 3-color hash. Live sessions show status dot + secondary caption.
+
+### Chat Bubble
+- **Shape:** 24px continuous radius, 20px padding, aligned by role.
+- **Assistant:** `.regularMaterial` fill, 1px soft border, text-primary, accent-cyan "Hermes" label, tool activity chips above content.
+- **User:** solid System Accent fill, no border, white text, accent-orange "You" label.
+- **System:** `.tertiary` fill, text-secondary.
+- **Streaming:** mini ProgressView tinted accent; "typing..." placeholder when content is empty.
+
+## 6. Do's and Don'ts
+
+### Do:
+- **Do** use native platform materials and colors (`windowBackgroundColor`, `controlBackgroundColor`, `underPageBackgroundColor`, `.regularMaterial`). The OS owns light/dark adaptation.
+- **Do** keep the System Accent to primary actions, current selection, and the ready/open status — ≤10% of any screen (The One Voice Rule).
+- **Do** map every status to the semantic vocabulary: orange = progress/blocked, coral = error/stop, green = success, accent = primary/open. Pair color with a dot, icon, or text label so it reads beyond hue.
+- **Do** carry depth with materials and 0.5–1px hairlines. Shadows appear only on state: drag, float, the primary action's lift (The Flat-By-Default Rule).
+- **Do** use SF Pro for everything; create hierarchy with weight and scale (≥1.25 step ratio). Reserve the uppercase tracked eyebrow for instrument labels that carry meaning.
+- **Do** put accessibility identifiers on every interactive element (`{screen}_{element}_{description}`) and `.monospacedDigit()` on all numeric stats.
+- **Do** keep component vocabulary consistent screen to screen — same button shape, same pill style, same card radius family.
+
+### Don't:
+- **Don't** use neumorphic double-shadows, extruded/recessed skeuomorphic surfaces, or any vestige of the retired beads prototype.
+- **Don't** paint in the "AI dashboard" slop lane — dark navy backgrounds, neon accent glows, gradient text (`background-clip: text` + gradient), hero-metric templates, or identical icon+heading+text card grids.
+- **Don't** add ambient card shadows at rest. If it is not being dragged or floating, it is flat.
+- **Don't** use a `border-left`/`border-right` greater than 1px as a colored side-stripe accent on cards, list items, or callouts.
+- **Don't** reinvent standard affordances — custom scrollbars, non-native form controls, Electron-grade chrome. The app reads as a first-class macOS/iOS citizen.
+- **Don't** repaint a status color for variety or decoration. Color means state, always.
+- **Don't** put a display font in a UI label, button, or data cell. The eyebrow style is uppercase tracked, not decorative.
+- **Don't** use glassmorphism decoratively. Glass is reserved for floating chrome (compose bar, terminal header) where content scrolls behind it.
+- **Don't** use em dashes in copy. Use commas, colons, semicolons, periods, or parentheses.

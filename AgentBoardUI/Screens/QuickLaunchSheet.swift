@@ -128,13 +128,13 @@ struct QuickLaunchSheet: View {
                                     .scrollContentBackground(.hidden)
                                     .frame(minHeight: 80)
                                     .padding(12)
-                                    .insetSurface(cornerRadius: 16, depth: 6)
+                                    .insetSurface(cornerRadius: 16)
                                     .foregroundStyle(AppTheme.textPrimary)
                                     .accessibilityIdentifier("quick_launch_texteditor_custom_instructions")
                             }
                         }
                         .padding(24)
-                        .cardSurface(cornerRadius: 24, elevation: 8)
+                        .cardSurface(cornerRadius: 16)
 
                         if isLaunching {
                             ProgressView("Launching session…")
@@ -174,12 +174,21 @@ struct QuickLaunchSheet: View {
         isLaunching = true
 
         let num = Int(issueNumber.trimmingCharacters(in: .whitespaces)) ?? 0
-        let fullRepo = "jbcrane13/\(repoName.trimmingCharacters(in: .whitespaces))"
+        let trimmedName = repoName.trimmingCharacters(in: .whitespaces)
+        // Resolve owner/repo from a configured repository when one matches the
+        // typed name (per ADR-019). Falls back to the bare name rather than
+        // hardcoding an owner — `ProjectPathResolver` + `SessionLauncher` then
+        // resolve the canonical checkout from `~/.hermes/projects.yaml`.
+        let resolvedRepo = appModel.settingsStore.repositories.first { repo in
+            repo.name.caseInsensitiveCompare(trimmedName) == .orderedSame
+            || repo.fullName.caseInsensitiveCompare(trimmedName) == .orderedSame
+        }
+        let fullRepo = resolvedRepo?.fullName ?? trimmedName
 
         let config = SessionLauncher.LaunchConfig(
             taskTitle: taskTitle,
             issueNumber: num,
-            repo: repoName.trimmingCharacters(in: .whitespaces),
+            repo: resolvedRepo?.name ?? trimmedName,
             fullRepo: fullRepo,
             preset: selectedPreset,
             agentType: selectedAgent,

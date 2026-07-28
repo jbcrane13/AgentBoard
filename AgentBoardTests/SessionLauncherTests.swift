@@ -332,11 +332,15 @@ private actor FakeTmuxController: TmuxControlling {
 
     func sendKeys(name: String, text: String) async throws {
         sendKeysCalls.append((name, text))
-        if let sendKeysError { throw sendKeysError }
+        if let sendKeysError {
+            throw sendKeysError
+        }
     }
 
     func killSession(name: String) async throws {
         killSessionCalls.append(name)
-        if let killSessionError { throw killSessionError }
+        if let killSessionError {
+            throw killSessionError
+        }
     }
 }

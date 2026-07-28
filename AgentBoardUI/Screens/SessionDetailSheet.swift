@@ -79,7 +79,7 @@ struct SessionDetailSheet: View {
     private var headerCard: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                SessionStatusNeu(status: session.status)
+                SessionStatusPill(status: session.status)
                 Spacer()
                 if let pid = session.pid {
                     HStack(spacing: 6) {
@@ -105,7 +105,7 @@ struct SessionDetailSheet: View {
             }
         }
         .padding(24)
-        .cardSurface(cornerRadius: 24, elevation: 8)
+        .cardSurface(cornerRadius: 16)
     }
 
     private var overviewTab: some View {
@@ -140,7 +140,7 @@ struct SessionDetailSheet: View {
                     }
                     .padding(24)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .cardSurface(cornerRadius: 24, elevation: 8)
+                    .cardSurface(cornerRadius: 16)
                 }
 
                 VStack(alignment: .leading, spacing: 16) {
@@ -170,7 +170,7 @@ struct SessionDetailSheet: View {
                     }
                 }
                 .padding(24)
-                .cardSurface(cornerRadius: 24, elevation: 8)
+                .cardSurface(cornerRadius: 16)
             }
             .padding(.horizontal, 24)
         }
@@ -196,7 +196,7 @@ struct SessionDetailSheet: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .insetSurface(cornerRadius: 16, depth: 6)
+        .insetSurface(cornerRadius: 16)
         .padding(.horizontal, 24)
         .padding(.bottom, 24)
         .task {
@@ -235,7 +235,7 @@ struct SessionDetailSheet: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .insetSurface(cornerRadius: 16, depth: 6)
+        .insetSurface(cornerRadius: 16)
         .padding(.horizontal, 24)
         .padding(.bottom, 24)
         .accessibilityIdentifier("session_transcript_view")

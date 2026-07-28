@@ -94,12 +94,12 @@ struct DashboardScreen: View {
         DashboardTile(
             title: "Work Items",
             systemImage: AppDestination.work.systemImage,
-            accentColor: AppTheme.statusBlue
+            accentColor: AppTheme.accentCyan
         ) {
             appModel.selectedDestination = .work
         } content: {
             HStack(spacing: 14) {
-                statPill(label: "To Do", count: snapshot.work.todo, color: AppTheme.statusBlue)
+                statPill(label: "To Do", count: snapshot.work.todo, color: AppTheme.accentCyan)
                 statPill(label: "In Progress", count: snapshot.work.inProgress, color: AppTheme.accentOrange)
                 statPill(label: "Resolved", count: snapshot.work.resolved, color: AppTheme.accentGreen)
             }
@@ -111,7 +111,7 @@ struct DashboardScreen: View {
         DashboardTile(
             title: "Sessions",
             systemImage: AppDestination.sessions.systemImage,
-            accentColor: AppTheme.statusIdle
+            accentColor: AppTheme.accentCyan
         ) {
             appModel.selectedDestination = .sessions
         } content: {
@@ -151,10 +151,7 @@ struct DashboardScreen: View {
 
     private func statPill(label: String, count: Int, color: Color) -> some View {
         HStack(spacing: 5) {
-            Circle()
-                .fill(color)
-                .frame(width: 7, height: 7)
-                .shadow(color: color.opacity(0.6), radius: 4)
+            StatusDot(color: color, size: 7)
             Text("\(count)")
                 .font(.system(.subheadline, design: .rounded, weight: .bold))
                 .monospacedDigit()
@@ -222,7 +219,7 @@ private struct DashboardTile<Content: View>: View {
             }
             .padding(18)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .cardSurface(cornerRadius: 22, elevation: 8)
+            .cardSurface(cornerRadius: 22)
         }
         .buttonStyle(.plain)
     }

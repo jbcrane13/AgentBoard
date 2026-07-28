@@ -14,6 +14,11 @@ struct SettingsScreen: View {
     @State private var showExportShare = false
     @State private var exportedFileURL: URL?
     @State private var lastImportedURL: URL?
+    /// Inline URL-format validation flags. Set on commit (submit/edit) so
+    /// typing isn't blocked; the Save action stays disabled while either URL
+    /// is non-empty and malformed.
+    @State private var hermesURLInvalid = false
+    @State private var companionURLInvalid = false
 
     private var isCompact: Bool {
         hSizeClass == .compact
@@ -56,7 +61,11 @@ struct SettingsScreen: View {
             VStack(spacing: 20) {
                 labeledField("Gateway URL") {
                     AppTextField(placeholder: "Gateway URL", text: $s.hermesGatewayURL)
+                        .onSubmit { hermesURLInvalid = URLValidator.isMalformed(s.hermesGatewayURL) }
                         .accessibilityIdentifier("settings_textfield_hermes_gateway_url")
+                }
+                if hermesURLInvalid {
+                    urlErrorCaption("Enter a valid URL (scheme + host).")
                 }
                 labeledField("Preferred Model") {
                     AppTextField(placeholder: "Preferred model", text: $s.hermesModelID)
@@ -69,7 +78,7 @@ struct SettingsScreen: View {
                 profilesSection(s: s)
             }
             .padding(24)
-            .cardSurface(cornerRadius: 24, elevation: 8)
+            .cardSurface(cornerRadius: 16)
         }
     }
 
@@ -101,7 +110,7 @@ struct SettingsScreen: View {
                             .accessibilityIdentifier("settings_button_remove_hermes_profile_\(profile.id)")
                         }
                         .padding(.horizontal, 16).padding(.vertical, 10)
-                        .insetSurface(cornerRadius: 16, depth: 4)
+                        .insetSurface(cornerRadius: 16)
                     }
                 }
             }
@@ -147,7 +156,7 @@ struct SettingsScreen: View {
                                 .accessibilityIdentifier("settings_button_remove_repository_\(repo.id)")
                             }
                             .padding(.horizontal, 16).padding(.vertical, 8)
-                            .insetSurface(cornerRadius: 16, depth: 4)
+                            .insetSurface(cornerRadius: 16)
                         }
                     }
                 }
@@ -171,7 +180,7 @@ struct SettingsScreen: View {
                 }
             }
             .padding(24)
-            .cardSurface(cornerRadius: 24, elevation: 8)
+            .cardSurface(cornerRadius: 16)
         }
     }
 
@@ -184,7 +193,11 @@ struct SettingsScreen: View {
             VStack(spacing: 20) {
                 labeledField("Companion URL") {
                     AppTextField(placeholder: "Companion URL", text: $s.companionURL)
+                        .onSubmit { companionURLInvalid = URLValidator.isMalformed(s.companionURL) }
                         .accessibilityIdentifier("settings_textfield_companion_url")
+                }
+                if companionURLInvalid {
+                    urlErrorCaption("Enter a valid URL (scheme + host).")
                 }
                 labeledField("Companion Token") {
                     AppSecureField(placeholder: "Companion token", text: $s.companionToken)
@@ -203,7 +216,7 @@ struct SettingsScreen: View {
                 }
             }
             .padding(24)
-            .cardSurface(cornerRadius: 24, elevation: 8)
+            .cardSurface(cornerRadius: 16)
         }
     }
 
@@ -252,7 +265,7 @@ struct SettingsScreen: View {
                         .accessibilityIdentifier("settings_button_apply_backup")
                     }
                     .padding(12)
-                    .insetSurface(cornerRadius: 12, depth: 4)
+                    .insetSurface(cornerRadius: 12)
                 }
 
                 if let msg = backupStatusMessage {
@@ -262,7 +275,7 @@ struct SettingsScreen: View {
                 }
             }
             .padding(24)
-            .cardSurface(cornerRadius: 24, elevation: 8)
+            .cardSurface(cornerRadius: 16)
         }
         .onAppear {
             if backupService == nil {
@@ -373,9 +386,15 @@ struct SettingsScreen: View {
     private var actionButtons: some View {
         VStack(alignment: .center, spacing: 16) {
             Button("Save and Refresh") {
+                // Re-validate on commit so an invalid URL surfaces an inline
+                // error before the save attempt rather than silently failing.
+                hermesURLInvalid = URLValidator.isMalformed(appModel.settingsStore.hermesGatewayURL)
+                companionURLInvalid = URLValidator.isMalformed(appModel.settingsStore.companionURL)
+                guard !hermesURLInvalid, !companionURLInvalid else { return }
                 Task { await appModel.saveSettingsAndReconnect() }
             }
             .buttonStyle(AppButtonStyle(isAccent: true))
+            .disabled(hermesURLInvalid || companionURLInvalid)
             .accessibilityIdentifier("settings_button_save_and_refresh")
 
             Button("Refresh Hermes") {
@@ -453,6 +472,29 @@ private extension SettingsScreen {
             .tracking(1)
             .foregroundStyle(AppTheme.textSecondary)
             .padding(.horizontal, 8)
+    }
+
+    /// Subtle red caption shown beneath a URL field when its value is
+    /// non-empty and malformed. Validation runs on commit (`.onSubmit`) and
+    /// on Save, so typing is never blocked.
+    private func urlErrorCaption(_ message: String) -> some View {
+        Text(message)
+            .font(.caption)
+            .foregroundStyle(.red)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+// MARK: - URL Validation
+
+enum URLValidator {
+    /// `true` when `value` is non-empty and not a valid URL with a scheme and
+    /// host. Empty values are allowed (the field is optional until commit).
+    static func isMalformed(_ value: String) -> Bool {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return false }
+        guard let url = URL(string: trimmed) else { return true }
+        return url.scheme == nil || url.host == nil
     }
 }
 

@@ -28,14 +28,11 @@ private struct AppThemeTokens: Sendable {
 
     let accentOrange: Color
     let primaryAccent: Color
-    let primaryAccentBright: Color
     let primaryAccentForeground: Color
     let accentCoral: Color
     let accentPurple: Color
-    let statusOpen: Color
     let statusClosed: Color
     let statusSuccess: Color
-    let statusIdle: Color
 
     let textPrimary: Color
     let textSecondary: Color
@@ -83,14 +80,11 @@ private struct AppThemeTokens: Sendable {
             inset: inset,
             accentOrange: .orange,
             primaryAccent: .accentColor, // system accent (Assets AccentColor), not a bespoke brand color
-            primaryAccentBright: .accentColor,
             primaryAccentForeground: .white, // justified: white text drawn on top of an accent-filled surface
             accentCoral: .red,
             accentPurple: .purple,
-            statusOpen: .blue,
             statusClosed: .secondary,
             statusSuccess: .green,
-            statusIdle: .blue,
             textPrimary: textPrimary,
             textSecondary: textSecondary,
             textTertiary: textTertiary,
@@ -143,10 +137,6 @@ public enum AppTheme {
         tokens.primaryAccent
     }
 
-    public static var accentCyanBright: Color {
-        tokens.primaryAccentBright
-    }
-
     public static var accentForeground: Color {
         tokens.primaryAccentForeground
     }
@@ -163,20 +153,12 @@ public enum AppTheme {
         tokens.statusSuccess
     }
 
-    public static var statusBlue: Color {
-        tokens.statusOpen
-    }
-
     public static var statusClosed: Color {
         tokens.statusClosed
     }
 
     public static var statusSuccess: Color {
         tokens.statusSuccess
-    }
-
-    public static var statusIdle: Color {
-        tokens.statusIdle
     }
 
     public static var textPrimary: Color {
@@ -229,11 +211,9 @@ public struct AppBackground: View {
 /// state is needed to satisfy "shadow only while dragging".
 public struct CardSurfaceModifier: ViewModifier {
     public let cornerRadius: CGFloat
-    public let elevation: CGFloat
 
-    public init(cornerRadius: CGFloat = 24, elevation: CGFloat = 10) {
+    public init(cornerRadius: CGFloat = 24) {
         self.cornerRadius = cornerRadius
-        self.elevation = elevation
     }
 
     public func body(content: Content) -> some View {
@@ -253,11 +233,9 @@ public struct CardSurfaceModifier: ViewModifier {
 /// neumorphic blurred "recessed" look with a subtle native inset surface.
 public struct InsetSurfaceModifier: ViewModifier {
     public let cornerRadius: CGFloat
-    public let depth: CGFloat
 
-    public init(cornerRadius: CGFloat = 16, depth: CGFloat = 4) {
+    public init(cornerRadius: CGFloat = 16) {
         self.cornerRadius = cornerRadius
-        self.depth = depth
     }
 
     public func body(content: Content) -> some View {
@@ -274,12 +252,12 @@ public struct InsetSurfaceModifier: ViewModifier {
 }
 
 public extension View {
-    func cardSurface(cornerRadius: CGFloat = 24, elevation: CGFloat = 10) -> some View {
-        modifier(CardSurfaceModifier(cornerRadius: cornerRadius, elevation: elevation))
+    func cardSurface(cornerRadius: CGFloat = 24) -> some View {
+        modifier(CardSurfaceModifier(cornerRadius: cornerRadius))
     }
 
-    func insetSurface(cornerRadius: CGFloat = 16, depth: CGFloat = 4) -> some View {
-        modifier(InsetSurfaceModifier(cornerRadius: cornerRadius, depth: depth))
+    func insetSurface(cornerRadius: CGFloat = 16) -> some View {
+        modifier(InsetSurfaceModifier(cornerRadius: cornerRadius))
     }
 }
 
@@ -348,5 +326,36 @@ struct AgentBoardPill: View {
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
         .background(color.opacity(0.12), in: Capsule())
+    }
+}
+
+// MARK: - Cross-platform navigation chrome helpers
+
+extension View {
+    @ViewBuilder
+    func agentBoardNavigationBarHidden(_ hidden: Bool) -> some View {
+        #if os(macOS)
+            self
+        #else
+            navigationBarHidden(hidden)
+        #endif
+    }
+
+    @ViewBuilder
+    func agentBoardNavigationBarTitleInline() -> some View {
+        #if os(macOS)
+            self
+        #else
+            navigationBarTitleDisplayMode(.inline)
+        #endif
+    }
+
+    @ViewBuilder
+    func agentBoardTextInputAutocapitalizationNever() -> some View {
+        #if os(macOS)
+            self
+        #else
+            textInputAutocapitalization(.never)
+        #endif
     }
 }

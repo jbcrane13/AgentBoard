@@ -516,7 +516,9 @@ private extension URLRequest {
 
         while stream.hasBytesAvailable {
             let read = stream.read(buffer, maxLength: bufferSize)
-            if read <= 0 { break }
+            if read <= 0 {
+                break
+            }
             data.append(buffer, count: read)
         }
         return data
