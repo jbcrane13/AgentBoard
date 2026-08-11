@@ -403,7 +403,7 @@
 		D4C9640747C8B7AE6E92BB20 /* AgentBoardAppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentBoardAppModel.swift; sourceTree = "<group>"; };
 		D7A095E80382BA922486329A /* SettingsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsScreen.swift; sourceTree = "<group>"; };
 		DB3E71CE348AC298EB4048DE /* AgentBoardCompanionKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = AgentBoardCompanionKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		DBD5578CD361B8A4976B9A0A /* AgentBoardCompanion */ = {isa = PBXFileReference; includeInIndex = 0; path = AgentBoardCompanion; sourceTree = BUILT_PRODUCTS_DIR; };
+		DBD5578CD361B8A4976B9A0A /* AgentBoardCompanion */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = AgentBoardCompanion; sourceTree = BUILT_PRODUCTS_DIR; };
 		DEDFAB3DEE21BBA70FAF2EBD /* SessionTerminalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionTerminalView.swift; sourceTree = "<group>"; };
 		E01910C75287C5F3B6650B2A /* ChatHeaderPickerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatHeaderPickerTests.swift; sourceTree = "<group>"; };
 		E035F81810040D898374ACEF /* AttachmentUploadService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentUploadService.swift; sourceTree = "<group>"; };
@@ -924,9 +924,6 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 2640;
 				TargetAttributes = {
-					28869237B7D201A5214C64FA = {
-						DevelopmentTeam = 32XZRDTGK3;
-					};
 					60BDED5471809D9106E61ED4 = {
 						DevelopmentTeam = 32XZRDTGK3;
 					};
@@ -1313,6 +1310,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = 32XZRDTGK3;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -1347,6 +1345,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = 32XZRDTGK3;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -1362,9 +1361,11 @@
 		5FB2C4C12B84ED55DE82E98C /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CURRENT_PROJECT_VERSION = 1;
 				DEFINES_MODULE = YES;
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 32XZRDTGK3;
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = 32XZRDTGK3;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
@@ -1498,10 +1499,11 @@
 		B033BFFBAD7111835B8878D6 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_IDENTITY = "Apple Development";
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEFINES_MODULE = YES;
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = 32XZRDTGK3;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
@@ -1524,9 +1526,11 @@
 		CBED311C3538AF5AF3F9EF19 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CURRENT_PROJECT_VERSION = 1;
 				DEFINES_MODULE = YES;
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 32XZRDTGK3;
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = 32XZRDTGK3;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
@@ -1555,10 +1559,11 @@
 		CECC89CA47736C99035309D1 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_IDENTITY = "Apple Development";
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEFINES_MODULE = YES;
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = 32XZRDTGK3;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
