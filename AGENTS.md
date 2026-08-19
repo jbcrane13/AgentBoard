@@ -214,3 +214,6 @@ fix the ui theme
 ## Activity — 2026-07-20
 - Fixed GitHub Work reads with stale stored tokens: the macOS `gh api` fallback now forces GET semantics instead of accidentally POSTing query fields to the issues endpoint (issue #191, ADR-017).
 - Fixed large-output subprocess deadlocks that left the Work board empty during the `gh` fallback: stdout and stderr now drain concurrently, with a one-megabyte-per-stream regression test (issue #194, ADR-018).
+
+## Activity — 2026-08-19
+- Graphify structural analysis: built knowledge graph (3792 nodes / 9102 edges). ADR-010's import-enforced seam is real: tests import only Core + CompanionKit (zero AgentBoardUI links). Coverage audit identified 8 unresolved edges (extraction limitation—tests exist but cross-file symbol resolution failed, e.g., `AgentBoardCache(inMemory:)`) and 4 genuine gaps: AudioRecorderService, LinkPreviewService, ShellEnvironment (filed #204–#206); DemoFixtures is test-support-only. Directed graph confirms WorkStore→WorkStoreTests flows through real symbol edges. Added graphify-out/ to .gitignore.
