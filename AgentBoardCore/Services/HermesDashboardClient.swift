@@ -33,6 +33,7 @@ public actor HermesDashboardClient {
         case requestFailed(String)
         case decodingFailed(String)
         case unsupportedAuthMode(String)
+        case unsupportedQuery(String)
 
         public var errorDescription: String? {
             switch self {
@@ -44,6 +45,8 @@ public actor HermesDashboardClient {
                 "Could not decode Hermes dashboard response: \(message)"
             case let .unsupportedAuthMode(message):
                 "Unsupported Hermes dashboard auth mode: \(message)"
+            case let .unsupportedQuery(message):
+                "Unsupported Hermes dashboard query: \(message)"
             }
         }
     }

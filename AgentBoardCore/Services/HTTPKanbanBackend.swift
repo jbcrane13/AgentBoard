@@ -25,15 +25,30 @@ public actor HTTPKanbanBackend: KanbanDataReading {
         true
     }
 
+    /// `GET /board` returns only the eight non-archived board columns, so this
+    /// backend structurally cannot see archived tasks. Rather than silently
+    /// return a subset for `excludeArchived: false` — verified against the
+    /// remote host, which has 7 archived tasks the board endpoint omits — this
+    /// refuses the query. No production caller asks for archived tasks; the
+    /// protocol's `fetchTasks()` convenience passes `excludeArchived: true`.
     public func fetchTasks(
         status: KanbanStatus?,
         tenant: String?,
         excludeArchived: Bool
     ) async throws -> [KanbanTask] {
+        guard excludeArchived else {
+            throw HermesDashboardClient.DashboardError.unsupportedQuery(
+                "the dashboard board endpoint omits archived tasks; "
+                    + "excludeArchived: false cannot be served over HTTP"
+            )
+        }
         let board = try await fetchBoard()
         let tasks = (board.columns ?? []).flatMap { $0.tasks ?? [] }.compactMap { $0.toKanbanTask() }
         return tasks.filter { task in
-            if excludeArchived, task.status == .archived { return false }
+            // Defensive: the board endpoint has no archived column today, but
+            // filter anyway so a future Hermes that adds one cannot leak
+            // archived tasks into a caller that asked to exclude them.
+            if task.status == .archived { return false }
             if let status, task.status != status { return false }
             if let tenant, task.tenant != tenant { return false }
             return true

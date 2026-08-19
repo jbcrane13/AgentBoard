@@ -10,8 +10,8 @@ struct HTTPKanbanBackendTests {
     func fetchTasksMapsStatusAndRichFieldsAcrossColumns() async throws {
         let backend = Self.makeBackend(boardJSON: Self.richBoardJSON)
 
-        let tasks = try await backend.fetchTasks(status: nil, tenant: nil, excludeArchived: false)
-        #expect(tasks.count == 4)
+        let tasks = try await backend.fetchTasks()
+        #expect(tasks.count == 3)
 
         let running = try #require(tasks.first { $0.id == "t-running-1" })
         #expect(running.status == .running)
@@ -27,17 +27,27 @@ struct HTTPKanbanBackendTests {
         #expect(triage.status == .triage)
         let done = try #require(tasks.first { $0.id == "t-done-1" })
         #expect(done.status == .done)
-        let archived = try #require(tasks.first { $0.id == "t-archived-1" })
-        #expect(archived.status == .archived)
+    }
+
+    /// `GET /board` has no archived column, so the backend must refuse rather
+    /// than quietly answer with the non-archived subset. Verified live: the
+    /// remote host holds 7 archived tasks the board endpoint never returns.
+    @Test
+    func fetchTasksRefusesToIncludeArchivedBecauseTheBoardEndpointOmitsThem() async throws {
+        let backend = Self.makeBackend(boardJSON: Self.richBoardJSON)
+
+        await #expect(throws: HermesDashboardClient.DashboardError.self) {
+            try await backend.fetchTasks(status: nil, tenant: nil, excludeArchived: false)
+        }
     }
 
     @Test
-    func fetchTasksAppliesClientSideStatusTenantAndArchivedFilters() async throws {
+    func fetchTasksAppliesClientSideStatusAndTenantFilters() async throws {
         let backend = Self.makeBackend(boardJSON: Self.richBoardJSON)
 
-        let excludingArchived = try await backend.fetchTasks(status: nil, tenant: nil, excludeArchived: true)
-        #expect(excludingArchived.count == 3)
-        #expect(!excludingArchived.contains { $0.status == .archived })
+        let all = try await backend.fetchTasks(status: nil, tenant: nil, excludeArchived: true)
+        #expect(all.count == 3)
+        #expect(!all.contains { $0.status == .archived })
 
         let runningOnly = try await backend.fetchTasks(status: .running, tenant: nil, excludeArchived: true)
         #expect(runningOnly.map(\.id) == ["t-running-1"])
@@ -109,7 +119,7 @@ struct HTTPKanbanBackendTests {
         """
         let backend = Self.makeBackend(boardJSON: json)
 
-        let tasks = try await backend.fetchTasks(status: nil, tenant: nil, excludeArchived: false)
+        let tasks = try await backend.fetchTasks()
         #expect(tasks.count == 2)
 
         let bare = try #require(tasks.first { $0.id == "t-bare" })

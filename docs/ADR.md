@@ -339,4 +339,23 @@ Agents → CompanionServer → FSEvents + ps
 
 ---
 
+## ADR-023: Kanban reads can be served by the Hermes dashboard plugin API
+**Date:** 2026-08-19
+**Status:** Prototype — implemented and verified, not yet wired into settings
+**Decision:** Add a second `KanbanDataReading` conformer, `HTTPKanbanBackend`, that reads the board from Hermes' dashboard (`:9119`) over HTTP instead of from a local `~/.hermes/kanban.db`. `KanbanDataService` (SQLite) remains the local path and is unchanged. Writes still go through `hermes kanban` per ADR-011.
+
+**Context:** ADR-011 pinned kanban to a local SQLite file, so moving the Hermes agents to another Mac left AgentBoard's board reading the wrong machine — silently, since the `task_events` poll simply never advances (issue #207). The dashboard already solves this: its bundled kanban plugin (`~/.hermes/hermes-agent/plugins/kanban/dashboard/plugin_api.py`) exposes 35 REST routes under `/api/plugins/kanban/*`, which is why the board works remotely in a browser. An earlier assessment dismissed these as "dashboard-internal"; that was wrong.
+
+**Consequences:**
+- The whole read protocol needs two endpoints: `GET /board` (all columns, plus `latest_event_id` and a server `now`) and `GET /tasks/{id}` (comments, runs, links, events in one response). That is fewer round trips than the SQLite path, which issues four queries for the detail sheet.
+- `latest_event_id` on the board payload is exactly the `SELECT MAX(id) FROM task_events` the ADR-021 poll uses, so live updates work unchanged over HTTP.
+- Two auth modes, selected by probing a `401` body (`hermes_cli/web_server.py:448-475`). Gated hosts (any remote) use a session cookie from `POST /auth/password-login`; ungated loopback uses the ephemeral `window.__HERMES_SESSION_TOKEN__` from the SPA HTML as `X-Hermes-Session-Token`. Both verified live. One 401 triggers a single silent re-auth and retry.
+- The board endpoint has **no archived column**, so `fetchTasks(excludeArchived: false)` cannot be served and throws `unsupportedQuery` rather than quietly returning the non-archived subset. No production caller requests archived tasks.
+- The API is a plugin path with no versioning or stability contract, so DTOs are drift-tolerant: unknown keys ignored, missing keys defaulted, scalar type changes absorbed, and a single undecodable task dropped instead of blanking the board.
+- A dashboard session also reaches 200+ unrelated routes including shell-command approval. The credential is broad; scoping it to kanban is not possible today. This is the main argument for eventually replacing this with companion-owned routes (option 1 on #207).
+- Equivalence was proven by running both backends against the same live database: 7/7 tasks identical across 15 fields, 7/7 detail sets identical, `latest_event_id` equal. That cross-check found three defects unit tests could not, because the mock fixtures encoded the same wrong assumptions as the code: `goal_mode` arrives as a JSON bool though the column is INTEGER, `task_events.payload` arrives as an object though the column is TEXT, and events sharing an epoch second ordered differently between backends.
+
+---
+
+
 *To add a new ADR: append with the next number, include date, status, decision, context, and consequences.*
