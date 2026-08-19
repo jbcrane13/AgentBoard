@@ -19,10 +19,21 @@ private actor KeychainSecretStore {
     }
 
     func read(_ key: SecretKey) -> String? {
+        read(account: key.rawValue)
+    }
+
+    func write(_ value: String?, for key: SecretKey) throws {
+        try write(value, account: key.rawValue)
+    }
+
+    /// Reads an arbitrary Keychain account under this store's service, used for per-profile
+    /// secrets whose account name is derived from a `HermesProfile.id` rather than a fixed
+    /// `SecretKey`.
+    func read(account: String) -> String? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: serviceName,
-            kSecAttrAccount as String: key.rawValue,
+            kSecAttrAccount as String: account,
             kSecReturnData as String: true,
             kSecMatchLimit as String: kSecMatchLimitOne
         ]
@@ -37,11 +48,11 @@ private actor KeychainSecretStore {
         return String(data: data, encoding: .utf8)
     }
 
-    func write(_ value: String?, for key: SecretKey) throws {
+    func write(_ value: String?, account: String) throws {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: serviceName,
-            kSecAttrAccount as String: key.rawValue
+            kSecAttrAccount as String: account
         ]
 
         if let value, !value.isEmpty {
@@ -73,6 +84,26 @@ private actor KeychainSecretStore {
         } else {
             SecItemDelete(query as CFDictionary)
         }
+    }
+
+    func delete(account: String) {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: serviceName,
+            kSecAttrAccount as String: account
+        ]
+        SecItemDelete(query as CFDictionary)
+    }
+}
+
+/// Derives stable Keychain account names for per-profile secrets from a `HermesProfile.id`.
+private enum ProfileSecretAccount {
+    static func apiKey(profileID: String) -> String {
+        "hermesProfile.\(profileID).apiKey"
+    }
+
+    static func dashboardPassword(profileID: String) -> String {
+        "hermesProfile.\(profileID).dashboardPassword"
     }
 }
 
@@ -127,6 +158,37 @@ public actor SettingsRepository {
         try await keychain.write(secrets.hermesAPIKey, for: .hermesAPIKey)
         try await keychain.write(secrets.githubToken, for: .githubToken)
         try await keychain.write(secrets.companionToken, for: .companionToken)
+    }
+
+    /// Loads Keychain-backed secrets for each given profile id. Profiles with neither an API key
+    /// nor a dashboard password stored are omitted from the result.
+    public func loadProfileSecrets(profileIDs: [String]) async -> [String: ProfileSecrets] {
+        var result: [String: ProfileSecrets] = [:]
+        for profileID in profileIDs {
+            let apiKey = await keychain.read(account: ProfileSecretAccount.apiKey(profileID: profileID))
+            let dashboardPassword = await keychain.read(
+                account: ProfileSecretAccount.dashboardPassword(profileID: profileID)
+            )
+            if apiKey != nil || dashboardPassword != nil {
+                result[profileID] = ProfileSecrets(apiKey: apiKey, dashboardPassword: dashboardPassword)
+            }
+        }
+        return result
+    }
+
+    /// Writes a profile's Keychain-backed secrets. A `nil`/empty field deletes that entry.
+    public func saveProfileSecrets(_ secrets: ProfileSecrets, for profileID: String) async throws {
+        try await keychain.write(secrets.apiKey, account: ProfileSecretAccount.apiKey(profileID: profileID))
+        try await keychain.write(
+            secrets.dashboardPassword,
+            account: ProfileSecretAccount.dashboardPassword(profileID: profileID)
+        )
+    }
+
+    /// Deletes a profile's Keychain-backed secrets, e.g. when the profile itself is removed.
+    public func deleteProfileSecrets(for profileID: String) async {
+        await keychain.delete(account: ProfileSecretAccount.apiKey(profileID: profileID))
+        await keychain.delete(account: ProfileSecretAccount.dashboardPassword(profileID: profileID))
     }
 
     private static func makeEncoder() -> JSONEncoder {

@@ -5,15 +5,27 @@ import Testing
 @Suite("SettingsStore", .serialized)
 @MainActor
 struct SettingsStoreTests {
+    /// Mirrors the private `SettingsKeys.snapshot` UserDefaults key in
+    /// `SettingsRepository.swift`, used only to seed a raw legacy snapshot blob for the
+    /// profile-secret migration test below.
+    private static let legacySnapshotDefaultsKey = "modern.agentboard.settings.snapshot"
+
     private func makeStore(requiresRemoteCompanionHost: Bool = false) -> SettingsStore {
+        makeStoreWithRepository(requiresRemoteCompanionHost: requiresRemoteCompanionHost).store
+    }
+
+    private func makeStoreWithRepository(
+        requiresRemoteCompanionHost: Bool = false
+    ) -> (store: SettingsStore, repository: SettingsRepository) {
         let repo = SettingsRepository(
             suiteName: "SettingsStoreTests-\(UUID().uuidString)",
             serviceName: "SettingsStoreTests-\(UUID().uuidString)"
         )
-        return SettingsStore(
+        let store = SettingsStore(
             repository: repo,
             requiresRemoteCompanionHost: requiresRemoteCompanionHost
         )
+        return (store, repo)
     }
 
     // MARK: - isGitHubConfigured
@@ -106,11 +118,11 @@ struct SettingsStoreTests {
 
     // MARK: - Hermes profiles
 
-    @Test func saveCurrentHermesProfileCreatesNew() {
+    @Test func saveCurrentHermesProfileCreatesNew() async {
         let store = makeStore()
         store.hermesGatewayURL = "http://127.0.0.1:8642"
         store.hermesModelID = "hermes-agent"
-        store.saveCurrentHermesProfile(named: "Dev")
+        await store.saveCurrentHermesProfile(named: "Dev")
         #expect(store.hermesProfiles.count == 1)
         #expect(store.hermesProfiles[0].name == "Dev")
         #expect(store.hermesProfiles[0].gatewayURL == "http://127.0.0.1:8642")
@@ -118,44 +130,44 @@ struct SettingsStoreTests {
         #expect(store.errorMessage == nil)
     }
 
-    @Test func saveCurrentHermesProfileUpdatesExisting() {
+    @Test func saveCurrentHermesProfileUpdatesExisting() async {
         let store = makeStore()
         store.hermesGatewayURL = "http://127.0.0.1:8642"
-        store.saveCurrentHermesProfile(named: "Dev")
+        await store.saveCurrentHermesProfile(named: "Dev")
         let originalID = store.hermesProfiles[0].id
 
         store.hermesGatewayURL = "http://127.0.0.1:9000"
-        store.saveCurrentHermesProfile(named: "Dev") // same name = update
+        await store.saveCurrentHermesProfile(named: "Dev") // same name = update
         #expect(store.hermesProfiles.count == 1)
         #expect(store.hermesProfiles[0].id == originalID)
         #expect(store.hermesProfiles[0].gatewayURL == "http://127.0.0.1:9000")
     }
 
-    @Test func saveCurrentHermesProfileRejectsEmptyName() {
+    @Test func saveCurrentHermesProfileRejectsEmptyName() async {
         let store = makeStore()
         store.hermesGatewayURL = "http://127.0.0.1:8642"
-        store.saveCurrentHermesProfile(named: "")
+        await store.saveCurrentHermesProfile(named: "")
         #expect(store.hermesProfiles.isEmpty)
         #expect(store.errorMessage != nil)
     }
 
-    @Test func saveCurrentHermesProfileRejectsEmptyURL() {
+    @Test func saveCurrentHermesProfileRejectsEmptyURL() async {
         let store = makeStore()
         store.hermesGatewayURL = ""
-        store.saveCurrentHermesProfile(named: "Dev")
+        await store.saveCurrentHermesProfile(named: "Dev")
         #expect(store.hermesProfiles.isEmpty)
         #expect(store.errorMessage != nil)
     }
 
-    @Test func selectHermesProfileAppliesURLAndModel() throws {
+    @Test func selectHermesProfileAppliesURLAndModel() async throws {
         let store = makeStore()
         store.hermesGatewayURL = "http://127.0.0.1:8642"
         store.hermesModelID = "hermes-agent"
-        store.saveCurrentHermesProfile(named: "Local")
+        await store.saveCurrentHermesProfile(named: "Local")
 
         store.hermesGatewayURL = "http://127.0.0.1:9000"
         store.hermesModelID = "hermes-pro"
-        store.saveCurrentHermesProfile(named: "Remote")
+        await store.saveCurrentHermesProfile(named: "Remote")
 
         let localID = try #require(store.hermesProfiles.first { $0.name == "Local" }?.id)
         store.selectHermesProfile(id: localID)
@@ -166,17 +178,17 @@ struct SettingsStoreTests {
         #expect(store.statusMessage == "Switched to Local.")
     }
 
-    @Test func selectHermesProfileAppliesAPIKeyWhenPresentAndPreservesGlobalWhenNil() throws {
+    @Test func selectHermesProfileAppliesAPIKeyWhenPresentAndPreservesGlobalWhenNil() async throws {
         let store = makeStore()
         store.hermesGatewayURL = "http://127.0.0.1:8642"
         store.hermesAPIKey = ""
-        store.saveCurrentHermesProfile(named: "NoKeyProfile")
+        await store.saveCurrentHermesProfile(named: "NoKeyProfile")
         let noKeyID = try #require(store.hermesProfiles.first { $0.name == "NoKeyProfile" }?.id)
         #expect(store.hermesProfiles.first { $0.id == noKeyID }?.apiKey == nil)
 
         store.hermesGatewayURL = "http://127.0.0.1:9000"
         store.hermesAPIKey = "profile-key"
-        store.saveCurrentHermesProfile(named: "KeyedProfile")
+        await store.saveCurrentHermesProfile(named: "KeyedProfile")
         let keyedID = try #require(store.hermesProfiles.first { $0.name == "KeyedProfile" }?.id)
 
         store.hermesAPIKey = "typed-before-switch"
@@ -188,10 +200,10 @@ struct SettingsStoreTests {
         #expect(store.hermesAPIKey == "carried-over-key")
     }
 
-    @Test func saveCurrentHermesProfileAssignsPaletteColorWhenNilAndPreservesExistingColor() throws {
+    @Test func saveCurrentHermesProfileAssignsPaletteColorWhenNilAndPreservesExistingColor() async throws {
         let store = makeStore()
         store.hermesGatewayURL = "http://127.0.0.1:8642"
-        store.saveCurrentHermesProfile(named: "Dev")
+        await store.saveCurrentHermesProfile(named: "Dev")
         let devID = try #require(store.hermesProfiles.first { $0.name == "Dev" }?.id)
         let assignedColor = try #require(store.hermesProfiles.first { $0.id == devID }?.colorHex)
         #expect(SettingsStore.hermesProfileColorPalette.contains(assignedColor))
@@ -202,7 +214,7 @@ struct SettingsStoreTests {
             store.hermesProfiles[index].colorHex = "#123456"
         }
         store.hermesGatewayURL = "http://127.0.0.1:9999"
-        store.saveCurrentHermesProfile(named: "Dev")
+        await store.saveCurrentHermesProfile(named: "Dev")
         #expect(store.hermesProfiles.first { $0.id == devID }?.colorHex == "#123456")
     }
 
@@ -233,31 +245,106 @@ struct SettingsStoreTests {
         #expect(store.statusMessage == "Settings loaded.")
     }
 
-    @Test func removeHermesProfileDeletesIt() {
+    @Test func removeHermesProfileDeletesIt() async {
         let store = makeStore()
         store.hermesGatewayURL = "http://127.0.0.1:8642"
-        store.saveCurrentHermesProfile(named: "Dev")
+        await store.saveCurrentHermesProfile(named: "Dev")
         let profile = store.hermesProfiles[0]
 
-        store.removeHermesProfile(profile)
+        await store.removeHermesProfile(profile)
 
         #expect(store.hermesProfiles.isEmpty)
         #expect(store.selectedHermesProfileID == nil)
     }
 
-    @Test func removeHermesProfileAutoSelectsNext() throws {
+    @Test func removeHermesProfileAutoSelectsNext() async throws {
         let store = makeStore()
         store.hermesGatewayURL = "http://127.0.0.1:8642"
-        store.saveCurrentHermesProfile(named: "First")
+        await store.saveCurrentHermesProfile(named: "First")
         store.hermesGatewayURL = "http://127.0.0.1:9000"
-        store.saveCurrentHermesProfile(named: "Second")
+        await store.saveCurrentHermesProfile(named: "Second")
 
         let firstProfile = try #require(store.hermesProfiles.first { $0.name == "First" })
         store.selectedHermesProfileID = firstProfile.id
-        store.removeHermesProfile(firstProfile)
+        await store.removeHermesProfile(firstProfile)
 
         #expect(store.hermesProfiles.count == 1)
         #expect(store.selectedHermesProfileID != nil)
+    }
+
+    // MARK: - Per-profile Keychain secrets
+
+    @Test func saveCurrentHermesProfileWritesSecretsToKeychainNotSnapshot() async throws {
+        let (store, repository) = makeStoreWithRepository()
+        store.hermesGatewayURL = "http://127.0.0.1:8642"
+        store.hermesAPIKey = "profile-key"
+        store.hermesDashboardPassword = "dash-pass"
+        await store.saveCurrentHermesProfile(named: "Dev")
+        let profileID = try #require(store.hermesProfiles.first?.id)
+
+        let secrets = await repository.loadProfileSecrets(profileIDs: [profileID])
+        #expect(secrets[profileID]?.apiKey == "profile-key")
+        #expect(secrets[profileID]?.dashboardPassword == "dash-pass")
+
+        let encoded = try JSONEncoder().encode(store.settingsSnapshot)
+        let json = try #require(String(data: encoded, encoding: .utf8))
+        #expect(!json.contains("profile-key"))
+        #expect(!json.contains("dash-pass"))
+    }
+
+    @Test func removeHermesProfileDeletesKeychainEntries() async throws {
+        let (store, repository) = makeStoreWithRepository()
+        store.hermesGatewayURL = "http://127.0.0.1:8642"
+        store.hermesAPIKey = "profile-key"
+        store.hermesDashboardPassword = "dash-pass"
+        await store.saveCurrentHermesProfile(named: "Dev")
+        let profile = try #require(store.hermesProfiles.first)
+
+        let before = await repository.loadProfileSecrets(profileIDs: [profile.id])
+        #expect(before[profile.id]?.apiKey == "profile-key")
+
+        await store.removeHermesProfile(profile)
+
+        let after = await repository.loadProfileSecrets(profileIDs: [profile.id])
+        #expect(after[profile.id] == nil)
+    }
+
+    @Test func bootstrapMigratesLegacyInlineAPIKeyToKeychainAndDropsPlaintextFromSnapshot() async throws {
+        let suiteName = "SettingsStoreTests-migration-\(UUID().uuidString)"
+        let serviceName = "SettingsStoreTests-migration-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suiteName))
+
+        // Seed a raw legacy snapshot blob, as if written by code that predates per-profile
+        // Keychain secrets (HermesProfile.apiKey serialized inline in the JSON).
+        let legacyJSON = """
+        {
+          "hermesGatewayURL": "http://127.0.0.1:8642",
+          "hermesProfiles": [
+            {
+              "id": "legacy-profile",
+              "name": "Legacy",
+              "gatewayURL": "http://127.0.0.1:8642",
+              "apiKey": "legacy-plaintext-key"
+            }
+          ],
+          "selectedHermesProfileID": "legacy-profile"
+        }
+        """
+        defaults.set(Data(legacyJSON.utf8), forKey: Self.legacySnapshotDefaultsKey)
+
+        let repository = SettingsRepository(suiteName: suiteName, serviceName: serviceName)
+        let store = SettingsStore(repository: repository)
+
+        await store.bootstrap()
+
+        #expect(store.hermesProfiles.first?.apiKey == "legacy-plaintext-key")
+
+        let migratedSecrets = await repository.loadProfileSecrets(profileIDs: ["legacy-profile"])
+        #expect(migratedSecrets["legacy-profile"]?.apiKey == "legacy-plaintext-key")
+
+        let reSavedData = try #require(defaults.data(forKey: Self.legacySnapshotDefaultsKey))
+        let reSavedJSON = try #require(String(data: reSavedData, encoding: .utf8))
+        #expect(!reSavedJSON.contains("legacy-plaintext-key"))
     }
 
     // MARK: - availableHermesProfiles
@@ -270,12 +357,12 @@ struct SettingsStoreTests {
         #expect(profiles[0].gatewayURL == "http://127.0.0.1:8642")
     }
 
-    @Test func availableHermesProfilesReturnsSavedProfilesWhenPresent() {
+    @Test func availableHermesProfilesReturnsSavedProfilesWhenPresent() async {
         let store = makeStore()
         store.hermesGatewayURL = "http://127.0.0.1:8642"
-        store.saveCurrentHermesProfile(named: "Prod")
+        await store.saveCurrentHermesProfile(named: "Prod")
         store.hermesGatewayURL = "http://127.0.0.1:9000"
-        store.saveCurrentHermesProfile(named: "Staging")
+        await store.saveCurrentHermesProfile(named: "Staging")
 
         #expect(store.availableHermesProfiles.count == 2)
     }

@@ -125,15 +125,15 @@ struct ChatStoreAdditionalTests {
 
     @Test
     @MainActor
-    func selectConversationSwitchesActiveProfileWhenConversationBoundToKnownProfile() throws {
+    func selectConversationSwitchesActiveProfileWhenConversationBoundToKnownProfile() async throws {
         let (store, settingsStore) = try makeStoreWithSettings()
 
         settingsStore.hermesGatewayURL = "http://127.0.0.1:8642"
-        settingsStore.saveCurrentHermesProfile(named: "Alpha")
+        await settingsStore.saveCurrentHermesProfile(named: "Alpha")
         let alphaID = try #require(settingsStore.hermesProfiles.first { $0.name == "Alpha" }?.id)
 
         settingsStore.hermesGatewayURL = "http://127.0.0.1:9000"
-        settingsStore.saveCurrentHermesProfile(named: "Beta") // Beta becomes active
+        await settingsStore.saveCurrentHermesProfile(named: "Beta") // Beta becomes active
         let betaID = try #require(settingsStore.hermesProfiles.first { $0.name == "Beta" }?.id)
 
         store.startNewConversation() // bound to Beta (the active profile)
@@ -151,7 +151,7 @@ struct ChatStoreAdditionalTests {
 
     @Test
     @MainActor
-    func selectConversationDoesNotSwitchProfileForNilOrUnknownProfileID() throws {
+    func selectConversationDoesNotSwitchProfileForNilOrUnknownProfileID() async throws {
         let (store, settingsStore) = try makeStoreWithSettings()
 
         // No profile active yet: this conversation is stamped with a nil profileID.
@@ -159,16 +159,16 @@ struct ChatStoreAdditionalTests {
         let unboundConversationID = try #require(store.selectedConversationID)
 
         settingsStore.hermesGatewayURL = "http://127.0.0.1:8642"
-        settingsStore.saveCurrentHermesProfile(named: "Alpha")
+        await settingsStore.saveCurrentHermesProfile(named: "Alpha")
         let alphaID = try #require(settingsStore.hermesProfiles.first { $0.name == "Alpha" }?.id)
         store.startNewConversation() // bound to Alpha
         let alphaConversationID = try #require(store.selectedConversationID)
 
         settingsStore.hermesGatewayURL = "http://127.0.0.1:9000"
-        settingsStore.saveCurrentHermesProfile(named: "Beta") // Beta becomes active
+        await settingsStore.saveCurrentHermesProfile(named: "Beta") // Beta becomes active
         let betaID = try #require(settingsStore.hermesProfiles.first { $0.name == "Beta" }?.id)
         let alphaProfile = try #require(settingsStore.hermesProfiles.first { $0.id == alphaID })
-        settingsStore.removeHermesProfile(alphaProfile) // Alpha's id is now unknown; Beta stays active
+        await settingsStore.removeHermesProfile(alphaProfile) // Alpha's id is now unknown; Beta stays active
 
         store.selectConversation(unboundConversationID)
         #expect(settingsStore.selectedHermesProfileID == betaID)

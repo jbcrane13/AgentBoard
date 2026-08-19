@@ -77,11 +77,26 @@ public struct HermesProfile: Codable, Hashable, Identifiable, Sendable {
     public var name: String
     public var gatewayURL: String
     public var modelID: String?
-    /// Per-profile Hermes API key override. When set, selecting this profile applies it to
-    /// `SettingsStore.hermesAPIKey`; profiles without one inherit the current global key.
-    public var apiKey: String?
     /// Hex color (`#RRGGBB`) used to visually distinguish this profile in the chat header.
     public var colorHex: String?
+    /// Dashboard base URL (`http://<host>:9119`) used to drive the remote kanban board for this
+    /// profile. Leaving this empty keeps kanban reads on the local `~/.hermes/kanban.db`.
+    public var dashboardURL: String?
+    /// Dashboard Basic-auth username, paired with `dashboardPassword`.
+    public var dashboardUsername: String?
+
+    // MARK: - Keychain-backed secrets
+    //
+    // `apiKey` and `dashboardPassword` are never written to the UserDefaults settings snapshot —
+    // they live in the Keychain (`SettingsRepository.loadProfileSecrets`/`saveProfileSecrets`,
+    // keyed by profile id) and are hydrated into these in-memory-only properties by
+    // `SettingsStore.bootstrap()` / `SettingsStore.selectHermesProfile(id:)`.
+
+    /// Per-profile Hermes API key override, Keychain-backed. Selecting this profile applies it to
+    /// `SettingsStore.hermesAPIKey`; profiles without one inherit the current global key.
+    public var apiKey: String?
+    /// Per-profile dashboard Basic-auth password, Keychain-backed.
+    public var dashboardPassword: String?
 
     public init(
         id: String = UUID().uuidString.lowercased(),
@@ -89,7 +104,10 @@ public struct HermesProfile: Codable, Hashable, Identifiable, Sendable {
         gatewayURL: String,
         modelID: String? = nil,
         apiKey: String? = nil,
-        colorHex: String? = nil
+        colorHex: String? = nil,
+        dashboardURL: String? = nil,
+        dashboardUsername: String? = nil,
+        dashboardPassword: String? = nil
     ) {
         self.id = id
         self.name = name
@@ -97,6 +115,37 @@ public struct HermesProfile: Codable, Hashable, Identifiable, Sendable {
         self.modelID = modelID
         self.apiKey = apiKey
         self.colorHex = colorHex
+        self.dashboardURL = dashboardURL
+        self.dashboardUsername = dashboardUsername
+        self.dashboardPassword = dashboardPassword
+    }
+
+    /// Persisted keys only — `apiKey` and `dashboardPassword` are deliberately absent so the
+    /// synthesized `encode(to:)` never writes them into the UserDefaults settings snapshot.
+    private enum CodingKeys: String, CodingKey {
+        case id, name, gatewayURL, modelID, colorHex, dashboardURL, dashboardUsername
+    }
+
+    /// Reads a legacy inline `apiKey` from settings snapshots persisted before per-profile
+    /// secrets moved to the Keychain. Decoded via a separate container so it never becomes part
+    /// of the `CodingKeys` used by the synthesized (secret-excluding) `encode(to:)`.
+    private enum LegacyCodingKeys: String, CodingKey {
+        case apiKey
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        gatewayURL = try container.decode(String.self, forKey: .gatewayURL)
+        modelID = try container.decodeIfPresent(String.self, forKey: .modelID)
+        colorHex = try container.decodeIfPresent(String.self, forKey: .colorHex)
+        dashboardURL = try container.decodeIfPresent(String.self, forKey: .dashboardURL)
+        dashboardUsername = try container.decodeIfPresent(String.self, forKey: .dashboardUsername)
+
+        let legacyContainer = try decoder.container(keyedBy: LegacyCodingKeys.self)
+        apiKey = try legacyContainer.decodeIfPresent(String.self, forKey: .apiKey)
+        dashboardPassword = nil
     }
 }
 
@@ -510,72 +559,5 @@ public struct CompanionEvent: Codable, Hashable, Identifiable, Sendable {
         self.id = id
         self.kind = kind
         self.sentAt = sentAt
-    }
-}
-
-public struct AgentBoardSettings: Codable, Hashable, Sendable {
-    public var hermesGatewayURL: String
-    public var hermesModelID: String?
-    public var hermesProfiles: [HermesProfile]?
-    public var selectedHermesProfileID: String?
-    public var companionURL: String
-    public var repositories: [ConfiguredRepository]
-    public var autoRefreshInterval: TimeInterval
-
-    private enum CodingKeys: String, CodingKey {
-        case hermesGatewayURL
-        case hermesModelID
-        case hermesProfiles
-        case selectedHermesProfileID
-        case companionURL
-        case repositories
-        case autoRefreshInterval
-    }
-
-    public init(
-        hermesGatewayURL: String = HermesGatewayConfiguration.defaultBaseURL,
-        hermesModelID: String? = "hermes-agent",
-        hermesProfiles: [HermesProfile]? = nil,
-        selectedHermesProfileID: String? = nil,
-        companionURL: String = "http://127.0.0.1:8742",
-        repositories: [ConfiguredRepository] = [],
-        autoRefreshInterval: TimeInterval = 30
-    ) {
-        self.hermesGatewayURL = hermesGatewayURL
-        self.hermesModelID = hermesModelID
-        self.hermesProfiles = hermesProfiles
-        self.selectedHermesProfileID = selectedHermesProfileID
-        self.companionURL = companionURL
-        self.repositories = repositories
-        self.autoRefreshInterval = autoRefreshInterval
-    }
-
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        hermesGatewayURL = try container.decodeIfPresent(String.self, forKey: .hermesGatewayURL)
-            ?? HermesGatewayConfiguration.defaultBaseURL
-        hermesModelID = try container.decodeIfPresent(String.self, forKey: .hermesModelID)
-        hermesProfiles = try container.decodeIfPresent([HermesProfile].self, forKey: .hermesProfiles)
-        selectedHermesProfileID = try container.decodeIfPresent(String.self, forKey: .selectedHermesProfileID)
-        companionURL = try container.decodeIfPresent(String.self, forKey: .companionURL)
-            ?? "http://127.0.0.1:8742"
-        repositories = try container.decodeIfPresent([ConfiguredRepository].self, forKey: .repositories) ?? []
-        autoRefreshInterval = try container.decodeIfPresent(TimeInterval.self, forKey: .autoRefreshInterval) ?? 30
-    }
-}
-
-public struct AgentBoardSecrets: Codable, Equatable, Sendable {
-    public var hermesAPIKey: String?
-    public var githubToken: String?
-    public var companionToken: String?
-
-    public init(
-        hermesAPIKey: String? = nil,
-        githubToken: String? = nil,
-        companionToken: String? = nil
-    ) {
-        self.hermesAPIKey = hermesAPIKey
-        self.githubToken = githubToken
-        self.companionToken = companionToken
     }
 }

@@ -50,6 +50,7 @@ public final class AgentBoardAppModel {
 
         await settingsStore.bootstrap()
         await applyCompanionConfiguration()
+        applyKanbanBackendSelection()
         await chatStore.bootstrap()
         await workStore.bootstrap()
         await agentsStore.bootstrap()
@@ -75,9 +76,27 @@ public final class AgentBoardAppModel {
     public func saveSettingsAndReconnect() async {
         await settingsStore.persist()
         await applyCompanionConfiguration()
+        applyKanbanBackendSelection()
         await refreshAll()
         startCompanionEvents()
         startRefreshLoop()
+    }
+
+    /// Re-select the kanban backend (local SQLite vs. the remote HTTP
+    /// dashboard) and its live-update cadence from the active Hermes
+    /// profile's dashboard fields. Called on bootstrap and whenever
+    /// settings are saved, since saving can switch the active profile or
+    /// edit its dashboard URL/credentials. With no dashboard URL configured
+    /// this resolves to the same local SQLite backend + 2s cadence as
+    /// before backend selection existed.
+    private func applyKanbanBackendSelection() {
+        let profile = settingsStore.activeHermesProfile
+        let (backend, locality) = KanbanBackendFactory.makeBackend(
+            dashboardURL: profile?.dashboardURL,
+            dashboardUsername: profile?.dashboardUsername,
+            dashboardPassword: profile?.dashboardPassword
+        )
+        agentsStore.updateBackend(backend, locality: locality)
     }
 
     /// Apply the current companion URL + token to the shared CompanionClient.

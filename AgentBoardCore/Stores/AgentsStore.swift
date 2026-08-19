@@ -6,7 +6,7 @@ import os
 @Observable
 public final class AgentsStore {
     private let logger = Logger(subsystem: "com.agentboard.modern", category: "AgentsStore")
-    private let kanbanData: any KanbanDataReading
+    private var kanbanData: any KanbanDataReading
     private let cliWriter: any KanbanCLIWriting
     private let cache: any AgentBoardCacheProtocol
     private let settingsStore: SettingsStore
@@ -20,23 +20,40 @@ public final class AgentsStore {
     private var didBootstrap = false
     private var lastFingerprint: String = ""
 
-    private static let liveUpdateInterval: Duration = .seconds(2)
-    private static let liveUpdateBackoffInterval: Duration = .seconds(30)
+    private static let localLiveUpdateInterval: Duration = .seconds(2)
+    /// `fetchLatestEventID()` on the remote HTTP backend
+    /// (`HTTPKanbanBackend`) pays for a full `GET /board` — the dashboard
+    /// has no lighter "did anything change" endpoint — so every poll
+    /// transfers the whole board over the network. 2s (the local SQLite
+    /// cadence, an indexed `MAX(id)` read) would hammer a remote dashboard
+    /// host for no benefit; 15s keeps the board reasonably live without
+    /// doing that.
+    private static let remoteLiveUpdateInterval: Duration = .seconds(15)
+    /// Failure backoff floor. Never shorter than the locality's normal
+    /// cadence — the remote 15s cadence already throttles network cost, so
+    /// backing off to a flat 30s only matters when it's longer than that.
+    private static let minimumBackoffInterval: Duration = .seconds(30)
     private var liveUpdateTask: Task<Void, Never>?
     private var lastKnownEventID: Int?
-    private var liveUpdatePollInterval: Duration = AgentsStore.liveUpdateInterval
+    /// Internal (not `private`) so tests can assert the cadence follows
+    /// `backendLocality`, matching `pollForChanges()`'s testability rationale.
+    var liveUpdatePollInterval: Duration
     private var hasLoggedLiveUpdateFailure = false
+    public private(set) var backendLocality: KanbanBackendLocality
 
     public init(
         kanbanData: any KanbanDataReading = KanbanDataService(),
         cliWriter: any KanbanCLIWriting = KanbanCLIWriter(),
         cache: any AgentBoardCacheProtocol,
-        settingsStore: SettingsStore
+        settingsStore: SettingsStore,
+        backendLocality: KanbanBackendLocality = .local
     ) {
         self.kanbanData = kanbanData
         self.cliWriter = cliWriter
         self.cache = cache
         self.settingsStore = settingsStore
+        self.backendLocality = backendLocality
+        liveUpdatePollInterval = Self.normalLiveUpdateInterval(for: backendLocality)
     }
 
     // MARK: - Computed
@@ -286,14 +303,33 @@ public final class AgentsStore {
         try await kanbanData.fetchEvents(taskID: taskID)
     }
 
+    // MARK: - Backend Selection
+
+    /// Swap the active kanban backend + its locality — called by
+    /// `AgentBoardAppModel` whenever the active Hermes profile's dashboard
+    /// configuration changes (bootstrap, profile switch, or a saved
+    /// dashboard URL edit). Resets the live-update baseline so the first
+    /// poll against the new backend doesn't compare an event id from one
+    /// data source against a baseline recorded from another.
+    public func updateBackend(_ kanbanData: any KanbanDataReading, locality: KanbanBackendLocality) {
+        self.kanbanData = kanbanData
+        backendLocality = locality
+        liveUpdatePollInterval = Self.normalLiveUpdateInterval(for: locality)
+        hasLoggedLiveUpdateFailure = false
+        lastKnownEventID = nil
+    }
+
     // MARK: - Live Updates
 
-    /// Starts a background loop that polls `task_events` roughly every 2s
-    /// and triggers a full `refresh()` only when the latest event id has
-    /// advanced. Falls back to a quiet 30s poll after the first failure
-    /// (e.g. `kanban.db` missing on iOS, or Hermes not installed) — poll
-    /// failures never surface in `errorMessage`; `refresh()`'s existing
-    /// error surface stays authoritative.
+    /// Starts a background loop that polls `task_events` and triggers a
+    /// full `refresh()` only when the latest event id has advanced. Cadence
+    /// follows `backendLocality`: 2s for the local SQLite backend (a cheap
+    /// indexed `MAX(id)` read), 15s for the remote HTTP backend (see
+    /// `remoteLiveUpdateInterval`). Falls back to a quiet ≥30s poll after
+    /// the first failure (e.g. `kanban.db` missing on iOS, Hermes not
+    /// installed, or the remote dashboard unreachable) — poll failures
+    /// never surface in `errorMessage`; `refresh()`'s existing error
+    /// surface stays authoritative.
     public func startLiveUpdates() {
         liveUpdateTask?.cancel()
         liveUpdateTask = Task { [weak self] in
@@ -315,6 +351,16 @@ public final class AgentsStore {
     /// Single live-update poll iteration. Factored out of the sleep loop so
     /// tests can drive one iteration directly. Returns whether it triggered
     /// a `refresh()`.
+    ///
+    /// Cost note: `fetchLatestEventID()` and the `refresh()` it triggers
+    /// here are two separate calls. On the local SQLite backend that's
+    /// cheap — an indexed `MAX(id)` plus a full task read. On the remote
+    /// HTTP backend (`HTTPKanbanBackend`) both calls are a full
+    /// `GET /board`, so a changed event id costs two board fetches instead
+    /// of one. `KanbanDataReading` has no "fetch tasks and report whether
+    /// they changed" call that would let this reuse the id-check fetch, and
+    /// widening that protocol is out of scope here, so the double fetch is
+    /// accepted and documented rather than eliminated.
     @discardableResult
     func pollForChanges() async -> Bool {
         do {
@@ -334,13 +380,20 @@ public final class AgentsStore {
         }
     }
 
+    private static func normalLiveUpdateInterval(for locality: KanbanBackendLocality) -> Duration {
+        switch locality {
+        case .local: localLiveUpdateInterval
+        case .remote: remoteLiveUpdateInterval
+        }
+    }
+
     private func recordLiveUpdatePollSuccess() {
-        liveUpdatePollInterval = Self.liveUpdateInterval
+        liveUpdatePollInterval = Self.normalLiveUpdateInterval(for: backendLocality)
         hasLoggedLiveUpdateFailure = false
     }
 
     private func recordLiveUpdatePollFailure(_ error: Error) {
-        liveUpdatePollInterval = Self.liveUpdateBackoffInterval
+        liveUpdatePollInterval = max(Self.minimumBackoffInterval, Self.normalLiveUpdateInterval(for: backendLocality))
         guard !hasLoggedLiveUpdateFailure else { return }
         hasLoggedLiveUpdateFailure = true
         logger.error("Kanban live-update poll failed: \(error.localizedDescription, privacy: .public)")

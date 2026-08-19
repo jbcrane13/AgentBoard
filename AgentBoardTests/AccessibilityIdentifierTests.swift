@@ -16,7 +16,10 @@ import Testing
 struct AccessibilityIdentifierTests {
     @Test("Settings screen exposes identifiers for every interactive control")
     func settingsScreenIdentifiers() throws {
+        // The Hermes profile controls live in `SettingsScreen+Profiles.swift`;
+        // pin against both files so the split can't silently drop an identifier.
         let source = try readUISource("Screens/SettingsScreen.swift")
+            + readUISource("Screens/SettingsScreen+Profiles.swift")
         let required = [
             "screen_settings",
             "settings_textfield_hermes_gateway_url",
@@ -25,6 +28,9 @@ struct AccessibilityIdentifierTests {
             "settings_textfield_hermes_profile_name",
             "settings_securefield_profile_api_key",
             "settings_picker_profile_color",
+            "settings_textfield_dashboard_url",
+            "settings_textfield_dashboard_username",
+            "settings_securefield_dashboard_password",
             "settings_button_save_hermes_profile",
             "settings_securefield_github_token",
             "settings_textfield_repository_owner",
@@ -49,6 +55,7 @@ struct AccessibilityIdentifierTests {
     @Test("Settings screen tags repeated profile/repo controls with the row id")
     func settingsScreenInterpolatedIdentifiers() throws {
         let source = try readUISource("Screens/SettingsScreen.swift")
+            + readUISource("Screens/SettingsScreen+Profiles.swift")
         #expect(source.contains(#"settings_button_use_hermes_profile_\(profile.id)"#))
         #expect(source.contains(#"settings_button_remove_hermes_profile_\(profile.id)"#))
         #expect(source.contains(#"settings_button_remove_repository_\(repo.id)"#))

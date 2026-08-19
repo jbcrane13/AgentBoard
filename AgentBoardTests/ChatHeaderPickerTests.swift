@@ -52,12 +52,12 @@ struct ChatHeaderPickerTests {
     }
 
     @Test
-    func pickingSavedProfileUpdatesActiveProfile() throws {
+    func pickingSavedProfileUpdatesActiveProfile() async throws {
         let store = makeSettingsStore()
         store.hermesGatewayURL = "http://127.0.0.1:8642"
-        store.saveCurrentHermesProfile(named: "Local")
+        await store.saveCurrentHermesProfile(named: "Local")
         store.hermesGatewayURL = "http://127.0.0.1:9000"
-        store.saveCurrentHermesProfile(named: "Remote")
+        await store.saveCurrentHermesProfile(named: "Remote")
 
         let localID = try #require(store.hermesProfiles.first { $0.name == "Local" }?.id)
         let remoteID = try #require(store.hermesProfiles.first { $0.name == "Remote" }?.id)
@@ -126,12 +126,12 @@ struct ChatHeaderPickerTests {
     }
 
     @Test
-    func pickingUnknownProfileLeavesActiveProfileUntouched() throws {
+    func pickingUnknownProfileLeavesActiveProfileUntouched() async throws {
         // Race condition: a profile is removed between menu render and click.
         // SettingsStore.selectHermesProfile silently returns; verify state is preserved.
         let store = makeSettingsStore()
         store.hermesGatewayURL = "http://127.0.0.1:8642"
-        store.saveCurrentHermesProfile(named: "Local")
+        await store.saveCurrentHermesProfile(named: "Local")
         let localID = try #require(store.hermesProfiles.first { $0.name == "Local" }?.id)
         let originalURL = store.hermesGatewayURL
 

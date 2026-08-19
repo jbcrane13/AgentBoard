@@ -289,18 +289,73 @@ struct DomainModelsTests {
         #expect(profile.colorHex == nil)
     }
 
-    @Test func hermesProfileRoundTripsAPIKeyAndColorHexThroughJSON() throws {
+    @Test func hermesProfileEncodingOmitsAPIKeyAndDashboardPassword() throws {
         let original = HermesProfile(
             name: "Local",
             gatewayURL: "http://127.0.0.1:8642",
             apiKey: "sk-test",
-            colorHex: "#4FC3F7"
+            colorHex: "#4FC3F7",
+            dashboardURL: "http://100.64.1.2:9119",
+            dashboardUsername: "admin",
+            dashboardPassword: "hunter2"
+        )
+        let data = try JSONEncoder().encode(original)
+        let json = try #require(String(data: data, encoding: .utf8))
+        #expect(!json.contains("apiKey"))
+        #expect(!json.contains("hunter2"))
+        #expect(!json.contains("dashboardPassword"))
+
+        let decoded = try JSONDecoder().decode(HermesProfile.self, from: data)
+        #expect(decoded.apiKey == nil)
+        #expect(decoded.dashboardPassword == nil)
+        #expect(decoded.colorHex == "#4FC3F7")
+        #expect(decoded.dashboardURL == "http://100.64.1.2:9119")
+        #expect(decoded.dashboardUsername == "admin")
+    }
+
+    @Test func hermesProfileDecodesLegacyInlineAPIKeyIntoInMemoryProperty() throws {
+        let json = """
+        {
+          "id": "local",
+          "name": "Local",
+          "gatewayURL": "http://127.0.0.1:8642",
+          "apiKey": "legacy-plaintext-key"
+        }
+        """
+        let profile = try JSONDecoder().decode(HermesProfile.self, from: Data(json.utf8))
+        #expect(profile.apiKey == "legacy-plaintext-key")
+
+        // Re-encoding never emits it back out — the caller is expected to migrate it to the
+        // Keychain and re-save before this value is ever written again.
+        let reEncoded = try JSONEncoder().encode(profile)
+        let reEncodedJSON = try #require(String(data: reEncoded, encoding: .utf8))
+        #expect(!reEncodedJSON.contains("apiKey"))
+    }
+
+    @Test func hermesProfileDashboardURLAndUsernameDecodeNilFromLegacyJSON() throws {
+        let json = """
+        {
+          "id": "local",
+          "name": "Local",
+          "gatewayURL": "http://127.0.0.1:8642"
+        }
+        """
+        let profile = try JSONDecoder().decode(HermesProfile.self, from: Data(json.utf8))
+        #expect(profile.dashboardURL == nil)
+        #expect(profile.dashboardUsername == nil)
+    }
+
+    @Test func hermesProfileRoundTripsDashboardURLAndUsernameThroughJSON() throws {
+        let original = HermesProfile(
+            name: "Local",
+            gatewayURL: "http://127.0.0.1:8642",
+            dashboardURL: "http://100.64.1.2:9119",
+            dashboardUsername: "admin"
         )
         let data = try JSONEncoder().encode(original)
         let decoded = try JSONDecoder().decode(HermesProfile.self, from: data)
-        #expect(decoded.apiKey == "sk-test")
-        #expect(decoded.colorHex == "#4FC3F7")
-        #expect(decoded == original)
+        #expect(decoded.dashboardURL == "http://100.64.1.2:9119")
+        #expect(decoded.dashboardUsername == "admin")
     }
 
     // MARK: - AgentBoardSettings decoding

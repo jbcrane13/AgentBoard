@@ -14,6 +14,9 @@ public final class SettingsStore {
     public var hermesAPIKey = ""
     public var hermesProfiles: [HermesProfile] = []
     public var selectedHermesProfileID: String?
+    public var hermesDashboardURL = ""
+    public var hermesDashboardUsername = ""
+    public var hermesDashboardPassword = ""
 
     /// Fixed swatch palette assigned round-robin to Hermes profiles that don't have an explicit
     /// `colorHex`, used to visually distinguish them in the chat header.
@@ -113,6 +116,10 @@ public final class SettingsStore {
         let settings = await repository.loadSettings()
         let secrets = await repository.loadSecrets()
         apply(settings: settings, secrets: secrets)
+
+        let profileSecrets = await repository.loadProfileSecrets(profileIDs: hermesProfiles.map(\.id))
+        await hydrateAndMigrateProfileSecrets(profileSecrets)
+
         isLoaded = true
         statusMessage = "Settings loaded."
     }
@@ -150,7 +157,7 @@ public final class SettingsStore {
         statusMessage = "Added \(repository.fullName)."
     }
 
-    public func saveCurrentHermesProfile(named name: String) {
+    public func saveCurrentHermesProfile(named name: String) async {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedName.isEmpty else {
             errorMessage = "Give the Hermes profile a name."
@@ -164,17 +171,23 @@ public final class SettingsStore {
         }
 
         let apiKey = hermesAPIKey.trimmedOrNil
+        let dashboardPassword = hermesDashboardPassword.trimmedOrNil
         let paletteColor = Self.hermesProfileColorPalette[hermesProfiles.count % Self.hermesProfileColorPalette.count]
 
+        let profileID: String
         if let existingIndex = hermesProfiles
             .firstIndex(where: { $0.name.localizedCaseInsensitiveCompare(trimmedName) == .orderedSame }) {
             hermesProfiles[existingIndex].gatewayURL = gatewayURL
             hermesProfiles[existingIndex].modelID = hermesModelID.trimmedOrNil
             hermesProfiles[existingIndex].apiKey = apiKey
+            hermesProfiles[existingIndex].dashboardURL = hermesDashboardURL.trimmedOrNil
+            hermesProfiles[existingIndex].dashboardUsername = hermesDashboardUsername.trimmedOrNil
+            hermesProfiles[existingIndex].dashboardPassword = dashboardPassword
             if hermesProfiles[existingIndex].colorHex == nil {
                 hermesProfiles[existingIndex].colorHex = paletteColor
             }
-            selectedHermesProfileID = hermesProfiles[existingIndex].id
+            profileID = hermesProfiles[existingIndex].id
+            selectedHermesProfileID = profileID
             statusMessage = "Updated Hermes profile \(trimmedName)."
         } else {
             let profile = HermesProfile(
@@ -182,15 +195,29 @@ public final class SettingsStore {
                 gatewayURL: gatewayURL,
                 modelID: hermesModelID.trimmedOrNil,
                 apiKey: apiKey,
-                colorHex: paletteColor
+                colorHex: paletteColor,
+                dashboardURL: hermesDashboardURL.trimmedOrNil,
+                dashboardUsername: hermesDashboardUsername.trimmedOrNil,
+                dashboardPassword: dashboardPassword
             )
             hermesProfiles.append(profile)
             hermesProfiles.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
-            selectedHermesProfileID = profile.id
+            profileID = profile.id
+            selectedHermesProfileID = profileID
             statusMessage = "Saved Hermes profile \(trimmedName)."
         }
 
         errorMessage = nil
+
+        do {
+            try await repository.saveProfileSecrets(
+                ProfileSecrets(apiKey: apiKey, dashboardPassword: dashboardPassword),
+                for: profileID
+            )
+        } catch {
+            logger.error("Failed to save profile secrets: \(error.localizedDescription, privacy: .public)")
+            errorMessage = error.localizedDescription
+        }
     }
 
     public func selectHermesProfile(id: String, silent: Bool = false) {
@@ -201,13 +228,16 @@ public final class SettingsStore {
             hermesModelID = modelID
         }
         hermesAPIKey = profile.apiKey ?? hermesAPIKey
+        hermesDashboardURL = profile.dashboardURL ?? ""
+        hermesDashboardUsername = profile.dashboardUsername ?? ""
+        hermesDashboardPassword = profile.dashboardPassword ?? ""
         errorMessage = nil
         if !silent {
             statusMessage = "Switched to \(profile.name)."
         }
     }
 
-    public func removeHermesProfile(_ profile: HermesProfile) {
+    public func removeHermesProfile(_ profile: HermesProfile) async {
         hermesProfiles.removeAll { $0.id == profile.id }
         if selectedHermesProfileID == profile.id {
             selectedHermesProfileID = hermesProfiles.first?.id
@@ -217,6 +247,7 @@ public final class SettingsStore {
         }
         errorMessage = nil
         statusMessage = "Removed Hermes profile \(profile.name)."
+        await repository.deleteProfileSecrets(for: profile.id)
     }
 
     public func removeRepository(_ repository: ConfiguredRepository) {
@@ -242,6 +273,57 @@ public final class SettingsStore {
         githubToken = secrets.githubToken ?? ""
         repositories = settings.repositories
         autoRefreshInterval = settings.autoRefreshInterval
+    }
+
+    /// Hydrates each profile's Keychain-backed `apiKey`/`dashboardPassword`. A profile decoded
+    /// with a legacy inline `apiKey` (from a settings snapshot persisted before per-profile
+    /// secrets moved to the Keychain) and no matching Keychain entry is migrated: the plaintext
+    /// value is written to the Keychain and the settings snapshot is re-saved so it's dropped
+    /// from UserDefaults.
+    private func hydrateAndMigrateProfileSecrets(_ profileSecrets: [String: ProfileSecrets]) async {
+        var migratedAny = false
+
+        for index in hermesProfiles.indices {
+            let profileID = hermesProfiles[index].id
+            let keychainSecrets = profileSecrets[profileID]
+            let legacyAPIKey = hermesProfiles[index].apiKey
+
+            if let keychainAPIKey = keychainSecrets?.apiKey {
+                hermesProfiles[index].apiKey = keychainAPIKey
+            } else if let legacyAPIKey {
+                do {
+                    try await repository.saveProfileSecrets(
+                        ProfileSecrets(apiKey: legacyAPIKey, dashboardPassword: keychainSecrets?.dashboardPassword),
+                        for: profileID
+                    )
+                    migratedAny = true
+                } catch {
+                    logger.error(
+                        "Failed to migrate legacy Hermes profile API key: \(error.localizedDescription, privacy: .public)"
+                    )
+                }
+            }
+
+            hermesProfiles[index].dashboardPassword = keychainSecrets?.dashboardPassword
+        }
+
+        if migratedAny {
+            logger.info("Migrated legacy plaintext Hermes profile API key(s) to the Keychain.")
+            do {
+                try await repository.saveSettings(settingsSnapshot)
+            } catch {
+                let reason = error.localizedDescription
+                logger.error("Failed to re-save settings after secret migration: \(reason, privacy: .public)")
+            }
+        }
+
+        if let selectedHermesProfileID,
+           let profile = hermesProfiles.first(where: { $0.id == selectedHermesProfileID }) {
+            hermesAPIKey = profile.apiKey ?? hermesAPIKey
+            hermesDashboardURL = profile.dashboardURL ?? ""
+            hermesDashboardUsername = profile.dashboardUsername ?? ""
+            hermesDashboardPassword = profile.dashboardPassword ?? ""
+        }
     }
 
     private var currentHermesProfileName: String {

@@ -55,9 +55,7 @@ struct ConfigBackupServiceTests {
         let (service, settingsStore, _) = makeService()
         settingsStore.addRepository(owner: "org", name: "repo")
         settingsStore.hermesGatewayURL = "http://127.0.0.1:8642"
-        do {
-            settingsStore.saveCurrentHermesProfile(named: "Dev")
-        }
+        await settingsStore.saveCurrentHermesProfile(named: "Dev")
 
         let data = try await service.exportBackupData()
         let summary = try service.validateBackup(data)
