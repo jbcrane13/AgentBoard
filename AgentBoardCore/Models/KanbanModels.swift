@@ -71,6 +71,13 @@ public struct KanbanTask: Codable, Hashable, Identifiable, Sendable {
     public let tenant: String?
     public var result: String?
     public let skills: [String]?
+    public let lastHeartbeatAt: Date?
+    public let consecutiveFailures: Int
+    public let lastFailureError: String?
+    public let branchName: String?
+    public let sessionID: String?
+    public let goalMode: Bool
+    public let modelOverride: String?
 
     public init(
         id: String,
@@ -87,7 +94,14 @@ public struct KanbanTask: Codable, Hashable, Identifiable, Sendable {
         workspacePath: String? = nil,
         tenant: String? = nil,
         result: String? = nil,
-        skills: [String]? = nil
+        skills: [String]? = nil,
+        lastHeartbeatAt: Date? = nil,
+        consecutiveFailures: Int = 0,
+        lastFailureError: String? = nil,
+        branchName: String? = nil,
+        sessionID: String? = nil,
+        goalMode: Bool = false,
+        modelOverride: String? = nil
     ) {
         self.id = id
         self.title = title
@@ -104,6 +118,56 @@ public struct KanbanTask: Codable, Hashable, Identifiable, Sendable {
         self.tenant = tenant
         self.result = result
         self.skills = skills
+        self.lastHeartbeatAt = lastHeartbeatAt
+        self.consecutiveFailures = consecutiveFailures
+        self.lastFailureError = lastFailureError
+        self.branchName = branchName
+        self.sessionID = sessionID
+        self.goalMode = goalMode
+        self.modelOverride = modelOverride
+    }
+}
+
+// MARK: - Task Event (mirrors kanban.db `task_events` table)
+
+public struct KanbanEvent: Identifiable, Codable, Hashable, Sendable {
+    public let id: Int
+    public let kind: String
+    public let payload: String?
+    public let createdAt: Date
+
+    public init(id: Int, kind: String, payload: String? = nil, createdAt: Date) {
+        self.id = id
+        self.kind = kind
+        self.payload = payload
+        self.createdAt = createdAt
+    }
+}
+
+// MARK: - Heartbeat Freshness
+
+/// Classifies a task's `lastHeartbeatAt` recency for the running-task
+/// freshness indicator. Pure and unit-testable independent of SwiftUI.
+public enum KanbanHeartbeatFreshness: Equatable, Sendable {
+    case fresh
+    case slow
+    case stale
+
+    public static func classify(lastHeartbeatAt: Date?, now: Date = .now) -> KanbanHeartbeatFreshness {
+        guard let lastHeartbeatAt else { return .stale }
+        return switch now.timeIntervalSince(lastHeartbeatAt) {
+        case ..<90: .fresh
+        case ..<300: .slow
+        default: .stale
+        }
+    }
+
+    public var accessibilityLabel: String {
+        switch self {
+        case .fresh: "Heartbeat fresh"
+        case .slow: "Heartbeat slow"
+        case .stale: "Heartbeat stale"
+        }
     }
 }
 

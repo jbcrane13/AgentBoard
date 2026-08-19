@@ -39,6 +39,64 @@ struct LaunchConfigStoreTests {
         #expect(loaded?.preset == config.preset)
         #expect(loaded?.agentType == config.agentType)
         #expect(loaded?.customInstructions == config.customInstructions)
+        #expect(loaded?.mode == config.mode)
+    }
+
+    @Test func storeThenLoadRoundTripsInteractiveMode() {
+        let store = makeStore()
+        let config = SessionLauncher.LaunchConfig(
+            taskTitle: "Interactive Claude Code",
+            issueNumber: 0,
+            repo: "AgentBoard",
+            fullRepo: "jbcrane13/AgentBoard",
+            preset: .ralphLoop,
+            agentType: .claude,
+            customInstructions: "",
+            mode: .interactive
+        )
+
+        store.store(config, forSessionName: "ab-agentboard-i1")
+        let loaded = store.config(forSessionName: "ab-agentboard-i1")
+
+        #expect(loaded?.mode == .interactive)
+    }
+
+    @Test func launchConfigJSONWithoutModeKeyDecodesToAutonomous() throws {
+        let json = """
+        {
+            "taskTitle": "Fix the thing",
+            "issueNumber": 5,
+            "repo": "AgentBoard",
+            "fullRepo": "jbcrane13/AgentBoard",
+            "preset": "Ralph Loop",
+            "agentType": "claude",
+            "customInstructions": "Be thorough."
+        }
+        """
+        let config = try JSONDecoder().decode(
+            SessionLauncher.LaunchConfig.self,
+            from: Data(json.utf8)
+        )
+
+        #expect(config.mode == .autonomous)
+    }
+
+    @Test func launchConfigRoundTripsInteractiveModeThroughJSON() throws {
+        let config = SessionLauncher.LaunchConfig(
+            taskTitle: "Interactive Codex",
+            issueNumber: 0,
+            repo: "AgentBoard",
+            fullRepo: "jbcrane13/AgentBoard",
+            preset: .codexReview,
+            agentType: .codex,
+            customInstructions: "",
+            mode: .interactive
+        )
+
+        let data = try JSONEncoder().encode(config)
+        let decoded = try JSONDecoder().decode(SessionLauncher.LaunchConfig.self, from: data)
+
+        #expect(decoded.mode == .interactive)
     }
 
     @Test func storeKeepsEntriesForDifferentSessionNamesIndependent() {

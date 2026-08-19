@@ -76,6 +76,7 @@ identifier_name:
     - _d1
     - _d2
     - ms
+    - pi
 
 type_name:
   min_length:

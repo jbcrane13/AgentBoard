@@ -40,6 +40,10 @@ struct LaunchSessionSheet: View {
         workItem?.issueNumber ?? 0
     }
 
+    private var agentChoices: [SessionLauncher.AgentType] {
+        SessionLauncher.AgentType.allCases.filter(\.supportsAutonomous)
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -81,7 +85,7 @@ struct LaunchSessionSheet: View {
 
                             VStack(alignment: .leading, spacing: 12) {
                                 Text("Agent").font(.headline).foregroundStyle(AppTheme.textPrimary)
-                                ForEach(SessionLauncher.AgentType.allCases) { agent in
+                                ForEach(agentChoices) { agent in
                                     Button {
                                         selectedAgent = agent
                                     } label: {

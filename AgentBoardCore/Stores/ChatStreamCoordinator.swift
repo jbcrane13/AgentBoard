@@ -1,8 +1,8 @@
 import Foundation
 import os
 
-struct ChatStreamRequest: Sendable {
-    let conversationID: UUID
+public struct ChatStreamRequest: Sendable {
+    public let conversationID: UUID
     let text: String
     let attachments: [ChatAttachment]
     let conversation: ChatConversation
@@ -16,6 +16,7 @@ struct ChatStreamCallbacks: Sendable {
     let setIsStreaming: @MainActor @Sendable (Bool) -> Void
     let replaceMessages: @MainActor @Sendable ([ConversationMessage]) -> Void
     let upsertConversation: @MainActor @Sendable (ChatConversation) -> Void
+    let setLastFailedSend: @MainActor @Sendable (ChatStreamRequest?) -> Void
     let persist: @MainActor @Sendable () async -> Void
 }
 
@@ -116,6 +117,7 @@ final class ChatStreamCoordinator {
             conversation.updatedAt = .now
             conversation.modelID = settingsStore.hermesModelID.trimmedOrNil
             callbacks.upsertConversation(conversation)
+            callbacks.setLastFailedSend(nil)
             await callbacks.persist()
 
             return ChatStreamOutcome(
@@ -124,24 +126,44 @@ final class ChatStreamCoordinator {
                 connectionState: .connected
             )
         } catch {
-            logger.error("Streaming reply failed: \(error.localizedDescription, privacy: .public)")
-            callbacks.setConnectionState(.failed)
-            callbacks.setIsStreaming(false)
-
-            if assistantMessage.content.isEmpty {
-                callbacks.replaceMessages(displayMessages)
-            } else {
-                assistantMessage.isStreaming = false
-                callbacks.replaceMessages(displayMessages + [assistantMessage])
-            }
-            await callbacks.persist()
-
-            return ChatStreamOutcome(
-                statusMessage: nil,
-                errorMessage: error.localizedDescription,
-                connectionState: .failed
+            return await handleStreamFailure(
+                error,
+                request: request,
+                callbacks: callbacks,
+                displayMessages: displayMessages,
+                assistantMessage: assistantMessage
             )
         }
+    }
+
+    /// Failure tail of `send`: preserves any partial assistant content, records the
+    /// request so the compose bar can offer a retry, and persists the surviving state.
+    private func handleStreamFailure(
+        _ error: Error,
+        request: ChatStreamRequest,
+        callbacks: ChatStreamCallbacks,
+        displayMessages: [ConversationMessage],
+        assistantMessage: ConversationMessage
+    ) async -> ChatStreamOutcome {
+        logger.error("Streaming reply failed: \(error.localizedDescription, privacy: .public)")
+        callbacks.setConnectionState(.failed)
+        callbacks.setIsStreaming(false)
+
+        if assistantMessage.content.isEmpty {
+            callbacks.replaceMessages(displayMessages)
+        } else {
+            var finalized = assistantMessage
+            finalized.isStreaming = false
+            callbacks.replaceMessages(displayMessages + [finalized])
+        }
+        callbacks.setLastFailedSend(request)
+        await callbacks.persist()
+
+        return ChatStreamOutcome(
+            statusMessage: nil,
+            errorMessage: error.localizedDescription,
+            connectionState: .failed
+        )
     }
 
     /// Builds the message list actually sent to Hermes. When capabilities are active, a

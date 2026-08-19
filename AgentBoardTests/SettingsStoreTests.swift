@@ -166,6 +166,46 @@ struct SettingsStoreTests {
         #expect(store.statusMessage == "Switched to Local.")
     }
 
+    @Test func selectHermesProfileAppliesAPIKeyWhenPresentAndPreservesGlobalWhenNil() throws {
+        let store = makeStore()
+        store.hermesGatewayURL = "http://127.0.0.1:8642"
+        store.hermesAPIKey = ""
+        store.saveCurrentHermesProfile(named: "NoKeyProfile")
+        let noKeyID = try #require(store.hermesProfiles.first { $0.name == "NoKeyProfile" }?.id)
+        #expect(store.hermesProfiles.first { $0.id == noKeyID }?.apiKey == nil)
+
+        store.hermesGatewayURL = "http://127.0.0.1:9000"
+        store.hermesAPIKey = "profile-key"
+        store.saveCurrentHermesProfile(named: "KeyedProfile")
+        let keyedID = try #require(store.hermesProfiles.first { $0.name == "KeyedProfile" }?.id)
+
+        store.hermesAPIKey = "typed-before-switch"
+        store.selectHermesProfile(id: keyedID)
+        #expect(store.hermesAPIKey == "profile-key")
+
+        store.hermesAPIKey = "carried-over-key"
+        store.selectHermesProfile(id: noKeyID)
+        #expect(store.hermesAPIKey == "carried-over-key")
+    }
+
+    @Test func saveCurrentHermesProfileAssignsPaletteColorWhenNilAndPreservesExistingColor() throws {
+        let store = makeStore()
+        store.hermesGatewayURL = "http://127.0.0.1:8642"
+        store.saveCurrentHermesProfile(named: "Dev")
+        let devID = try #require(store.hermesProfiles.first { $0.name == "Dev" }?.id)
+        let assignedColor = try #require(store.hermesProfiles.first { $0.id == devID }?.colorHex)
+        #expect(SettingsStore.hermesProfileColorPalette.contains(assignedColor))
+
+        // Manually override, then re-save (e.g. after a gateway URL change) — the explicit color
+        // must survive since saveCurrentHermesProfile only fills in a palette color when nil.
+        if let index = store.hermesProfiles.firstIndex(where: { $0.id == devID }) {
+            store.hermesProfiles[index].colorHex = "#123456"
+        }
+        store.hermesGatewayURL = "http://127.0.0.1:9999"
+        store.saveCurrentHermesProfile(named: "Dev")
+        #expect(store.hermesProfiles.first { $0.id == devID }?.colorHex == "#123456")
+    }
+
     @Test func bootstrapSilentlyAppliesSelectedHermesProfile() async throws {
         let repository = SettingsRepository(
             suiteName: "SettingsStoreTests-bootstrap-\(UUID().uuidString)",

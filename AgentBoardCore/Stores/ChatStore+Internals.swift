@@ -19,6 +19,18 @@ extension ChatStore {
         selectedConversationID = snapshot.selectedConversationID
     }
 
+    /// Switches the active Hermes profile to the one `conversation` is bound to, when it names a
+    /// known profile other than the one already active. The client reconfiguration (base URL,
+    /// API key) that follows is fire-and-forget: `selectedConversationID` and the profile fields
+    /// on `settingsStore` are already updated synchronously by the time this returns.
+    func switchProfileIfNeeded(for conversation: ChatConversation) {
+        guard let profileID = conversation.profileID,
+              profileID != settingsStore.selectedHermesProfileID,
+              settingsStore.hermesProfiles.contains(where: { $0.id == profileID }) else { return }
+        settingsStore.selectHermesProfile(id: profileID)
+        Task { try? await configureClient() }
+    }
+
     func streamCallbacks(for conversationID: UUID) -> ChatStreamCallbacks {
         ChatStreamCallbacks(
             setStatusMessage: { [weak self] message in self?.statusMessage = message },
@@ -28,6 +40,7 @@ extension ChatStore {
                 self?.messagesByConversationID[conversationID] = messages
             },
             upsertConversation: { [weak self] conversation in self?.upsert(conversation) },
+            setLastFailedSend: { [weak self] request in self?.lastFailedSend = request },
             persist: { [weak self] in await self?.persistNow(conversationID: conversationID) }
         )
     }
@@ -115,6 +128,28 @@ extension ChatStore {
             messagesByConversationID: messagesByConversationID,
             companionConfigured: settingsStore.isCompanionConfigured
         )
+    }
+
+    /// Re-issues the most recently failed `sendDraft()` call. Drops the failed assistant
+    /// placeholder message first, if one was left behind with no content.
+    public func retryLastSend() async {
+        guard let request = lastFailedSend else { return }
+
+        if let lastMessage = messagesByConversationID[request.conversationID]?.last,
+           lastMessage.role == .assistant, lastMessage.content.isEmpty {
+            messagesByConversationID[request.conversationID]?.removeLast()
+        }
+        lastFailedSend = nil
+        errorMessage = nil
+        statusMessage = nil
+
+        let outcome = await streamCoordinator.send(
+            request: request,
+            callbacks: streamCallbacks(for: request.conversationID)
+        )
+        statusMessage = outcome.statusMessage
+        errorMessage = outcome.errorMessage
+        connectionState = outcome.connectionState
     }
 }
 

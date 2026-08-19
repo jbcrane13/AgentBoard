@@ -9,6 +9,7 @@ struct TaskDetailSheet: View {
 
     @State private var comments: [KanbanComment] = []
     @State private var runs: [KanbanRun] = []
+    @State private var events: [KanbanEvent] = []
     @State private var parents: [String] = []
     @State private var children: [String] = []
     @State private var isLoadingDetail = false
@@ -24,7 +25,9 @@ struct TaskDetailSheet: View {
                     VStack(alignment: .leading, spacing: 24) {
                         taskHeader
                         if !task.bodyOrEmpty.isEmpty { bodySection }
+                        metadataSection
                         runHistorySection
+                        eventsSection
                         commentsSection
                         dependencySection
                     }
@@ -122,6 +125,58 @@ struct TaskDetailSheet: View {
         .cardSurface(cornerRadius: 16)
     }
 
+    @ViewBuilder
+    private var metadataSection: some View {
+        if hasMetadata {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("STATUS")
+                    .font(.caption.weight(.bold))
+                    .tracking(1)
+                    .foregroundStyle(AppTheme.textSecondary)
+
+                if let branchName = task.branchName {
+                    metadataRow(label: "Branch", value: branchName)
+                }
+                if let modelOverride = task.modelOverride {
+                    metadataRow(label: "Model", value: modelOverride)
+                }
+                if let sessionID = task.sessionID {
+                    metadataRow(label: "Session", value: sessionID)
+                }
+                if task.goalMode {
+                    metadataRow(label: "Goal Mode", value: "Enabled")
+                }
+                if let lastFailureError = task.lastFailureError {
+                    metadataRow(label: "Last Failure", value: lastFailureError)
+                }
+            }
+            .padding(24)
+            .cardSurface(cornerRadius: 16)
+        }
+    }
+
+    private var hasMetadata: Bool {
+        task.branchName != nil
+            || task.modelOverride != nil
+            || task.sessionID != nil
+            || task.goalMode
+            || task.lastFailureError != nil
+    }
+
+    private func metadataRow(label: String, value: String) -> some View {
+        HStack(alignment: .top) {
+            Text(label)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(AppTheme.textSecondary)
+                .frame(width: 90, alignment: .leading)
+            Text(value)
+                .font(.subheadline)
+                .foregroundStyle(AppTheme.textPrimary)
+                .multilineTextAlignment(.leading)
+            Spacer(minLength: 0)
+        }
+    }
+
     private var runHistorySection: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("RUN HISTORY")
@@ -173,6 +228,43 @@ struct TaskDetailSheet: View {
                     }
                     .padding(16)
                     .cardSurface(cornerRadius: 16)
+                }
+            }
+        }
+        .padding(24)
+        .cardSurface(cornerRadius: 16)
+    }
+
+    private var eventsSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("EVENTS")
+                    .font(.caption.weight(.bold))
+                    .tracking(1)
+                    .foregroundStyle(AppTheme.textSecondary)
+                Spacer()
+                Text("\(events.count)")
+                    .font(.caption2.monospaced())
+                    .foregroundStyle(AppTheme.textTertiary)
+            }
+
+            if events.isEmpty {
+                Text("No events yet")
+                    .font(.subheadline)
+                    .foregroundStyle(AppTheme.textTertiary)
+            } else {
+                ForEach(events) { event in
+                    HStack {
+                        Text(event.kind)
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(AppTheme.accentCyan)
+                        Spacer()
+                        Text(event.createdAt, style: .relative)
+                            .font(.caption2)
+                            .foregroundStyle(AppTheme.textTertiary)
+                    }
+                    .padding(12)
+                    .insetSurface(cornerRadius: 10)
                 }
             }
         }
@@ -303,7 +395,11 @@ struct TaskDetailSheet: View {
             }
         }
     }
+}
 
+// MARK: - Actions
+
+extension TaskDetailSheet {
     private func presentComment() {
         commentText = ""
         isCommenting = true
@@ -338,12 +434,14 @@ struct TaskDetailSheet: View {
             async let loadedComments = appModel.agentsStore.fetchComments(for: task.id)
             async let loadedRuns = appModel.agentsStore.fetchRuns(for: task.id)
             async let loadedLinks = appModel.agentsStore.fetchLinks(for: task.id)
+            async let loadedEvents = appModel.agentsStore.fetchEvents(for: task.id)
 
             comments = try await loadedComments
             runs = try await loadedRuns
             let links = try await loadedLinks
             parents = links.parents
             children = links.children
+            events = try await loadedEvents
         } catch {
             // Detail load failures are non-fatal — section just shows empty state
         }

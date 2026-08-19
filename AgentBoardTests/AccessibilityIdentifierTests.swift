@@ -23,6 +23,8 @@ struct AccessibilityIdentifierTests {
             "settings_textfield_hermes_model",
             "settings_securefield_hermes_api_key",
             "settings_textfield_hermes_profile_name",
+            "settings_securefield_profile_api_key",
+            "settings_picker_profile_color",
             "settings_button_save_hermes_profile",
             "settings_securefield_github_token",
             "settings_textfield_repository_owner",
@@ -174,10 +176,12 @@ struct AccessibilityIdentifierTests {
             "chat_menu_profile",
             "chat_menu_session_desktop",
             "chat_menu_profile_desktop",
+            "chat_menu_other_profiles",
             "chat_menuitem_session_new",
             "chat_button_attach",
             "chat_textfield_draft",
-            "chat_button_send"
+            "chat_button_send",
+            "chat_button_retry_send"
         ]
         assertIdentifiers(required, in: source)
         #expect(source.contains(#"chat_menuitem_session_\(conversation.id.uuidString)"#))

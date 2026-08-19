@@ -5,6 +5,7 @@ struct QuickLaunchSheet: View {
     @Environment(AgentBoardAppModel.self) private var appModel
     @Environment(\.dismiss) private var dismiss
 
+    @State private var selectedMode: SessionLauncher.LaunchMode = .interactive
     @State private var selectedPreset: SessionLauncher.ExecutionPreset = .ralphLoop
     @State private var selectedAgent: SessionLauncher.AgentType = .claude
     @State private var customInstructions = ""
@@ -12,6 +13,12 @@ struct QuickLaunchSheet: View {
     @State private var issueNumber = ""
     @State private var taskTitle = ""
     @State private var isLaunching = false
+
+    private var agentChoices: [SessionLauncher.AgentType] {
+        selectedMode == .autonomous
+            ? SessionLauncher.AgentType.allCases.filter(\.supportsAutonomous)
+            : SessionLauncher.AgentType.allCases
+    }
 
     var body: some View {
         NavigationStack {
@@ -26,18 +33,38 @@ struct QuickLaunchSheet: View {
                                 .tracking(1)
                                 .foregroundStyle(AppTheme.textSecondary)
 
+                            Picker("Mode", selection: $selectedMode) {
+                                Text("Interactive").tag(SessionLauncher.LaunchMode.interactive)
+                                Text("Autonomous (PRD)").tag(SessionLauncher.LaunchMode.autonomous)
+                            }
+                            .pickerStyle(.segmented)
+                            .accessibilityIdentifier("quick_launch_picker_mode")
+                            .onChange(of: selectedMode) {
+                                if selectedMode == .autonomous, !selectedAgent.supportsAutonomous {
+                                    selectedAgent = selectedPreset.agent
+                                }
+                            }
+
                             VStack(alignment: .leading, spacing: 6) {
                                 Text("Task Title").font(.headline).foregroundStyle(AppTheme.textPrimary)
                                 AppTextField(placeholder: "e.g. Implement feature X", text: $taskTitle)
                                     .accessibilityIdentifier("quick_launch_textfield_task_title")
                             }
 
-                            HStack(spacing: 16) {
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text("Issue #").font(.headline).foregroundStyle(AppTheme.textPrimary)
-                                    AppTextField(placeholder: "72", text: $issueNumber)
-                                        .accessibilityIdentifier("quick_launch_textfield_issue_number")
+                            if selectedMode == .autonomous {
+                                HStack(spacing: 16) {
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        Text("Issue #").font(.headline).foregroundStyle(AppTheme.textPrimary)
+                                        AppTextField(placeholder: "72", text: $issueNumber)
+                                            .accessibilityIdentifier("quick_launch_textfield_issue_number")
+                                    }
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        Text("Repository").font(.headline).foregroundStyle(AppTheme.textPrimary)
+                                        AppTextField(placeholder: "AgentBoard", text: $repoName)
+                                            .accessibilityIdentifier("quick_launch_textfield_repo_name")
+                                    }
                                 }
+                            } else {
                                 VStack(alignment: .leading, spacing: 6) {
                                     Text("Repository").font(.headline).foregroundStyle(AppTheme.textPrimary)
                                     AppTextField(placeholder: "AgentBoard", text: $repoName)
@@ -47,7 +74,7 @@ struct QuickLaunchSheet: View {
 
                             VStack(alignment: .leading, spacing: 12) {
                                 Text("Agent").font(.headline).foregroundStyle(AppTheme.textPrimary)
-                                ForEach(SessionLauncher.AgentType.allCases) { agent in
+                                ForEach(agentChoices) { agent in
                                     Button {
                                         selectedAgent = agent
                                     } label: {
@@ -80,57 +107,59 @@ struct QuickLaunchSheet: View {
                                 }
                             }
 
-                            VStack(alignment: .leading, spacing: 12) {
-                                Text("Execution Preset").font(.headline).foregroundStyle(AppTheme.textPrimary)
-                                ForEach(SessionLauncher.ExecutionPreset.allCases) { preset in
-                                    Button {
-                                        selectedPreset = preset
-                                        selectedAgent = preset.agent
-                                    } label: {
-                                        HStack(spacing: 12) {
-                                            Image(systemName: preset.icon)
-                                                .frame(width: 24)
-                                                .foregroundStyle(selectedPreset == preset ? AppTheme
-                                                    .accentCyan : AppTheme.textSecondary)
+                            if selectedMode == .autonomous {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    Text("Execution Preset").font(.headline).foregroundStyle(AppTheme.textPrimary)
+                                    ForEach(SessionLauncher.ExecutionPreset.allCases) { preset in
+                                        Button {
+                                            selectedPreset = preset
+                                            selectedAgent = preset.agent
+                                        } label: {
+                                            HStack(spacing: 12) {
+                                                Image(systemName: preset.icon)
+                                                    .frame(width: 24)
+                                                    .foregroundStyle(selectedPreset == preset ? AppTheme
+                                                        .accentCyan : AppTheme.textSecondary)
 
-                                            VStack(alignment: .leading, spacing: 2) {
-                                                Text(preset.rawValue)
-                                                    .font(.subheadline.weight(.semibold))
-                                                    .foregroundStyle(AppTheme.textPrimary)
-                                                Text(preset.description)
-                                                    .font(.caption)
-                                                    .foregroundStyle(AppTheme.textSecondary)
-                                                    .lineLimit(2)
+                                                VStack(alignment: .leading, spacing: 2) {
+                                                    Text(preset.rawValue)
+                                                        .font(.subheadline.weight(.semibold))
+                                                        .foregroundStyle(AppTheme.textPrimary)
+                                                    Text(preset.description)
+                                                        .font(.caption)
+                                                        .foregroundStyle(AppTheme.textSecondary)
+                                                        .lineLimit(2)
+                                                }
+
+                                                Spacer()
+
+                                                if selectedPreset == preset {
+                                                    Image(systemName: "checkmark.circle.fill")
+                                                        .foregroundStyle(AppTheme.accentCyan)
+                                                }
                                             }
-
-                                            Spacer()
-
-                                            if selectedPreset == preset {
-                                                Image(systemName: "checkmark.circle.fill")
-                                                    .foregroundStyle(AppTheme.accentCyan)
-                                            }
+                                            .padding(12)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 12)
+                                                    .fill(selectedPreset == preset ? AppTheme.accentCyan.opacity(0.12) : Color
+                                                        .clear)
+                                            )
                                         }
-                                        .padding(12)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 12)
-                                                .fill(selectedPreset == preset ? AppTheme.accentCyan.opacity(0.12) : Color
-                                                    .clear)
-                                        )
+                                        .buttonStyle(.plain)
+                                        .accessibilityIdentifier("quick_launch_button_preset_\(preset.id)")
                                     }
-                                    .buttonStyle(.plain)
-                                    .accessibilityIdentifier("quick_launch_button_preset_\(preset.id)")
                                 }
-                            }
 
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("Custom Instructions").font(.headline).foregroundStyle(AppTheme.textPrimary)
-                                TextEditor(text: $customInstructions)
-                                    .scrollContentBackground(.hidden)
-                                    .frame(minHeight: 80)
-                                    .padding(12)
-                                    .insetSurface(cornerRadius: 16)
-                                    .foregroundStyle(AppTheme.textPrimary)
-                                    .accessibilityIdentifier("quick_launch_texteditor_custom_instructions")
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("Custom Instructions").font(.headline).foregroundStyle(AppTheme.textPrimary)
+                                    TextEditor(text: $customInstructions)
+                                        .scrollContentBackground(.hidden)
+                                        .frame(minHeight: 80)
+                                        .padding(12)
+                                        .insetSurface(cornerRadius: 16)
+                                        .foregroundStyle(AppTheme.textPrimary)
+                                        .accessibilityIdentifier("quick_launch_texteditor_custom_instructions")
+                                }
                             }
                         }
                         .padding(24)
@@ -161,7 +190,10 @@ struct QuickLaunchSheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Launch") { launch() }
                         .buttonStyle(AppButtonStyle(isAccent: true))
-                        .disabled(isLaunching || repoName.trimmedOrNil == nil || taskTitle.trimmedOrNil == nil)
+                        .disabled(
+                            isLaunching || repoName.trimmedOrNil == nil ||
+                                (selectedMode == .autonomous && taskTitle.trimmedOrNil == nil)
+                        )
                         .accessibilityIdentifier("quick_launch_button_launch")
                 }
             }
@@ -170,7 +202,7 @@ struct QuickLaunchSheet: View {
     }
 
     private func launch() {
-        guard !repoName.isEmpty, !taskTitle.isEmpty else { return }
+        guard !repoName.isEmpty, selectedMode == .interactive || !taskTitle.isEmpty else { return }
         isLaunching = true
 
         let num = Int(issueNumber.trimmingCharacters(in: .whitespaces)) ?? 0
@@ -186,13 +218,14 @@ struct QuickLaunchSheet: View {
         let fullRepo = resolvedRepo?.fullName ?? trimmedName
 
         let config = SessionLauncher.LaunchConfig(
-            taskTitle: taskTitle,
+            taskTitle: taskTitle.trimmedOrNil ?? "Interactive \(selectedAgent.displayName)",
             issueNumber: num,
             repo: resolvedRepo?.name ?? trimmedName,
             fullRepo: fullRepo,
             preset: selectedPreset,
             agentType: selectedAgent,
-            customInstructions: customInstructions.trimmingCharacters(in: .whitespacesAndNewlines)
+            customInstructions: customInstructions.trimmingCharacters(in: .whitespacesAndNewlines),
+            mode: selectedMode
         )
 
         Task {

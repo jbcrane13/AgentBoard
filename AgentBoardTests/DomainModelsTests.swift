@@ -248,6 +248,61 @@ struct DomainModelsTests {
         #expect(decoded == original)
     }
 
+    @Test func chatConversationDecodesLegacyJSONWithoutProfileIDToNil() throws {
+        let conversationID = UUID().uuidString
+        let json = """
+        {
+          "id": "\(conversationID)",
+          "title": "Legacy Conversation",
+          "updatedAt": 731638800
+        }
+        """
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .secondsSince1970
+        let conversation = try decoder.decode(ChatConversation.self, from: Data(json.utf8))
+        #expect(conversation.profileID == nil)
+    }
+
+    @Test func chatConversationRoundTripsProfileIDThroughJSON() throws {
+        let original = ChatConversation(
+            title: "Conversation",
+            profileID: "profile-abc"
+        )
+        let data = try JSONEncoder().encode(original)
+        let decoded = try JSONDecoder().decode(ChatConversation.self, from: data)
+        #expect(decoded.profileID == "profile-abc")
+        #expect(decoded == original)
+    }
+
+    // MARK: - HermesProfile decoding
+
+    @Test func hermesProfileDecodesWithoutAPIKeyOrColorHexToNil() throws {
+        let json = """
+        {
+          "id": "local",
+          "name": "Local",
+          "gatewayURL": "http://127.0.0.1:8642"
+        }
+        """
+        let profile = try JSONDecoder().decode(HermesProfile.self, from: Data(json.utf8))
+        #expect(profile.apiKey == nil)
+        #expect(profile.colorHex == nil)
+    }
+
+    @Test func hermesProfileRoundTripsAPIKeyAndColorHexThroughJSON() throws {
+        let original = HermesProfile(
+            name: "Local",
+            gatewayURL: "http://127.0.0.1:8642",
+            apiKey: "sk-test",
+            colorHex: "#4FC3F7"
+        )
+        let data = try JSONEncoder().encode(original)
+        let decoded = try JSONDecoder().decode(HermesProfile.self, from: data)
+        #expect(decoded.apiKey == "sk-test")
+        #expect(decoded.colorHex == "#4FC3F7")
+        #expect(decoded == original)
+    }
+
     // MARK: - AgentBoardSettings decoding
 
     @Test func agentBoardSettingsDecodingFillsDefaultsForMissingKeys() throws {

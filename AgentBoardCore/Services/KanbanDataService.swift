@@ -92,7 +92,9 @@ public actor KanbanDataService {
         let sql = """
         SELECT id, title, body, assignee, status, priority, created_by,
                created_at, started_at, completed_at, workspace_kind,
-               workspace_path, tenant, result, skills
+               workspace_path, tenant, result, skills,
+               last_heartbeat_at, consecutive_failures, last_failure_error,
+               branch_name, session_id, goal_mode, model_override
         FROM tasks
         \(whereSQL)
         ORDER BY created_at DESC
@@ -127,7 +129,9 @@ public actor KanbanDataService {
         let sql = """
         SELECT id, title, body, assignee, status, priority, created_by,
                created_at, started_at, completed_at, workspace_kind,
-               workspace_path, tenant, result, skills
+               workspace_path, tenant, result, skills,
+               last_heartbeat_at, consecutive_failures, last_failure_error,
+               branch_name, session_id, goal_mode, model_override
         FROM tasks
         WHERE id = ?
         """
@@ -249,6 +253,56 @@ public actor KanbanDataService {
         return runs
     }
 
+    // MARK: - Events
+
+    public func fetchLatestEventID() throws -> Int {
+        let db = try requireDB()
+        let sql = "SELECT COALESCE(MAX(id), 0) FROM task_events"
+
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
+            throw ServiceError.queryFailed(errorMessage(db))
+        }
+        defer { sqlite3_finalize(stmt) }
+
+        guard sqlite3_step(stmt) == SQLITE_ROW else { return 0 }
+        return int(stmt, index: 0)
+    }
+
+    public func fetchEvents(taskID: String, limit: Int = 50) throws -> [KanbanEvent] {
+        let db = try requireDB()
+        let sql = """
+        SELECT id, kind, payload, created_at
+        FROM task_events
+        WHERE task_id = ?
+        ORDER BY created_at DESC
+        LIMIT ?
+        """
+
+        var stmt: OpaquePointer?
+        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
+            throw ServiceError.queryFailed(errorMessage(db))
+        }
+        defer { sqlite3_finalize(stmt) }
+
+        bind(taskID, to: 1, in: stmt)
+        sqlite3_bind_int(stmt, 2, Int32(limit))
+
+        var events: [KanbanEvent] = []
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            events.append(
+                KanbanEvent(
+                    id: int(stmt, index: 0),
+                    kind: string(stmt, index: 1),
+                    payload: nullableString(stmt, index: 2),
+                    createdAt: date(stmt, index: 3)
+                )
+            )
+        }
+
+        return events
+    }
+
     // MARK: - Stats
 
     public func fetchStats() throws -> [KanbanStatus: Int] {
@@ -289,7 +343,14 @@ public actor KanbanDataService {
             workspacePath: nullableString(stmt, index: 11),
             tenant: nullableString(stmt, index: 12),
             result: nullableString(stmt, index: 13),
-            skills: parseSkills(nullableString(stmt, index: 14))
+            skills: parseSkills(nullableString(stmt, index: 14)),
+            lastHeartbeatAt: nullableDate(stmt, index: 15),
+            consecutiveFailures: int(stmt, index: 16),
+            lastFailureError: nullableString(stmt, index: 17),
+            branchName: nullableString(stmt, index: 18),
+            sessionID: nullableString(stmt, index: 19),
+            goalMode: int(stmt, index: 20) != 0,
+            modelOverride: nullableString(stmt, index: 21)
         )
     }
 

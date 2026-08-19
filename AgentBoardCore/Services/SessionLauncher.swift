@@ -13,177 +13,6 @@ public final class SessionLauncher {
     private let launchConfigStore: LaunchConfigStore
     private let projectPathResolver: ProjectPathResolver
 
-    // MARK: - Models
-
-    public enum AgentType: String, CaseIterable, Identifiable, Sendable, Codable {
-        case claude
-        case codex
-        case opencode
-
-        public var id: String {
-            rawValue
-        }
-
-        public var displayName: String {
-            switch self {
-            case .claude: return "Claude Code"
-            case .codex: return "Codex CLI"
-            case .opencode: return "OpenCode"
-            }
-        }
-
-        public var icon: String {
-            switch self {
-            case .claude: return "brain.head.profile"
-            case .codex: return "terminal.fill"
-            case .opencode: return "chevron.left.forwardslash.chevron.right"
-            }
-        }
-
-        public var launchFlag: String {
-            switch self {
-            case .claude: return "claude"
-            case .codex: return "codex"
-            case .opencode: return "opencode"
-            }
-        }
-    }
-
-    public enum ExecutionPreset: String, CaseIterable, Identifiable, Sendable, Codable {
-        case ralphLoop = "Ralph Loop"
-        case tddSuperpowers = "TDD (Superpowers)"
-        case claudeToCodex = "Claude → Codex Handoff"
-        case codexReview = "Codex Review & Test"
-        case opencodeSession = "OpenCode Session"
-
-        public var id: String {
-            rawValue
-        }
-
-        public var description: String {
-            switch self {
-            case .ralphLoop:
-                return "Short iterations, PRD-driven, watchdog monitoring. Best for features and fixes."
-            case .tddSuperpowers:
-                return "Test-first workflow. Write failing tests, then implement. Best for business logic."
-            case .claudeToCodex:
-                return "Claude implements, auto-hands off to Codex for test validation. Best for large features."
-            case .codexReview:
-                return "Codex handles implementation with built-in review cycle. Best for PRs and testing."
-            case .opencodeSession:
-                return "OpenCode multi-model session. Best for parallel exploration and non-Anthropic models."
-            }
-        }
-
-        public var icon: String {
-            switch self {
-            case .ralphLoop: return "arrow.triangle.2.circlepath"
-            case .tddSuperpowers: return "checkmark.shield"
-            case .claudeToCodex: return "arrow.right.circle"
-            case .codexReview: return "terminal.fill"
-            case .opencodeSession: return "chevron.left.forwardslash.chevron.right"
-            }
-        }
-
-        public var agent: AgentType {
-            switch self {
-            case .ralphLoop: return .claude
-            case .tddSuperpowers: return .claude
-            case .claudeToCodex: return .claude
-            case .codexReview: return .codex
-            case .opencodeSession: return .opencode
-            }
-        }
-    }
-
-    public struct LaunchConfig: Sendable, Codable {
-        public let taskTitle: String
-        public let issueNumber: Int
-        public let repo: String
-        public let fullRepo: String
-        public let preset: ExecutionPreset
-        public let agentType: AgentType
-        public let customInstructions: String
-
-        public init(
-            taskTitle: String,
-            issueNumber: Int,
-            repo: String,
-            fullRepo: String,
-            preset: ExecutionPreset,
-            agentType: AgentType? = nil,
-            customInstructions: String
-        ) {
-            self.taskTitle = taskTitle
-            self.issueNumber = issueNumber
-            self.repo = repo
-            self.fullRepo = fullRepo
-            self.preset = preset
-            self.agentType = agentType ?? preset.agent
-            self.customInstructions = customInstructions
-        }
-    }
-
-    public struct ActiveSession: Identifiable, Sendable {
-        public let id: String
-        public let sessionName: String
-        public let issueNumber: Int
-        public let preset: ExecutionPreset
-        public let agentType: AgentType
-        public let startTime: Date
-        public var status: SessionStatus
-
-        public init(
-            id: String,
-            sessionName: String,
-            issueNumber: Int,
-            preset: ExecutionPreset,
-            agentType: AgentType,
-            startTime: Date,
-            status: SessionStatus
-        ) {
-            self.id = id
-            self.sessionName = sessionName
-            self.issueNumber = issueNumber
-            self.preset = preset
-            self.agentType = agentType
-            self.startTime = startTime
-            self.status = status
-        }
-
-        public enum SessionStatus: Sendable, CustomStringConvertible {
-            case running, completed, failed, stalled
-
-            public var description: String {
-                switch self {
-                case .running: "running"
-                case .completed: "completed"
-                case .failed: "failed"
-                case .stalled: "stalled"
-                }
-            }
-        }
-
-        public var elapsed: String {
-            let interval = Date().timeIntervalSince(startTime)
-            let minutes = Int(interval) / 60
-            let seconds = Int(interval) % 60
-            return String(format: "%d:%02d", minutes, seconds)
-        }
-    }
-
-    public enum LaunchError: LocalizedError {
-        case tmuxFailed(String)
-        case unsupportedPlatform
-
-        public var errorDescription: String? {
-            switch self {
-            case let .tmuxFailed(msg): return "tmux launch failed: \(msg)"
-            case .unsupportedPlatform: return "Session launching is only supported on macOS."
-            }
-        }
-    }
-
     // MARK: - State
 
     public var activeSessions: [ActiveSession] = []
@@ -212,11 +41,7 @@ public final class SessionLauncher {
         isLaunching = true
         lastError = nil
 
-        let sessionName = "ab-\(config.repo.lowercased())-\(config.issueNumber)".replacingOccurrences(
-            of: ".",
-            with: "_"
-        )
-        let prdPath = "docs/PRD-issue-\(config.issueNumber).md"
+        let sessionName = Self.sessionName(for: config)
 
         do {
             let canonicalRepoPath = projectPathResolver.resolve(
@@ -227,19 +52,12 @@ public final class SessionLauncher {
                 name: sessionName,
                 repoPath: canonicalRepoPath
             )
-            let prd = prdComposer.compose(config: config)
-            try writePRD(repoPath: workspacePath, path: prdPath, content: prd)
-            do {
-                try await tmux.launchSession(
-                    name: sessionName,
-                    repoPath: workspacePath,
-                    agentLaunchFlag: config.agentType.launchFlag,
-                    prdPath: prdPath
-                )
-            } catch let TmuxError.launchFailed(msg) {
-                throw LaunchError.tmuxFailed(msg)
-            } catch TmuxError.unsupportedPlatform {
-                throw LaunchError.unsupportedPlatform
+
+            switch config.mode {
+            case .autonomous:
+                try await launchAutonomous(config: config, sessionName: sessionName, workspacePath: workspacePath)
+            case .interactive:
+                try await launchInteractive(config: config, sessionName: sessionName, workspacePath: workspacePath)
             }
 
             let session = ActiveSession(
@@ -249,7 +67,8 @@ public final class SessionLauncher {
                 preset: config.preset,
                 agentType: config.agentType,
                 startTime: Date(),
-                status: .running
+                status: .running,
+                mode: config.mode
             )
             activeSessions.append(session)
             isLaunching = false
@@ -263,6 +82,54 @@ public final class SessionLauncher {
             isLaunching = false
             logger.error("Launch failed: \(error.localizedDescription)")
             return nil
+        }
+    }
+
+    private static func sessionName(for config: LaunchConfig) -> String {
+        switch config.mode {
+        case .autonomous:
+            return "ab-\(config.repo.lowercased())-\(config.issueNumber)".replacingOccurrences(
+                of: ".",
+                with: "_"
+            )
+        case .interactive:
+            let suffix = Int(Date().timeIntervalSince1970) % 100_000
+            return "ab-\(config.repo.lowercased())-i\(suffix)".replacingOccurrences(
+                of: ".",
+                with: "_"
+            )
+        }
+    }
+
+    private func launchAutonomous(config: LaunchConfig, sessionName: String, workspacePath: String) async throws {
+        let prdPath = "docs/PRD-issue-\(config.issueNumber).md"
+        let prd = prdComposer.compose(config: config)
+        try writePRD(repoPath: workspacePath, path: prdPath, content: prd)
+        do {
+            try await tmux.launchSession(
+                name: sessionName,
+                repoPath: workspacePath,
+                agentLaunchFlag: config.agentType.launchFlag,
+                prdPath: prdPath
+            )
+        } catch let TmuxError.launchFailed(msg) {
+            throw LaunchError.tmuxFailed(msg)
+        } catch TmuxError.unsupportedPlatform {
+            throw LaunchError.unsupportedPlatform
+        }
+    }
+
+    private func launchInteractive(config: LaunchConfig, sessionName: String, workspacePath: String) async throws {
+        do {
+            try await tmux.launchInteractiveSession(
+                name: sessionName,
+                repoPath: workspacePath,
+                agentCommand: config.agentType.interactiveCommand
+            )
+        } catch let TmuxError.launchFailed(msg) {
+            throw LaunchError.tmuxFailed(msg)
+        } catch TmuxError.unsupportedPlatform {
+            throw LaunchError.unsupportedPlatform
         }
     }
 
@@ -427,5 +294,221 @@ public final class SessionLauncher {
         #else
             throw LaunchError.unsupportedPlatform
         #endif
+    }
+}
+
+extension SessionLauncher {
+    // MARK: - Models
+
+    public enum AgentType: String, CaseIterable, Identifiable, Sendable, Codable {
+        case claude
+        case pi
+        case codex
+        case opencode
+
+        public var id: String {
+            rawValue
+        }
+
+        public var displayName: String {
+            switch self {
+            case .claude: return "Claude Code"
+            case .pi: return "Pi"
+            case .codex: return "Codex CLI"
+            case .opencode: return "OpenCode"
+            }
+        }
+
+        public var icon: String {
+            switch self {
+            case .claude: return "brain.head.profile"
+            case .pi: return "sparkle"
+            case .codex: return "terminal.fill"
+            case .opencode: return "chevron.left.forwardslash.chevron.right"
+            }
+        }
+
+        public var launchFlag: String {
+            switch self {
+            case .claude: return "claude"
+            case .pi: return "pi"
+            case .codex: return "codex"
+            case .opencode: return "opencode"
+            }
+        }
+
+        /// CLI invoked for interactive (non-ralphy) sessions; resolved via `zsh -l` login PATH.
+        public var interactiveCommand: String {
+            switch self {
+            case .claude: return "claude"
+            case .pi: return "pi"
+            case .codex: return "codex"
+            case .opencode: return "opencode"
+            }
+        }
+
+        /// Whether ralphy supports this agent for autonomous PRD runs.
+        public var supportsAutonomous: Bool { self != .pi }
+    }
+
+    public enum ExecutionPreset: String, CaseIterable, Identifiable, Sendable, Codable {
+        case ralphLoop = "Ralph Loop"
+        case tddSuperpowers = "TDD (Superpowers)"
+        case claudeToCodex = "Claude → Codex Handoff"
+        case codexReview = "Codex Review & Test"
+        case opencodeSession = "OpenCode Session"
+
+        public var id: String {
+            rawValue
+        }
+
+        public var description: String {
+            switch self {
+            case .ralphLoop:
+                return "Short iterations, PRD-driven, watchdog monitoring. Best for features and fixes."
+            case .tddSuperpowers:
+                return "Test-first workflow. Write failing tests, then implement. Best for business logic."
+            case .claudeToCodex:
+                return "Claude implements, auto-hands off to Codex for test validation. Best for large features."
+            case .codexReview:
+                return "Codex handles implementation with built-in review cycle. Best for PRs and testing."
+            case .opencodeSession:
+                return "OpenCode multi-model session. Best for parallel exploration and non-Anthropic models."
+            }
+        }
+
+        public var icon: String {
+            switch self {
+            case .ralphLoop: return "arrow.triangle.2.circlepath"
+            case .tddSuperpowers: return "checkmark.shield"
+            case .claudeToCodex: return "arrow.right.circle"
+            case .codexReview: return "terminal.fill"
+            case .opencodeSession: return "chevron.left.forwardslash.chevron.right"
+            }
+        }
+
+        public var agent: AgentType {
+            switch self {
+            case .ralphLoop: return .claude
+            case .tddSuperpowers: return .claude
+            case .claudeToCodex: return .claude
+            case .codexReview: return .codex
+            case .opencodeSession: return .opencode
+            }
+        }
+    }
+
+    public enum LaunchMode: String, Codable, Sendable {
+        case autonomous, interactive
+    }
+
+    public struct LaunchConfig: Sendable, Codable {
+        public let taskTitle: String
+        public let issueNumber: Int
+        public let repo: String
+        public let fullRepo: String
+        public let preset: ExecutionPreset
+        public let agentType: AgentType
+        public let customInstructions: String
+        public let mode: LaunchMode
+
+        public init(
+            taskTitle: String,
+            issueNumber: Int,
+            repo: String,
+            fullRepo: String,
+            preset: ExecutionPreset,
+            agentType: AgentType? = nil,
+            customInstructions: String,
+            mode: LaunchMode = .autonomous
+        ) {
+            self.taskTitle = taskTitle
+            self.issueNumber = issueNumber
+            self.repo = repo
+            self.fullRepo = fullRepo
+            self.preset = preset
+            self.agentType = agentType ?? preset.agent
+            self.customInstructions = customInstructions
+            self.mode = mode
+        }
+
+        private enum CodingKeys: String, CodingKey {
+            case taskTitle, issueNumber, repo, fullRepo, preset, agentType, customInstructions, mode
+        }
+
+        public init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            taskTitle = try container.decode(String.self, forKey: .taskTitle)
+            issueNumber = try container.decode(Int.self, forKey: .issueNumber)
+            repo = try container.decode(String.self, forKey: .repo)
+            fullRepo = try container.decode(String.self, forKey: .fullRepo)
+            preset = try container.decode(ExecutionPreset.self, forKey: .preset)
+            agentType = try container.decode(AgentType.self, forKey: .agentType)
+            customInstructions = try container.decode(String.self, forKey: .customInstructions)
+            mode = try container.decodeIfPresent(LaunchMode.self, forKey: .mode) ?? .autonomous
+        }
+    }
+
+    public struct ActiveSession: Identifiable, Sendable {
+        public let id: String
+        public let sessionName: String
+        public let issueNumber: Int
+        public let preset: ExecutionPreset
+        public let agentType: AgentType
+        public let startTime: Date
+        public var status: SessionStatus
+        public let mode: LaunchMode
+
+        public init(
+            id: String,
+            sessionName: String,
+            issueNumber: Int,
+            preset: ExecutionPreset,
+            agentType: AgentType,
+            startTime: Date,
+            status: SessionStatus,
+            mode: LaunchMode = .autonomous
+        ) {
+            self.id = id
+            self.sessionName = sessionName
+            self.issueNumber = issueNumber
+            self.preset = preset
+            self.agentType = agentType
+            self.startTime = startTime
+            self.status = status
+            self.mode = mode
+        }
+
+        public enum SessionStatus: Sendable, CustomStringConvertible {
+            case running, completed, failed, stalled
+
+            public var description: String {
+                switch self {
+                case .running: "running"
+                case .completed: "completed"
+                case .failed: "failed"
+                case .stalled: "stalled"
+                }
+            }
+        }
+
+        public var elapsed: String {
+            let interval = Date().timeIntervalSince(startTime)
+            let minutes = Int(interval) / 60
+            let seconds = Int(interval) % 60
+            return String(format: "%d:%02d", minutes, seconds)
+        }
+    }
+
+    public enum LaunchError: LocalizedError {
+        case tmuxFailed(String)
+        case unsupportedPlatform
+
+        public var errorDescription: String? {
+            switch self {
+            case let .tmuxFailed(msg): return "tmux launch failed: \(msg)"
+            case .unsupportedPlatform: return "Session launching is only supported on macOS."
+            }
+        }
     }
 }

@@ -120,6 +120,14 @@ private struct FakeKanbanData: KanbanDataReading {
     func fetchRuns(for _: String) async throws -> [KanbanRun] {
         []
     }
+
+    func fetchLatestEventID() async throws -> Int {
+        0
+    }
+
+    func fetchEvents(taskID _: String, limit _: Int) async throws -> [KanbanEvent] {
+        []
+    }
 }
 
 private struct NoopCLIWriter: KanbanCLIWriting {

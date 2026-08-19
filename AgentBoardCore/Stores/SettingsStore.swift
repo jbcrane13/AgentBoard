@@ -15,6 +15,12 @@ public final class SettingsStore {
     public var hermesProfiles: [HermesProfile] = []
     public var selectedHermesProfileID: String?
 
+    /// Fixed swatch palette assigned round-robin to Hermes profiles that don't have an explicit
+    /// `colorHex`, used to visually distinguish them in the chat header.
+    public static let hermesProfileColorPalette: [String] = [
+        "#4FC3F7", "#FFB74D", "#81C784", "#BA68C8", "#F06292", "#4DB6AC"
+    ]
+
     public var companionURL = "http://127.0.0.1:8742"
     public var companionToken = ""
 
@@ -157,17 +163,26 @@ public final class SettingsStore {
             return
         }
 
+        let apiKey = hermesAPIKey.trimmedOrNil
+        let paletteColor = Self.hermesProfileColorPalette[hermesProfiles.count % Self.hermesProfileColorPalette.count]
+
         if let existingIndex = hermesProfiles
             .firstIndex(where: { $0.name.localizedCaseInsensitiveCompare(trimmedName) == .orderedSame }) {
             hermesProfiles[existingIndex].gatewayURL = gatewayURL
             hermesProfiles[existingIndex].modelID = hermesModelID.trimmedOrNil
+            hermesProfiles[existingIndex].apiKey = apiKey
+            if hermesProfiles[existingIndex].colorHex == nil {
+                hermesProfiles[existingIndex].colorHex = paletteColor
+            }
             selectedHermesProfileID = hermesProfiles[existingIndex].id
             statusMessage = "Updated Hermes profile \(trimmedName)."
         } else {
             let profile = HermesProfile(
                 name: trimmedName,
                 gatewayURL: gatewayURL,
-                modelID: hermesModelID.trimmedOrNil
+                modelID: hermesModelID.trimmedOrNil,
+                apiKey: apiKey,
+                colorHex: paletteColor
             )
             hermesProfiles.append(profile)
             hermesProfiles.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
@@ -185,6 +200,7 @@ public final class SettingsStore {
         if let modelID = profile.modelID {
             hermesModelID = modelID
         }
+        hermesAPIKey = profile.apiKey ?? hermesAPIKey
         errorMessage = nil
         if !silent {
             statusMessage = "Switched to \(profile.name)."

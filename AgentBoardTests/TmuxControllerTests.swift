@@ -100,6 +100,20 @@ struct TmuxControllerTests {
         ])
     }
 
+    @Test func interactiveLaunchCommandRunsBareAgentCliWithoutRalphy() {
+        let command = LiveTmuxController.interactiveLaunchCommand(
+            name: "ab-x-i1",
+            repoPath: "/tmp/r",
+            agentCommand: "claude"
+        )
+
+        #expect(command.contains("new -d -s ab-x-i1"))
+        #expect(command.contains("cd /tmp/r"))
+        #expect(command.contains("claude;"))
+        #expect(command.contains("echo EXITED:"))
+        #expect(!command.contains("ralphy"))
+    }
+
     @discardableResult
     private func runGit(_ arguments: [String]) throws -> String {
         let process = Process()

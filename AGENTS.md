@@ -122,6 +122,9 @@ Located in `SharedResources/Assets.xcassets/AppIcon.appiconset/`. All 10 macOS s
 ## Design decisions
 
 See `docs/ADR.md` for the full architecture decision record. Key recent ADRs:
+- **ADR-020** (2026-08-19): Interactive tmux sessions run the agent CLI directly (`claude`/`pi`/`codex`/`opencode`), skipping ralphy and the PRD, and attach read-write on open.
+- **ADR-021** (2026-08-19): Kanban is the default screen; `AgentsStore` polls `task_events` every 2 s so the board tracks agents live.
+- **ADR-022** (2026-08-19): Chat conversations are bound to the Hermes profile that created them; profiles carry their own API key and color.
 - **ADR-019** (2026-07-21): Agent launches resolve canonical Hermes project paths, use isolated Git worktrees, and generate repository-neutral PRDs.
 - **ADR-013** (2026-05-23): Native SwiftUI app shell controls
 - **ADR-015** (2026-07-19): Replace neumorphic chrome with native macOS/iOS UI — the shared theme primitives in `AgentBoardUI/Theme/NeumorphicTheme.swift` now render platform-native surfaces/materials; screens compile unchanged.
@@ -217,3 +220,9 @@ fix the ui theme
 
 ## Activity — 2026-08-19
 - Graphify structural analysis: built knowledge graph (3792 nodes / 9102 edges). ADR-010's import-enforced seam is real: tests import only Core + CompanionKit (zero AgentBoardUI links). Coverage audit identified 8 unresolved edges (extraction limitation—tests exist but cross-file symbol resolution failed, e.g., `AgentBoardCache(inMemory:)`) and 4 genuine gaps: AudioRecorderService, LinkPreviewService, ShellEnvironment (filed #204–#206); DemoFixtures is test-support-only. Directed graph confirms WorkStore→WorkStoreTests flows through real symbol edges. Added graphify-out/ to .gitignore.
+- **Interactive agent sessions (ADR-020):** added `pi` to `AgentType`, `SessionLauncher.LaunchMode`, `TmuxControlling.launchInteractiveSession`, and `SessionAttachmentController.attachInteractive`. Quick Launch defaults to Interactive with a mode picker; Autonomous hides `pi` since `ralphy` has no `--pi` flag.
+- **Live kanban (ADR-021):** default destination is now `.agents`; `KanbanDataService` gained `fetchLatestEventID()`/`fetchEvents(taskID:limit:)` and reads `last_heartbeat_at`, `consecutive_failures`, `last_failure_error`, `branch_name`, `session_id`, `goal_mode`, `model_override`. Cards show heartbeat freshness and failure counts; the detail sheet gained Status and Events sections.
+- **Per-profile chat (ADR-022):** `ChatConversation.profileID` persists through the SwiftData cache and companion SQLite (`profile_id` migration); the header groups conversations by profile with an "Other Profiles" submenu; failed streams surface a Retry control.
+- **Dashboard endpoint decision:** the app stays on the Hermes API server (`127.0.0.1:8641`, Bearer, OpenAI-compatible SSE + `/api/sessions/*`). The `:9119` dashboard is a browser-UI server whose routes include shell-command approval — wiring a native client to it would couple us to a UI contract and widen the blast radius. Kanban likewise stays on SQLite-read + `hermes kanban`-write per ADR-011.
+- Lint housekeeping forced by the above: nested `SessionLauncher` models moved into an extension, SwiftData record types split into `AgentBoardCacheRecords.swift`, `ChatStore.retryLastSend` placed in `ChatStore+Internals.swift`, and backup/detail actions extracted into extensions.
+

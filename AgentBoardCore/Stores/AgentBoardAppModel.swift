@@ -16,7 +16,7 @@ public final class AgentBoardAppModel {
     public let sessionsStore: SessionsStore
     public let sessionLauncher: SessionLauncher
 
-    public var selectedDestination: AppDestination = .dashboard
+    public var selectedDestination: AppDestination = .agents
     public private(set) var isBootstrapping = false
     public private(set) var didBootstrap = false
     public var statusMessage: String?
@@ -61,6 +61,7 @@ public final class AgentBoardAppModel {
 
         startCompanionEvents()
         startRefreshLoop()
+        agentsStore.startLiveUpdates()
     }
 
     public func refreshAll() async {

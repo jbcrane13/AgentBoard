@@ -20,6 +20,16 @@ struct AgentBoardCacheTests {
         #expect(loaded[0].modelID == conv.modelID)
     }
 
+    @Test func conversationRoundTripPreservesProfileID() throws {
+        let cache = try AgentBoardCache(inMemory: true)
+        let conv = ChatConversation(title: "Bound Session", profileID: "profile-abc")
+
+        try cache.saveConversationSnapshot(conversation: conv, messages: [])
+
+        let loaded = try cache.loadConversations()
+        #expect(loaded.first?.profileID == "profile-abc")
+    }
+
     @Test func messagesRoundTrip() throws {
         let cache = try AgentBoardCache(inMemory: true)
         let convID = UUID()

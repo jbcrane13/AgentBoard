@@ -41,10 +41,11 @@ struct NativeSwiftUIInterfaceTests {
 
     @Test func cacheReplacesCollectionsWithoutDeleteAllWriteAmplification() throws {
         let source = try Self.source("AgentBoardCore/Persistence/AgentBoardCache.swift")
+        let recordSource = try Self.source("AgentBoardCore/Persistence/AgentBoardCacheRecords.swift")
 
-        #expect(source.contains("func update(from item: WorkItem"))
-        #expect(source.contains("func update(from session: AgentSession"))
-        #expect(source.contains("func update(from agent: AgentSummary"))
+        #expect(recordSource.contains("func update(from item: WorkItem"))
+        #expect(recordSource.contains("func update(from session: AgentSession"))
+        #expect(recordSource.contains("func update(from agent: AgentSummary"))
         #expect(!source.contains("replaceAll(CachedWorkItemRecord.self)"))
         #expect(!source.contains("replaceAll(CachedSessionRecord.self)"))
         #expect(!source.contains("replaceAll(CachedAgentRecord.self)"))
@@ -66,6 +67,14 @@ struct NativeSwiftUIInterfaceTests {
         #expect(appModelSource.contains("selectedDestination"))
         #expect(rootSource.contains("appModel.selectedDestination"))
         #expect(!rootSource.contains("activeTab"))
+    }
+
+    @Test func kanbanBoardIsTheDefaultDesktopAndInitialDestination() throws {
+        let rootSource = try Self.source("AgentBoard/DesktopRootView.swift")
+        let appModelSource = try Self.source("AgentBoardCore/Stores/AgentBoardAppModel.swift")
+
+        #expect(appModelSource.contains("var selectedDestination: AppDestination = .agents"))
+        #expect(rootSource.contains("return .agents"))
     }
 
     @Test func workBoardDragAndDropUsesTransferableAPI() throws {
@@ -103,6 +112,20 @@ struct NativeSwiftUIInterfaceTests {
         #expect(source.contains(#"Text("Terminal").tag(2)"#))
         #expect(source.contains("SessionLauncher.attachCommand(for: tmuxSession)"))
         #expect(source.contains("EmbeddedTerminalView("))
+    }
+
+    @Test func quickLaunchSheetOffersModePickerForInteractiveSessions() throws {
+        let source = try Self.source("AgentBoardUI/Screens/QuickLaunchSheet.swift")
+
+        #expect(source.contains(#"accessibilityIdentifier("quick_launch_picker_mode")"#))
+        #expect(source.contains("selectedMode: SessionLauncher.LaunchMode = .interactive"))
+    }
+
+    @Test func sessionTerminalViewAutoAttachesInteractiveSessionsReadWrite() throws {
+        let source = try Self.source("AgentBoardUI/Screens/SessionTerminalView.swift")
+
+        #expect(source.contains("attachmentController.attachInteractive(sessionName: session.sessionName)"))
+        #expect(source.contains("session.mode == .interactive && session.status == .running"))
     }
 
     @Test func nilIfEmptyHasSingleSharedDefinition() throws {

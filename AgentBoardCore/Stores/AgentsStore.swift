@@ -20,6 +20,13 @@ public final class AgentsStore {
     private var didBootstrap = false
     private var lastFingerprint: String = ""
 
+    private static let liveUpdateInterval: Duration = .seconds(2)
+    private static let liveUpdateBackoffInterval: Duration = .seconds(30)
+    private var liveUpdateTask: Task<Void, Never>?
+    private var lastKnownEventID: Int?
+    private var liveUpdatePollInterval: Duration = AgentsStore.liveUpdateInterval
+    private var hasLoggedLiveUpdateFailure = false
+
     public init(
         kanbanData: any KanbanDataReading = KanbanDataService(),
         cliWriter: any KanbanCLIWriting = KanbanCLIWriter(),
@@ -272,6 +279,71 @@ public final class AgentsStore {
     /// Fetch parent/child IDs for a task.
     public func fetchLinks(for taskID: String) async throws -> (parents: [String], children: [String]) {
         try await kanbanData.fetchLinks(for: taskID)
+    }
+
+    /// Recent kanban events for a task (for the detail sheet's Events section).
+    public func fetchEvents(for taskID: String) async throws -> [KanbanEvent] {
+        try await kanbanData.fetchEvents(taskID: taskID)
+    }
+
+    // MARK: - Live Updates
+
+    /// Starts a background loop that polls `task_events` roughly every 2s
+    /// and triggers a full `refresh()` only when the latest event id has
+    /// advanced. Falls back to a quiet 30s poll after the first failure
+    /// (e.g. `kanban.db` missing on iOS, or Hermes not installed) — poll
+    /// failures never surface in `errorMessage`; `refresh()`'s existing
+    /// error surface stays authoritative.
+    public func startLiveUpdates() {
+        liveUpdateTask?.cancel()
+        liveUpdateTask = Task { [weak self] in
+            guard let self else { return }
+
+            while !Task.isCancelled {
+                try? await Task.sleep(for: self.liveUpdatePollInterval)
+                guard !Task.isCancelled else { return }
+                await self.pollForChanges()
+            }
+        }
+    }
+
+    public func stopLiveUpdates() {
+        liveUpdateTask?.cancel()
+        liveUpdateTask = nil
+    }
+
+    /// Single live-update poll iteration. Factored out of the sleep loop so
+    /// tests can drive one iteration directly. Returns whether it triggered
+    /// a `refresh()`.
+    @discardableResult
+    func pollForChanges() async -> Bool {
+        do {
+            let latest = try await kanbanData.fetchLatestEventID()
+            recordLiveUpdatePollSuccess()
+
+            guard latest != lastKnownEventID else { return false }
+            let isFirstObservation = lastKnownEventID == nil
+            lastKnownEventID = latest
+            guard !isFirstObservation else { return false }
+
+            await refresh()
+            return true
+        } catch {
+            recordLiveUpdatePollFailure(error)
+            return false
+        }
+    }
+
+    private func recordLiveUpdatePollSuccess() {
+        liveUpdatePollInterval = Self.liveUpdateInterval
+        hasLoggedLiveUpdateFailure = false
+    }
+
+    private func recordLiveUpdatePollFailure(_ error: Error) {
+        liveUpdatePollInterval = Self.liveUpdateBackoffInterval
+        guard !hasLoggedLiveUpdateFailure else { return }
+        hasLoggedLiveUpdateFailure = true
+        logger.error("Kanban live-update poll failed: \(error.localizedDescription, privacy: .public)")
     }
 
     // MARK: - Internal

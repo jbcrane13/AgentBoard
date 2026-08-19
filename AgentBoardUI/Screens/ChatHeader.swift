@@ -60,7 +60,7 @@ struct ChatHeader: View {
 
     @ViewBuilder
     private var sessionMenuItems: some View {
-        ForEach(appModel.chatStore.conversations) { conversation in
+        ForEach(visibleConversations) { conversation in
             Button {
                 appModel.chatStore.selectConversation(conversation.id)
             } label: {
@@ -72,7 +72,27 @@ struct ChatHeader: View {
             }
             .accessibilityIdentifier("chat_menuitem_session_\(conversation.id.uuidString)")
         }
-        if !appModel.chatStore.conversations.isEmpty {
+        if !visibleConversations.isEmpty {
+            Divider()
+        }
+        if !otherProfileConversations.isEmpty {
+            Menu {
+                ForEach(groupedOtherConversations) { group in
+                    Section(group.name) {
+                        ForEach(group.conversations) { conversation in
+                            Button {
+                                appModel.chatStore.selectConversation(conversation.id)
+                            } label: {
+                                Label(conversation.title, systemImage: "bubble.left")
+                            }
+                            .accessibilityIdentifier("chat_menuitem_session_\(conversation.id.uuidString)")
+                        }
+                    }
+                }
+            } label: {
+                Label("Other Profiles", systemImage: "person.2")
+            }
+            .accessibilityIdentifier("chat_menu_other_profiles")
             Divider()
         }
         Button {
@@ -81,6 +101,32 @@ struct ChatHeader: View {
             Label("New Session", systemImage: "square.and.pencil")
         }
         .accessibilityIdentifier("chat_menuitem_session_new")
+    }
+
+    /// Conversations bound to the active Hermes profile, plus any not yet bound to a profile.
+    private var visibleConversations: [ChatConversation] {
+        let activeProfileID = appModel.settingsStore.activeHermesProfile?.id
+        return appModel.chatStore.conversations.filter { $0.profileID == activeProfileID || $0.profileID == nil }
+    }
+
+    /// Conversations bound to a Hermes profile other than the active one.
+    private var otherProfileConversations: [ChatConversation] {
+        let activeProfileID = appModel.settingsStore.activeHermesProfile?.id
+        return appModel.chatStore.conversations.filter { $0.profileID != nil && $0.profileID != activeProfileID }
+    }
+
+    /// `otherProfileConversations` grouped by profile name, in first-seen order. Conversations
+    /// whose `profileID` names no known profile are grouped under "Unassigned".
+    private var groupedOtherConversations: [ProfileConversationGroup] {
+        let profiles = appModel.settingsStore.hermesProfiles
+        var order: [String] = []
+        var byName: [String: [ChatConversation]] = [:]
+        for conversation in otherProfileConversations {
+            let name = profiles.first { $0.id == conversation.profileID }?.name ?? "Unassigned"
+            if byName[name] == nil { order.append(name) }
+            byName[name, default: []].append(conversation)
+        }
+        return order.map { ProfileConversationGroup(name: $0, conversations: byName[$0] ?? []) }
     }
 
     @ViewBuilder
@@ -95,14 +141,28 @@ struct ChatHeader: View {
                     await appModel.chatStore.refreshModels()
                 }
             } label: {
-                Label(
-                    profile.name,
-                    systemImage: appModel.settingsStore.selectedHermesProfileID == profile.id
-                        ? "checkmark.circle.fill" : "network"
-                )
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(profileColor(for: profile))
+                        .frame(width: 8, height: 8)
+                    Label(
+                        profile.name,
+                        systemImage: appModel.settingsStore.selectedHermesProfileID == profile.id
+                            ? "checkmark.circle.fill" : "network"
+                    )
+                }
             }
             .accessibilityIdentifier("chat_menuitem_profile_\(profile.id)")
         }
+    }
+
+    /// The color dot shown next to a profile; falls back to a neutral tone when the profile has
+    /// no `colorHex` set.
+    private func profileColor(for profile: HermesProfile) -> Color {
+        guard let hex = profile.colorHex, let color = Color(hex: hex) else {
+            return AppTheme.textTertiary
+        }
+        return color
     }
 
     private var sessionMenu: some View {
@@ -122,10 +182,17 @@ struct ChatHeader: View {
         Menu {
             profileMenuItems
         } label: {
-            compactMenuButton(
-                icon: "server.rack",
-                text: appModel.settingsStore.activeHermesProfile?.name ?? portLabel
-            )
+            HStack(spacing: 4) {
+                if let activeProfile = appModel.settingsStore.activeHermesProfile {
+                    Circle()
+                        .fill(profileColor(for: activeProfile))
+                        .frame(width: 8, height: 8)
+                }
+                compactMenuButton(
+                    icon: "server.rack",
+                    text: appModel.settingsStore.activeHermesProfile?.name ?? portLabel
+                )
+            }
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("chat_menu_profile")
@@ -154,13 +221,20 @@ struct ChatHeader: View {
         Menu {
             profileMenuItems
         } label: {
-            Text(appModel.settingsStore.activeHermesProfile?.name ?? portLabel)
-                .font(.system(size: 10.5, weight: .medium, design: .monospaced))
-                .foregroundStyle(AppTheme.accentCyan)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 3)
-                .background(AppTheme.accentCyan.opacity(0.08))
-                .clipShape(Capsule())
+            HStack(spacing: 4) {
+                if let activeProfile = appModel.settingsStore.activeHermesProfile {
+                    Circle()
+                        .fill(profileColor(for: activeProfile))
+                        .frame(width: 8, height: 8)
+                }
+                Text(appModel.settingsStore.activeHermesProfile?.name ?? portLabel)
+                    .font(.system(size: 10.5, weight: .medium, design: .monospaced))
+                    .foregroundStyle(AppTheme.accentCyan)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(AppTheme.accentCyan.opacity(0.08))
+            .clipShape(Capsule())
         }
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
@@ -203,4 +277,12 @@ struct ChatHeader: View {
         }
         return "Current"
     }
+}
+
+/// A named group of conversations bound to a single Hermes profile (or "Unassigned"), used by
+/// the "Other Profiles" submenu.
+private struct ProfileConversationGroup: Identifiable {
+    let name: String
+    let conversations: [ChatConversation]
+    var id: String { name }
 }

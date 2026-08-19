@@ -27,6 +27,22 @@ struct SessionLauncherTests {
         }
     }
 
+    @Test("AgentType interactiveCommand values", arguments: [
+        (SessionLauncher.AgentType.claude, "claude"),
+        (SessionLauncher.AgentType.pi, "pi"),
+        (SessionLauncher.AgentType.codex, "codex"),
+        (SessionLauncher.AgentType.opencode, "opencode")
+    ])
+    func agentTypeInteractiveCommand(agentType: SessionLauncher.AgentType, expected: String) {
+        #expect(agentType.interactiveCommand == expected)
+    }
+
+    @Test func agentTypeSupportsAutonomousIsFalseOnlyForPi() {
+        for agent in SessionLauncher.AgentType.allCases {
+            #expect(agent.supportsAutonomous == (agent != .pi), "supportsAutonomous mismatch for \(agent.rawValue)")
+        }
+    }
+
     // MARK: - ExecutionPreset
 
     @Test func executionPresetAgentMappings() {
@@ -260,6 +276,90 @@ struct SessionLauncherTests {
         #expect(launcher.canRelaunch(sessionName: "ab-agentboard-150"))
     }
 
+    // MARK: - launch (mode branching)
+
+    @Test @MainActor func interactiveLaunchCallsLaunchInteractiveSessionAndSkipsPRD() async throws {
+        let home = try makeIsolatedHomeDirectory()
+        defer { try? FileManager.default.removeItem(at: home) }
+
+        let tmux = FakeTmuxController(hasSessionResult: true, paneOutput: nil)
+        let launcher = SessionLauncher(
+            tmux: tmux,
+            launchConfigStore: LaunchConfigStore(defaults: makeIsolatedDefaults()),
+            projectPathResolver: makeIsolatedResolver(homeDirectory: home)
+        )
+        let config = SessionLauncher.LaunchConfig(
+            taskTitle: "Interactive Claude Code",
+            issueNumber: 0,
+            repo: "AgentBoard",
+            fullRepo: "jbcrane13/AgentBoard",
+            preset: .ralphLoop,
+            agentType: .claude,
+            customInstructions: "",
+            mode: .interactive
+        )
+
+        let sessionName = await launcher.launch(config: config)
+
+        #expect(sessionName?.hasPrefix("ab-agentboard-i") == true)
+        let interactiveCalls = await tmux.launchInteractiveSessionCalls
+        let sessionCalls = await tmux.launchSessionCalls
+        #expect(interactiveCalls.count == 1)
+        #expect(interactiveCalls.first?.agentCommand == "claude")
+        #expect(sessionCalls.isEmpty)
+        #expect(!FileManager.default.fileExists(atPath: worktreesRootDirectory(under: home).path))
+    }
+
+    @Test @MainActor func autonomousLaunchCallsLaunchSessionAndWritesPRD() async throws {
+        let home = try makeIsolatedHomeDirectory()
+        defer { try? FileManager.default.removeItem(at: home) }
+
+        let tmux = FakeTmuxController(hasSessionResult: true, paneOutput: nil)
+        let launcher = SessionLauncher(
+            tmux: tmux,
+            launchConfigStore: LaunchConfigStore(defaults: makeIsolatedDefaults()),
+            projectPathResolver: makeIsolatedResolver(homeDirectory: home)
+        )
+        let config = SessionLauncher.LaunchConfig(
+            taskTitle: "Fix the thing",
+            issueNumber: 999,
+            repo: "AgentBoard",
+            fullRepo: "jbcrane13/AgentBoard",
+            preset: .ralphLoop,
+            agentType: .claude,
+            customInstructions: ""
+        )
+
+        let sessionName = await launcher.launch(config: config)
+
+        #expect(sessionName == "ab-agentboard-999")
+        let interactiveCalls = await tmux.launchInteractiveSessionCalls
+        let sessionCalls = await tmux.launchSessionCalls
+        #expect(interactiveCalls.isEmpty)
+        #expect(sessionCalls == ["ab-agentboard-999"])
+        #expect(FileManager.default.fileExists(atPath: worktreesRootDirectory(under: home).path))
+    }
+
+    private func makeIsolatedHomeDirectory() throws -> URL {
+        let home = FileManager.default.temporaryDirectory
+            .appendingPathComponent("AgentBoard-launch-test-\(UUID().uuidString.lowercased())", isDirectory: true)
+        try FileManager.default.createDirectory(at: home, withIntermediateDirectories: true)
+        return home
+    }
+
+    private func makeIsolatedResolver(homeDirectory: URL) -> ProjectPathResolver {
+        ProjectPathResolver(
+            homeDirectory: homeDirectory,
+            registryURL: homeDirectory.appendingPathComponent("missing-projects.yaml")
+        )
+    }
+
+    private func worktreesRootDirectory(under home: URL) -> URL {
+        home
+            .appendingPathComponent("Projects/AgentBoard", isDirectory: true)
+            .appendingPathComponent(".agentboard-test-worktrees", isDirectory: true)
+    }
+
     private func makeIsolatedDefaults() -> UserDefaults {
         UserDefaults(suiteName: "SessionLauncherTests-\(UUID().uuidString)") ?? .standard
     }
@@ -294,6 +394,7 @@ private actor FakeTmuxController: TmuxControlling {
     private(set) var sendKeysCalls: [(name: String, text: String)] = []
     private(set) var killSessionCalls: [String] = []
     private(set) var launchSessionCalls: [String] = []
+    private(set) var launchInteractiveSessionCalls: [(name: String, repoPath: String, agentCommand: String)] = []
 
     init(
         hasSessionResult: Bool,
@@ -318,6 +419,10 @@ private actor FakeTmuxController: TmuxControlling {
         prdPath _: String
     ) async throws {
         launchSessionCalls.append(name)
+    }
+
+    func launchInteractiveSession(name: String, repoPath: String, agentCommand: String) async throws {
+        launchInteractiveSessionCalls.append((name: name, repoPath: repoPath, agentCommand: agentCommand))
     }
 
     func hasSession(name _: String) async throws -> Bool {

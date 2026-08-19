@@ -80,7 +80,11 @@ struct SessionTerminalView: View {
         }
         .accessibilityIdentifier("session_terminal_view")
         .task(id: session.sessionName) {
-            attachmentController.attach(sessionName: session.sessionName)
+            if session.mode == .interactive && session.status == .running {
+                attachmentController.attachInteractive(sessionName: session.sessionName)
+            } else {
+                attachmentController.attach(sessionName: session.sessionName)
+            }
             hasAttachedOnce = true
         }
     }
@@ -163,7 +167,7 @@ struct SessionTerminalView: View {
                         .buttonStyle(AppButtonStyle(isAccent: false))
                         .disabled(showsAttachmentFallback)
                         .accessibilityLabel("Release keyboard control")
-                        .accessibilityIdentifier("session_button_takecontrol")
+                        .accessibilityIdentifier("session_button_release")
                     }
                 #else
                     Button {
@@ -235,6 +239,17 @@ struct SessionTerminalView: View {
                 .padding(.vertical, 3)
                 .background(AppTheme.accentOrange.opacity(0.12))
                 .clipShape(Capsule())
+
+            if session.mode == .interactive {
+                Text("INTERACTIVE")
+                    .font(.caption2.weight(.bold).monospaced())
+                    .tracking(0.8)
+                    .foregroundStyle(AppTheme.accentCyan)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(AppTheme.accentCyan.opacity(0.12))
+                    .clipShape(Capsule())
+            }
 
             Text(statusTitle)
                 .font(.caption2.weight(.bold).monospaced())

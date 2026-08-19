@@ -290,4 +290,53 @@ Agents → CompanionServer → FSEvents + ps
 
 ---
 
+## ADR-020: Interactive tmux sessions launch the agent CLI directly, bypassing ralphy
+**Date:** 2026-08-19
+**Status:** Active
+**Decision:** `SessionLauncher.LaunchConfig` carries a `LaunchMode` (`autonomous` | `interactive`). Interactive launches skip PRD composition entirely and run the bare agent CLI (`claude`, `pi`, `codex`, `opencode`) inside the prepared worktree via `TmuxControlling.launchInteractiveSession`; the terminal then attaches read-write immediately instead of read-only.
+
+**Context:** Every launch was hardwired to `ralphy --<agent> --prd <path>`, so the app could only start unattended PRD loops. Sessions the user launched in order to *type into* still attached with tmux `-r` and required an explicit Take Control. `pi` was not an `AgentType` at all, and ralphy has no `--pi` flag (verified against `ralphy --help`), so it can never be an autonomous engine.
+
+**Consequences:**
+- `AgentType.interactiveCommand` names the CLI resolved on the `zsh -l` login PATH; `AgentType.supportsAutonomous` is false only for `.pi`, and the launch UI filters the agent list accordingly.
+- Interactive sessions are named `ab-<repo>-i<epoch%100000>` and still go through `prepareWorkspace`, preserving the ADR-019 worktree isolation guarantee.
+- The `EXITED:` sentinel is retained in the interactive shell command, so `SessionLauncher.checkSession` status polling is unchanged for both modes.
+- `LaunchConfig` gained an explicit `init(from:)` decoding `mode` with a default of `.autonomous`, so configs persisted before this change still decode.
+- No preflight `command -v` check: a missing CLI surfaces through the existing tmux `lastError` path.
+
+---
+
+## ADR-021: Kanban is the default screen and refreshes from the `task_events` log
+**Date:** 2026-08-19
+**Status:** Active
+**Decision:** The initial `selectedDestination` (and the desktop fallback) is `.agents`. `AgentsStore` polls `SELECT COALESCE(MAX(id), 0) FROM task_events` every 2 s and calls `refresh()` only when the id advances; the pre-existing `startRefreshLoop` (≥60 s) remains as the fallback for work and sessions.
+
+**Context:** The board is the app's agent-to-agent task tracker, but the app opened on Work/GitHub and the kanban only refreshed on the ≥60 s jittered loop — far too stale to watch agents progress. The rich `tasks` columns Hermes already writes (`last_heartbeat_at`, `consecutive_failures`, `last_failure_error`, `branch_name`, `model_override`, `session_id`, `goal_mode`) were never read.
+
+**Consequences:**
+- The poll is an indexed `MAX(id)` read on a read-only WAL connection, so it does not contend with the gateway dispatcher that owns all writes (ADR-011 is unchanged: SQLite for reads, `hermes kanban` CLI for writes).
+- The first poll failure (db missing, e.g. iOS or no Hermes install) logs once and backs the interval off to 30 s; success restores 2 s. Poll failures never raise user-facing errors — `refresh()` stays the sole error surface.
+- Running task cards show a heartbeat freshness dot (green <90 s, orange <300 s, red otherwise/nil) and a failure-count capsule; the detail sheet adds branch/model/session/goal-mode/last-error rows plus an Events list.
+- `session_id` is displayed only. Its Hermes-side semantics are unverified, so no task→tmux linking is implied.
+
+---
+
+## ADR-022: Chat conversations are bound to the Hermes profile that created them
+**Date:** 2026-08-19
+**Status:** Active
+**Decision:** `ChatConversation` carries an optional `profileID`, stamped at creation from the active `HermesProfile` and persisted through the SwiftData cache and the companion SQLite store. Selecting a conversation belonging to another known profile switches the active profile and reconfigures the gateway client before the selection completes. `HermesProfile` additionally carries a per-profile `apiKey` and `colorHex`.
+
+**Context:** Switching profiles mutated global settings only; all conversations blended into one list regardless of which gateway produced them, and a profile-specific API key had nowhere to live.
+
+**Consequences:**
+- A profile's `apiKey` wins when set; profiles without one inherit the global `hermesAPIKey`, which keeps the existing single-gateway setup working.
+- Conversations with a nil `profileID` — every pre-existing one — appear under every profile and never trigger an auto-switch. They are deliberately not bulk-stamped, which would mislabel history.
+- The chat header lists the active profile's conversations plus an "Other Profiles" submenu; unknown profile ids group under "Unassigned".
+- The companion store migrates with `ALTER TABLE conversations ADD COLUMN profile_id TEXT`, guarded by the existing column check (the `hermes_session_id` precedent). The wire DTO is `ChatConversation` itself, so the Codable change carries the field across devices.
+- A failed stream records its request as `ChatStore.lastFailedSend`, surfacing a "Stream failed — Retry" control that re-issues it after dropping the empty assistant placeholder.
+
+---
+
+---
+
 *To add a new ADR: append with the next number, include date, status, decision, context, and consequences.*

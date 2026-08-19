@@ -120,7 +120,7 @@ struct DesktopRootView: View {
 
     private func desktopDestination(for destination: AppDestination?) -> AppDestination {
         guard let destination, AppDestination.desktopTabs.contains(destination) else {
-            return .work
+            return .agents
         }
         return destination
     }

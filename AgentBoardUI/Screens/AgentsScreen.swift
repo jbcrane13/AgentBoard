@@ -486,6 +486,23 @@ private struct KanbanTaskRow: View {
                     }
                     .foregroundStyle(AppTheme.accentOrange)
 
+                    if task.status == .running {
+                        Circle()
+                            .fill(heartbeatColor(heartbeatFreshness))
+                            .frame(width: 8, height: 8)
+                            .accessibilityLabel(heartbeatFreshness.accessibilityLabel)
+                    }
+
+                    if task.consecutiveFailures > 0 {
+                        Text("\(task.consecutiveFailures)× failed")
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(.red)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(Color.red.opacity(0.12))
+                            .clipShape(Capsule())
+                    }
+
                     Spacer()
 
                     Text(task.createdAt, style: .relative)
@@ -515,6 +532,10 @@ private struct KanbanTaskRow: View {
                 .accessibilityIdentifier("kanban_alert_button_cancel")
         }
     }
+
+    private var heartbeatFreshness: KanbanHeartbeatFreshness {
+        KanbanHeartbeatFreshness.classify(lastHeartbeatAt: task.lastHeartbeatAt)
+    }
 }
 
 // MARK: - Drag Payload
@@ -543,5 +564,14 @@ private func kanbanStatusColor(_ status: KanbanStatus) -> Color {
     case .blocked: AppTheme.accentOrange
     case .done: AppTheme.textSecondary
     case .archived: AppTheme.textTertiary
+    }
+}
+
+@MainActor
+private func heartbeatColor(_ freshness: KanbanHeartbeatFreshness) -> Color {
+    switch freshness {
+    case .fresh: AppTheme.statusSuccess
+    case .slow: AppTheme.accentOrange
+    case .stale: .red
     }
 }

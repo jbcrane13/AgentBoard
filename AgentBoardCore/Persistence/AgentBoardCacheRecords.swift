@@ -1,0 +1,238 @@
+import Foundation
+import SwiftData
+
+@Model
+final class CachedConversationRecord {
+    @Attribute(.unique) var id: UUID
+    var title: String
+    var modelID: String?
+    var updatedAt: Date
+    var hermesSessionID: String?
+    var profileID: String?
+
+    init(
+        id: UUID,
+        title: String,
+        modelID: String?,
+        updatedAt: Date,
+        hermesSessionID: String? = nil,
+        profileID: String? = nil
+    ) {
+        self.id = id
+        self.title = title
+        self.modelID = modelID
+        self.updatedAt = updatedAt
+        self.hermesSessionID = hermesSessionID
+        self.profileID = profileID
+    }
+}
+
+@Model
+final class CachedMessageRecord {
+    @Attribute(.unique) var id: UUID
+    var conversationID: UUID
+    var role: String
+    var content: String
+    var createdAt: Date
+    var isStreaming: Bool
+
+    init(
+        id: UUID,
+        conversationID: UUID,
+        role: String,
+        content: String,
+        createdAt: Date,
+        isStreaming: Bool
+    ) {
+        self.id = id
+        self.conversationID = conversationID
+        self.role = role
+        self.content = content
+        self.createdAt = createdAt
+        self.isStreaming = isStreaming
+    }
+}
+
+@Model
+final class CachedWorkItemRecord {
+    @Attribute(.unique) var id: String
+    var repositoryOwner: String
+    var repositoryName: String
+    var issueNumber: Int
+    var title: String
+    var bodySummary: String
+    var isClosed: Bool
+    var assigneesData: Data
+    var milestoneNumber: Int?
+    var milestoneTitle: String?
+    var labelsData: Data
+    var status: String
+    var priority: String
+    var agentHint: String?
+    var createdAt: Date
+    var updatedAt: Date
+
+    init(
+        id: String,
+        repositoryOwner: String,
+        repositoryName: String,
+        issueNumber: Int,
+        title: String,
+        bodySummary: String,
+        isClosed: Bool,
+        assigneesData: Data,
+        milestoneNumber: Int?,
+        milestoneTitle: String?,
+        labelsData: Data,
+        status: String,
+        priority: String,
+        agentHint: String?,
+        createdAt: Date,
+        updatedAt: Date
+    ) {
+        self.id = id
+        self.repositoryOwner = repositoryOwner
+        self.repositoryName = repositoryName
+        self.issueNumber = issueNumber
+        self.title = title
+        self.bodySummary = bodySummary
+        self.isClosed = isClosed
+        self.assigneesData = assigneesData
+        self.milestoneNumber = milestoneNumber
+        self.milestoneTitle = milestoneTitle
+        self.labelsData = labelsData
+        self.status = status
+        self.priority = priority
+        self.agentHint = agentHint
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+
+    func update(from item: WorkItem, assigneesData: Data, labelsData: Data) -> Bool {
+        var didChange = false
+        didChange = assignIfNeeded(self, \.repositoryOwner, to: item.repository.owner) || didChange
+        didChange = assignIfNeeded(self, \.repositoryName, to: item.repository.name) || didChange
+        didChange = assignIfNeeded(self, \.issueNumber, to: item.issueNumber) || didChange
+        didChange = assignIfNeeded(self, \.title, to: item.title) || didChange
+        didChange = assignIfNeeded(self, \.bodySummary, to: item.bodySummary) || didChange
+        didChange = assignIfNeeded(self, \.isClosed, to: item.isClosed) || didChange
+        didChange = assignIfNeeded(self, \.assigneesData, to: assigneesData) || didChange
+        didChange = assignIfNeeded(self, \.milestoneNumber, to: item.milestone?.number) || didChange
+        didChange = assignIfNeeded(self, \.milestoneTitle, to: item.milestone?.title) || didChange
+        didChange = assignIfNeeded(self, \.labelsData, to: labelsData) || didChange
+        didChange = assignIfNeeded(self, \.status, to: item.status.rawValue) || didChange
+        didChange = assignIfNeeded(self, \.priority, to: item.priority.rawValue) || didChange
+        didChange = assignIfNeeded(self, \.agentHint, to: item.agentHint) || didChange
+        didChange = assignIfNeeded(self, \.createdAt, to: item.createdAt) || didChange
+        didChange = assignIfNeeded(self, \.updatedAt, to: item.updatedAt) || didChange
+        return didChange
+    }
+}
+
+@Model
+final class CachedSessionRecord {
+    @Attribute(.unique) var id: String
+    var source: String
+    var status: String
+    var linkedTaskID: String?
+    var repositoryOwner: String?
+    var repositoryName: String?
+    var issueNumber: Int?
+    var model: String?
+    var startedAt: Date
+    var lastSeenAt: Date
+    var pid: Int?
+    var tmuxSession: String?
+    var tmuxPaneID: String?
+    var lastOutput: String?
+
+    init(
+        id: String,
+        source: String,
+        status: String,
+        linkedTaskID: String?,
+        repositoryOwner: String?,
+        repositoryName: String?,
+        issueNumber: Int?,
+        model: String?,
+        startedAt: Date,
+        lastSeenAt: Date,
+        pid: Int? = nil,
+        tmuxSession: String? = nil,
+        tmuxPaneID: String? = nil,
+        lastOutput: String? = nil
+    ) {
+        self.id = id
+        self.source = source
+        self.status = status
+        self.linkedTaskID = linkedTaskID
+        self.repositoryOwner = repositoryOwner
+        self.repositoryName = repositoryName
+        self.issueNumber = issueNumber
+        self.model = model
+        self.startedAt = startedAt
+        self.lastSeenAt = lastSeenAt
+        self.pid = pid
+        self.tmuxSession = tmuxSession
+        self.tmuxPaneID = tmuxPaneID
+        self.lastOutput = lastOutput
+    }
+
+    func update(from session: AgentSession) -> Bool {
+        var didChange = false
+        didChange = assignIfNeeded(self, \.source, to: session.source) || didChange
+        didChange = assignIfNeeded(self, \.status, to: session.status.rawValue) || didChange
+        didChange = assignIfNeeded(self, \.linkedTaskID, to: session.linkedTaskID) || didChange
+        didChange = assignIfNeeded(self, \.repositoryOwner, to: session.workItem?.repository.owner) || didChange
+        didChange = assignIfNeeded(self, \.repositoryName, to: session.workItem?.repository.name) || didChange
+        didChange = assignIfNeeded(self, \.issueNumber, to: session.workItem?.issueNumber) || didChange
+        didChange = assignIfNeeded(self, \.model, to: session.model) || didChange
+        didChange = assignIfNeeded(self, \.startedAt, to: session.startedAt) || didChange
+        didChange = assignIfNeeded(self, \.lastSeenAt, to: session.lastSeenAt) || didChange
+        didChange = assignIfNeeded(self, \.pid, to: session.pid) || didChange
+        didChange = assignIfNeeded(self, \.tmuxSession, to: session.tmuxSession) || didChange
+        didChange = assignIfNeeded(self, \.tmuxPaneID, to: session.tmuxPaneID) || didChange
+        didChange = assignIfNeeded(self, \.lastOutput, to: session.lastOutput) || didChange
+        return didChange
+    }
+}
+
+@Model
+final class CachedAgentRecord {
+    @Attribute(.unique) var id: String
+    var name: String
+    var health: String
+    var activeTaskCount: Int
+    var activeSessionCount: Int
+    var recentActivity: String
+    var updatedAt: Date
+
+    init(
+        id: String,
+        name: String,
+        health: String,
+        activeTaskCount: Int,
+        activeSessionCount: Int,
+        recentActivity: String,
+        updatedAt: Date
+    ) {
+        self.id = id
+        self.name = name
+        self.health = health
+        self.activeTaskCount = activeTaskCount
+        self.activeSessionCount = activeSessionCount
+        self.recentActivity = recentActivity
+        self.updatedAt = updatedAt
+    }
+
+    func update(from agent: AgentSummary) -> Bool {
+        var didChange = false
+        didChange = assignIfNeeded(self, \.name, to: agent.name) || didChange
+        didChange = assignIfNeeded(self, \.health, to: agent.health.rawValue) || didChange
+        didChange = assignIfNeeded(self, \.activeTaskCount, to: agent.activeTaskCount) || didChange
+        didChange = assignIfNeeded(self, \.activeSessionCount, to: agent.activeSessionCount) || didChange
+        didChange = assignIfNeeded(self, \.recentActivity, to: agent.recentActivity) || didChange
+        didChange = assignIfNeeded(self, \.updatedAt, to: agent.updatedAt) || didChange
+        return didChange
+    }
+}

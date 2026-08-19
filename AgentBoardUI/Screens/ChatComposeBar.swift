@@ -20,6 +20,7 @@ struct ChatComposeBar: View {
                 AttachmentPreviewStrip(attachments: $chatStore.pendingAttachments)
             }
 
+            retryBar(chatStore)
             slashCommandSuggestions
             composeRow(chatStore)
         }
@@ -43,6 +44,30 @@ struct ChatComposeBar: View {
                 .foregroundStyle(AppTheme.textSecondary)
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.bottom, 6)
+        }
+    }
+
+    /// Shown above the compose field when the selected conversation's most recent send failed
+    /// mid-stream, offering a one-tap retry of that same request.
+    @ViewBuilder
+    private func retryBar(_ chatStore: ChatStore) -> some View {
+        if chatStore.lastFailedSend?.conversationID == chatStore.selectedConversationID {
+            HStack(spacing: 8) {
+                Text("Stream failed")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.red)
+                Spacer()
+                Button {
+                    Task { await chatStore.retryLastSend() }
+                } label: {
+                    Label("Retry", systemImage: "arrow.clockwise")
+                        .font(.caption.weight(.semibold))
+                }
+                .buttonStyle(AppButtonStyle(isAccent: true))
+                .accessibilityIdentifier("chat_button_retry_send")
+            }
+            .padding(.horizontal, isCompact ? 16 : 24)
+            .padding(.bottom, 6)
         }
     }
 

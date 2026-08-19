@@ -24,6 +24,11 @@ public final class SessionAttachmentController {
         state = .attachedReadOnly(sessionName: sessionName)
     }
 
+    /// Attaches read-write immediately — used for sessions launched in interactive mode.
+    public func attachInteractive(sessionName: String) {
+        state = .attachedInteractive(sessionName: sessionName)
+    }
+
     /// Switches the current read-only attachment to interactive (read-write).
     /// No-op unless currently attached read-only.
     public func takeControl() {

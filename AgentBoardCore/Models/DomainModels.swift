@@ -37,23 +37,28 @@ public struct ChatConversation: Codable, Hashable, Identifiable, Sendable {
     /// established. Used to continue the same Hermes session (`X-Hermes-Session-Id`) and to
     /// hydrate remote history via `HermesGatewayClient.fetchSessionMessages`.
     public var hermesSessionID: String?
+    /// The Hermes profile this conversation is bound to, if any. Selecting a conversation whose
+    /// `profileID` names a known profile switches the active Hermes profile to match.
+    public var profileID: String?
 
     public init(
         id: UUID = UUID(),
         title: String,
         modelID: String? = nil,
         updatedAt: Date = .now,
-        hermesSessionID: String? = nil
+        hermesSessionID: String? = nil,
+        profileID: String? = nil
     ) {
         self.id = id
         self.title = title
         self.modelID = modelID
         self.updatedAt = updatedAt
         self.hermesSessionID = hermesSessionID
+        self.profileID = profileID
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, title, modelID, updatedAt, hermesSessionID
+        case id, title, modelID, updatedAt, hermesSessionID, profileID
     }
 
     public init(from decoder: Decoder) throws {
@@ -63,6 +68,7 @@ public struct ChatConversation: Codable, Hashable, Identifiable, Sendable {
         modelID = try container.decodeIfPresent(String.self, forKey: .modelID)
         updatedAt = try container.decode(Date.self, forKey: .updatedAt)
         hermesSessionID = try container.decodeIfPresent(String.self, forKey: .hermesSessionID)
+        profileID = try container.decodeIfPresent(String.self, forKey: .profileID)
     }
 }
 
@@ -71,17 +77,26 @@ public struct HermesProfile: Codable, Hashable, Identifiable, Sendable {
     public var name: String
     public var gatewayURL: String
     public var modelID: String?
+    /// Per-profile Hermes API key override. When set, selecting this profile applies it to
+    /// `SettingsStore.hermesAPIKey`; profiles without one inherit the current global key.
+    public var apiKey: String?
+    /// Hex color (`#RRGGBB`) used to visually distinguish this profile in the chat header.
+    public var colorHex: String?
 
     public init(
         id: String = UUID().uuidString.lowercased(),
         name: String,
         gatewayURL: String,
-        modelID: String? = nil
+        modelID: String? = nil,
+        apiKey: String? = nil,
+        colorHex: String? = nil
     ) {
         self.id = id
         self.name = name
         self.gatewayURL = gatewayURL
         self.modelID = modelID
+        self.apiKey = apiKey
+        self.colorHex = colorHex
     }
 }
 

@@ -29,12 +29,15 @@
 		1C711E565B9941FC998F8265 /* WorkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A06C1DAB866C77FF3A634D71 /* WorkStore.swift */; };
 		1C7E32DFC4B2295F98363820 /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F876603AEC9BE7B94289CA01 /* SettingsStore.swift */; };
 		1DBE4EB751A629F1664040D8 /* IssueDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26A31E0F643092B573A4DB9D /* IssueDetailSheet.swift */; };
+		1DF7A9E2456B7A0E8B87FC69 /* KanbanDataServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 937F29E696D14A8410B5D6D2 /* KanbanDataServiceTests.swift */; };
 		1EFEE60391B527598A83613A /* DashboardScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D1FF2AE621C085664C1C791 /* DashboardScreen.swift */; };
 		1F824DF6C0CFA67F11902759 /* CompanionLocalProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA51DADAAAAFFE9B833D35E9 /* CompanionLocalProbe.swift */; };
 		1F9726A41234F9B401F973B1 /* AgentBoardCompanionKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DB3E71CE348AC298EB4048DE /* AgentBoardCompanionKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		2093BCFCA64D572220D84E0C /* Color+Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228BE26AE1DF5077F9CB7C76 /* Color+Hex.swift */; };
 		21BD68D1C8793B9DA7441B08 /* AgentsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE362DDE00559E2C84434C13 /* AgentsScreen.swift */; };
 		22AD45AE145021107CD2C0AA /* IssueDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26A31E0F643092B573A4DB9D /* IssueDetailSheet.swift */; };
 		23AA03CA520ED7D494BAA1A6 /* GitHubAssigneeForwardingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 538A290820D417392EDCC67A /* GitHubAssigneeForwardingTests.swift */; };
+		24219BEDE27317CAAC835C3C /* AgentBoardCacheRecords.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7DB6F1D588051EBED9495A5 /* AgentBoardCacheRecords.swift */; };
 		248C1EBCB463381663C02F10 /* KanbanDataReading.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08C9688956A467F60F3B9B34 /* KanbanDataReading.swift */; };
 		24E370A50876A2DF880E9481 /* ChatStore+SlashCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = 066AD427D541EBD8687B6276 /* ChatStore+SlashCommands.swift */; };
 		2525C93CDB9C86D825831FC9 /* SlashCommandHandlerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA26177C115F337F0AC82395 /* SlashCommandHandlerTests.swift */; };
@@ -68,6 +71,7 @@
 		59D68A2AB772E261C6BB7A0F /* ProcessAsyncTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73A0E1B6A0075D96DFCD4D22 /* ProcessAsyncTests.swift */; };
 		5B810A52F3C78D394BE76608 /* SettingsRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A55C723CBBB22E568A7E3D63 /* SettingsRepository.swift */; };
 		5DC0B92D03F399A54BFFE28F /* AgentsStoreCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8CF0F5C192569919CF193BC /* AgentsStoreCacheTests.swift */; };
+		5E613B33281524F5FED8BE78 /* Color+Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228BE26AE1DF5077F9CB7C76 /* Color+Hex.swift */; };
 		6140061EE8C8004E8BB033F2 /* AgentBoardMobileApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B7442B7AA1CFE33776582C1 /* AgentBoardMobileApp.swift */; };
 		61D20F70FEBDECFDE252645F /* AgentBoardCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 2B26E0DCF07C395E5DA349A4 /* AgentBoardCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		62108DFBD6C8CF3265C4F8A5 /* HermesGatewayClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F06E0C2FFE9CAC90D48662B /* HermesGatewayClientTests.swift */; };
@@ -138,6 +142,7 @@
 		B05AB72D9955BEF4CD1E3B7A /* KanbanModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A55930915B4E8B29ECFC5DD /* KanbanModels.swift */; };
 		B13E9A7DA4903C65AE1FEEC6 /* NoopAgentBoardCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B023A92D06AE2F3272FC200 /* NoopAgentBoardCacheTests.swift */; };
 		B32E7225FAA8967B580A58A1 /* CreateIssueSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 702A0D71A27F07711AF96C4A /* CreateIssueSheet.swift */; };
+		B494F43E24A6585F11626F0E /* AgentsStoreLiveUpdateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C811BFE4B22C070E5E9797C /* AgentsStoreLiveUpdateTests.swift */; };
 		B51F9A6B9302EDD7F2EB1437 /* BoardChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34D736CF52ACD4E2BD9D3ADC /* BoardChrome.swift */; };
 		B87AB9550FF94448824BFFB2 /* ChatHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82BF95164B1DFE66D15CB770 /* ChatHeader.swift */; };
 		BAFAE9A54D7EB126DB951F33 /* AgentBoardCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8ECD5A8D1C4F9C4099CBB9C /* AgentBoardCacheTests.swift */; };
@@ -309,11 +314,13 @@
 		1D3A8C23826AD8125B9E85E2 /* SessionAttachmentController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionAttachmentController.swift; sourceTree = "<group>"; };
 		1F06E0C2FFE9CAC90D48662B /* HermesGatewayClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HermesGatewayClientTests.swift; sourceTree = "<group>"; };
 		1FFDF3222AEE5530E6C58DFC /* QuickLaunchSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickLaunchSheet.swift; sourceTree = "<group>"; };
+		228BE26AE1DF5077F9CB7C76 /* Color+Hex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Hex.swift"; sourceTree = "<group>"; };
 		26A31E0F643092B573A4DB9D /* IssueDetailSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IssueDetailSheet.swift; sourceTree = "<group>"; };
 		26BDC7F11FD4398428433E67 /* AgentsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentsStore.swift; sourceTree = "<group>"; };
 		275D2D504EF7D2F320157884 /* KanbanBoardMove.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KanbanBoardMove.swift; sourceTree = "<group>"; };
 		29190D1738C79AC7ED6D8523 /* AgentsScreen+Undo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AgentsScreen+Undo.swift"; sourceTree = "<group>"; };
 		2B26E0DCF07C395E5DA349A4 /* AgentBoardCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = AgentBoardCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		2C811BFE4B22C070E5E9797C /* AgentsStoreLiveUpdateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentsStoreLiveUpdateTests.swift; sourceTree = "<group>"; };
 		2E342B801493E6187C7DFC1E /* AgentBoardTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AgentBoardTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3024AF0B4A66DE64BDB27E15 /* AgentBoardCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentBoardCache.swift; sourceTree = "<group>"; };
 		30366B0DAB9553F53ACE2BE6 /* ChatStoreAdditionalTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatStoreAdditionalTests.swift; sourceTree = "<group>"; };
@@ -364,6 +371,7 @@
 		877DCCB45A0AFBD92AFAB650 /* AudioPlaybackService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlaybackService.swift; sourceTree = "<group>"; };
 		8D1FF2AE621C085664C1C791 /* DashboardScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardScreen.swift; sourceTree = "<group>"; };
 		92E0CE9F3A8E9CA87A6C3B95 /* SessionsStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionsStoreTests.swift; sourceTree = "<group>"; };
+		937F29E696D14A8410B5D6D2 /* KanbanDataServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KanbanDataServiceTests.swift; sourceTree = "<group>"; };
 		9503F3F8C1E54BE6D35A3641 /* PRDComposerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PRDComposerTests.swift; sourceTree = "<group>"; };
 		957114148477B05585A13D7C /* MockURLProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockURLProtocol.swift; sourceTree = "<group>"; };
 		959F1DE11FF3233AB9029B6D /* MobileRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileRootView.swift; sourceTree = "<group>"; };
@@ -403,7 +411,7 @@
 		D4C9640747C8B7AE6E92BB20 /* AgentBoardAppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentBoardAppModel.swift; sourceTree = "<group>"; };
 		D7A095E80382BA922486329A /* SettingsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsScreen.swift; sourceTree = "<group>"; };
 		DB3E71CE348AC298EB4048DE /* AgentBoardCompanionKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = AgentBoardCompanionKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		DBD5578CD361B8A4976B9A0A /* AgentBoardCompanion */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = AgentBoardCompanion; sourceTree = BUILT_PRODUCTS_DIR; };
+		DBD5578CD361B8A4976B9A0A /* AgentBoardCompanion */ = {isa = PBXFileReference; includeInIndex = 0; path = AgentBoardCompanion; sourceTree = BUILT_PRODUCTS_DIR; };
 		DEDFAB3DEE21BBA70FAF2EBD /* SessionTerminalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionTerminalView.swift; sourceTree = "<group>"; };
 		E01910C75287C5F3B6650B2A /* ChatHeaderPickerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatHeaderPickerTests.swift; sourceTree = "<group>"; };
 		E035F81810040D898374ACEF /* AttachmentUploadService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentUploadService.swift; sourceTree = "<group>"; };
@@ -419,6 +427,7 @@
 		F31C11E46072F7E4A9FFADDB /* AttachmentInteractions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentInteractions.swift; sourceTree = "<group>"; };
 		F5C500C7AF3B484DBB847E3A /* AgentsStoreCreateTaskTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentsStoreCreateTaskTests.swift; sourceTree = "<group>"; };
 		F6FDDFF5030B377E6973E969 /* ChatScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatScreen.swift; sourceTree = "<group>"; };
+		F7DB6F1D588051EBED9495A5 /* AgentBoardCacheRecords.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentBoardCacheRecords.swift; sourceTree = "<group>"; };
 		F805B62EF3A45AAE4426A3AA /* DashboardSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardSnapshotTests.swift; sourceTree = "<group>"; };
 		F876603AEC9BE7B94289CA01 /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
 		FFA60A5A5B633630F99A562B /* GitHubWorkService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubWorkService.swift; sourceTree = "<group>"; };
@@ -489,6 +498,7 @@
 				C8ECD5A8D1C4F9C4099CBB9C /* AgentBoardCacheTests.swift */,
 				E8CF0F5C192569919CF193BC /* AgentsStoreCacheTests.swift */,
 				F5C500C7AF3B484DBB847E3A /* AgentsStoreCreateTaskTests.swift */,
+				2C811BFE4B22C070E5E9797C /* AgentsStoreLiveUpdateTests.swift */,
 				0419C766B0215E27D4A7FD5B /* AgentsStoreMoveTests.swift */,
 				E84FB91863EEFC0DABE3E113 /* AgentsStoreSummariesTests.swift */,
 				6FCC4B5C12958567A1D6D69E /* AppDestinationTests.swift */,
@@ -514,6 +524,7 @@
 				6A0D9C21BA312AB952D0E48B /* KanbanAssigneePickerTests.swift */,
 				3540D69FA92919FFD0494695 /* KanbanBoardMoveTests.swift */,
 				5102C6664EC788E01AFFE8E9 /* KanbanCLIWriterPathTests.swift */,
+				937F29E696D14A8410B5D6D2 /* KanbanDataServiceTests.swift */,
 				AE3F349D2B17FA90738CCDD5 /* KanbanModelsTests.swift */,
 				8562113DB3BC11316C4B4A50 /* LabelSchemaTests.swift */,
 				CA23E07815EFC6866337CE51 /* LaunchConfigStoreTests.swift */,
@@ -581,6 +592,7 @@
 			isa = PBXGroup;
 			children = (
 				06E061D59E950232583C7958 /* AppTheme.swift */,
+				228BE26AE1DF5077F9CB7C76 /* Color+Hex.swift */,
 			);
 			path = Theme;
 			sourceTree = "<group>";
@@ -686,6 +698,7 @@
 				3024AF0B4A66DE64BDB27E15 /* AgentBoardCache.swift */,
 				3D4A3C7FF45B9DFB948ABE9F /* AgentBoardCache+KanbanTasks.swift */,
 				D3A2A89ABC8C35C2FB32C909 /* AgentBoardCacheProtocol.swift */,
+				F7DB6F1D588051EBED9495A5 /* AgentBoardCacheRecords.swift */,
 				A63F6AF9D5E7E0A1E6360DD7 /* LaunchConfigStore.swift */,
 				6350F1AD876CFC0042771A6F /* NoopAgentBoardCache.swift */,
 				A55C723CBBB22E568A7E3D63 /* SettingsRepository.swift */,
@@ -924,6 +937,9 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 2640;
 				TargetAttributes = {
+					28869237B7D201A5214C64FA = {
+						DevelopmentTeam = 32XZRDTGK3;
+					};
 					60BDED5471809D9106E61ED4 = {
 						DevelopmentTeam = 32XZRDTGK3;
 					};
@@ -1044,6 +1060,7 @@
 				5465A4B2305DAE7211F8A390 /* ChatHeader.swift in Sources */,
 				44025BC27B4AC9D5100A392F /* ChatMessageList.swift in Sources */,
 				41487A7506D835D9946C1B9E /* ChatScreen.swift in Sources */,
+				2093BCFCA64D572220D84E0C /* Color+Hex.swift in Sources */,
 				B32E7225FAA8967B580A58A1 /* CreateIssueSheet.swift in Sources */,
 				1EFEE60391B527598A83613A /* DashboardScreen.swift in Sources */,
 				ABB3B9109C6F6749E7933CF2 /* DesktopRootView.swift in Sources */,
@@ -1083,6 +1100,7 @@
 				BAFAE9A54D7EB126DB951F33 /* AgentBoardCacheTests.swift in Sources */,
 				5DC0B92D03F399A54BFFE28F /* AgentsStoreCacheTests.swift in Sources */,
 				31F4BD470BD142ABB72D00E8 /* AgentsStoreCreateTaskTests.swift in Sources */,
+				B494F43E24A6585F11626F0E /* AgentsStoreLiveUpdateTests.swift in Sources */,
 				F48A4EE8A94BD511FD764029 /* AgentsStoreMoveTests.swift in Sources */,
 				A66CDAEC61CF81C8BC905B61 /* AgentsStoreSummariesTests.swift in Sources */,
 				E931C3D8A3044AEA6C7F36BD /* AppDestinationTests.swift in Sources */,
@@ -1108,6 +1126,7 @@
 				0B3C6DC24A36FE8A19357506 /* KanbanAssigneePickerTests.swift in Sources */,
 				9EAC1A69746A2ABCB376F952 /* KanbanBoardMoveTests.swift in Sources */,
 				C06103B898C1EB5CEEB4BB2A /* KanbanCLIWriterPathTests.swift in Sources */,
+				1DF7A9E2456B7A0E8B87FC69 /* KanbanDataServiceTests.swift in Sources */,
 				DAAA6677EBC51F4C7796E505 /* KanbanModelsTests.swift in Sources */,
 				E9D09CAC0D952EE1295DFA60 /* LabelSchemaTests.swift in Sources */,
 				743347AAF487757311534AC7 /* LaunchConfigStoreTests.swift in Sources */,
@@ -1139,6 +1158,7 @@
 				3EE1B666C90DC07CC4346BC0 /* AgentBoardCache+KanbanTasks.swift in Sources */,
 				C03DE2AB570D615F55142A44 /* AgentBoardCache.swift in Sources */,
 				95B74484E3270FC9A0F596CE /* AgentBoardCacheProtocol.swift in Sources */,
+				24219BEDE27317CAAC835C3C /* AgentBoardCacheRecords.swift in Sources */,
 				81239439DAB83C92B81C7C96 /* AgentsStore.swift in Sources */,
 				F374477884080894A1322DCE /* AppDestination.swift in Sources */,
 				A51107E477749B979572DD17 /* AttachmentModels.swift in Sources */,
@@ -1203,6 +1223,7 @@
 				B87AB9550FF94448824BFFB2 /* ChatHeader.swift in Sources */,
 				C94A55ED7CCDD9540A5BF068 /* ChatMessageList.swift in Sources */,
 				6AD44EB0146CC268B39C27E1 /* ChatScreen.swift in Sources */,
+				5E613B33281524F5FED8BE78 /* Color+Hex.swift in Sources */,
 				06B09775C2F43ADB9D2A7DDB /* CreateIssueSheet.swift in Sources */,
 				745D4F6C8C8317CA446F822D /* DashboardScreen.swift in Sources */,
 				D5FE06BE70E2B8AFB20C40B5 /* DesktopSidebar.swift in Sources */,
@@ -1267,7 +1288,6 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				COMBINE_HIDPI_IMAGES = YES;
-				"DEVELOPMENT_TEAM[sdk=macosx*]" = 32XZRDTGK3;
 				GENERATE_INFOPLIST_FILE = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1311,7 +1331,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
-				"DEVELOPMENT_TEAM[sdk=macosx*]" = 32XZRDTGK3;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -1329,7 +1348,6 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				COMBINE_HIDPI_IMAGES = YES;
-				"DEVELOPMENT_TEAM[sdk=macosx*]" = 32XZRDTGK3;
 				GENERATE_INFOPLIST_FILE = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1347,7 +1365,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
-				"DEVELOPMENT_TEAM[sdk=macosx*]" = 32XZRDTGK3;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -1363,11 +1380,9 @@
 		5FB2C4C12B84ED55DE82E98C /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_IDENTITY = "";
 				CURRENT_PROJECT_VERSION = 1;
 				DEFINES_MODULE = YES;
-				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 32XZRDTGK3;
-				"DEVELOPMENT_TEAM[sdk=macosx*]" = 32XZRDTGK3;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
@@ -1501,11 +1516,10 @@
 		B033BFFBAD7111835B8878D6 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_IDENTITY = "";
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEFINES_MODULE = YES;
-				"DEVELOPMENT_TEAM[sdk=macosx*]" = 32XZRDTGK3;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
@@ -1528,11 +1542,9 @@
 		CBED311C3538AF5AF3F9EF19 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_IDENTITY = "";
 				CURRENT_PROJECT_VERSION = 1;
 				DEFINES_MODULE = YES;
-				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 32XZRDTGK3;
-				"DEVELOPMENT_TEAM[sdk=macosx*]" = 32XZRDTGK3;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
@@ -1561,11 +1573,10 @@
 		CECC89CA47736C99035309D1 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_IDENTITY = "";
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEFINES_MODULE = YES;
-				"DEVELOPMENT_TEAM[sdk=macosx*]" = 32XZRDTGK3;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";

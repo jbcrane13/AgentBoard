@@ -32,6 +32,9 @@ public protocol TmuxControlling: Sendable {
         prdPath: String
     ) async throws
 
+    /// Spawn a detached tmux session running the agent CLI directly (no ralphy, no PRD).
+    func launchInteractiveSession(name: String, repoPath: String, agentCommand: String) async throws
+
     /// Returns true if a tmux session with the given name is currently alive.
     /// Throws when tmux probing itself fails so callers can distinguish a
     /// completed session from an unhealthy tmux/socket environment.
@@ -97,6 +100,16 @@ public actor LiveTmuxController: TmuxControlling {
     /// Pure argument builder for `killSession`.
     public static func killSessionArguments(for sessionName: String) -> [String] {
         ["-S", tmuxSocketPath, "kill-session", "-t", sessionName]
+    }
+
+    /// Pure argument builder for `launchInteractiveSession` — mirrors `launchSession`'s
+    /// shell command shape but runs the bare agent CLI directly instead of ralphy/PRD.
+    public static func interactiveLaunchCommand(name: String, repoPath: String, agentCommand: String) -> String {
+        "\(tmuxExecutablePath) -S \(tmuxSocketPath) new -d -s \(name)" +
+            " \"cd \(repoPath)" +
+            " && unset ANTHROPIC_API_KEY" +
+            " && \(agentCommand)" +
+            "; EXIT_CODE=\\$?; echo EXITED: \\$EXIT_CODE; sleep 999999\""
     }
 
     public init() {}
@@ -172,6 +185,35 @@ public actor LiveTmuxController: TmuxControlling {
                 " && unset ANTHROPIC_API_KEY" +
                 " && /opt/homebrew/bin/ralphy --\(agentLaunchFlag) --prd \(prdPath)" +
                 "; EXIT_CODE=\\$?; echo EXITED: \\$EXIT_CODE; sleep 999999\""
+
+            let result: ProcessResult
+            do {
+                result = try await Process.runAsync(
+                    executablePath: "/bin/zsh",
+                    arguments: ["-l", "-c", shellCmd],
+                    environment: shellEnv
+                )
+            } catch let ProcessRunError.launchFailed(msg) {
+                throw TmuxError.launchFailed(msg)
+            }
+
+            if !result.succeeded {
+                let output = result.stderrString.isEmpty ? result.stdoutString : result.stderrString
+                throw TmuxError.launchFailed(output.isEmpty ? "unknown error" : output)
+            }
+        #else
+            throw TmuxError.unsupportedPlatform
+        #endif
+    }
+
+    public func launchInteractiveSession(
+        name: String,
+        repoPath: String,
+        agentCommand: String
+    ) async throws {
+        #if os(macOS)
+            let shellEnv = await ShellEnvironment.enrichedEnvironment()
+            let shellCmd = Self.interactiveLaunchCommand(name: name, repoPath: repoPath, agentCommand: agentCommand)
 
             let result: ProcessResult
             do {

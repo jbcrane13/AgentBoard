@@ -251,6 +251,70 @@ struct CompanionSQLiteStoreTests {
     }
 
     @Test
+    func migratesLegacyConversationsTableToAddProfileIDColumnAndRoundTripsProfileID() async throws {
+        let databaseURL = FileManager.default.temporaryDirectory
+            .appending(path: "agentboard-legacy-profile-\(UUID().uuidString).sqlite")
+
+        // Hand-create the pre-profile_id schema (hermes_session_id present, profile_id absent).
+        var legacyHandle: OpaquePointer?
+        #expect(sqlite3_open_v2(
+            databaseURL.path,
+            &legacyHandle,
+            SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE | SQLITE_OPEN_FULLMUTEX,
+            nil
+        ) == SQLITE_OK)
+        #expect(sqlite3_exec(
+            legacyHandle,
+            """
+            CREATE TABLE conversations (
+                id TEXT PRIMARY KEY NOT NULL,
+                title TEXT NOT NULL,
+                model_id TEXT,
+                updated_at REAL NOT NULL,
+                hermes_session_id TEXT
+            );
+            """,
+            nil, nil, nil
+        ) == SQLITE_OK)
+        let legacyID = UUID()
+        var insertStatement: OpaquePointer?
+        #expect(sqlite3_prepare_v2(
+            legacyHandle,
+            "INSERT INTO conversations (id, title, model_id, updated_at, hermes_session_id) VALUES (?, ?, ?, ?, ?);",
+            -1, &insertStatement, nil
+        ) == SQLITE_OK)
+        sqlite3_bind_text(insertStatement, 1, legacyID.uuidString, -1, testSqliteTransient)
+        sqlite3_bind_text(insertStatement, 2, "Pre-profile conversation", -1, testSqliteTransient)
+        sqlite3_bind_null(insertStatement, 3)
+        sqlite3_bind_double(insertStatement, 4, 1600)
+        sqlite3_bind_null(insertStatement, 5)
+        #expect(sqlite3_step(insertStatement) == SQLITE_DONE)
+        sqlite3_finalize(insertStatement)
+        sqlite3_close(legacyHandle)
+
+        // Opening the store over the legacy DB should migrate the schema in place.
+        let store = try CompanionSQLiteStore(databaseURL: databaseURL)
+        try await store.initializeSchema()
+
+        let conversations = try await store.listConversations()
+        #expect(conversations.count == 1)
+        #expect(conversations.first?.id == legacyID)
+        #expect(conversations.first?.profileID == nil)
+
+        let conversationID = UUID()
+        let boundConversation = ChatConversation(
+            id: conversationID,
+            title: "Bound after migration",
+            updatedAt: Date(timeIntervalSince1970: 1601),
+            profileID: "profile-xyz"
+        )
+        try await store.saveConversationSnapshot(conversation: boundConversation, messages: [])
+
+        let updatedConversations = try await store.listConversations()
+        #expect(updatedConversations.first { $0.id == conversationID }?.profileID == "profile-xyz")
+    }
+
+    @Test
     func upsertTranscriptRoundTripsContentAndFinalFlag() async throws {
         let databaseURL = FileManager.default.temporaryDirectory
             .appending(path: "agentboard-transcripts-\(UUID().uuidString).sqlite")

@@ -99,7 +99,8 @@ public actor CompanionSQLiteStore {
                 title TEXT NOT NULL,
                 model_id TEXT,
                 updated_at REAL NOT NULL,
-                hermes_session_id TEXT
+                hermes_session_id TEXT,
+                profile_id TEXT
             );
             """
         )
@@ -155,6 +156,11 @@ public actor CompanionSQLiteStore {
         if let conversationColumns = try? existingColumns(table: "conversations"),
            !conversationColumns.contains("hermes_session_id") {
             try? execute("ALTER TABLE conversations ADD COLUMN hermes_session_id TEXT;")
+        }
+
+        if let conversationColumns = try? existingColumns(table: "conversations"),
+           !conversationColumns.contains("profile_id") {
+            try? execute("ALTER TABLE conversations ADD COLUMN profile_id TEXT;")
         }
     }
 
@@ -331,8 +337,8 @@ public actor CompanionSQLiteStore {
         for conversation in conversations {
             let statement = try prepare(
                 """
-                INSERT INTO conversations (id, title, model_id, updated_at, hermes_session_id)
-                VALUES (?, ?, ?, ?, ?);
+                INSERT INTO conversations (id, title, model_id, updated_at, hermes_session_id, profile_id)
+                VALUES (?, ?, ?, ?, ?, ?);
                 """
             )
             defer { sqlite3_finalize(statement) }
@@ -342,6 +348,7 @@ public actor CompanionSQLiteStore {
             bind(conversation.modelID, to: 3, in: statement)
             sqlite3_bind_double(statement, 4, conversation.updatedAt.timeIntervalSince1970)
             bind(conversation.hermesSessionID, to: 5, in: statement)
+            bind(conversation.profileID, to: 6, in: statement)
 
             guard sqlite3_step(statement) == SQLITE_DONE else {
                 throw StoreError.stepFailed(Self.sqliteMessage(handle.raw))
@@ -352,7 +359,7 @@ public actor CompanionSQLiteStore {
     public func listConversations() throws -> [ChatConversation] {
         let statement = try prepare(
             """
-            SELECT id, title, model_id, updated_at, hermes_session_id
+            SELECT id, title, model_id, updated_at, hermes_session_id, profile_id
             FROM conversations
             ORDER BY updated_at DESC;
             """
@@ -368,7 +375,8 @@ public actor CompanionSQLiteStore {
                     title: string(statement, index: 1),
                     modelID: nullableString(statement, index: 2),
                     updatedAt: date(statement, index: 3),
-                    hermesSessionID: nullableString(statement, index: 4)
+                    hermesSessionID: nullableString(statement, index: 4),
+                    profileID: nullableString(statement, index: 5)
                 )
             )
         }
@@ -393,8 +401,8 @@ public actor CompanionSQLiteStore {
 
         let insertConv = try prepare(
             """
-            INSERT INTO conversations (id, title, model_id, updated_at, hermes_session_id)
-            VALUES (?, ?, ?, ?, ?);
+            INSERT INTO conversations (id, title, model_id, updated_at, hermes_session_id, profile_id)
+            VALUES (?, ?, ?, ?, ?, ?);
             """
         )
         defer { sqlite3_finalize(insertConv) }
@@ -404,6 +412,7 @@ public actor CompanionSQLiteStore {
         bind(conversation.modelID, to: 3, in: insertConv)
         sqlite3_bind_double(insertConv, 4, conversation.updatedAt.timeIntervalSince1970)
         bind(conversation.hermesSessionID, to: 5, in: insertConv)
+        bind(conversation.profileID, to: 6, in: insertConv)
 
         guard sqlite3_step(insertConv) == SQLITE_DONE else {
             throw StoreError.stepFailed(Self.sqliteMessage(handle.raw))

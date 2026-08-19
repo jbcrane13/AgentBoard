@@ -24,12 +24,25 @@ public protocol KanbanDataReading: Sendable {
 
     /// All runs (execution history) for a task in chronological order.
     func fetchRuns(for taskID: String) async throws -> [KanbanRun]
+
+    /// Highest `task_events.id` currently on disk (0 if the table is empty).
+    /// Used by `AgentsStore`'s live-update poll to detect new kanban activity
+    /// without re-fetching the full task list on every tick.
+    func fetchLatestEventID() async throws -> Int
+
+    /// Most recent events for a task, newest first.
+    func fetchEvents(taskID: String, limit: Int) async throws -> [KanbanEvent]
 }
 
 public extension KanbanDataReading {
     /// Convenience form matching `KanbanDataService.fetchTasks()`'s default args.
     func fetchTasks() async throws -> [KanbanTask] {
         try await fetchTasks(status: nil, tenant: nil, excludeArchived: true)
+    }
+
+    /// Convenience form matching `KanbanDataService.fetchEvents(taskID:)`'s default limit.
+    func fetchEvents(taskID: String) async throws -> [KanbanEvent] {
+        try await fetchEvents(taskID: taskID, limit: 50)
     }
 }
 

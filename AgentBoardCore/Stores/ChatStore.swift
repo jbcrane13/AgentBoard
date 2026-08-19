@@ -27,6 +27,7 @@ public final class ChatStore {
     public var statusMessage: String?
     public var errorMessage: String?
     public var pendingAttachments: [ChatAttachment] = []
+    public internal(set) var lastFailedSend: ChatStreamRequest?
 
     var messagesByConversationID: [UUID: [ConversationMessage]] = [:]
     var didBootstrap = false
@@ -84,7 +85,8 @@ public final class ChatStore {
     public func startNewConversation() {
         let conversation = ChatConversation(
             title: "New Conversation",
-            modelID: settingsStore.hermesModelID.trimmedOrNil ?? availableModels.first ?? "hermes-agent"
+            modelID: settingsStore.hermesModelID.trimmedOrNil ?? availableModels.first ?? "hermes-agent",
+            profileID: settingsStore.activeHermesProfile?.id
         )
         conversations.insert(conversation, at: 0)
         messagesByConversationID[conversation.id] = []
@@ -93,8 +95,10 @@ public final class ChatStore {
     }
 
     public func selectConversation(_ id: UUID) {
-        guard conversations.contains(where: { $0.id == id }) else { return }
+        guard let conversation = conversations.first(where: { $0.id == id }) else { return }
         selectedConversationID = id
+        lastFailedSend = nil
+        switchProfileIfNeeded(for: conversation)
         hydrateFromHermesSessionIfNeeded(conversationID: id)
     }
 

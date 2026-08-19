@@ -36,6 +36,39 @@ struct ChatStoreAdditionalTests {
         )
     }
 
+    @MainActor
+    private func makeStoreWithSettings(
+        hermesURL: String = "http://127.0.0.1:8642",
+        companionURL: String = "http://127.0.0.1:8742"
+    ) throws -> (store: ChatStore, settingsStore: SettingsStore) {
+        let session = makeMockSession { _ in
+            let response = try HTTPURLResponse(
+                url: URL(string: "http://127.0.0.1:8642/health")!,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: nil
+            )!
+            return (response, Data())
+        }
+        let hermesClient = HermesGatewayClient(session: session)
+        let cache = try AgentBoardCache(inMemory: true)
+        let repo = SettingsRepository(
+            suiteName: "ChatStoreAdditional-\(UUID().uuidString)",
+            serviceName: "ChatStoreAdditional-\(UUID().uuidString)"
+        )
+        let settingsStore = SettingsStore(repository: repo)
+        settingsStore.hermesGatewayURL = hermesURL
+        settingsStore.companionURL = companionURL
+        settingsStore.hermesModelID = "hermes-agent"
+        let store = ChatStore(
+            hermesClient: hermesClient,
+            cache: cache,
+            settingsStore: settingsStore,
+            companionClient: CompanionClient()
+        )
+        return (store, settingsStore)
+    }
+
     // MARK: - bootstrap
 
     @Test
@@ -86,6 +119,62 @@ struct ChatStoreAdditionalTests {
         let firstID = store.conversations[1].id
         store.selectConversation(firstID)
         #expect(store.selectedConversationID == firstID)
+    }
+
+    // MARK: - selectConversation profile switching
+
+    @Test
+    @MainActor
+    func selectConversationSwitchesActiveProfileWhenConversationBoundToKnownProfile() throws {
+        let (store, settingsStore) = try makeStoreWithSettings()
+
+        settingsStore.hermesGatewayURL = "http://127.0.0.1:8642"
+        settingsStore.saveCurrentHermesProfile(named: "Alpha")
+        let alphaID = try #require(settingsStore.hermesProfiles.first { $0.name == "Alpha" }?.id)
+
+        settingsStore.hermesGatewayURL = "http://127.0.0.1:9000"
+        settingsStore.saveCurrentHermesProfile(named: "Beta") // Beta becomes active
+        let betaID = try #require(settingsStore.hermesProfiles.first { $0.name == "Beta" }?.id)
+
+        store.startNewConversation() // bound to Beta (the active profile)
+        let betaConversationID = try #require(store.selectedConversationID)
+
+        settingsStore.selectHermesProfile(id: alphaID)
+        store.startNewConversation() // bound to Alpha
+        #expect(settingsStore.selectedHermesProfileID == alphaID)
+
+        store.selectConversation(betaConversationID)
+
+        #expect(settingsStore.selectedHermesProfileID == betaID)
+        #expect(settingsStore.hermesGatewayURL == "http://127.0.0.1:9000")
+    }
+
+    @Test
+    @MainActor
+    func selectConversationDoesNotSwitchProfileForNilOrUnknownProfileID() throws {
+        let (store, settingsStore) = try makeStoreWithSettings()
+
+        // No profile active yet: this conversation is stamped with a nil profileID.
+        store.startNewConversation()
+        let unboundConversationID = try #require(store.selectedConversationID)
+
+        settingsStore.hermesGatewayURL = "http://127.0.0.1:8642"
+        settingsStore.saveCurrentHermesProfile(named: "Alpha")
+        let alphaID = try #require(settingsStore.hermesProfiles.first { $0.name == "Alpha" }?.id)
+        store.startNewConversation() // bound to Alpha
+        let alphaConversationID = try #require(store.selectedConversationID)
+
+        settingsStore.hermesGatewayURL = "http://127.0.0.1:9000"
+        settingsStore.saveCurrentHermesProfile(named: "Beta") // Beta becomes active
+        let betaID = try #require(settingsStore.hermesProfiles.first { $0.name == "Beta" }?.id)
+        let alphaProfile = try #require(settingsStore.hermesProfiles.first { $0.id == alphaID })
+        settingsStore.removeHermesProfile(alphaProfile) // Alpha's id is now unknown; Beta stays active
+
+        store.selectConversation(unboundConversationID)
+        #expect(settingsStore.selectedHermesProfileID == betaID)
+
+        store.selectConversation(alphaConversationID)
+        #expect(settingsStore.selectedHermesProfileID == betaID)
     }
 
     @Test

@@ -150,6 +150,43 @@ struct KanbanModelsTests {
         }
     }
 
+    // MARK: - KanbanTask rich-column defaults
+
+    @Test func kanbanTaskDefaultsRichColumnsWhenOmitted() {
+        let task = makeTask()
+        #expect(task.lastHeartbeatAt == nil)
+        #expect(task.consecutiveFailures == 0)
+        #expect(task.lastFailureError == nil)
+        #expect(task.branchName == nil)
+        #expect(task.sessionID == nil)
+        #expect(task.goalMode == false)
+        #expect(task.modelOverride == nil)
+    }
+
+    // MARK: - KanbanHeartbeatFreshness
+
+    @Test func heartbeatFreshnessIsFreshWithinNinetySeconds() {
+        let now = Date(timeIntervalSince1970: 1000)
+        let freshness = KanbanHeartbeatFreshness.classify(lastHeartbeatAt: now.addingTimeInterval(-89), now: now)
+        #expect(freshness == .fresh)
+    }
+
+    @Test func heartbeatFreshnessIsSlowBetweenNinetyAndThreeHundredSeconds() {
+        let now = Date(timeIntervalSince1970: 1000)
+        let freshness = KanbanHeartbeatFreshness.classify(lastHeartbeatAt: now.addingTimeInterval(-200), now: now)
+        #expect(freshness == .slow)
+    }
+
+    @Test func heartbeatFreshnessIsStaleBeyondThreeHundredSeconds() {
+        let now = Date(timeIntervalSince1970: 1000)
+        let freshness = KanbanHeartbeatFreshness.classify(lastHeartbeatAt: now.addingTimeInterval(-301), now: now)
+        #expect(freshness == .stale)
+    }
+
+    @Test func heartbeatFreshnessIsStaleWhenNil() {
+        #expect(KanbanHeartbeatFreshness.classify(lastHeartbeatAt: nil) == .stale)
+    }
+
     // MARK: - Helpers
 
     private func makeTask(
