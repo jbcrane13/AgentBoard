@@ -275,7 +275,7 @@ public actor KanbanDataService {
         SELECT id, kind, payload, created_at
         FROM task_events
         WHERE task_id = ?
-        ORDER BY created_at DESC
+        ORDER BY created_at DESC, id DESC
         LIMIT ?
         """
 

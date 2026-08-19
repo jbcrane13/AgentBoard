@@ -32,10 +32,21 @@ struct KanbanModelsTests {
     }
 
     @Test func kanbanStatusBoardColumnsArePersistedInUIOrder() {
-        // Order is observable in the kanban board UI.
+        // Order is observable in the kanban board UI, and mirrors the column
+        // order Hermes' dashboard returns from GET /api/plugins/kanban/board.
         #expect(KanbanStatus.boardColumns == [
-            .triage, .todo, .ready, .running, .blocked, .done
+            .triage, .todo, .scheduled, .ready, .running, .blocked, .review, .done
         ])
+    }
+
+    @Test func kanbanStatusCoversEveryHermesValidStatus() {
+        // `hermes_cli/kanban_db.py:102` VALID_STATUSES. A status missing here
+        // decodes to `.todo` and silently lands in the wrong column.
+        let hermesStatuses = [
+            "triage", "todo", "scheduled", "ready",
+            "running", "blocked", "review", "done", "archived"
+        ]
+        #expect(Set(KanbanStatus.allCases.map(\.rawValue)) == Set(hermesStatuses))
     }
 
     // MARK: - KanbanTask priority/assignee display

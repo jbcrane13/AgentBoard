@@ -33,6 +33,7 @@
 		1EFEE60391B527598A83613A /* DashboardScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D1FF2AE621C085664C1C791 /* DashboardScreen.swift */; };
 		1F824DF6C0CFA67F11902759 /* CompanionLocalProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA51DADAAAAFFE9B833D35E9 /* CompanionLocalProbe.swift */; };
 		1F9726A41234F9B401F973B1 /* AgentBoardCompanionKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DB3E71CE348AC298EB4048DE /* AgentBoardCompanionKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		201E119C13F218E889A9C156 /* HermesDashboardDTOs.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2BFF079AD41FB4E246A4000 /* HermesDashboardDTOs.swift */; };
 		2093BCFCA64D572220D84E0C /* Color+Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 228BE26AE1DF5077F9CB7C76 /* Color+Hex.swift */; };
 		21BD68D1C8793B9DA7441B08 /* AgentsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE362DDE00559E2C84434C13 /* AgentsScreen.swift */; };
 		22AD45AE145021107CD2C0AA /* IssueDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26A31E0F643092B573A4DB9D /* IssueDetailSheet.swift */; };
@@ -51,6 +52,7 @@
 		329205BFE190D828D883FF89 /* WorkBoardColumnTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F00F0612428FF4A1858440A /* WorkBoardColumnTests.swift */; };
 		34A0AFA4D7C5A198EE2606B2 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06E061D59E950232583C7958 /* AppTheme.swift */; };
 		34C9CEDCDFB2E84348A0EDB4 /* ChatEndpointValidatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08FC87E1E7EE82E2FE4C749F /* ChatEndpointValidatorTests.swift */; };
+		355855DC361DDD57F35CF8BE /* HTTPKanbanBackendTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2ADEFECB447818CBAF1D2F6A /* HTTPKanbanBackendTests.swift */; };
 		37F82839F098968527158CC9 /* EmbeddedTerminalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A978B41E9572538A1E74E5C /* EmbeddedTerminalView.swift */; };
 		38E1089316EEC57E444A6FB1 /* MockURLProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 957114148477B05585A13D7C /* MockURLProtocol.swift */; };
 		3D5547FD2C8499B8C8FA087B /* AudioRecorderService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39E1BE6A2B2B66CFAF5F4AC0 /* AudioRecorderService.swift */; };
@@ -162,6 +164,7 @@
 		CB10A2005C3CAEE8253B7324 /* LabelSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE2A97A08B0556443C6746EC /* LabelSchema.swift */; };
 		CED1FA08FB8AA0D59D31F5BA /* ProjectPathResolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDEA9F8B6A2B82B98A68C526 /* ProjectPathResolverTests.swift */; };
 		D2F03218C8433B59598A04D5 /* GitHubWorkServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C0ED2A504BC7E3CA18E4094 /* GitHubWorkServiceTests.swift */; };
+		D2F610AC232E10D053415D40 /* HTTPKanbanBackend.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84BC2C74654443FF906C334F /* HTTPKanbanBackend.swift */; };
 		D4674853A5F6064FC3E65542 /* SettingsStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4813FBD80F9AC10D1A51841 /* SettingsStoreTests.swift */; };
 		D5FE06BE70E2B8AFB20C40B5 /* DesktopSidebar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F7D59DE18AF7B3E0D84EF9A /* DesktopSidebar.swift */; };
 		D66940F899C73350695B1CDE /* AccessibilityIdentifierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F57CF813491E81109CBBEE1 /* AccessibilityIdentifierTests.swift */; };
@@ -184,6 +187,7 @@
 		F04845DCC4D5279404A00BC3 /* TintedActionCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF5603C33D7D5BFBEE3F9DBE /* TintedActionCard.swift */; };
 		F18232EF1BD587C14FCCD06F /* SessionsStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92E0CE9F3A8E9CA87A6C3B95 /* SessionsStoreTests.swift */; };
 		F22F4D3D2D3D20A5B3DD6B20 /* AgentBoardAppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4C9640747C8B7AE6E92BB20 /* AgentBoardAppModel.swift */; };
+		F2C0D22C7D08CD776D19D4B6 /* HermesDashboardClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFE6600D228108B65F0329EE /* HermesDashboardClient.swift */; };
 		F374477884080894A1322DCE /* AppDestination.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78ED2576E35E0964839427AD /* AppDestination.swift */; };
 		F38D2C6FF496E145B50F6E4F /* ChatStoreCapabilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 101D840E678502545284009E /* ChatStoreCapabilityTests.swift */; };
 		F3D458595223FE83DD26EDC5 /* NukeUI in Frameworks */ = {isa = PBXBuildFile; productRef = AA403A62FC0CC3B341A2D00B /* NukeUI */; };
@@ -319,6 +323,7 @@
 		26BDC7F11FD4398428433E67 /* AgentsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentsStore.swift; sourceTree = "<group>"; };
 		275D2D504EF7D2F320157884 /* KanbanBoardMove.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KanbanBoardMove.swift; sourceTree = "<group>"; };
 		29190D1738C79AC7ED6D8523 /* AgentsScreen+Undo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AgentsScreen+Undo.swift"; sourceTree = "<group>"; };
+		2ADEFECB447818CBAF1D2F6A /* HTTPKanbanBackendTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPKanbanBackendTests.swift; sourceTree = "<group>"; };
 		2B26E0DCF07C395E5DA349A4 /* AgentBoardCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = AgentBoardCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		2C811BFE4B22C070E5E9797C /* AgentsStoreLiveUpdateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentsStoreLiveUpdateTests.swift; sourceTree = "<group>"; };
 		2E342B801493E6187C7DFC1E /* AgentBoardTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AgentBoardTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -367,6 +372,7 @@
 		7F925ACBB136730BD7852D8B /* ChatStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatStoreTests.swift; sourceTree = "<group>"; };
 		80BC8F409E30E995C8CEA744 /* ChatConversationSyncCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatConversationSyncCoordinator.swift; sourceTree = "<group>"; };
 		82BF95164B1DFE66D15CB770 /* ChatHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatHeader.swift; sourceTree = "<group>"; };
+		84BC2C74654443FF906C334F /* HTTPKanbanBackend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPKanbanBackend.swift; sourceTree = "<group>"; };
 		8562113DB3BC11316C4B4A50 /* LabelSchemaTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabelSchemaTests.swift; sourceTree = "<group>"; };
 		877DCCB45A0AFBD92AFAB650 /* AudioPlaybackService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlaybackService.swift; sourceTree = "<group>"; };
 		8D1FF2AE621C085664C1C791 /* DashboardScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardScreen.swift; sourceTree = "<group>"; };
@@ -389,6 +395,7 @@
 		AC92FF930020DC82D470A002 /* AgentBoardApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentBoardApp.swift; sourceTree = "<group>"; };
 		AE2A97A08B0556443C6746EC /* LabelSchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabelSchema.swift; sourceTree = "<group>"; };
 		AE3F349D2B17FA90738CCDD5 /* KanbanModelsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KanbanModelsTests.swift; sourceTree = "<group>"; };
+		B2BFF079AD41FB4E246A4000 /* HermesDashboardDTOs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HermesDashboardDTOs.swift; sourceTree = "<group>"; };
 		B4813FBD80F9AC10D1A51841 /* SettingsStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStoreTests.swift; sourceTree = "<group>"; };
 		B56A44BC3ACA67014432FDD4 /* CompanionSQLiteStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompanionSQLiteStoreTests.swift; sourceTree = "<group>"; };
 		B7B2891F313F2E1804101D36 /* HermesGatewayClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HermesGatewayClient.swift; sourceTree = "<group>"; };
@@ -398,6 +405,7 @@
 		BD2941E5B6C18CF76C4621BB /* AttachmentViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachmentViews.swift; sourceTree = "<group>"; };
 		BE362DDE00559E2C84434C13 /* AgentsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentsScreen.swift; sourceTree = "<group>"; };
 		BF5603C33D7D5BFBEE3F9DBE /* TintedActionCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TintedActionCard.swift; sourceTree = "<group>"; };
+		BFE6600D228108B65F0329EE /* HermesDashboardClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HermesDashboardClient.swift; sourceTree = "<group>"; };
 		C233996F081109570393D6FA /* DomainModelsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainModelsTests.swift; sourceTree = "<group>"; };
 		C86007C1F74BD16FE6181012 /* ChatStore+Internals.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ChatStore+Internals.swift"; sourceTree = "<group>"; };
 		C8ECD5A8D1C4F9C4099CBB9C /* AgentBoardCacheTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentBoardCacheTests.swift; sourceTree = "<group>"; };
@@ -521,6 +529,7 @@
 				538A290820D417392EDCC67A /* GitHubAssigneeForwardingTests.swift */,
 				6C0ED2A504BC7E3CA18E4094 /* GitHubWorkServiceTests.swift */,
 				1F06E0C2FFE9CAC90D48662B /* HermesGatewayClientTests.swift */,
+				2ADEFECB447818CBAF1D2F6A /* HTTPKanbanBackendTests.swift */,
 				6A0D9C21BA312AB952D0E48B /* KanbanAssigneePickerTests.swift */,
 				3540D69FA92919FFD0494695 /* KanbanBoardMoveTests.swift */,
 				5102C6664EC788E01AFFE8E9 /* KanbanCLIWriterPathTests.swift */,
@@ -622,7 +631,10 @@
 				035DCBF4EE40EE6A14CFE890 /* CompanionClient.swift */,
 				C9679A2004F1CFD39A588CC7 /* ConfigBackupService.swift */,
 				FFA60A5A5B633630F99A562B /* GitHubWorkService.swift */,
+				BFE6600D228108B65F0329EE /* HermesDashboardClient.swift */,
+				B2BFF079AD41FB4E246A4000 /* HermesDashboardDTOs.swift */,
 				B7B2891F313F2E1804101D36 /* HermesGatewayClient.swift */,
+				84BC2C74654443FF906C334F /* HTTPKanbanBackend.swift */,
 				E52428296B715E26DCC31E00 /* KanbanCLIWriter.swift */,
 				08C9688956A467F60F3B9B34 /* KanbanDataReading.swift */,
 				A9896F487D5B25505452683B /* KanbanDataService.swift */,
@@ -1122,6 +1134,7 @@
 				E069DEDCB71500BCB3DA43A4 /* FoundationExtrasTests.swift in Sources */,
 				23AA03CA520ED7D494BAA1A6 /* GitHubAssigneeForwardingTests.swift in Sources */,
 				D2F03218C8433B59598A04D5 /* GitHubWorkServiceTests.swift in Sources */,
+				355855DC361DDD57F35CF8BE /* HTTPKanbanBackendTests.swift in Sources */,
 				62108DFBD6C8CF3265C4F8A5 /* HermesGatewayClientTests.swift in Sources */,
 				0B3C6DC24A36FE8A19357506 /* KanbanAssigneePickerTests.swift in Sources */,
 				9EAC1A69746A2ABCB376F952 /* KanbanBoardMoveTests.swift in Sources */,
@@ -1179,6 +1192,9 @@
 				6EE512882ACF48B1A60F1603 /* DomainModels.swift in Sources */,
 				C6F5E2BE0559A438785BBCF8 /* FoundationExtras.swift in Sources */,
 				AB66AFF4128BA91808D24DB5 /* GitHubWorkService.swift in Sources */,
+				D2F610AC232E10D053415D40 /* HTTPKanbanBackend.swift in Sources */,
+				F2C0D22C7D08CD776D19D4B6 /* HermesDashboardClient.swift in Sources */,
+				201E119C13F218E889A9C156 /* HermesDashboardDTOs.swift in Sources */,
 				C23BCB5CF1615F000459D9E7 /* HermesGatewayClient.swift in Sources */,
 				C533F4D91531479ECC82DC9E /* KanbanBoardMove.swift in Sources */,
 				2DC5A28990E375C68274D794 /* KanbanCLIWriter.swift in Sources */,

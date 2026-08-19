@@ -28,7 +28,15 @@ struct KanbanBoardMoveTests {
         Pair(from: .running, to: .blocked): .block,
         Pair(from: .running, to: .done): .complete,
         Pair(from: .blocked, to: .ready): .unblock,
-        Pair(from: .blocked, to: .done): .complete
+        Pair(from: .blocked, to: .done): .complete,
+        // `scheduled` and `review` are non-terminal, so the "any non-terminal"
+        // block/complete transitions apply to them too. Hermes imposes no
+        // source-state restriction on `kanban block` / `kanban complete`, and
+        // `kanban_db.VALID_STATUSES` lists both as first-class statuses.
+        Pair(from: .scheduled, to: .blocked): .block,
+        Pair(from: .scheduled, to: .done): .complete,
+        Pair(from: .review, to: .blocked): .block,
+        Pair(from: .review, to: .done): .complete
     ]
 
     @Test func fullMatrixMatchesLegalTransitionTable() {

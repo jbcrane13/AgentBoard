@@ -559,7 +559,9 @@ private func kanbanStatusColor(_ status: KanbanStatus) -> Color {
     switch status {
     case .triage: Color.gray
     case .todo: AppTheme.accentCyan
+    case .scheduled: AppTheme.textSecondary
     case .ready: AppTheme.accentCyan
+    case .review: AppTheme.accentOrange
     case .running: AppTheme.statusSuccess
     case .blocked: AppTheme.accentOrange
     case .done: AppTheme.textSecondary

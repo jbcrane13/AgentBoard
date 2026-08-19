@@ -36,7 +36,7 @@ public enum KanbanBoardMove: Equatable, Sendable {
         switch to {
         case .running:
             return "Tasks enter Running when an agent claims them."
-        case .triage, .todo, .archived:
+        case .triage, .todo, .scheduled, .review, .archived:
             return "Tasks can't be dragged to \(to.title)."
         default:
             if from == to {

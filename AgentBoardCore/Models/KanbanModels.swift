@@ -2,12 +2,18 @@ import Foundation
 
 // MARK: - Kanban Status
 
+/// Mirrors the status vocabulary Hermes' kanban dispatcher writes. Keep the
+/// case list in sync with the dashboard's board columns — an unmapped status
+/// falls back to `.todo` in `KanbanDataService.taskFromRow`, which silently
+/// files the task in the wrong column.
 public enum KanbanStatus: String, Codable, CaseIterable, Identifiable, Sendable {
     case triage
     case todo
+    case scheduled
     case ready
     case running
     case blocked
+    case review
     case done
     case archived
 
@@ -19,17 +25,19 @@ public enum KanbanStatus: String, Codable, CaseIterable, Identifiable, Sendable 
         switch self {
         case .triage: "Triage"
         case .todo: "Todo"
+        case .scheduled: "Scheduled"
         case .ready: "Ready"
         case .running: "In Progress"
         case .blocked: "Blocked"
+        case .review: "Review"
         case .done: "Done"
         case .archived: "Archived"
         }
     }
 
-    /// Board columns (non-terminal, non-archived)
+    /// Board columns (non-terminal, non-archived), in Hermes' own column order.
     public static var boardColumns: [KanbanStatus] {
-        [.triage, .todo, .ready, .running, .blocked, .done]
+        [.triage, .todo, .scheduled, .ready, .running, .blocked, .review, .done]
     }
 }
 
