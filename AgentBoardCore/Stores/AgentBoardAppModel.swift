@@ -42,6 +42,13 @@ public final class AgentBoardAppModel {
         self.sessionsStore = sessionsStore
         self.sessionLauncher = sessionLauncher
         self.companionClient = companionClient
+
+        // Wire once here rather than at each `selectHermesProfile` call site, so
+        // switching profiles from Settings, the chat header, or a conversation
+        // auto-switch all re-point the kanban backend.
+        settingsStore.onActiveProfileChanged = { [weak self] in
+            self?.applyKanbanBackendSelection()
+        }
     }
 
     public func bootstrap() async {

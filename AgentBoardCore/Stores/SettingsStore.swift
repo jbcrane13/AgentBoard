@@ -220,6 +220,15 @@ public final class SettingsStore {
         }
     }
 
+    /// Invoked whenever the active Hermes profile changes, from *any* call site.
+    /// `AgentBoardAppModel` hangs kanban backend re-selection off this. It lives
+    /// here rather than at each call site because `selectHermesProfile(id:)` is
+    /// reached from the Settings "Use" button, the chat header profile menu, and
+    /// the conversation auto-switch — a new caller that forgot to re-select would
+    /// silently leave the board on the previous profile's backend.
+    @ObservationIgnored
+    public var onActiveProfileChanged: (@MainActor () -> Void)?
+
     public func selectHermesProfile(id: String, silent: Bool = false) {
         guard let profile = hermesProfiles.first(where: { $0.id == id }) else { return }
         selectedHermesProfileID = profile.id
@@ -235,6 +244,7 @@ public final class SettingsStore {
         if !silent {
             statusMessage = "Switched to \(profile.name)."
         }
+        onActiveProfileChanged?()
     }
 
     public func removeHermesProfile(_ profile: HermesProfile) async {
