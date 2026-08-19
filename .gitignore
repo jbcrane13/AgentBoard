@@ -39,3 +39,6 @@ Package.resolved
 reports/
 .jscpd-report/
 .beads/
+
+# graphify knowledge-graph output (generated)
+graphify-out/
