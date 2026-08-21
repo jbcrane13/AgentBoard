@@ -14,10 +14,16 @@ struct AgentBoardCompanionMain {
         let server = CompanionServer(configuration: configuration, store: store)
         try server.start()
 
-        print("AgentBoard Companion listening at \(configuration.baseURL)")
+        // Print the address a *remote* AgentBoard should use. `configuration.baseURL`
+        // hardcodes 127.0.0.1, which is wrong whenever the companion is installed on
+        // a different machine than the app — the common case for this daemon.
+        let hostName = ProcessInfo.processInfo.hostName
+        print("AgentBoard Companion listening on \(configuration.host):\(configuration.port)")
+        print("Companion URL for this machine: http://\(hostName):\(configuration.port)")
         if let token = configuration.bearerToken?.trimmedOrNil {
-            print("Bearer token: \(token)")
+            print("Companion token: \(token)")
         }
+        print("Paste both into AgentBoard → Settings → Companion Service.")
 
         while true {
             try await Task.sleep(for: .seconds(86400))

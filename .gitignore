@@ -42,3 +42,4 @@ reports/
 
 # graphify knowledge-graph output (generated)
 graphify-out/
+dist/
