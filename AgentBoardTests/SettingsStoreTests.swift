@@ -245,6 +245,66 @@ struct SettingsStoreTests {
         #expect(store.statusMessage == "Settings loaded.")
     }
 
+    // MARK: - App-global dashboard config
+
+    @Test func bootstrapHydratesAppGlobalDashboardConfigIndependentOfProfile() async throws {
+        let repository = SettingsRepository(
+            suiteName: "SettingsStoreTests-dashboard-\(UUID().uuidString)",
+            serviceName: "SettingsStoreTests-dashboard-\(UUID().uuidString)"
+        )
+        let profile = HermesProfile(id: "local", name: "Local", gatewayURL: "http://127.0.0.1:8642")
+        try await repository.saveSettings(AgentBoardSettings(
+            hermesGatewayURL: "http://127.0.0.1:9000",
+            hermesProfiles: [profile],
+            selectedHermesProfileID: profile.id,
+            dashboardURL: "http://100.64.1.2:9119",
+            dashboardUsername: "admin"
+        ))
+        try await repository.saveSecrets(AgentBoardSecrets(dashboardPassword: "hunter2"))
+        let store = SettingsStore(repository: repository)
+
+        await store.bootstrap()
+
+        #expect(store.hermesDashboardURL == "http://100.64.1.2:9119")
+        #expect(store.hermesDashboardUsername == "admin")
+        #expect(store.hermesDashboardPassword == "hunter2")
+        // Hydrated from the app-global snapshot, not the (dashboard-field-less) active profile.
+        #expect(store.selectedHermesProfileID == profile.id)
+    }
+
+    @Test func selectHermesProfileDoesNotChangeDashboardURL() async {
+        let store = makeStore()
+        store.hermesGatewayURL = "http://127.0.0.1:8642"
+        await store.saveCurrentHermesProfile(named: "Local")
+        store.hermesGatewayURL = "http://127.0.0.1:9000"
+        await store.saveCurrentHermesProfile(named: "Remote")
+
+        store.hermesDashboardURL = "http://100.64.1.2:9119"
+
+        let localID = store.hermesProfiles.first { $0.name == "Local" }?.id
+        let remoteID = store.hermesProfiles.first { $0.name == "Remote" }?.id
+
+        if let localID {
+            store.selectHermesProfile(id: localID)
+        }
+        #expect(store.hermesDashboardURL == "http://100.64.1.2:9119")
+
+        if let remoteID {
+            store.selectHermesProfile(id: remoteID)
+        }
+        #expect(store.hermesDashboardURL == "http://100.64.1.2:9119")
+    }
+
+    @Test func saveCurrentHermesProfileDoesNotChangeDashboardURL() async {
+        let store = makeStore()
+        store.hermesGatewayURL = "http://127.0.0.1:8642"
+        store.hermesDashboardURL = "http://100.64.1.2:9119"
+
+        await store.saveCurrentHermesProfile(named: "Dev")
+
+        #expect(store.hermesDashboardURL == "http://100.64.1.2:9119")
+    }
+
     @Test func removeHermesProfileDeletesIt() async {
         let store = makeStore()
         store.hermesGatewayURL = "http://127.0.0.1:8642"
@@ -278,25 +338,21 @@ struct SettingsStoreTests {
         let (store, repository) = makeStoreWithRepository()
         store.hermesGatewayURL = "http://127.0.0.1:8642"
         store.hermesAPIKey = "profile-key"
-        store.hermesDashboardPassword = "dash-pass"
         await store.saveCurrentHermesProfile(named: "Dev")
         let profileID = try #require(store.hermesProfiles.first?.id)
 
         let secrets = await repository.loadProfileSecrets(profileIDs: [profileID])
         #expect(secrets[profileID]?.apiKey == "profile-key")
-        #expect(secrets[profileID]?.dashboardPassword == "dash-pass")
 
         let encoded = try JSONEncoder().encode(store.settingsSnapshot)
         let json = try #require(String(data: encoded, encoding: .utf8))
         #expect(!json.contains("profile-key"))
-        #expect(!json.contains("dash-pass"))
     }
 
     @Test func removeHermesProfileDeletesKeychainEntries() async throws {
         let (store, repository) = makeStoreWithRepository()
         store.hermesGatewayURL = "http://127.0.0.1:8642"
         store.hermesAPIKey = "profile-key"
-        store.hermesDashboardPassword = "dash-pass"
         await store.saveCurrentHermesProfile(named: "Dev")
         let profile = try #require(store.hermesProfiles.first)
 

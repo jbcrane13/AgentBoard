@@ -38,6 +38,7 @@ struct SettingsScreen: View {
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 32) {
                         hermesSection(settingsStore: settingsStore)
+                        hermesDashboardSection(settingsStore: settingsStore)
                         githubSection(settingsStore: settingsStore)
                         companionSection(settingsStore: settingsStore)
                         backupSection
@@ -77,6 +78,37 @@ struct SettingsScreen: View {
                         .accessibilityIdentifier("settings_securefield_hermes_api_key")
                 }
                 profilesSection(s: s)
+            }
+            .padding(24)
+            .cardSurface(cornerRadius: 16)
+        }
+    }
+
+    // MARK: - Hermes Dashboard
+
+    private func hermesDashboardSection(settingsStore: SettingsStore) -> some View {
+        @Bindable var s = settingsStore
+        return VStack(alignment: .leading, spacing: 16) {
+            sectionHeader("HERMES DASHBOARD")
+            VStack(alignment: .leading, spacing: 20) {
+                labeledField("Dashboard URL") {
+                    AppTextField(placeholder: "http://<host>:9119 (optional)", text: $s.hermesDashboardURL)
+                        .accessibilityIdentifier("settings_textfield_dashboard_url")
+                }
+                labeledField("Dashboard Username") {
+                    AppTextField(placeholder: "Dashboard username (optional)", text: $s.hermesDashboardUsername)
+                        .accessibilityIdentifier("settings_textfield_dashboard_username")
+                }
+                labeledField("Dashboard Password") {
+                    AppSecureField(placeholder: "Dashboard password (optional)", text: $s.hermesDashboardPassword)
+                        .accessibilityIdentifier("settings_securefield_dashboard_password")
+                }
+                Text(
+                    "Dashboard credentials are stored in the Keychain. Leave the URL empty to keep " +
+                        "the board reading the local ~/.hermes/kanban.db."
+                )
+                .font(.caption)
+                .foregroundStyle(AppTheme.textSecondary)
             }
             .padding(24)
             .cardSurface(cornerRadius: 16)

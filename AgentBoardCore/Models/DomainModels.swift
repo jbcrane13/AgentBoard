@@ -79,24 +79,23 @@ public struct HermesProfile: Codable, Hashable, Identifiable, Sendable {
     public var modelID: String?
     /// Hex color (`#RRGGBB`) used to visually distinguish this profile in the chat header.
     public var colorHex: String?
-    /// Dashboard base URL (`http://<host>:9119`) used to drive the remote kanban board for this
-    /// profile. Leaving this empty keeps kanban reads on the local `~/.hermes/kanban.db`.
-    public var dashboardURL: String?
-    /// Dashboard Basic-auth username, paired with `dashboardPassword`.
-    public var dashboardUsername: String?
+
+    // Dashboard configuration (URL/username/password) is app-global — see
+    // `AgentBoardSettings.dashboardURL`/`dashboardUsername` and
+    // `AgentBoardSecrets.dashboardPassword` — not per-profile. A profile is a chat identity
+    // (gateway + model + API key + color); the dashboard is the kanban board's own server, a
+    // different Hermes service entirely.
 
     // MARK: - Keychain-backed secrets
     //
-    // `apiKey` and `dashboardPassword` are never written to the UserDefaults settings snapshot —
-    // they live in the Keychain (`SettingsRepository.loadProfileSecrets`/`saveProfileSecrets`,
-    // keyed by profile id) and are hydrated into these in-memory-only properties by
-    // `SettingsStore.bootstrap()` / `SettingsStore.selectHermesProfile(id:)`.
+    // `apiKey` is never written to the UserDefaults settings snapshot — it lives in the
+    // Keychain (`SettingsRepository.loadProfileSecrets`/`saveProfileSecrets`, keyed by profile
+    // id) and is hydrated into this in-memory-only property by `SettingsStore.bootstrap()` /
+    // `SettingsStore.selectHermesProfile(id:)`.
 
     /// Per-profile Hermes API key override, Keychain-backed. Selecting this profile applies it to
     /// `SettingsStore.hermesAPIKey`; profiles without one inherit the current global key.
     public var apiKey: String?
-    /// Per-profile dashboard Basic-auth password, Keychain-backed.
-    public var dashboardPassword: String?
 
     public init(
         id: String = UUID().uuidString.lowercased(),
@@ -104,10 +103,7 @@ public struct HermesProfile: Codable, Hashable, Identifiable, Sendable {
         gatewayURL: String,
         modelID: String? = nil,
         apiKey: String? = nil,
-        colorHex: String? = nil,
-        dashboardURL: String? = nil,
-        dashboardUsername: String? = nil,
-        dashboardPassword: String? = nil
+        colorHex: String? = nil
     ) {
         self.id = id
         self.name = name
@@ -115,15 +111,12 @@ public struct HermesProfile: Codable, Hashable, Identifiable, Sendable {
         self.modelID = modelID
         self.apiKey = apiKey
         self.colorHex = colorHex
-        self.dashboardURL = dashboardURL
-        self.dashboardUsername = dashboardUsername
-        self.dashboardPassword = dashboardPassword
     }
 
-    /// Persisted keys only — `apiKey` and `dashboardPassword` are deliberately absent so the
-    /// synthesized `encode(to:)` never writes them into the UserDefaults settings snapshot.
+    /// Persisted keys only — `apiKey` is deliberately absent so the synthesized `encode(to:)`
+    /// never writes it into the UserDefaults settings snapshot.
     private enum CodingKeys: String, CodingKey {
-        case id, name, gatewayURL, modelID, colorHex, dashboardURL, dashboardUsername
+        case id, name, gatewayURL, modelID, colorHex
     }
 
     /// Reads a legacy inline `apiKey` from settings snapshots persisted before per-profile
@@ -140,12 +133,9 @@ public struct HermesProfile: Codable, Hashable, Identifiable, Sendable {
         gatewayURL = try container.decode(String.self, forKey: .gatewayURL)
         modelID = try container.decodeIfPresent(String.self, forKey: .modelID)
         colorHex = try container.decodeIfPresent(String.self, forKey: .colorHex)
-        dashboardURL = try container.decodeIfPresent(String.self, forKey: .dashboardURL)
-        dashboardUsername = try container.decodeIfPresent(String.self, forKey: .dashboardUsername)
 
         let legacyContainer = try decoder.container(keyedBy: LegacyCodingKeys.self)
         apiKey = try legacyContainer.decodeIfPresent(String.self, forKey: .apiKey)
-        dashboardPassword = nil
     }
 }
 

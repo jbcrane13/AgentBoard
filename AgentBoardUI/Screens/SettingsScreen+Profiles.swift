@@ -1,9 +1,9 @@
 import AgentBoardCore
 import SwiftUI
 
-/// Hermes profile management: the saved-profile list, per-profile secrets
-/// (API key + dashboard credential, both Keychain-backed), the dashboard URL
-/// that selects a remote kanban backend, and the colour swatch row.
+/// Hermes profile management: the saved-profile list, per-profile API key
+/// (Keychain-backed), and the colour swatch row. Dashboard configuration is
+/// app-global and lives in `SettingsScreen.hermesDashboardSection` instead.
 extension SettingsScreen {
     func profilesSection(s: SettingsStore) -> some View {
         @Bindable var s = s
@@ -41,6 +41,10 @@ extension SettingsScreen {
             }
 
             VStack(alignment: .leading, spacing: 12) {
+                labeledField("Profile Name", alignment: .top) {
+                    AppTextField(placeholder: "Profile name", text: $hermesProfileName)
+                        .accessibilityIdentifier("settings_textfield_hermes_profile_name")
+                }
                 labeledField("Profile API Key", alignment: .top) {
                     AppSecureField(placeholder: "API key for this profile (optional)", text: $s.hermesAPIKey)
                         .accessibilityIdentifier("settings_securefield_profile_api_key")
@@ -48,43 +52,19 @@ extension SettingsScreen {
                 labeledField("Profile Color", alignment: .top) {
                     profileColorSwatchRow
                 }
-                labeledField("Dashboard URL", alignment: .top) {
-                    AppTextField(placeholder: "http://<host>:9119 (optional)", text: $s.hermesDashboardURL)
-                        .accessibilityIdentifier("settings_textfield_dashboard_url")
-                }
-                labeledField("Dashboard Username", alignment: .top) {
-                    AppTextField(placeholder: "Dashboard username (optional)", text: $s.hermesDashboardUsername)
-                        .accessibilityIdentifier("settings_textfield_dashboard_username")
-                }
-                labeledField("Dashboard Password", alignment: .top) {
-                    AppSecureField(placeholder: "Dashboard password (optional)", text: $s.hermesDashboardPassword)
-                        .accessibilityIdentifier("settings_securefield_dashboard_password")
-                }
-                Text(
-                    "Dashboard credentials are stored in the Keychain. Leave the URL empty to keep " +
-                        "the board reading the local ~/.hermes/kanban.db."
-                )
-                .font(.caption)
-                .foregroundStyle(AppTheme.textSecondary)
-                HStack(spacing: 12) {
-                    labeledField("Profile Name", alignment: .top) {
-                        AppTextField(placeholder: "Profile name", text: $hermesProfileName)
-                            .accessibilityIdentifier("settings_textfield_hermes_profile_name")
-                    }
-                    Button("Save Current") {
-                        Task {
-                            await s.saveCurrentHermesProfile(named: hermesProfileName)
-                            if s.errorMessage == nil {
-                                applyPendingProfileColor(named: hermesProfileName, s: s)
-                                hermesProfileName = ""
-                                hermesProfileColorHex = nil
-                            }
+                Button("Save Current") {
+                    Task {
+                        await s.saveCurrentHermesProfile(named: hermesProfileName)
+                        if s.errorMessage == nil {
+                            applyPendingProfileColor(named: hermesProfileName, s: s)
+                            hermesProfileName = ""
+                            hermesProfileColorHex = nil
                         }
                     }
-                    .buttonStyle(AppButtonStyle(isAccent: !hermesProfileName.isEmpty))
-                    .disabled(hermesProfileName.isEmpty)
-                    .accessibilityIdentifier("settings_button_save_hermes_profile")
                 }
+                .buttonStyle(AppButtonStyle(isAccent: !hermesProfileName.isEmpty))
+                .disabled(hermesProfileName.isEmpty)
+                .accessibilityIdentifier("settings_button_save_hermes_profile")
             }
         }
     }

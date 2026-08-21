@@ -46,6 +46,8 @@ public final class SettingsStore {
             hermesModelID: hermesModelID.trimmedOrNil,
             hermesProfiles: hermesProfiles,
             selectedHermesProfileID: selectedHermesProfileID,
+            dashboardURL: hermesDashboardURL.trimmedOrNil,
+            dashboardUsername: hermesDashboardUsername.trimmedOrNil,
             companionURL: companionURL.trimmedOrNil ?? "http://127.0.0.1:8742",
             repositories: repositories,
             autoRefreshInterval: max(30, autoRefreshInterval)
@@ -55,6 +57,7 @@ public final class SettingsStore {
     public var secretsSnapshot: AgentBoardSecrets {
         AgentBoardSecrets(
             hermesAPIKey: hermesAPIKey.trimmedOrNil,
+            dashboardPassword: hermesDashboardPassword.trimmedOrNil,
             githubToken: githubToken.trimmedOrNil,
             companionToken: companionToken.trimmedOrNil
         )
@@ -171,7 +174,6 @@ public final class SettingsStore {
         }
 
         let apiKey = hermesAPIKey.trimmedOrNil
-        let dashboardPassword = hermesDashboardPassword.trimmedOrNil
         let paletteColor = Self.hermesProfileColorPalette[hermesProfiles.count % Self.hermesProfileColorPalette.count]
 
         let profileID: String
@@ -180,9 +182,6 @@ public final class SettingsStore {
             hermesProfiles[existingIndex].gatewayURL = gatewayURL
             hermesProfiles[existingIndex].modelID = hermesModelID.trimmedOrNil
             hermesProfiles[existingIndex].apiKey = apiKey
-            hermesProfiles[existingIndex].dashboardURL = hermesDashboardURL.trimmedOrNil
-            hermesProfiles[existingIndex].dashboardUsername = hermesDashboardUsername.trimmedOrNil
-            hermesProfiles[existingIndex].dashboardPassword = dashboardPassword
             if hermesProfiles[existingIndex].colorHex == nil {
                 hermesProfiles[existingIndex].colorHex = paletteColor
             }
@@ -195,10 +194,7 @@ public final class SettingsStore {
                 gatewayURL: gatewayURL,
                 modelID: hermesModelID.trimmedOrNil,
                 apiKey: apiKey,
-                colorHex: paletteColor,
-                dashboardURL: hermesDashboardURL.trimmedOrNil,
-                dashboardUsername: hermesDashboardUsername.trimmedOrNil,
-                dashboardPassword: dashboardPassword
+                colorHex: paletteColor
             )
             hermesProfiles.append(profile)
             hermesProfiles.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
@@ -210,22 +206,26 @@ public final class SettingsStore {
         errorMessage = nil
 
         do {
-            try await repository.saveProfileSecrets(
-                ProfileSecrets(apiKey: apiKey, dashboardPassword: dashboardPassword),
-                for: profileID
-            )
+            try await repository.saveProfileSecrets(ProfileSecrets(apiKey: apiKey), for: profileID)
         } catch {
             logger.error("Failed to save profile secrets: \(error.localizedDescription, privacy: .public)")
             errorMessage = error.localizedDescription
         }
+
+        // Saving selects the profile, which may not have been active before — harmless to
+        // re-point the (app-global) kanban backend again even though it can't have changed.
+        onActiveProfileChanged?()
     }
 
-    /// Invoked whenever the active Hermes profile changes, from *any* call site.
-    /// `AgentBoardAppModel` hangs kanban backend re-selection off this. It lives
-    /// here rather than at each call site because `selectHermesProfile(id:)` is
-    /// reached from the Settings "Use" button, the chat header profile menu, and
-    /// the conversation auto-switch — a new caller that forgot to re-select would
-    /// silently leave the board on the previous profile's backend.
+    /// Invoked whenever the active Hermes profile changes *or its configuration is
+    /// re-saved* — i.e. from `selectHermesProfile(id:)` and `saveCurrentHermesProfile(named:)`.
+    /// `AgentBoardAppModel` hangs kanban backend re-selection off this. It lives here
+    /// rather than at each call site because profile switching is reached from the
+    /// Settings "Use" button, the chat header profile menu, and the conversation
+    /// auto-switch. The kanban backend is app-global now (see `hermesDashboardURL`), so
+    /// profile switches never actually change it, but firing the hook is still harmless —
+    /// `AgentBoardAppModel.saveSettingsAndReconnect()` is what actually re-points the backend
+    /// when the dashboard URL changes.
     @ObservationIgnored
     public var onActiveProfileChanged: (@MainActor () -> Void)?
 
@@ -237,9 +237,6 @@ public final class SettingsStore {
             hermesModelID = modelID
         }
         hermesAPIKey = profile.apiKey ?? hermesAPIKey
-        hermesDashboardURL = profile.dashboardURL ?? ""
-        hermesDashboardUsername = profile.dashboardUsername ?? ""
-        hermesDashboardPassword = profile.dashboardPassword ?? ""
         errorMessage = nil
         if !silent {
             statusMessage = "Switched to \(profile.name)."
@@ -277,6 +274,12 @@ public final class SettingsStore {
             selectHermesProfile(id: selectedHermesProfileID, silent: true)
         }
 
+        // Dashboard config is app-global, not per-profile — hydrate it directly here rather
+        // than from the active profile.
+        hermesDashboardURL = settings.dashboardURL ?? ""
+        hermesDashboardUsername = settings.dashboardUsername ?? ""
+        hermesDashboardPassword = secrets.dashboardPassword ?? ""
+
         companionURL = settings.companionURL
         companionToken = secrets.companionToken ?? ""
 
@@ -285,11 +288,10 @@ public final class SettingsStore {
         autoRefreshInterval = settings.autoRefreshInterval
     }
 
-    /// Hydrates each profile's Keychain-backed `apiKey`/`dashboardPassword`. A profile decoded
-    /// with a legacy inline `apiKey` (from a settings snapshot persisted before per-profile
-    /// secrets moved to the Keychain) and no matching Keychain entry is migrated: the plaintext
-    /// value is written to the Keychain and the settings snapshot is re-saved so it's dropped
-    /// from UserDefaults.
+    /// Hydrates each profile's Keychain-backed `apiKey`. A profile decoded with a legacy inline
+    /// `apiKey` (from a settings snapshot persisted before per-profile secrets moved to the
+    /// Keychain) and no matching Keychain entry is migrated: the plaintext value is written to
+    /// the Keychain and the settings snapshot is re-saved so it's dropped from UserDefaults.
     private func hydrateAndMigrateProfileSecrets(_ profileSecrets: [String: ProfileSecrets]) async {
         var migratedAny = false
 
@@ -302,10 +304,7 @@ public final class SettingsStore {
                 hermesProfiles[index].apiKey = keychainAPIKey
             } else if let legacyAPIKey {
                 do {
-                    try await repository.saveProfileSecrets(
-                        ProfileSecrets(apiKey: legacyAPIKey, dashboardPassword: keychainSecrets?.dashboardPassword),
-                        for: profileID
-                    )
+                    try await repository.saveProfileSecrets(ProfileSecrets(apiKey: legacyAPIKey), for: profileID)
                     migratedAny = true
                 } catch {
                     logger.error(
@@ -313,8 +312,6 @@ public final class SettingsStore {
                     )
                 }
             }
-
-            hermesProfiles[index].dashboardPassword = keychainSecrets?.dashboardPassword
         }
 
         if migratedAny {
@@ -330,9 +327,6 @@ public final class SettingsStore {
         if let selectedHermesProfileID,
            let profile = hermesProfiles.first(where: { $0.id == selectedHermesProfileID }) {
             hermesAPIKey = profile.apiKey ?? hermesAPIKey
-            hermesDashboardURL = profile.dashboardURL ?? ""
-            hermesDashboardUsername = profile.dashboardUsername ?? ""
-            hermesDashboardPassword = profile.dashboardPassword ?? ""
         }
     }
 

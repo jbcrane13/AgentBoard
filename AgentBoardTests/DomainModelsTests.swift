@@ -289,28 +289,20 @@ struct DomainModelsTests {
         #expect(profile.colorHex == nil)
     }
 
-    @Test func hermesProfileEncodingOmitsAPIKeyAndDashboardPassword() throws {
+    @Test func hermesProfileEncodingOmitsAPIKey() throws {
         let original = HermesProfile(
             name: "Local",
             gatewayURL: "http://127.0.0.1:8642",
             apiKey: "sk-test",
-            colorHex: "#4FC3F7",
-            dashboardURL: "http://100.64.1.2:9119",
-            dashboardUsername: "admin",
-            dashboardPassword: "hunter2"
+            colorHex: "#4FC3F7"
         )
         let data = try JSONEncoder().encode(original)
         let json = try #require(String(data: data, encoding: .utf8))
         #expect(!json.contains("apiKey"))
-        #expect(!json.contains("hunter2"))
-        #expect(!json.contains("dashboardPassword"))
 
         let decoded = try JSONDecoder().decode(HermesProfile.self, from: data)
         #expect(decoded.apiKey == nil)
-        #expect(decoded.dashboardPassword == nil)
         #expect(decoded.colorHex == "#4FC3F7")
-        #expect(decoded.dashboardURL == "http://100.64.1.2:9119")
-        #expect(decoded.dashboardUsername == "admin")
     }
 
     @Test func hermesProfileDecodesLegacyInlineAPIKeyIntoInMemoryProperty() throws {
@@ -332,30 +324,26 @@ struct DomainModelsTests {
         #expect(!reEncodedJSON.contains("apiKey"))
     }
 
-    @Test func hermesProfileDashboardURLAndUsernameDecodeNilFromLegacyJSON() throws {
+    @Test func hermesProfileHasNoDashboardFields() throws {
+        // Regression cover: dashboard config (URL/username/password) moved out of
+        // `HermesProfile` and became app-global on `AgentBoardSettings`/`AgentBoardSecrets`. A
+        // legacy snapshot carrying inline dashboard fields decodes without error and the values
+        // are simply dropped (there is nowhere on `HermesProfile` for them to land).
         let json = """
         {
           "id": "local",
           "name": "Local",
-          "gatewayURL": "http://127.0.0.1:8642"
+          "gatewayURL": "http://127.0.0.1:8642",
+          "dashboardURL": "http://100.64.1.2:9119",
+          "dashboardUsername": "admin"
         }
         """
         let profile = try JSONDecoder().decode(HermesProfile.self, from: Data(json.utf8))
-        #expect(profile.dashboardURL == nil)
-        #expect(profile.dashboardUsername == nil)
-    }
+        #expect(profile.name == "Local")
 
-    @Test func hermesProfileRoundTripsDashboardURLAndUsernameThroughJSON() throws {
-        let original = HermesProfile(
-            name: "Local",
-            gatewayURL: "http://127.0.0.1:8642",
-            dashboardURL: "http://100.64.1.2:9119",
-            dashboardUsername: "admin"
-        )
-        let data = try JSONEncoder().encode(original)
-        let decoded = try JSONDecoder().decode(HermesProfile.self, from: data)
-        #expect(decoded.dashboardURL == "http://100.64.1.2:9119")
-        #expect(decoded.dashboardUsername == "admin")
+        let data = try JSONEncoder().encode(profile)
+        let reEncodedJSON = try #require(String(data: data, encoding: .utf8))
+        #expect(!reEncodedJSON.contains("dashboard"))
     }
 
     // MARK: - AgentBoardSettings decoding
@@ -367,6 +355,30 @@ struct DomainModelsTests {
         #expect(settings.companionURL == "http://127.0.0.1:8742")
         #expect(settings.repositories.isEmpty)
         #expect(settings.autoRefreshInterval == 30)
+    }
+
+    @Test func agentBoardSettingsDashboardURLAndUsernameDefaultToNilAndRoundTripThroughJSON() throws {
+        let json = "{}"
+        let settings = try JSONDecoder().decode(AgentBoardSettings.self, from: Data(json.utf8))
+        #expect(settings.dashboardURL == nil)
+        #expect(settings.dashboardUsername == nil)
+
+        let original = AgentBoardSettings(
+            hermesGatewayURL: "http://localhost:9000",
+            dashboardURL: "http://100.64.1.2:9119",
+            dashboardUsername: "admin"
+        )
+        let data = try JSONEncoder().encode(original)
+        let decoded = try JSONDecoder().decode(AgentBoardSettings.self, from: data)
+        #expect(decoded.dashboardURL == "http://100.64.1.2:9119")
+        #expect(decoded.dashboardUsername == "admin")
+    }
+
+    @Test func agentBoardSecretsDashboardPasswordRoundTripsThroughJSON() throws {
+        let original = AgentBoardSecrets(hermesAPIKey: "sk-test", dashboardPassword: "hunter2")
+        let data = try JSONEncoder().encode(original)
+        let decoded = try JSONDecoder().decode(AgentBoardSecrets.self, from: data)
+        #expect(decoded.dashboardPassword == "hunter2")
     }
 
     @Test func agentBoardSettingsDecodingRespectsExplicitValues() throws {

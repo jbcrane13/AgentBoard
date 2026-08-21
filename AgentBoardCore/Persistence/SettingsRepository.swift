@@ -7,6 +7,7 @@ private enum SettingsKeys {
 
 private enum SecretKey: String, CaseIterable {
     case hermesAPIKey
+    case dashboardPassword
     case githubToken
     case companionToken
 }
@@ -101,10 +102,6 @@ private enum ProfileSecretAccount {
     static func apiKey(profileID: String) -> String {
         "hermesProfile.\(profileID).apiKey"
     }
-
-    static func dashboardPassword(profileID: String) -> String {
-        "hermesProfile.\(profileID).dashboardPassword"
-    }
 }
 
 public actor SettingsRepository {
@@ -149,6 +146,7 @@ public actor SettingsRepository {
     public func loadSecrets() async -> AgentBoardSecrets {
         await AgentBoardSecrets(
             hermesAPIKey: keychain.read(.hermesAPIKey),
+            dashboardPassword: keychain.read(.dashboardPassword),
             githubToken: keychain.read(.githubToken),
             companionToken: keychain.read(.companionToken)
         )
@@ -156,39 +154,32 @@ public actor SettingsRepository {
 
     public func saveSecrets(_ secrets: AgentBoardSecrets) async throws {
         try await keychain.write(secrets.hermesAPIKey, for: .hermesAPIKey)
+        try await keychain.write(secrets.dashboardPassword, for: .dashboardPassword)
         try await keychain.write(secrets.githubToken, for: .githubToken)
         try await keychain.write(secrets.companionToken, for: .companionToken)
     }
 
-    /// Loads Keychain-backed secrets for each given profile id. Profiles with neither an API key
-    /// nor a dashboard password stored are omitted from the result.
+    /// Loads the Keychain-backed API key for each given profile id. Profiles with no key stored
+    /// are omitted from the result.
     public func loadProfileSecrets(profileIDs: [String]) async -> [String: ProfileSecrets] {
         var result: [String: ProfileSecrets] = [:]
         for profileID in profileIDs {
             let apiKey = await keychain.read(account: ProfileSecretAccount.apiKey(profileID: profileID))
-            let dashboardPassword = await keychain.read(
-                account: ProfileSecretAccount.dashboardPassword(profileID: profileID)
-            )
-            if apiKey != nil || dashboardPassword != nil {
-                result[profileID] = ProfileSecrets(apiKey: apiKey, dashboardPassword: dashboardPassword)
+            if let apiKey {
+                result[profileID] = ProfileSecrets(apiKey: apiKey)
             }
         }
         return result
     }
 
-    /// Writes a profile's Keychain-backed secrets. A `nil`/empty field deletes that entry.
+    /// Writes a profile's Keychain-backed API key. A `nil`/empty value deletes the entry.
     public func saveProfileSecrets(_ secrets: ProfileSecrets, for profileID: String) async throws {
         try await keychain.write(secrets.apiKey, account: ProfileSecretAccount.apiKey(profileID: profileID))
-        try await keychain.write(
-            secrets.dashboardPassword,
-            account: ProfileSecretAccount.dashboardPassword(profileID: profileID)
-        )
     }
 
-    /// Deletes a profile's Keychain-backed secrets, e.g. when the profile itself is removed.
+    /// Deletes a profile's Keychain-backed API key, e.g. when the profile itself is removed.
     public func deleteProfileSecrets(for profileID: String) async {
         await keychain.delete(account: ProfileSecretAccount.apiKey(profileID: profileID))
-        await keychain.delete(account: ProfileSecretAccount.dashboardPassword(profileID: profileID))
     }
 
     private static func makeEncoder() -> JSONEncoder {
