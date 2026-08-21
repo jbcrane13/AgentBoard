@@ -58,7 +58,7 @@ struct AgentsStoreBackendLocalityTests {
 
         let remote = FakeLocalityKanbanData()
         await remote.setLatestEventID(99)
-        store.updateBackend(remote, locality: .remote)
+        store.updateBackend(remote, writer: NoopLocalityCLIWriter(), locality: .remote)
 
         #expect(store.backendLocality == .remote)
         #expect(store.liveUpdatePollInterval == .seconds(15))
@@ -72,11 +72,38 @@ struct AgentsStoreBackendLocalityTests {
         #expect(refreshCount == 0)
     }
 
+    /// Guards against the shape of bug issue #207 fixed for `KanbanCLIWriter`
+    /// itself: `updateBackend` must not just overwrite a stored reference
+    /// that nothing reads again — every subsequent write has to actually go
+    /// through the newly-injected writer. Proven here by injecting two
+    /// distinguishable fake writers and checking which one observed the
+    /// call, not merely that the store's `backendLocality` flipped.
+    @Test
+    func updateBackendSwapIsEffectiveNotMerelyStored() async throws {
+        let firstWriter = RecordingLocalityCLIWriter()
+        let store = try makeStore(
+            kanbanData: FakeLocalityKanbanData(),
+            backendLocality: .local,
+            cliWriter: firstWriter
+        )
+
+        let secondWriter = RecordingLocalityCLIWriter()
+        store.updateBackend(FakeLocalityKanbanData(), writer: secondWriter, locality: .remote)
+
+        await store.commentOnTask(id: "t1", body: "hello")
+
+        let firstCalls = await firstWriter.commentCalls
+        let secondCalls = await secondWriter.commentCalls
+        #expect(firstCalls.isEmpty)
+        #expect(secondCalls == [RecordingLocalityCLIWriter.CommentCall(taskID: "t1", body: "hello")])
+    }
+
     // MARK: - Helpers
 
     private func makeStore(
         kanbanData: any KanbanDataReading,
-        backendLocality: KanbanBackendLocality
+        backendLocality: KanbanBackendLocality,
+        cliWriter: any KanbanCLIWriting = NoopLocalityCLIWriter()
     ) throws -> AgentsStore {
         let suffix = UUID().uuidString
         let repo = SettingsRepository(
@@ -86,7 +113,7 @@ struct AgentsStoreBackendLocalityTests {
         let settings = SettingsStore(repository: repo)
         return try AgentsStore(
             kanbanData: kanbanData,
-            cliWriter: NoopLocalityCLIWriter(),
+            cliWriter: cliWriter,
             cache: AgentBoardCache(inMemory: true),
             settingsStore: settings,
             backendLocality: backendLocality
@@ -155,6 +182,36 @@ private struct NoopLocalityCLIWriter: KanbanCLIWriting {
     }
 
     func comment(taskID _: String, body _: String) async throws {}
+    func complete(taskID _: String, summary _: String) async throws {}
+    func block(taskID _: String, reason _: String) async throws {}
+    func unblock(taskID _: String) async throws {}
+    func promote(taskID _: String) async throws {}
+    func archive(taskID _: String) async throws {}
+    func assign(taskID _: String, assignee _: String) async throws {}
+}
+
+/// Records `comment` calls with which instance received them, so
+/// `updateBackendSwapIsEffectiveNotMerelyStored` can distinguish "the store
+/// still points at the writer injected at construction" from "the store now
+/// routes writes through whichever writer `updateBackend` swapped in".
+/// An actor, not a plain struct, so concurrent mutation of `commentCalls`
+/// stays Swift 6-safe (matches `RecordingWriter` in AgentsStoreMoveTests.swift).
+private actor RecordingLocalityCLIWriter: KanbanCLIWriting {
+    struct CommentCall: Equatable {
+        let taskID: String
+        let body: String
+    }
+
+    private(set) var commentCalls: [CommentCall] = []
+
+    func create(_ draft: KanbanCreateDraft) async throws -> KanbanTask {
+        KanbanTask(id: UUID().uuidString, title: draft.title)
+    }
+
+    func comment(taskID: String, body: String) async throws {
+        commentCalls.append(CommentCall(taskID: taskID, body: body))
+    }
+
     func complete(taskID _: String, summary _: String) async throws {}
     func block(taskID _: String, reason _: String) async throws {}
     func unblock(taskID _: String) async throws {}

@@ -96,12 +96,12 @@ public final class AgentBoardAppModel {
     /// configured this resolves to the same local SQLite backend + 2s
     /// cadence as before backend selection existed.
     private func applyKanbanBackendSelection() {
-        let (backend, locality) = KanbanBackendFactory.makeBackend(
+        let (backend, writer, locality) = KanbanBackendFactory.makeBackend(
             dashboardURL: settingsStore.hermesDashboardURL,
             dashboardUsername: settingsStore.hermesDashboardUsername,
             dashboardPassword: settingsStore.hermesDashboardPassword
         )
-        agentsStore.updateBackend(backend, locality: locality)
+        agentsStore.updateBackend(backend, writer: writer, locality: locality)
     }
 
     /// Apply the current companion URL + token to the shared CompanionClient.

@@ -25,7 +25,7 @@ struct KanbanBackendFactoryTests {
 
     @Test
     func noDashboardURLSelectsLocalSQLiteBackend() {
-        let (backend, locality) = KanbanBackendFactory.makeBackend(
+        let (backend, _, locality) = KanbanBackendFactory.makeBackend(
             dashboardURL: nil,
             dashboardUsername: nil,
             dashboardPassword: nil
@@ -36,7 +36,7 @@ struct KanbanBackendFactoryTests {
 
     @Test
     func blankDashboardURLSelectsLocalSQLiteBackend() {
-        let (backend, locality) = KanbanBackendFactory.makeBackend(
+        let (backend, _, locality) = KanbanBackendFactory.makeBackend(
             dashboardURL: "   ",
             dashboardUsername: nil,
             dashboardPassword: nil
@@ -47,7 +47,7 @@ struct KanbanBackendFactoryTests {
 
     @Test
     func loopbackDashboardURLSelectsLocalSQLiteBackend() {
-        let (backend, locality) = KanbanBackendFactory.makeBackend(
+        let (backend, _, locality) = KanbanBackendFactory.makeBackend(
             dashboardURL: "http://127.0.0.1:9119",
             dashboardUsername: "admin",
             dashboardPassword: "secret"
@@ -58,13 +58,35 @@ struct KanbanBackendFactoryTests {
 
     @Test
     func tailscaleDashboardURLSelectsHTTPBackend() {
-        let (backend, locality) = KanbanBackendFactory.makeBackend(
+        let (backend, _, locality) = KanbanBackendFactory.makeBackend(
             dashboardURL: "http://100.120.154.96:9119",
             dashboardUsername: nil,
             dashboardPassword: nil
         )
         #expect(locality == .remote)
         #expect(backend is HTTPKanbanBackend)
+    }
+
+    // MARK: - Writer locality (issue #207 — read/write locality must never drift)
+
+    @Test
+    func localBranchSelectsLocalCLIWriter() {
+        let (_, writer, _) = KanbanBackendFactory.makeBackend(
+            dashboardURL: nil,
+            dashboardUsername: nil,
+            dashboardPassword: nil
+        )
+        #expect(writer is KanbanCLIWriter)
+    }
+
+    @Test
+    func tailscaleDashboardURLSelectsHTTPWriter() {
+        let (_, writer, _) = KanbanBackendFactory.makeBackend(
+            dashboardURL: "http://100.120.154.96:9119",
+            dashboardUsername: nil,
+            dashboardPassword: nil
+        )
+        #expect(writer is HTTPKanbanWriter)
     }
 
     // MARK: - Credential pairing

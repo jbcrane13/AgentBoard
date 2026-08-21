@@ -7,7 +7,7 @@ import os
 public final class AgentsStore {
     private let logger = Logger(subsystem: "com.agentboard.modern", category: "AgentsStore")
     private var kanbanData: any KanbanDataReading
-    private let cliWriter: any KanbanCLIWriting
+    private var cliWriter: any KanbanCLIWriting
     private let cache: any AgentBoardCacheProtocol
     private let settingsStore: SettingsStore
 
@@ -305,14 +305,26 @@ public final class AgentsStore {
 
     // MARK: - Backend Selection
 
-    /// Swap the active kanban backend + its locality — called by
-    /// `AgentBoardAppModel` whenever the active Hermes profile's dashboard
-    /// configuration changes (bootstrap, profile switch, or a saved
-    /// dashboard URL edit). Resets the live-update baseline so the first
-    /// poll against the new backend doesn't compare an event id from one
-    /// data source against a baseline recorded from another.
-    public func updateBackend(_ kanbanData: any KanbanDataReading, locality: KanbanBackendLocality) {
+    /// Swap the active kanban backend + writer + their shared locality —
+    /// called by `AgentBoardAppModel` whenever the active Hermes profile's
+    /// dashboard configuration changes (bootstrap, profile switch, or a
+    /// saved dashboard URL edit). The writer must always travel together
+    /// with the reader: they're selected as a pair by
+    /// `KanbanBackendFactory.makeBackend`, and swapping only the reader
+    /// here would silently let the board read one Hermes host while writes
+    /// (create/comment/complete/block/...) landed on a different one — the
+    /// exact drift `KanbanCLIWriter` always spawning the *local* `hermes`
+    /// binary caused before this fix (issue #207). Resets the live-update
+    /// baseline so the first poll against the new backend doesn't compare
+    /// an event id from one data source against a baseline recorded from
+    /// another.
+    public func updateBackend(
+        _ kanbanData: any KanbanDataReading,
+        writer: any KanbanCLIWriting,
+        locality: KanbanBackendLocality
+    ) {
         self.kanbanData = kanbanData
+        cliWriter = writer
         backendLocality = locality
         liveUpdatePollInterval = Self.normalLiveUpdateInterval(for: locality)
         hasLoggedLiveUpdateFailure = false

@@ -24,24 +24,34 @@ public enum KanbanBackendFactory {
     ///     unauthenticated host).
     ///   - dashboardPassword: Keychain-backed on the caller's side, never
     ///     persisted to disk with the rest of the profile.
+    ///
+    /// The returned `writer` always shares the read backend's locality: for
+    /// the remote branch this means constructing exactly one
+    /// `HermesDashboardClient` and handing that same instance to both
+    /// `HTTPKanbanBackend` and `HTTPKanbanWriter`. `HermesDashboardClient`
+    /// caches its resolved auth mode and session cookie in actor state, so
+    /// two separate clients would each perform their own login handshake
+    /// against the dashboard; sharing one avoids double-login and, more
+    /// importantly, is what guarantees reads and writes can never target
+    /// different hosts (issue #207).
     public static func makeBackend(
         dashboardURL: String?,
         dashboardUsername: String?,
         dashboardPassword: String?
-    ) -> (backend: any KanbanDataReading, locality: KanbanBackendLocality) {
+    ) -> (backend: any KanbanDataReading, writer: any KanbanCLIWriting, locality: KanbanBackendLocality) {
         guard let rawURL = dashboardURL?.trimmedOrNil,
               let url = URL(string: rawURL),
               let host = url.host else {
-            return (KanbanDataService(), .local)
+            return (KanbanDataService(), KanbanCLIWriter(), .local)
         }
 
         guard !isLoopbackHost(host) else {
-            return (KanbanDataService(), .local)
+            return (KanbanDataService(), KanbanCLIWriter(), .local)
         }
 
         let credentials = makeCredentials(username: dashboardUsername, password: dashboardPassword)
         let client = HermesDashboardClient(baseURL: url, credentials: credentials)
-        return (HTTPKanbanBackend(client: client), .remote)
+        return (HTTPKanbanBackend(client: client), HTTPKanbanWriter(client: client), .remote)
     }
 
     /// Pulled out of `makeBackend` as a pure function so credential pairing

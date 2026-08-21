@@ -89,8 +89,52 @@ public actor HermesDashboardClient {
     /// re-authentication + retry (dashboard sessions expire); a second
     /// consecutive `401` throws `notAuthenticated`.
     public func get<T: Decodable>(_ path: String, as type: T.Type) async throws -> T {
+        try await request(method: "GET", path: path, body: nil, as: type)
+    }
+
+    /// Issues `POST path` with a JSON-encoded `body`, authenticating with
+    /// whatever credential the current auth mode needs.
+    ///
+    /// A `401` triggers exactly one re-authentication + retry, same as
+    /// `get`. Retrying a non-idempotent POST like this is safe because a
+    /// `401` is rejected by the dashboard's auth layer *before* the route
+    /// handler runs — the first attempt never reached application code, so
+    /// nothing was applied server-side for the retry to duplicate. The
+    /// retry is really the first attempt that gets a chance to execute.
+    public func post<Body: Encodable & Sendable, T: Decodable>(
+        _ path: String,
+        body: Body,
+        as type: T.Type
+    ) async throws -> T {
+        try await request(method: "POST", path: path, body: encodeBody(body), as: type)
+    }
+
+    /// Issues `PATCH path` with a JSON-encoded `body`. See `post(_:body:as:)`
+    /// for why retrying after a single `401` is safe for a mutating request.
+    public func patch<Body: Encodable & Sendable, T: Decodable>(
+        _ path: String,
+        body: Body,
+        as type: T.Type
+    ) async throws -> T {
+        try await request(method: "PATCH", path: path, body: encodeBody(body), as: type)
+    }
+
+    private func encodeBody<Body: Encodable>(_ body: Body) throws -> Data {
+        do {
+            return try encoder.encode(body)
+        } catch {
+            throw DashboardError.requestFailed("failed to encode request body: \(error)")
+        }
+    }
+
+    private func request<T: Decodable>(
+        method: String,
+        path: String,
+        body: Data?,
+        as type: T.Type
+    ) async throws -> T {
         let mode = try await resolvedAuthMode()
-        let (data, response) = try await performRequest(path: path, mode: mode)
+        let (data, response) = try await performRequest(path: path, mode: mode, method: method, body: body)
         let http = try httpResponse(response, path: path)
 
         guard http.statusCode == 401 else {
@@ -100,7 +144,7 @@ public actor HermesDashboardClient {
 
         try await reauthenticate(mode: mode)
         let retryMode = authMode ?? mode
-        let (retryData, retryResponse) = try await performRequest(path: path, mode: retryMode)
+        let (retryData, retryResponse) = try await performRequest(path: path, mode: retryMode, method: method, body: body)
         let retryHTTP = try httpResponse(retryResponse, path: path)
 
         guard retryHTTP.statusCode != 401 else {
@@ -253,8 +297,18 @@ public actor HermesDashboardClient {
 
     // MARK: - Request plumbing
 
-    private func performRequest(path: String, mode: AuthMode) async throws -> (Data, URLResponse) {
+    private func performRequest(
+        path: String,
+        mode: AuthMode,
+        method: String,
+        body: Data?
+    ) async throws -> (Data, URLResponse) {
         var request = URLRequest(url: endpointURL(path))
+        request.httpMethod = method
+        if let body {
+            request.httpBody = body
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        }
         applyAuthHeaders(&request, mode: mode)
         return try await send(request)
     }

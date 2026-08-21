@@ -359,3 +359,25 @@ Agents → CompanionServer → FSEvents + ps
 
 
 *To add a new ADR: append with the next number, include date, status, decision, context, and consequences.*
+
+
+## ADR-024: Kanban writes follow reads to the remote dashboard
+**Date:** 2026-08-21
+**Status:** Implemented and verified
+**Decision:** Add a second `KanbanCLIWriting` conformer, `HTTPKanbanWriter`, that writes tasks to the Hermes dashboard over HTTP instead of to a local `~/.hermes/kanban.db`. `KanbanCLIWriter` (the local `hermes kanban` CLI wrapper) remains the local path and is unchanged. The write backend is now selected alongside the read backend by `KanbanBackendFactory` so they always target the same host.
+
+**Context:** ADR-023 wired reads to follow a remote dashboard via `HTTPKanbanBackend`, but writes still went through `KanbanCLIWriter`, which spawns the local `hermes` binary. This created silent divergence — with a remote dashboard configured, the app would read from host B while writing to host A, so every create/comment/complete call appeared optimistically then vanished on the next poll (issue #207, part 2).
+
+**Solution:** 
+- Add `HermesDashboardClient.post` and `.patch` methods (both reuse the existing `get` method's auth + single-401-retry semantics).
+- Implement `HTTPKanbanWriter: KanbanCLIWriting` wrapping `HermesDashboardClient` to map each write operation to its HTTP endpoint: create → POST, comment → POST /comments, complete/block/unblock/archive/assign → PATCH with status/reason/assignee fields.
+- Update `KanbanBackendFactory.makeBackend` to return a 3-tuple `(backend: any KanbanDataReading, writer: any KanbanCLIWriting, locality: KanbanBackendLocality)`. Local mode returns `KanbanDataService` + `KanbanCLIWriter`; remote mode constructs ONE `HermesDashboardClient` and hands it to both `HTTPKanbanBackend` and `HTTPKanbanWriter` (shared auth state avoids double-login).
+- Update `AgentsStore.updateBackend(_:writer:locality:)` to accept and assign the writer alongside the reader, so they stay in sync when the profile or dashboard config changes.
+
+**Consequences:**
+- Read and write operations now always target the same host. Profile changes trigger backend reselection atomically for both paths.
+- The HTTP write path exposes two divergences from the CLI: promote has no dedicated endpoint and uses PATCH {status:"ready"}, same as unblock (a direct status write equivalent to the dashboard's drag-drop, skipping `promote_task`'s parent-dependency guard and audit-trail event); and unblock/promote send identical requests despite staying separate methods (the protocol layer distinguishes them semantically, even though the wire operation is the same).
+- All write endpoints decode a JSON response but return `Void` (comments, status changes, reassignment are all asynchronous and don't return a modified task). The response is decoded into a throwaway zero-property type to verify JSON well-formedness without needing a Data-returning client API.
+- Tests verify endpoint selection (local branch yields `KanbanCLIWriter`, remote yields `HTTPKanbanWriter`), backend swap liveness (a new writer is used after `updateBackend`), and the HTTP writer's exact method/path/body against MockURLProtocol-backed instances for every operation.
+
+**Related:** ADR-011 (local kanban path), ADR-021 (live update polling), ADR-023 (HTTP read path).

@@ -107,12 +107,12 @@ struct KanbanBackendReselectionTests {
 
         store.onActiveProfileChanged = { [weak store] in
             guard let store else { return }
-            let (backend, locality) = KanbanBackendFactory.makeBackend(
+            let (backend, writer, locality) = KanbanBackendFactory.makeBackend(
                 dashboardURL: store.hermesDashboardURL,
                 dashboardUsername: store.hermesDashboardUsername,
                 dashboardPassword: store.hermesDashboardPassword
             )
-            agents.updateBackend(backend, locality: locality)
+            agents.updateBackend(backend, writer: writer, locality: locality)
         }
 
         store.selectHermesProfile(id: "remote")

@@ -229,3 +229,7 @@ fix the ui theme
 - **`KanbanStatus` was missing `scheduled` and `review`** — two of the nine in `hermes_cli/kanban_db.py` `VALID_STATUSES`. Tasks in those states decoded to `.todo` and appeared in the wrong column. Both backends now order events `(created_at DESC, id DESC)` so ties are stable.
 - **Kanban is still machine-local by default.** `KanbanDataService` reads `~/.hermes/kanban.db` and `KanbanCLIWriter` shells out to the local `hermes`, so pointing chat at a remote gateway leaves the board on local data with no error. Tracked in #207.
 
+
+
+## Activity — 2026-08-21
+- **HTTP write path for remote kanban (ADR-024, closes #207):** `HermesDashboardClient` gained `post`/`patch` methods sharing `get`'s auth + single-401-retry semantics. New `HTTPKanbanWriter: KanbanCLIWriting` wraps the client and maps writes to dashboard plugin endpoints: create → POST, comment → POST /comments, complete/block/unblock/promote/archive/assign → PATCH with status/reason/assignee fields. `KanbanBackendFactory.makeBackend` now returns `(backend:writer:locality:)` 3-tuple; remote mode constructs ONE shared `HermesDashboardClient` for both reader (`HTTPKanbanBackend`) and writer (`HTTPKanbanWriter`) to avoid double-login and guarantee read/write host parity. `AgentsStore.updateBackend` accepts the writer alongside the reader. Profile switches atomically reselect both backends together (issue #207). Verified HTTP write endpoints against live loopback dashboard; builds green on all three schemes; unit tests pass.
