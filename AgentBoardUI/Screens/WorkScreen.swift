@@ -368,7 +368,6 @@ struct WorkScreen: View {
         ScrollView(showsIndicators: false) {
             LazyVStack(spacing: 20) {
                 HStack {
-                    filterRepositoryPicker
                     Spacer()
                     Text("\(filteredItems.count) items")
                         .font(.caption)

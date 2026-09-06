@@ -98,6 +98,17 @@ struct NativeSwiftUIInterfaceTests {
         #expect(createSource.contains("_selectedRepository = State(initialValue: initialRepository)"))
     }
 
+    /// #209: the repo picker lives in the header, which is rendered in every
+    /// layout. Rendering it again inside `listLayout` stacked two selectors
+    /// on the compact (iOS) Work screen.
+    @Test func workBoardRendersRepositoryPickerOnce() throws {
+        let source = try Self.source("AgentBoardUI/Screens/WorkScreen.swift")
+
+        let placements = source.components(separatedBy: "filterRepositoryPicker").count - 1
+        // One declaration (`private var filterRepositoryPicker`) + one placement in `header`.
+        #expect(placements == 2)
+    }
+
     @Test func launchedSessionsOpenTerminalInDesktopShell() throws {
         let source = try Self.source("AgentBoard/DesktopRootView.swift")
 
